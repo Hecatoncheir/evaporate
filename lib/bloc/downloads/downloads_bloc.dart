@@ -48,6 +48,9 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     on<DownloadPauseRequested>(_onPauseRequested);
     on<DownloadResumeRequested>(_onResumeRequested);
     on<DownloadCancelRequested>(_onCancelRequested);
+    on<DownloadReordered>((event, emit) async {
+      await engine.reorder(event.id, event.newIndex);
+    });
     on<EngineTasksChanged>(_onTasksChanged);
     on<EngineStatusChanged>((event, emit) {
       emit(state.copyWith(engine: event.status));

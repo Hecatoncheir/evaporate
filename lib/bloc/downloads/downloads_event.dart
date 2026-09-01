@@ -57,6 +57,17 @@ final class DownloadCancelRequested extends DownloadsEvent {
   List<Object?> get props => [game.id];
 }
 
+/// Пользователь перетащил задачу в очереди.
+final class DownloadReordered extends DownloadsEvent {
+  const DownloadReordered({required this.id, required this.newIndex});
+
+  final String id;
+  final int newIndex;
+
+  @override
+  List<Object?> get props => [id, newIndex];
+}
+
 /// Движок прислал новый снимок задач. Событие приходит из его потока —
 /// раз в секунду, пока идёт хотя бы одна загрузка.
 final class EngineTasksChanged extends DownloadsEvent {

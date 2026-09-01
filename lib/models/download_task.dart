@@ -21,6 +21,7 @@ class DownloadTask extends Equatable {
     this.isMetadata = false,
     this.followedBy,
     this.infoHash,
+    this.isQueued = false,
   });
 
   final String id;
@@ -44,6 +45,10 @@ class DownloadTask extends Equatable {
   /// Infohash торрента. После перезапуска приложения gid меняется, и связать
   /// задачу с игрой можно только по нему.
   final String? infoHash;
+
+  /// Задача ждёт свободного слота: скачивание начнётся, когда закончится
+  /// что-то из активных.
+  final bool isQueued;
 
   double get progress {
     if (totalBytes <= 0) return 0;
@@ -79,6 +84,7 @@ class DownloadTask extends Equatable {
     isMetadata,
     followedBy,
     infoHash,
+    isQueued,
   ];
 
   String get stateLabel => switch (state) {

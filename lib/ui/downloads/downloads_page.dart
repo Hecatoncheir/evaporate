@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/downloads/downloads_bloc.dart';
+import '../../bloc/library/library_bloc.dart';
+import '../../bloc/settings/settings_bloc.dart';
 import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
-import '../../bloc/downloads/downloads_bloc.dart';
-import '../../bloc/library/library_bloc.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
 
+/// Загрузки: что качается сейчас и что пойдёт следом.
+///
+/// Очередь пользователь выстраивает сам — перетаскиванием игры из левого
+/// списка и перестановкой элементов внутри очереди.
 class DownloadsPage extends StatelessWidget {
   const DownloadsPage({super.key});
 
@@ -17,106 +21,471 @@ class DownloadsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final downloads = context.watch<DownloadsBloc>().state;
     final library = context.watch<LibraryBloc>().state;
-    final status = downloads.engine;
-    final tasks = downloads.tasks;
+    final maxConcurrent = context.select<SettingsBloc, int>(
+      (bloc) => bloc.state.maxConcurrent,
+    );
+
+    // Порядок задач в состоянии — это и есть порядок очереди.
+    final active = downloads.tasks
+        .where((t) => !t.isQueued && t.state != DownloadState.complete)
+        .toList();
+    final queued = downloads.tasks.where((t) => t.isQueued).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 16),
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
           child: Row(
             children: [
               const Text(
                 'Загрузки',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               ),
+              const SizedBox(width: 12),
+              Text(
+                'одновременно — $maxConcurrent',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: EvaporateTheme.textSecondary,
+                ),
+              ),
               const Spacer(),
-              if (status.state == EngineState.failed ||
-                  status.state == EngineState.missingBinary)
+              if (downloads.engine.state == EngineState.failed)
                 OutlinedButton.icon(
                   onPressed: () => context.read<DownloadsBloc>().add(
-                    const DownloadEngineStartRequested(),
+                    const DownloadEngineRestartRequested(),
                   ),
                   icon: const Icon(Icons.refresh, size: 16),
-                  label: const Text('Повторить запуск'),
+                  label: const Text('Перезапустить движок'),
                 ),
             ],
           ),
         ),
-        if (!status.isReady)
+        if (downloads.engine.state == EngineState.failed)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: _EngineNotice(status: status),
+            child: _EngineFailure(message: downloads.engine.message),
           ),
         Expanded(
-          child: tasks.isEmpty
-              ? const EmptyState(
-                  icon: Icons.download_outlined,
-                  title: 'Активных загрузок нет',
-                  description:
-                      'Добавьте игру в библиотеке — magnet-ссылкой '
-                      'или .torrent-файлом — и она появится здесь.',
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 280,
+                child: _AvailableGames(
+                  library: library,
+                  tasks: downloads.tasks,
+                ),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: _QueueColumn(
+                  active: active,
+                  queued: queued,
+                  library: library,
+                  allTasks: downloads.tasks,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Левая колонка: игры, которые можно поставить в очередь.
+class _AvailableGames extends StatelessWidget {
+  const _AvailableGames({required this.library, required this.tasks});
+
+  final LibraryState library;
+  final List<DownloadTask> tasks;
+
+  @override
+  Widget build(BuildContext context) {
+    final busyIds = tasks.map((t) => t.id).toSet();
+    final available = library.games.where((game) {
+      final source = game.source;
+      if (source == null || source.kind == GameSourceKind.localFolder) {
+        return false;
+      }
+      if (game.isInstalled) return false;
+      final hash = game.infoHash;
+      return hash == null || !busyIds.contains(hash);
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Text(
+            'Можно скачать',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(
+          child: available.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'Все игры с источником уже в очереди или установлены.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: EvaporateTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-                    return _TaskCard(
-                      task: task,
-                      game: _findGame(library, task),
-                    );
-                  },
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  itemCount: available.length,
+                  itemBuilder: (context, index) =>
+                      _DraggableGame(game: available[index]),
                 ),
         ),
       ],
     );
   }
-
-  static Game? _findGame(LibraryState library, DownloadTask task) {
-    for (final game in library.games) {
-      if (game.downloadGid == task.id) return game;
-    }
-    return null;
-  }
 }
 
-/// Объясняет, что делать, если движок недоступен: без aria2c приложение
-/// остаётся рабочим, но качать не может.
-class _EngineNotice extends StatelessWidget {
-  const _EngineNotice({required this.status});
+class _DraggableGame extends StatelessWidget {
+  const _DraggableGame({required this.game});
 
-  final EngineStatus status;
+  final Game game;
 
   @override
   Widget build(BuildContext context) {
-    final color = status.state == EngineState.failed
-        ? EvaporateTheme.danger
-        : EvaporateTheme.warning;
+    final tile = _GameChip(game: game);
 
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Draggable<Game>(
+        data: game,
+        feedback: Material(
+          color: Colors.transparent,
+          child: Opacity(
+            opacity: 0.9,
+            child: SizedBox(width: 250, child: _GameChip(game: game)),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.35, child: tile),
+        child: tile,
+      ),
+    );
+  }
+}
+
+class _GameChip extends StatelessWidget {
+  const _GameChip({required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        color: EvaporateTheme.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: EvaporateTheme.outline),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 18, color: color),
-          const SizedBox(width: 12),
+          const Icon(
+            Icons.drag_indicator,
+            size: 16,
+            color: EvaporateTheme.textSecondary,
+          ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  status.message ?? status.label,
-                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
+            child: Text(
+              game.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Правая колонка: активные загрузки и очередь, которую можно переставлять.
+class _QueueColumn extends StatelessWidget {
+  const _QueueColumn({
+    required this.active,
+    required this.queued,
+    required this.library,
+    required this.allTasks,
+  });
+
+  final List<DownloadTask> active;
+  final List<DownloadTask> queued;
+  final LibraryState library;
+  final List<DownloadTask> allTasks;
+
+  Game? _gameFor(DownloadTask task) {
+    for (final game in library.games) {
+      if (game.downloadGid == task.id || game.infoHash == task.id) return game;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<Game>(
+      onAcceptWithDetails: (details) {
+        final game = details.data;
+        final source = game.source;
+        if (source == null) return;
+        // Новая задача встаёт в конец очереди — как в любом менеджере загрузок.
+        context.read<DownloadsBloc>().add(
+          DownloadRequested(game: game, source: source),
+        );
+      },
+      builder: (context, candidate, rejected) {
+        final highlight = candidate.isNotEmpty;
+        return Container(
+          decoration: BoxDecoration(
+            color: highlight
+                ? EvaporateTheme.primary.withValues(alpha: 0.06)
+                : null,
+            border: Border.all(
+              color: highlight ? EvaporateTheme.primary : Colors.transparent,
+            ),
+          ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+            children: [
+              _SectionTitle('Сейчас скачивается', trailing: '${active.length}'),
+              if (active.isEmpty)
+                const _Hint('Ничего не качается.')
+              else
+                for (final task in active)
+                  _TaskCard(task: task, game: _gameFor(task)),
+              const SizedBox(height: 18),
+              _SectionTitle('Дальше в очереди', trailing: '${queued.length}'),
+              if (queued.isEmpty)
+                const _Hint(
+                  'Очередь пуста. Перетащите сюда игру из списка слева — '
+                  'она начнёт качаться, когда освободится место.',
+                )
+              else
+                _QueueList(queued: queued, allTasks: allTasks, column: this),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Очередь с перестановкой перетаскиванием.
+class _QueueList extends StatelessWidget {
+  const _QueueList({
+    required this.queued,
+    required this.allTasks,
+    required this.column,
+  });
+
+  final List<DownloadTask> queued;
+  final List<DownloadTask> allTasks;
+  final _QueueColumn column;
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: queued.length,
+      // onReorderItem уже учитывает изъятие перемещаемого элемента,
+      // поэтому индекс соседа ищем в списке без него.
+      onReorderItem: (oldIndex, newIndex) {
+        final moved = queued[oldIndex];
+        final rest = [...queued]..removeAt(oldIndex);
+        // Движку нужна позиция в общем порядке задач, а не внутри очереди:
+        // сосед подсказывает, куда именно вставить.
+        final target = newIndex < rest.length ? rest[newIndex] : null;
+        final globalIndex = target == null
+            ? allTasks.length - 1
+            : allTasks.indexWhere((t) => t.id == target.id);
+        if (globalIndex == -1) return;
+        context.read<DownloadsBloc>().add(
+          DownloadReordered(id: moved.id, newIndex: globalIndex),
+        );
+      },
+      itemBuilder: (context, index) {
+        final task = queued[index];
+        return ReorderableDragStartListener(
+          key: ValueKey(task.id),
+          index: index,
+          child: _QueuedCard(
+            task: task,
+            position: index + 1,
+            game: column._gameFor(task),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _QueuedCard extends StatelessWidget {
+  const _QueuedCard({
+    required this.task,
+    required this.position,
+    required this.game,
+  });
+
+  final DownloadTask task;
+  final int position;
+  final Game? game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.drag_indicator,
+              size: 17,
+              color: EvaporateTheme.textSecondary,
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 22,
+              child: Text(
+                '$position',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: EvaporateTheme.textSecondary,
                 ),
-              ],
+              ),
+            ),
+            Expanded(
+              child: Text(
+                game?.title ?? task.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13.5),
+              ),
+            ),
+            const Text(
+              'ждёт очереди',
+              style: TextStyle(
+                fontSize: 12,
+                color: EvaporateTheme.textSecondary,
+              ),
+            ),
+            if (game != null)
+              IconButton(
+                onPressed: () => context.read<DownloadsBloc>().add(
+                  DownloadCancelRequested(game!),
+                ),
+                icon: const Icon(Icons.close, size: 16),
+                tooltip: 'Убрать из очереди',
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text, {this.trailing});
+
+  final String text;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Text(
+            text,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            Text(
+              trailing!,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: EvaporateTheme.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Hint extends StatelessWidget {
+  const _Hint(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12.5,
+          color: EvaporateTheme.textSecondary,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _EngineFailure extends StatelessWidget {
+  const _EngineFailure({this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: EvaporateTheme.danger.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: EvaporateTheme.danger.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline,
+            size: 18,
+            color: EvaporateTheme.danger,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message ?? 'Движок загрузок остановлен',
+              style: const TextStyle(
+                color: EvaporateTheme.danger,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -167,20 +536,20 @@ class _TaskCard extends StatelessWidget {
                 ),
                 if (game != null) ...[
                   const SizedBox(width: 8),
-                  if (task.state == DownloadState.active)
-                    IconButton(
-                      onPressed: () =>
-                          downloads.add(DownloadPauseRequested(game!)),
-                      icon: const Icon(Icons.pause, size: 17),
-                      tooltip: 'Пауза',
-                      visualDensity: VisualDensity.compact,
-                    )
-                  else if (task.state == DownloadState.paused)
+                  if (task.state == DownloadState.paused)
                     IconButton(
                       onPressed: () =>
                           downloads.add(DownloadResumeRequested(game!)),
                       icon: const Icon(Icons.play_arrow, size: 17),
                       tooltip: 'Продолжить',
+                      visualDensity: VisualDensity.compact,
+                    )
+                  else
+                    IconButton(
+                      onPressed: () =>
+                          downloads.add(DownloadPauseRequested(game!)),
+                      icon: const Icon(Icons.pause, size: 17),
+                      tooltip: 'Пауза',
                       visualDensity: VisualDensity.compact,
                     ),
                   IconButton(
@@ -218,10 +587,6 @@ class _TaskCard extends StatelessWidget {
                   const Spacer(),
                   if (task.downloadSpeed > 0) ...[
                     Text('↓ ${formatSpeed(task.downloadSpeed)}'),
-                    const SizedBox(width: 12),
-                  ],
-                  if (task.uploadSpeed > 0) ...[
-                    Text('↑ ${formatSpeed(task.uploadSpeed)}'),
                     const SizedBox(width: 12),
                   ],
                   if (task.seeders > 0) ...[

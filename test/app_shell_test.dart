@@ -33,7 +33,8 @@ void main() {
 
     await tester.tap(find.text('Загрузки'));
     await tester.pumpAndSettle();
-    expect(find.text('Активных загрузок нет'), findsOneWidget);
+    expect(find.text('Сейчас скачивается'), findsOneWidget);
+    expect(find.text('Дальше в очереди'), findsOneWidget);
 
     await tester.tap(find.text('Сохранения'));
     await tester.pumpAndSettle();

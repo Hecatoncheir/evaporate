@@ -43,7 +43,8 @@ void main() {
 
       await harness.tapButton(tester, GamepadButton.rightBumper);
       expect(harness.nav.state.section, 1);
-      expect(find.text('Активных загрузок нет'), findsOneWidget);
+      expect(find.text('Сейчас скачивается'), findsOneWidget);
+      expect(find.text('Дальше в очереди'), findsOneWidget);
 
       await harness.tapButton(tester, GamepadButton.leftBumper);
       expect(harness.nav.state.section, 0);

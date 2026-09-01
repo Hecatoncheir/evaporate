@@ -175,6 +175,53 @@ void main() {
       engine.dispose();
     });
 
+    test('перетаскивание меняет порядок очереди', () async {
+      final engine = buildEngine(maxConcurrent: 1);
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await engine.addMagnet(magnet(hashC), dir: tmp.path);
+      expect(engine.positionOf(hashC), 2);
+
+      // Пользователь тянет третью задачу на место второй.
+      await engine.reorder(hashC, 1);
+
+      expect(engine.positionOf(hashC), 1);
+      expect(engine.positionOf(hashB), 2);
+      expect(engine.tasks.value.map((t) => t.id), [
+        hashA,
+        hashC,
+        hashB,
+      ], reason: 'интерфейс показывает задачи в порядке очереди');
+      engine.dispose();
+    });
+
+    test('поднятая в очереди задача стартует следующей', () async {
+      final engine = buildEngine(maxConcurrent: 1);
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await engine.addMagnet(magnet(hashC), dir: tmp.path);
+      expect(engine.startedIds, {hashA});
+
+      await engine.reorder(hashC, 1);
+      await engine.remove(hashA);
+
+      expect(engine.startedIds, {
+        hashC,
+      }, reason: 'освободившийся слот достаётся тому, кого подняли');
+      engine.dispose();
+    });
+
+    test('очередь помечена как ожидающая, активная — нет', () async {
+      final engine = buildEngine(maxConcurrent: 1);
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await engine.refresh();
+
+      expect(engine.taskById(hashA)?.isQueued, isFalse);
+      expect(engine.taskById(hashB)?.isQueued, isTrue);
+      engine.dispose();
+    });
+
     test('увеличение лимита раздаёт слоты сразу', () async {
       final engine = buildEngine(maxConcurrent: 1);
       await engine.addMagnet(magnet(hashA), dir: tmp.path);
@@ -251,6 +298,23 @@ void main() {
 
       expect(second.tasks.value.map((t) => t.id), containsAll([hashA, hashB]));
       expect(second.status.value.state, EngineState.ready);
+      second.dispose();
+    });
+
+    test('порядок очереди переживает перезапуск', () async {
+      final first = buildEngine(maxConcurrent: 1);
+      await first.addMagnet(magnet(hashA), dir: tmp.path);
+      await first.addMagnet(magnet(hashB), dir: tmp.path);
+      await first.addMagnet(magnet(hashC), dir: tmp.path);
+      await first.reorder(hashC, 0);
+      first.dispose();
+
+      final second = buildEngine(maxConcurrent: 1);
+      await second.start();
+      await second.refresh();
+
+      expect(second.tasks.value.map((t) => t.id), [hashC, hashA, hashB]);
+      expect(second.startedIds, {hashC});
       second.dispose();
     });
 
