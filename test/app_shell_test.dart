@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
+import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,6 +100,37 @@ void main() {
     // Геймпад не подключён — показываем клавиатурные подсказки.
     expect(find.text('Навигация'), findsOneWidget);
     expect(find.text('Выбрать'), findsOneWidget);
+  });
+
+  testWidgets('на карточке качающейся игры виден процент', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    final id = harness.addGame(title: 'Качается');
+    await harness.pump(tester);
+
+    // Привязываем игру к задаче движка и подаём прогресс 42%.
+    final game = harness.library.state.gameById(id)!;
+    harness.library.add(
+      GameUpdated(
+        game.copyWith(status: GameStatus.downloading, downloadGid: 'gid-1'),
+      ),
+    );
+    harness.downloads.add(
+      const EngineTasksChanged([
+        DownloadTask(
+          id: 'gid-1',
+          name: 'раздача',
+          state: DownloadState.active,
+          totalBytes: 1000,
+          completedBytes: 420,
+        ),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('42%'), findsWidgets);
+    expect(find.byType(LinearProgressIndicator), findsWidgets);
   });
 
   testWidgets('поиск фильтрует список игр', (tester) async {

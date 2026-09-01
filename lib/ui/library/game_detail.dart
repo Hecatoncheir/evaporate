@@ -97,6 +97,9 @@ class GameDetail extends StatelessWidget {
 enum _RemoveChoice { libraryOnly, withFiles }
 
 /// Обложка из Steam, если её удалось найти; иначе — первая буква названия.
+///
+/// Пока игра качается, поверх обложки идёт полоса прогресса с процентом:
+/// состояние загрузки видно сразу, не вчитываясь в панель ниже.
 class _Cover extends StatelessWidget {
   const _Cover({required this.game});
 
@@ -105,6 +108,10 @@ class _Cover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = game.coverUrl;
+    final task = context.select<DownloadsBloc, DownloadTask?>(
+      (bloc) => bloc.state.taskForGame(game),
+    );
+    final showProgress = task != null && task.state != DownloadState.complete;
 
     return Container(
       width: url == null ? 64 : 132,
@@ -115,17 +122,22 @@ class _Cover extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: EvaporateTheme.outline),
       ),
-      alignment: Alignment.center,
-      child: url == null
-          ? Text(
-              game.title.characters.take(1).toString().toUpperCase(),
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                color: EvaporateTheme.textSecondary,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (url == null)
+            Center(
+              child: Text(
+                game.title.characters.take(1).toString().toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: EvaporateTheme.textSecondary,
+                ),
               ),
             )
-          : Image.network(
+          else
+            Image.network(
               url,
               fit: BoxFit.cover,
               // Обложка — украшение: не грузится, значит её просто нет.
@@ -135,6 +147,60 @@ class _Cover extends StatelessWidget {
                 color: EvaporateTheme.textSecondary,
               ),
             ),
+          if (showProgress) _CoverProgress(task: task),
+        ],
+      ),
+    );
+  }
+}
+
+/// Полоса прогресса поверх обложки.
+class _CoverProgress extends StatelessWidget {
+  const _CoverProgress({required this.task});
+
+  final DownloadTask task;
+
+  @override
+  Widget build(BuildContext context) {
+    // У метаданных и у задачи в очереди процента ещё нет — показываем статус.
+    final indeterminate = task.isMetadata || task.totalBytes == 0;
+    final label = switch (task) {
+      _ when task.isQueued => 'в очереди',
+      _ when task.isMetadata => 'метаданные',
+      _ when task.state == DownloadState.paused => 'пауза',
+      _ when indeterminate => '…',
+      _ => '${(task.progress * 100).toStringAsFixed(0)}%',
+    };
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.62),
+        padding: const EdgeInsets.fromLTRB(6, 3, 6, 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 1.2,
+              ),
+            ),
+            const SizedBox(height: 3),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: indeterminate ? null : task.progress,
+                minHeight: 3,
+                backgroundColor: Colors.white24,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
