@@ -170,6 +170,19 @@ final class SnapshotDeleted extends LibraryEvent {
   List<Object?> get props => [snapshot.id];
 }
 
+/// Подтянуть описание и обложку из каталога Steam по имени раздачи.
+final class SteamLookupRequested extends LibraryEvent {
+  const SteamLookupRequested(this.game, {this.query});
+
+  final Game game;
+
+  /// Имя раздачи, если оно отличается от названия игры в библиотеке.
+  final String? query;
+
+  @override
+  List<Object?> get props => [game.id, query];
+}
+
 final class SyncFolderScanRequested extends LibraryEvent {
   const SyncFolderScanRequested();
 }

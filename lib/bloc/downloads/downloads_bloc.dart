@@ -366,6 +366,12 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
 
       library.add(GameUpdated(updated));
       await library.persist();
+
+      // Имя раздачи известно только сейчас — по нему и ищем игру в Steam.
+      if (updated.steamAppId == null) {
+        library.add(SteamLookupRequested(updated, query: task.name));
+      }
+
       emit(state.copyWith(notice: _notice('«${game.title}» загружена')));
       _notifySystem(
         AppNotification(

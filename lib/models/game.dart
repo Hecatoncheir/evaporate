@@ -41,6 +41,9 @@ class Game {
     this.executablePath,
     this.launchArgs = const [],
     this.coverPath,
+    this.coverUrl,
+    this.description,
+    this.steamAppId,
     this.notes,
     this.saveProfile = const SaveProfile(),
     this.playtime = Duration.zero,
@@ -64,6 +67,14 @@ class Game {
   final String? executablePath;
   final List<String> launchArgs;
   final String? coverPath;
+
+  /// Обложка из каталога Steam: показывается прямо по ссылке, локально
+  /// ничего не скачиваем.
+  final String? coverUrl;
+  final String? description;
+
+  /// Идентификатор в Steam — чтобы не искать игру повторно.
+  final int? steamAppId;
   final String? notes;
   final SaveProfile saveProfile;
   final Duration playtime;
@@ -91,6 +102,9 @@ class Game {
     Object? executablePath = _u,
     List<String>? launchArgs,
     Object? coverPath = _u,
+    Object? coverUrl = _u,
+    Object? description = _u,
+    Object? steamAppId = _u,
     Object? notes = _u,
     SaveProfile? saveProfile,
     Duration? playtime,
@@ -112,6 +126,11 @@ class Game {
           : executablePath as String?,
       launchArgs: launchArgs ?? this.launchArgs,
       coverPath: coverPath == _u ? this.coverPath : coverPath as String?,
+      coverUrl: coverUrl == _u ? this.coverUrl : coverUrl as String?,
+      description: description == _u
+          ? this.description
+          : description as String?,
+      steamAppId: steamAppId == _u ? this.steamAppId : steamAppId as int?,
       notes: notes == _u ? this.notes : notes as String?,
       saveProfile: saveProfile ?? this.saveProfile,
       playtime: playtime ?? this.playtime,
@@ -169,6 +188,9 @@ class Game {
           .map((e) => e.toString())
           .toList(),
       coverPath: json['coverPath'] as String?,
+      coverUrl: json['coverUrl'] as String?,
+      description: json['description'] as String?,
+      steamAppId: json['steamAppId'] as int?,
       notes: json['notes'] as String?,
       saveProfile: json['saveProfile'] == null
           ? const SaveProfile()

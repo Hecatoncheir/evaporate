@@ -11,6 +11,7 @@ import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/launch/game_launcher.dart';
+import '../../services/metadata/steam_catalog.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../services/saves/save_manager.dart';
 import '../notice.dart';
@@ -30,7 +31,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     SaveManager? saveManager,
     GameLauncher? launcher,
     NotificationService? notifications,
-  }) : notifications = notifications ?? const NoopNotificationService(),
+    SteamCatalog? steam,
+  }) : steam = steam ?? SteamCatalog(),
+       notifications = notifications ?? const NoopNotificationService(),
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),
        _launcher = launcher ?? GameLauncher(),
@@ -48,6 +51,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SnapshotImportRequested>(_onImportRequested);
     on<SnapshotExportRequested>(_onExportRequested);
     on<SnapshotDeleted>(_onSnapshotDeleted);
+    on<SteamLookupRequested>(_onSteamLookup);
     on<SyncFolderScanRequested>(_onSyncScanRequested);
     on<SyncPackageApplied>(_onSyncPackageApplied);
 
@@ -59,6 +63,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Автоснимок после выхода из игры молчалив по замыслу, но его провал
   /// пользователь обязан заметить — иначе узнает, только потеряв прогресс.
   final NotificationService notifications;
+
+  /// Каталог Steam: по имени раздачи находит название, описание и обложку.
+  final SteamCatalog steam;
   final JsonStore _store;
   final SaveManager _saves;
   final GameLauncher _launcher;
@@ -73,6 +80,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   GameLauncher get launcher => _launcher;
 
   static String snapshotKey(String gameId) => 'snapshot:$gameId';
+
+  static String steamKey(String gameId) => 'steam:$gameId';
 
   static String launchKey(String gameId) => 'launch:$gameId';
 
@@ -474,6 +483,57 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final name =
         '$safeTitle - ${snapshot.deviceName}${SaveSnapshot.fileExtension}';
     return _saves.exportSnapshot(snapshot, p.join(folder, name));
+  }
+
+  /// Ищет игру в Steam и дополняет карточку. Название не трогаем: имя
+  /// в библиотеке пользователь мог задать сам.
+  Future<void> _onSteamLookup(
+    SteamLookupRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final key = steamKey(event.game.id);
+    emit(state.copyWith(busy: _withBusy(key, true)));
+    try {
+      final match = await steam.bestMatch(event.query ?? event.game.title);
+      if (match == null) {
+        emit(
+          state.copyWith(
+            busy: _withBusy(key, false),
+            notice: _notice('В Steam ничего похожего не нашлось'),
+          ),
+        );
+        return;
+      }
+
+      final current = state.gameById(event.game.id);
+      if (current == null) {
+        emit(state.copyWith(busy: _withBusy(key, false)));
+        return;
+      }
+
+      final index = state.games.indexWhere((g) => g.id == current.id);
+      final games = [...state.games];
+      games[index] = current.copyWith(
+        steamAppId: match.appId,
+        coverUrl: match.headerImage,
+        description: match.description,
+      );
+      emit(
+        state.copyWith(
+          games: games,
+          busy: _withBusy(key, false),
+          notice: _notice('Найдено в Steam: ${match.name}'),
+        ),
+      );
+      _schedulePersist();
+    } on Object catch (error) {
+      emit(
+        state.copyWith(
+          busy: _withBusy(key, false),
+          notice: _notice(error.toString(), isError: true),
+        ),
+      );
+    }
   }
 
   Future<void> _onSyncScanRequested(

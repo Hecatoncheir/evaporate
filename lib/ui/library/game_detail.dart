@@ -96,6 +96,49 @@ class GameDetail extends StatelessWidget {
 
 enum _RemoveChoice { libraryOnly, withFiles }
 
+/// Обложка из Steam, если её удалось найти; иначе — первая буква названия.
+class _Cover extends StatelessWidget {
+  const _Cover({required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = game.coverUrl;
+
+    return Container(
+      width: url == null ? 64 : 132,
+      height: 64,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: EvaporateTheme.surfaceHigh,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: EvaporateTheme.outline),
+      ),
+      alignment: Alignment.center,
+      child: url == null
+          ? Text(
+              game.title.characters.take(1).toString().toUpperCase(),
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: EvaporateTheme.textSecondary,
+              ),
+            )
+          : Image.network(
+              url,
+              fit: BoxFit.cover,
+              // Обложка — украшение: не грузится, значит её просто нет.
+              errorBuilder: (context, error, stack) => const Icon(
+                Icons.image_not_supported_outlined,
+                size: 20,
+                color: EvaporateTheme.textSecondary,
+              ),
+            ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header({required this.game});
 
@@ -106,24 +149,7 @@ class _Header extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: EvaporateTheme.surfaceHigh,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: EvaporateTheme.outline),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            game.title.characters.take(1).toString().toUpperCase(),
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              color: EvaporateTheme.textSecondary,
-            ),
-          ),
-        ),
+        _Cover(game: game),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -136,6 +162,19 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (game.description != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  game.description!,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: EvaporateTheme.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -544,6 +583,38 @@ class _InfoSection extends StatelessWidget {
           InfoRow(label: 'Добавлена', value: formatDateTime(game.addedAt)),
           if (game.sizeBytes > 0)
             InfoRow(label: 'Размер', value: formatBytes(game.sizeBytes)),
+          if (game.steamAppId != null)
+            InfoRow(label: 'Steam', value: 'appid ${game.steamAppId}'),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Builder(
+              builder: (context) {
+                final busy = context.select<LibraryBloc, bool>(
+                  (bloc) => bloc.state.isBusy(LibraryBloc.steamKey(game.id)),
+                );
+                return OutlinedButton.icon(
+                  onPressed: busy
+                      ? null
+                      : () => context.read<LibraryBloc>().add(
+                          SteamLookupRequested(game),
+                        ),
+                  icon: busy
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.travel_explore, size: 16),
+                  label: Text(
+                    game.steamAppId == null
+                        ? 'Найти в Steam'
+                        : 'Обновить из Steam',
+                  ),
+                );
+              },
+            ),
+          ),
           if (source != null)
             InfoRow(
               label: 'Источник',
