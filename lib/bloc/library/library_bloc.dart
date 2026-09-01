@@ -32,7 +32,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     GameLauncher? launcher,
     NotificationService? notifications,
     SteamCatalog? steam,
-  }) : steam = steam ?? SteamCatalog(),
+  }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        notifications = notifications ?? const NoopNotificationService(),
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),

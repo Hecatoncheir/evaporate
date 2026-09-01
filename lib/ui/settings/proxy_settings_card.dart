@@ -139,7 +139,23 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            value: proxy.useForSteam,
+            onChanged: proxy.enabled
+                ? (value) => update(proxy.copyWith(useForSteam: value))
+                : null,
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Применять к запросам Steam',
+              style: TextStyle(fontSize: 13),
+            ),
+            subtitle: const Text(
+              'Поиск обложек и описаний пойдёт через тот же прокси',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 6),
           if (proxy.kind == ProxyKind.http)
             const _Warning(
               'HTTP-прокси покрывает только трекеры и обычные загрузки. '

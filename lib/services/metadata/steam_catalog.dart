@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
+import 'package:socks5_proxy/socks_client.dart' as socks;
 
+import '../../models/proxy_settings.dart';
 import 'release_name.dart';
 
 /// Игра, найденная в каталоге Steam.
@@ -47,10 +50,25 @@ class SteamCatalog {
   SteamCatalog({
     Future<String> Function(Uri uri)? fetch,
     this.language = 'russian',
-  }) : _fetch = fetch ?? _httpFetch;
+    ProxySettings Function()? proxy,
+  }) : _proxy = proxy ?? _noProxy {
+    _fetch = fetch;
+  }
 
-  final Future<String> Function(Uri uri) _fetch;
+  /// Подменяется в тестах, чтобы не ходить в сеть.
+  late final Future<String> Function(Uri uri)? _fetch;
+
+  /// Настройки читаются на каждый запрос: пользователь мог поменять их,
+  /// пока приложение открыто.
+  final ProxySettings Function() _proxy;
   final String language;
+
+  static ProxySettings _noProxy() => const ProxySettings();
+
+  Future<String> _request(Uri uri) {
+    final override = _fetch;
+    return override != null ? override(uri) : _httpFetch(uri);
+  }
 
   static const _searchLimit = 8;
 
@@ -68,7 +86,7 @@ class SteamCatalog {
       'cc': 'ru',
     });
 
-    final body = await _fetch(uri);
+    final body = await _request(uri);
     return parseSearch(body);
   }
 
@@ -79,7 +97,7 @@ class SteamCatalog {
       'l': language,
     });
 
-    final body = await _fetch(uri);
+    final body = await _request(uri);
     return parseDetails(body, appId);
   }
 
@@ -165,9 +183,67 @@ class SteamCatalog {
     }
   }
 
-  static Future<String> _httpFetch(Uri uri) async {
+  /// Готовит клиент под настройки прокси.
+  ///
+  /// `HttpClient` умеет только HTTP-прокси, поэтому SOCKS5 подключается
+  /// подменой фабрики соединений: домен уходит в прокси нерезолвленным,
+  /// и DNS-запрос не утекает мимо него.
+  /// Значение для `findProxy` или null, если HTTP-прокси не нужен.
+  ///
+  /// Вынесено отдельно: у `HttpClient` нет геттера `findProxy`, поэтому
+  /// проверить применённую настройку можно только на этом уровне.
+  @visibleForTesting
+  String? httpProxyDirective() {
+    final proxy = _proxy();
+    if (!_appliesToSteam(proxy) || proxy.kind != ProxyKind.http) return null;
+    return 'PROXY ${_hostOf(proxy)}:${proxy.port}';
+  }
+
+  /// SOCKS5 идёт мимо `findProxy` — через подмену фабрики соединений.
+  @visibleForTesting
+  bool usesSocksTunnel() {
+    final proxy = _proxy();
+    return _appliesToSteam(proxy) && proxy.kind == ProxyKind.socks5;
+  }
+
+  static bool _appliesToSteam(ProxySettings proxy) =>
+      proxy.isUsable && proxy.useForSteam;
+
+  static String _hostOf(ProxySettings proxy) =>
+      proxy.host.trim().replaceFirst(RegExp(r'^\w+://'), '');
+
+  void configureClient(HttpClient client) {
+    final proxy = _proxy();
+    if (!_appliesToSteam(proxy)) return;
+
+    final host = _hostOf(proxy);
+    switch (proxy.kind) {
+      case ProxyKind.socks5:
+        socks.SocksTCPClient.assignToHttpClient(client, [
+          socks.ProxySettings(
+            InternetAddress(host, type: InternetAddressType.unix),
+            proxy.port,
+            username: proxy.hasCredentials ? proxy.username : null,
+            password: proxy.password.isEmpty ? null : proxy.password,
+          ),
+        ]);
+      case ProxyKind.http:
+        client.findProxy = (_) => 'PROXY $host:${proxy.port}';
+        if (proxy.hasCredentials) {
+          client.addProxyCredentials(
+            host,
+            proxy.port,
+            'Basic',
+            HttpClientBasicCredentials(proxy.username, proxy.password),
+          );
+        }
+    }
+  }
+
+  Future<String> _httpFetch(Uri uri) async {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
+    configureClient(client);
     try {
       final request = await client.getUrl(uri);
       final response = await request.close();
