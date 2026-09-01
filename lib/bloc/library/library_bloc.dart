@@ -16,6 +16,7 @@ import '../../services/launch/game_launcher.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../services/saves/ludusavi_catalog.dart';
+import '../../services/saves/ludusavi_cli.dart';
 import '../../services/saves/save_manager.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -36,6 +37,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     NotificationService? notifications,
     SteamCatalog? steam,
     LudusaviCatalog? savePaths,
+    LudusaviCli? ludusavi,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        savePaths =
            savePaths ??
@@ -43,6 +45,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
              cacheFile: paths.savePathsCacheFile,
              proxy: () => settings.state.proxy,
            ),
+       ludusavi =
+           ludusavi ??
+           LudusaviCli(configuredPath: () => settings.state.ludusaviPath),
        notifications = notifications ?? const NoopNotificationService(),
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),
@@ -83,6 +88,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Открытая база путей сохранений — та часть работы, которую иначе
   /// пришлось бы делать руками для каждой игры.
   final LudusaviCatalog savePaths;
+
+  /// Установленный Ludusavi, если он есть. Он знает, где стоят игры,
+  /// и разворачивает пути, неразрешимые по одному манифесту.
+  final LudusaviCli ludusavi;
   final JsonStore _store;
   final SaveManager _saves;
   final GameLauncher _launcher;
@@ -558,6 +567,40 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Подбирает папки сохранений по базе. Уже заданные правила не трогаем:
   /// пользователь мог поправить путь под себя.
+  /// Откуда брать пути: сначала установленный Ludusavi, затем манифест.
+  ///
+  /// Ludusavi точнее: он знает папки установки и учётные записи магазинов,
+  /// поэтому отдаёт и те пути, которые в манифесте записаны через
+  /// неразрешимые плейсхолдеры. Но требовать его установки нельзя, и
+  /// манифест остаётся рабочим запасным вариантом.
+  Future<_FoundPaths?> _lookupPaths(SavePathsLookupRequested event) async {
+    try {
+      final scan = await ludusavi.lookup(
+        title: event.game.title,
+        steamAppId: event.game.steamAppId,
+      );
+      if (scan != null && !scan.isEmpty) {
+        return _FoundPaths(
+          title: scan.title,
+          templates: scan.templates,
+          registryKeys: scan.registryKeys,
+          fromCli: true,
+        );
+      }
+    } on LudusaviCliException {
+      // Ludusavi установлен, но ответить не смог. Это не повод отказываться
+      // от манифеста: он покрывает большинство игр и ничего не требует.
+    }
+
+    await savePaths.ensureLoaded(refresh: event.refresh);
+    final entry = savePaths.find(
+      title: event.game.title,
+      steamAppId: event.game.steamAppId,
+    );
+    if (entry == null) return null;
+    return _FoundPaths(title: entry.title, templates: entry.templates);
+  }
+
   Future<void> _onSavePathsLookup(
     SavePathsLookupRequested event,
     Emitter<LibraryState> emit,
@@ -565,11 +608,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final key = savePathsKey(event.game.id);
     emit(state.copyWith(busy: _withBusy(key, true)));
     try {
-      await savePaths.ensureLoaded(refresh: event.refresh);
-      final entry = savePaths.find(
-        title: event.game.title,
-        steamAppId: event.game.steamAppId,
-      );
+      final entry = await _lookupPaths(event);
 
       if (entry == null || entry.isEmpty) {
         emit(
@@ -593,7 +632,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           if (!existing.contains(template))
             SavePathRule(
               id: const Uuid().v4(),
-              label: 'Сохранения',
+              label: entry.labelFor(template),
               template: template,
             ),
       ];
@@ -618,9 +657,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         state.copyWith(
           games: games,
           busy: _withBusy(key, false),
-          notice: _notice(
-            'Добавлено путей из базы: ${added.length} (${entry.title})',
-          ),
+          notice: _notice(entry.describe(added.length)),
         ),
       );
       _schedulePersist();
@@ -838,12 +875,45 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   }
 
   @override
-  Future<void> close() {
-    // Отложенная запись не должна пропасть вместе с таймером.
-    if (_persistTimer?.isActive ?? false) unawaited(persist());
+  Future<void> close() async {
+    // Отложенную запись именно дожидаемся: запущенная и брошенная, она не
+    // успевает лечь на диск, и последнее изменение теряется при выходе.
+    final pending = _persistTimer?.isActive ?? false;
     _persistTimer?.cancel();
+    if (pending) await persist();
     _launcher.runningIds.removeListener(_pushRunningGames);
     _launcher.dispose();
     return super.close();
+  }
+}
+
+/// Найденные пути и то, откуда они взялись.
+class _FoundPaths {
+  const _FoundPaths({
+    required this.title,
+    required this.templates,
+    this.registryKeys = const [],
+    this.fromCli = false,
+  });
+
+  final String title;
+  final List<String> templates;
+  final List<String> registryKeys;
+  final bool fromCli;
+
+  bool get isEmpty => templates.isEmpty;
+
+  /// У Ludusavi имя папки осмысленное, и по нему сейвы сопоставляются
+  /// между устройствами. У манифеста путь один на игру — метка не нужна.
+  String labelFor(String template) =>
+      fromCli ? LudusaviCli.labelFor(template) : 'Сохранения';
+
+  String describe(int added) {
+    final source = fromCli ? 'Ludusavi' : 'базы';
+    final message = 'Добавлено путей из $source: $added ($title)';
+    if (registryKeys.isEmpty) return message;
+    // Реестр мы не переносим, но умолчать о нём нельзя: иначе пользователь
+    // решит, что забрал сейв целиком.
+    return '$message; в реестре осталось веток: ${registryKeys.length}';
   }
 }

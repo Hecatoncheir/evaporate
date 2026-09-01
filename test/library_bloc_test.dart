@@ -25,10 +25,13 @@ void main() {
   });
 
   tearDown(() async {
-    // close() запускает отложенную запись, не дожидаясь её: гасим запись
-    // явно, иначе она создаёт файл прямо во время удаления папки.
-    await library.persist();
-    await library.close();
+    // Обработчики пишут состояние уже после `emit`, а тест дожидается
+    // именно состояния. Своя запись встаёт в ту же очередь и тем самым
+    // дожидается чужих — иначе они настигнут нас во время удаления папки.
+    if (!library.isClosed) {
+      await library.persist();
+      await library.close();
+    }
     await settings.close();
     try {
       if (await tmp.exists()) await tmp.delete(recursive: true);
@@ -178,6 +181,25 @@ void main() {
       isNot(equals(first)),
       reason: 'иначе BlocListener не покажет второе сообщение',
     );
+  });
+
+  // close() раньше запускал отложенную запись, не дожидаясь её, и
+  // последнее изменение пропадало при выходе из приложения.
+  test('изменение переживает закрытие без явного сохранения', () async {
+    final id = const Uuid().v4();
+    library.add(GameAdded(id: id, title: 'Не потеряться'));
+    await waitFor((s) => s.gameById(id) != null);
+
+    await library.close();
+
+    final reopened = LibraryBloc(paths: paths, settings: settings);
+    reopened.add(const LibraryLoadRequested());
+    await reopened.stream
+        .firstWhere((s) => s.gameById(id) != null)
+        .timeout(const Duration(seconds: 10));
+
+    expect(reopened.state.gameById(id)!.title, 'Не потеряться');
+    await reopened.close();
   });
 
   test('настройки сохраняются и читаются обратно', () async {

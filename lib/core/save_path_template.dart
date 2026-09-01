@@ -16,6 +16,21 @@ class SavePathTemplate {
   static const appSupport = '{APPSUPPORT}';
   static const savedGames = '{SAVEDGAMES}';
 
+  /// Порядок предпочтения при сворачивании, когда несколько
+  /// плейсхолдеров указывают в одну и ту же папку. На macOS и Linux
+  /// так и есть, а на Windows это уже разные папки: свернув путь в
+  /// `{SAVEDGAMES}` вместо `{APPSUPPORT}`, мы отправили бы сейв не туда.
+  /// Сортировка списка сама по себе тут не поможет — `List.sort`
+  /// в Dart нестабилен, и выбор оказался бы случайным.
+  static const _preference = [
+    appSupport,
+    appData,
+    localAppData,
+    savedGames,
+    documents,
+    home,
+  ];
+
   /// Порядок важен: при сворачивании пути в шаблон выигрывает самый
   /// длинный (самый специфичный) префикс, поэтому список отсортирован
   /// по убыванию длины значения на этапе [collapse].
@@ -76,7 +91,12 @@ class SavePathTemplate {
   static String collapse(String absolutePath) {
     final normalized = p.normalize(absolutePath);
     final entries = placeholders.entries.toList()
-      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+      ..sort((a, b) {
+        // Сначала самый специфичный корень, затем — предпочтение.
+        final byLength = b.value.length.compareTo(a.value.length);
+        if (byLength != 0) return byLength;
+        return _preference.indexOf(a.key).compareTo(_preference.indexOf(b.key));
+      });
     for (final entry in entries) {
       if (p.isWithin(entry.value, normalized) ||
           p.equals(entry.value, normalized)) {

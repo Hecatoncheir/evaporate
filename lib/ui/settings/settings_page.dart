@@ -151,6 +151,32 @@ class SettingsPage extends StatelessWidget {
                   style: TextStyle(fontSize: 13),
                 ),
               ),
+              const SizedBox(height: 6),
+              _PathSetting(
+                label: 'Ludusavi (необязательно)',
+                value: settings.ludusaviPath ?? 'искать самим',
+                onPick: () async {
+                  final file = await openFile();
+                  if (file == null) return;
+                  update(settings.copyWith(ludusaviPath: file.path));
+                },
+                onClear: settings.ludusaviPath == null
+                    ? null
+                    : () => update(settings.copyWith(ludusaviPath: null)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Если Ludusavi установлен, пути сохранений берутся у него: '
+                'он знает папки установки игр и учётные записи магазинов, '
+                'поэтому находит и то, чего нет во встроенной базе. Без '
+                'него всё работает по базе, просто менее точно.',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: EvaporateTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 6),
               SwitchListTile(
                 value: settings.autoSnapshotOnExit,
                 onChanged: (value) =>

@@ -55,5 +55,28 @@ void main() {
 
       expect(expanded, contains(p.join('a', 'b')));
     });
+
+    // На macOS и Linux несколько плейсхолдеров указывают в одну папку, и
+    // раньше выбор между ними зависел от сортировки, а `List.sort` в Dart
+    // нестабилен. На Windows это уже разные папки: сейв, свёрнутый здесь в
+    // `{SAVEDGAMES}`, уехал бы там не туда.
+    test('совпадающие корни сворачиваются предсказуемо', () {
+      final root = SavePathTemplate.expand(SavePathTemplate.appSupport);
+
+      final collapsed = SavePathTemplate.collapse(p.join(root, 'Игра'));
+
+      expect(collapsed, '${SavePathTemplate.appSupport}/Игра');
+    });
+
+    test('выбор корня не меняется от вызова к вызову', () {
+      final root = SavePathTemplate.expand(SavePathTemplate.appSupport);
+      final target = p.join(root, 'Игра', 'Saves');
+
+      final results = {
+        for (var i = 0; i < 20; i++) SavePathTemplate.collapse(target),
+      };
+
+      expect(results, hasLength(1));
+    });
   });
 }
