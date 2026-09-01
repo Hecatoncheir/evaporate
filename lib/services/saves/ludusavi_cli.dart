@@ -54,12 +54,14 @@ typedef ProcessRun = Future<ProcessResult> Function(
 class LudusaviCli {
   LudusaviCli({
     String? Function()? configuredPath,
+    this._configDir,
     ProcessRun? run,
     this.timeout = const Duration(minutes: 2),
   }) : _configuredPath = configuredPath ?? _noPath,
        _run = run ?? _defaultRun;
 
   final String? Function() _configuredPath;
+  final String? _configDir;
   final ProcessRun _run;
 
   /// Первый запуск может обновлять манифест, а опрос — обходить диски,
@@ -77,6 +79,14 @@ class LudusaviCli {
   static Future<ProcessResult> _defaultRun(String exe, List<String> args) =>
       Process.run(exe, args, stdoutEncoding: utf8, stderrEncoding: utf8);
 
+  /// Встроенная в сборку копия — рядом с исполняемым файлом приложения.
+  /// На macOS он лежит в `Contents/MacOS`, поэтому правило одно на все
+  /// три системы.
+  static String get bundledPath => p.join(
+    p.dirname(Platform.resolvedExecutable),
+    Platform.isWindows ? 'ludusavi.exe' : 'ludusavi',
+  );
+
   /// Аргументы опроса собраны в одном месте намеренно: `--preview` обязан
   /// присутствовать всегда, иначе вместо опроса выйдет настоящий бэкап.
   static List<String> previewArgs(String title) => [
@@ -92,6 +102,22 @@ class LudusaviCli {
     '--api',
     if (steamAppId != null) ...['--steam-id', '$steamAppId'],
     if (steamAppId == null) ...['--normalized', title],
+  ];
+
+  /// Общие аргументы идут перед подкомандой.
+  ///
+  /// Своя папка настроек — только для встроенной копии: у неё нет
+  /// собственной конфигурации, и без этого она создала бы или переписала
+  /// общую. Установленный пользователем Ludusavi, наоборот, работает со
+  /// своей конфигурацией — в ней могут быть заданы нестандартные папки
+  /// с играми, и терять их незачем.
+  List<String> globalArgs(String executable) => [
+    if (_configDir != null && executable == bundledPath) ...[
+      '--config',
+      _configDir,
+    ],
+    // Без сети обновление манифеста не должно ронять весь опрос.
+    '--try-manifest-update',
   ];
 
   /// Путь к исполняемому файлу или null, если Ludusavi не установлен.
@@ -139,7 +165,10 @@ class LudusaviCli {
     );
     if (canonical == null) return null;
 
-    final output = await _capture(exe, previewArgs(canonical));
+    final output = await _capture(exe, [
+      ...globalArgs(exe),
+      ...previewArgs(canonical),
+    ]);
     if (output == null) return null;
 
     final scan = parsePreview(output, title: canonical);
@@ -232,14 +261,14 @@ class LudusaviCli {
     int? steamAppId,
   }) async {
     if (steamAppId != null) {
-      final byId = await _firstTitle(
-        exe,
-        findArgs(title: title, steamAppId: steamAppId),
-      );
+      final byId = await _firstTitle(exe, [
+        ...globalArgs(exe),
+        ...findArgs(title: title, steamAppId: steamAppId),
+      ]);
       if (byId != null) return byId;
     }
     if (title.trim().isEmpty) return null;
-    return _firstTitle(exe, findArgs(title: title));
+    return _firstTitle(exe, [...globalArgs(exe), ...findArgs(title: title)]);
   }
 
   Future<String?> _firstTitle(String exe, List<String> args) async {
@@ -268,8 +297,11 @@ class LudusaviCli {
   }
 
   Iterable<String> _candidates() sync* {
+    // Заданный вручную путь важнее всего: раз указали, значит хотят его.
     final configured = _configuredPath()?.trim();
     if (configured != null && configured.isNotEmpty) yield configured;
+    // Затем встроенная копия — её версию мы знаем и на ней проверялись.
+    yield bundledPath;
     yield Platform.isWindows ? 'ludusavi.exe' : 'ludusavi';
     yield* _commonLocations();
   }

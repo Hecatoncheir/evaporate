@@ -40,6 +40,10 @@ jobs:
 
       # Тесты не требуют ни Xcode, ни aria2, ни геймпада: движок загрузок
       # не запускается, а события контроллера подаются вручную.
+      # Иначе сверка разбора с настоящим выводом всегда пропускается.
+      - name: Встроить Ludusavi
+        run: python3 tool/fetch_ludusavi.py
+
       - name: Тесты
         run: flutter test --reporter compact
 
@@ -58,11 +62,21 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Встроить Ludusavi
+        run: python3 tool/fetch_ludusavi.py
+
       # Без сертификата разработчика Xcode подписывает бандл ad-hoc —
       # такой .app запускается локально, но Gatekeeper на чужой машине
       # потребует «Открыть всё равно».
       - name: Сборка
         run: flutter build macos --release
+
+      # Вложенный файл ломает подпись, поэтому её накладывают заново.
+      - name: Вложить Ludusavi в бандл
+        run: |
+          APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -1)
+          if [ -z "$APP" ]; then echo 'Собранный .app не найден'; exit 1; fi
+          python3 tool/bundle_macos.py "$APP"
 
       - name: Упаковать бандл
         run: |
@@ -99,6 +113,9 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Встроить Ludusavi
+        run: python3 tool/fetch_ludusavi.py
+
       - name: Сборка
         run: flutter build linux --release
 
@@ -122,6 +139,9 @@ jobs:
           cache: true
 
       - run: flutter pub get
+
+      - name: Встроить Ludusavi
+        run: python tool/fetch_ludusavi.py
 
       - name: Сборка
         run: flutter build windows --release

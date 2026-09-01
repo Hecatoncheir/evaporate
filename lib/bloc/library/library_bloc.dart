@@ -47,7 +47,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
            ),
        ludusavi =
            ludusavi ??
-           LudusaviCli(configuredPath: () => settings.state.ludusaviPath),
+           LudusaviCli(
+             configuredPath: () => settings.state.ludusaviPath,
+             configDir: paths.ludusaviConfigDir,
+           ),
        notifications = notifications ?? const NoopNotificationService(),
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),

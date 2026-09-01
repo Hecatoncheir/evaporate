@@ -21,8 +21,12 @@ void main() {
       if (args.contains('--version')) {
         return ProcessResult(0, 0, 'ludusavi 0.29.1', '');
       }
-      if (args.first == 'find') return ProcessResult(0, 0, find, '');
-      if (args.first == 'backup') return ProcessResult(0, 0, preview, '');
+      // Подкоманда идёт после общих флагов, поэтому ищем её по всему
+      // списку, а не по первому аргументу.
+      if (args.contains('find')) return ProcessResult(0, 0, find, '');
+      if (args.contains('backup')) {
+        return ProcessResult(0, 0, preview, '');
+      }
       return ProcessResult(0, 1, '', 'неизвестная команда');
     };
   }
@@ -247,7 +251,7 @@ void main() {
           if (args.contains('--version')) {
             return ProcessResult(0, 0, 'ludusavi 0.29.1', '');
           }
-          if (args.first == 'find') {
+          if (args.contains('find')) {
             // Первый запрос — по идентификатору, он и остаётся пустым.
             if (byId) {
               byId = false;
@@ -293,6 +297,70 @@ void main() {
         await cli.executable(),
         '/opt/второй/ludusavi',
         reason: 'иначе настройка применилась бы только после перезапуска',
+      );
+    });
+  });
+
+  group('встроенная копия', () {
+    // Сборка кладёт её рядом с исполняемым файлом приложения; на macOS это
+    // Contents/MacOS, поэтому правило одно на все три системы.
+    test('ищется рядом с приложением', () {
+      expect(
+        p.dirname(LudusaviCli.bundledPath),
+        p.dirname(Platform.resolvedExecutable),
+      );
+    });
+
+    test('имя файла зависит от системы', () {
+      expect(
+        p.basename(LudusaviCli.bundledPath),
+        Platform.isWindows ? 'ludusavi.exe' : 'ludusavi',
+      );
+    });
+  });
+
+  group('общие аргументы', () {
+    test('обновление манифеста не роняет опрос', () {
+      final cli = LudusaviCli(run: fakeRun());
+
+      expect(
+        cli.globalArgs('/usr/bin/ludusavi'),
+        contains('--try-manifest-update'),
+      );
+    });
+
+    // Иначе встроенная копия перепишет настройки тому, у кого Ludusavi
+    // уже стоит своим.
+    test('встроенной копии даётся своя папка настроек', () {
+      final cli = LudusaviCli(configDir: '/данные/ludusavi', run: fakeRun());
+
+      final args = cli.globalArgs(LudusaviCli.bundledPath);
+
+      expect(args, containsAllInOrder(['--config', '/данные/ludusavi']));
+    });
+
+    // У установленного Ludusavi своя конфигурация, и в ней могут быть
+    // прописаны нестандартные папки с играми: забирать их незачем.
+    test('чужой копии своя папка настроек не навязывается', () {
+      final cli = LudusaviCli(configDir: '/данные/ludusavi', run: fakeRun());
+
+      expect(cli.globalArgs('/usr/bin/ludusavi'), isNot(contains('--config')));
+    });
+
+    test('общие флаги идут перед подкомандой', () async {
+      final calls = <List<String>>[];
+      final cli = LudusaviCli(
+        configDir: '/данные/ludusavi',
+        run: fakeRun(find: findBody, calls: calls),
+      );
+
+      await cli.lookup(title: 'Hollow Knight');
+
+      final find = calls.firstWhere((c) => c.contains('find'));
+      expect(
+        find.indexOf('--try-manifest-update'),
+        lessThan(find.indexOf('find')),
+        reason: 'общие параметры Ludusavi принимает только до подкоманды',
       );
     });
   });

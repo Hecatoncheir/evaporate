@@ -73,7 +73,7 @@ Hollow Knight:
       if (args.contains('--version')) {
         return ProcessResult(0, 0, 'ludusavi 0.29.1', '');
       }
-      if (args.first == 'find') return ProcessResult(0, 0, findBody, '');
+      if (args.contains('find')) return ProcessResult(0, 0, findBody, '');
       return ProcessResult(0, 0, preview, '');
     };
   }
