@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/save_path_template.dart';
@@ -26,12 +27,25 @@ class SavePathSuggestion {
 ///
 /// Это догадка, а не истина: пользователь подтверждает выбор в UI.
 class SavePathFinder {
-  static Future<List<SavePathSuggestion>> suggest(String gameTitle) async {
+  ///
+  /// [searchRoots] подменяет системные корни — иначе поиск проверялся бы
+  /// только на содержимом настоящей домашней папки.
+  static Future<List<SavePathSuggestion>> suggest(
+    String gameTitle, {
+    @visibleForTesting List<String>? searchRoots,
+  }) async {
     final needle = _normalize(gameTitle);
     if (needle.isEmpty) return const [];
 
+    final roots = searchRoots == null
+        ? _roots()
+        : [
+            for (final path in searchRoots)
+              _Root(token: SavePathTemplate.home, path: path, depth: 1),
+          ];
+
     final results = <String, SavePathSuggestion>{};
-    for (final root in _roots()) {
+    for (final root in roots) {
       await _scanRoot(root, needle, gameTitle, results);
     }
 

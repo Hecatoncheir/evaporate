@@ -330,6 +330,40 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
           updated = updated.copyWith(executablePath: candidates.first.path);
         }
       }
+      // Хеши кусков сверяются при скачивании, но пропавший или обрезанный
+      // файл протокол уже не заметит — проверяем перед тем, как объявить
+      // игру готовой.
+      final report = await engine.verify(task.id);
+      if (!report.isValid) {
+        library.add(
+          GameUpdated(
+            game.copyWith(
+              status: GameStatus.error,
+              installDir: installDir,
+              downloadGid: null,
+              lastError: 'Загрузка неполная — ${report.describe()}',
+            ),
+          ),
+        );
+        await library.persist();
+        emit(
+          state.copyWith(
+            notice: _notice(
+              '«${game.title}»: загрузка неполная (${report.describe()})',
+              isError: true,
+            ),
+          ),
+        );
+        _notifySystem(
+          AppNotification(
+            title: 'Загрузка неполная',
+            body: '«${game.title}»: ${report.describe()}',
+            kind: NotificationKind.downloadFailed,
+          ),
+        );
+        return;
+      }
+
       library.add(GameUpdated(updated));
       await library.persist();
       emit(state.copyWith(notice: _notice('«${game.title}» загружена')));

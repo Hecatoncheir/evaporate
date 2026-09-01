@@ -11,6 +11,40 @@ import '../../models/download_task.dart';
 import '../../models/proxy_settings.dart';
 import 'download_engine.dart';
 
+/// Что нашла проверка файлов после загрузки.
+class IntegrityReport {
+  const IntegrityReport({
+    required this.checkedFiles,
+    this.missing = const [],
+    this.truncated = const [],
+    this.skipped = false,
+  });
+
+  /// Проверять было нечего: метаданные ещё не получены.
+  const IntegrityReport.skipped() : this(checkedFiles: 0, skipped: true);
+
+  final int checkedFiles;
+
+  /// Файлов из раздачи нет на диске.
+  final List<String> missing;
+
+  /// Файлы есть, но размер меньше заявленного — загрузка оборвана.
+  final List<String> truncated;
+  final bool skipped;
+
+  bool get isValid => missing.isEmpty && truncated.isEmpty;
+
+  String describe() {
+    if (skipped) return 'Проверять нечего: метаданные не получены';
+    if (isValid) return 'Файлы на месте: $checkedFiles';
+    final parts = <String>[
+      if (missing.isNotEmpty) 'нет файлов: ${missing.length}',
+      if (truncated.isNotEmpty) 'недокачано: ${truncated.length}',
+    ];
+    return parts.join(', ');
+  }
+}
+
 /// Движок загрузок на чистом Dart поверх `dtorrent_task_v2`.
 ///
 /// В отличие от aria2, здесь SOCKS5 применяется и к обмену с пирами, а не
@@ -354,6 +388,51 @@ class DtorrentEngine implements DownloadEngine {
       uploadSpeed: upload,
       activeCount: active,
       waitingCount: snapshot.length - active,
+    );
+  }
+
+  /// Проверяет, что скачанное действительно лежит на диске целиком.
+  ///
+  /// Хеши кусков BitTorrent сверяет ещё при скачивании — битые данные просто
+  /// не принимаются. А вот пропавший или обрезанный файл протокол уже не
+  /// заметит: именно это здесь и ищем.
+  Future<IntegrityReport> verify(String id) async {
+    final managed = _downloads[id];
+    final model = managed?.model;
+    if (managed == null || model == null) {
+      return const IntegrityReport.skipped();
+    }
+
+    return checkFiles(
+      root: managed.savePath,
+      expected: [
+        for (final file in model.files) (path: file.path, length: file.length),
+      ],
+    );
+  }
+
+  /// Открыто для тестов: настоящий торрент для проверки не нужен.
+  @visibleForTesting
+  static Future<IntegrityReport> checkFiles({
+    required String root,
+    required List<({String path, int length})> expected,
+  }) async {
+    final missing = <String>[];
+    final truncated = <String>[];
+
+    for (final entry in expected) {
+      final file = File(p.join(root, entry.path));
+      if (!await file.exists()) {
+        missing.add(entry.path);
+        continue;
+      }
+      if (await file.length() < entry.length) truncated.add(entry.path);
+    }
+
+    return IntegrityReport(
+      checkedFiles: expected.length,
+      missing: missing,
+      truncated: truncated,
     );
   }
 

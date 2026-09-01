@@ -334,6 +334,91 @@ void main() {
     });
   });
 
+  group('проверка целостности', () {
+    Future<void> makeFile(String name, int size) async {
+      final file = File(p.join(tmp.path, name));
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(List.filled(size, 0));
+    }
+
+    test('все файлы на месте — загрузка полная', () async {
+      await makeFile('game.bin', 100);
+      await makeFile(p.join('data', 'assets.pak'), 50);
+
+      final report = await DtorrentEngine.checkFiles(
+        root: tmp.path,
+        expected: [
+          (path: 'game.bin', length: 100),
+          (path: p.join('data', 'assets.pak'), length: 50),
+        ],
+      );
+
+      expect(report.isValid, isTrue);
+      expect(report.checkedFiles, 2);
+      expect(report.describe(), contains('2'));
+    });
+
+    test('пропавший файл обнаруживается', () async {
+      await makeFile('game.bin', 100);
+
+      final report = await DtorrentEngine.checkFiles(
+        root: tmp.path,
+        expected: [
+          (path: 'game.bin', length: 100),
+          (path: 'missing.bin', length: 10),
+        ],
+      );
+
+      expect(report.isValid, isFalse);
+      expect(report.missing, ['missing.bin']);
+      expect(report.describe(), contains('нет файлов'));
+    });
+
+    // Хеши кусков сверяются при скачивании, а вот обрезанный файл
+    // протокол уже не заметит — ради этого проверка и нужна.
+    test('недокачанный файл обнаруживается по размеру', () async {
+      await makeFile('game.bin', 40);
+
+      final report = await DtorrentEngine.checkFiles(
+        root: tmp.path,
+        expected: [(path: 'game.bin', length: 100)],
+      );
+
+      expect(report.isValid, isFalse);
+      expect(report.truncated, ['game.bin']);
+      expect(report.describe(), contains('недокачано'));
+    });
+
+    test('файл больше заявленного не считается ошибкой', () async {
+      await makeFile('game.bin', 500);
+
+      final report = await DtorrentEngine.checkFiles(
+        root: tmp.path,
+        expected: [(path: 'game.bin', length: 100)],
+      );
+
+      expect(report.isValid, isTrue);
+    });
+
+    test('без метаданных проверять нечего', () async {
+      final engine = buildEngine();
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+
+      final report = await engine.verify(hashA);
+
+      expect(report.skipped, isTrue);
+      expect(report.isValid, isTrue, reason: 'нечего проверять — не ошибка');
+      engine.dispose();
+    });
+
+    test('неизвестная задача не ломает проверку', () async {
+      final engine = buildEngine();
+      final report = await engine.verify('нет-такой');
+      expect(report.skipped, isTrue);
+      engine.dispose();
+    });
+  });
+
   test('движок готов сразу: внешнего бинарника больше нет', () async {
     final engine = buildEngine();
     expect(engine.status.value.state, EngineState.stopped);
