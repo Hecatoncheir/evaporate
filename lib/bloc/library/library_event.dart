@@ -183,6 +183,39 @@ final class SteamLookupRequested extends LibraryEvent {
   List<Object?> get props => [game.id, query];
 }
 
+/// Подобрать папки сохранений по открытой базе Ludusavi.
+final class SavePathsLookupRequested extends LibraryEvent {
+  const SavePathsLookupRequested(this.game, {this.refresh = false});
+
+  final Game game;
+
+  /// Перекачать базу, а не брать из кэша.
+  final bool refresh;
+
+  @override
+  List<Object?> get props => [game.id, refresh];
+}
+
+/// Снять сохранения всех настроенных игр и выгрузить их в одну папку.
+final class BulkExportRequested extends LibraryEvent {
+  const BulkExportRequested(this.destinationDir);
+
+  final String destinationDir;
+
+  @override
+  List<Object?> get props => [destinationDir];
+}
+
+/// Забрать все пакеты сохранений из папки и разложить по играм.
+final class BulkImportRequested extends LibraryEvent {
+  const BulkImportRequested(this.sourceDir);
+
+  final String sourceDir;
+
+  @override
+  List<Object?> get props => [sourceDir];
+}
+
 final class SyncFolderScanRequested extends LibraryEvent {
   const SyncFolderScanRequested();
 }

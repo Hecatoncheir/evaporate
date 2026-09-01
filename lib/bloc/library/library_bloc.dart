@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
+import '../../core/format.dart';
 import '../../core/json_store.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
@@ -13,6 +15,7 @@ import '../../models/save_snapshot.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/notifications/notification_service.dart';
+import '../../services/saves/ludusavi_catalog.dart';
 import '../../services/saves/save_manager.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -32,7 +35,14 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     GameLauncher? launcher,
     NotificationService? notifications,
     SteamCatalog? steam,
+    LudusaviCatalog? savePaths,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
+       savePaths =
+           savePaths ??
+           LudusaviCatalog(
+             cacheFile: paths.savePathsCacheFile,
+             proxy: () => settings.state.proxy,
+           ),
        notifications = notifications ?? const NoopNotificationService(),
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),
@@ -52,6 +62,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SnapshotExportRequested>(_onExportRequested);
     on<SnapshotDeleted>(_onSnapshotDeleted);
     on<SteamLookupRequested>(_onSteamLookup);
+    on<SavePathsLookupRequested>(_onSavePathsLookup);
+    on<BulkExportRequested>(_onBulkExport);
+    on<BulkImportRequested>(_onBulkImport);
     on<SyncFolderScanRequested>(_onSyncScanRequested);
     on<SyncPackageApplied>(_onSyncPackageApplied);
 
@@ -66,6 +79,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Каталог Steam: по имени раздачи находит название, описание и обложку.
   final SteamCatalog steam;
+
+  /// Открытая база путей сохранений — та часть работы, которую иначе
+  /// пришлось бы делать руками для каждой игры.
+  final LudusaviCatalog savePaths;
   final JsonStore _store;
   final SaveManager _saves;
   final GameLauncher _launcher;
@@ -82,6 +99,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   static String snapshotKey(String gameId) => 'snapshot:$gameId';
 
   static String steamKey(String gameId) => 'steam:$gameId';
+
+  static String savePathsKey(String gameId) => 'paths:$gameId';
+
+  /// Ключ занятости для операций над всей библиотекой сразу.
+  static const bulkKey = 'bulk';
 
   static String launchKey(String gameId) => 'launch:$gameId';
 
@@ -477,11 +499,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     if (folder == null) {
       throw SaveException('Папка синхронизации не задана в настройках.');
     }
-    final safeTitle = snapshot.gameTitle
-        .replaceAll(RegExp(r'[^\w\s.-]', unicode: true), '_')
-        .trim();
     final name =
-        '$safeTitle - ${snapshot.deviceName}${SaveSnapshot.fileExtension}';
+        '${safeFileName('${snapshot.gameTitle} - ${snapshot.deviceName}')}'
+        '${SaveSnapshot.fileExtension}';
     return _saves.exportSnapshot(snapshot, p.join(folder, name));
   }
 
@@ -534,6 +554,212 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         ),
       );
     }
+  }
+
+  /// Подбирает папки сохранений по базе. Уже заданные правила не трогаем:
+  /// пользователь мог поправить путь под себя.
+  Future<void> _onSavePathsLookup(
+    SavePathsLookupRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final key = savePathsKey(event.game.id);
+    emit(state.copyWith(busy: _withBusy(key, true)));
+    try {
+      await savePaths.ensureLoaded(refresh: event.refresh);
+      final entry = savePaths.find(
+        title: event.game.title,
+        steamAppId: event.game.steamAppId,
+      );
+
+      if (entry == null || entry.isEmpty) {
+        emit(
+          state.copyWith(
+            busy: _withBusy(key, false),
+            notice: _notice('В базе путей ничего не нашлось для этой игры'),
+          ),
+        );
+        return;
+      }
+
+      final current = state.gameById(event.game.id);
+      if (current == null) {
+        emit(state.copyWith(busy: _withBusy(key, false)));
+        return;
+      }
+
+      final existing = current.saveProfile.rules.map((r) => r.template).toSet();
+      final added = <SavePathRule>[
+        for (final template in entry.templates)
+          if (!existing.contains(template))
+            SavePathRule(
+              id: const Uuid().v4(),
+              label: 'Сохранения',
+              template: template,
+            ),
+      ];
+
+      if (added.isEmpty) {
+        emit(
+          state.copyWith(
+            busy: _withBusy(key, false),
+            notice: _notice('Пути из базы уже заданы'),
+          ),
+        );
+        return;
+      }
+
+      final games = [...state.games];
+      games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
+        saveProfile: current.saveProfile.copyWith(
+          rules: [...current.saveProfile.rules, ...added],
+        ),
+      );
+      emit(
+        state.copyWith(
+          games: games,
+          busy: _withBusy(key, false),
+          notice: _notice(
+            'Добавлено путей из базы: ${added.length} (${entry.title})',
+          ),
+        ),
+      );
+      _schedulePersist();
+    } on Object catch (error) {
+      emit(
+        state.copyWith(
+          busy: _withBusy(key, false),
+          notice: _notice(error.toString(), isError: true),
+        ),
+      );
+    }
+  }
+
+  /// Снимает сохранения всех настроенных игр и складывает пакеты в папку —
+  /// то, с чего начинается переезд на другое устройство.
+  Future<void> _onBulkExport(
+    BulkExportRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    emit(state.copyWith(busy: _withBusy(bulkKey, true)));
+
+    var exported = 0;
+    var skipped = 0;
+    final failed = <String>[];
+
+    for (final game in state.games) {
+      if (!game.saveProfile.isConfigured) {
+        skipped++;
+        continue;
+      }
+      try {
+        final snapshot = await _saves.createSnapshot(game);
+        emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
+
+        await _saves.exportSnapshot(
+          snapshot,
+          p.join(
+            event.destinationDir,
+            '${safeFileName(game.title)}${SaveSnapshot.fileExtension}',
+          ),
+        );
+        exported++;
+      } on SaveException {
+        // Пути заданы, но файлов ещё нет — это не ошибка переноса.
+        skipped++;
+      } on Object {
+        failed.add(game.title);
+      }
+    }
+
+    await persist();
+    emit(
+      state.copyWith(
+        busy: _withBusy(bulkKey, false),
+        notice: _notice(
+          failed.isEmpty
+              ? 'Выгружено игр: $exported, пропущено: $skipped'
+              : 'Выгружено: $exported, пропущено: $skipped, '
+                    'с ошибкой: ${failed.join(', ')}',
+          isError: failed.isNotEmpty,
+        ),
+      ),
+    );
+  }
+
+  /// Разбирает папку с пакетами и раскладывает сохранения по играм —
+  /// вторая половина переезда, уже на новом устройстве.
+  Future<void> _onBulkImport(
+    BulkImportRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    emit(state.copyWith(busy: _withBusy(bulkKey, true)));
+
+    var applied = 0;
+    final unmatched = <String>[];
+    final failed = <String>[];
+
+    try {
+      final packages = await _saves.scanSyncFolder(event.sourceDir);
+      for (final package in packages) {
+        final game = _matchGame(package.snapshot.gameTitle);
+        if (game == null) {
+          unmatched.add(package.snapshot.gameTitle);
+          continue;
+        }
+        try {
+          final snapshot = await _saves.importPackage(package.path, game: game);
+          emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
+          final report = await _saves.restoreSnapshot(
+            game: game,
+            snapshot: snapshot,
+          );
+          if (report.backup != null) {
+            emit(state.copyWith(snapshots: _withSnapshot(report.backup!)));
+          }
+          if (report.isComplete) {
+            applied++;
+          } else {
+            failed.add(game.title);
+          }
+        } on Object {
+          failed.add(game.title);
+        }
+      }
+    } on Object catch (error) {
+      emit(
+        state.copyWith(
+          busy: _withBusy(bulkKey, false),
+          notice: _notice(error.toString(), isError: true),
+        ),
+      );
+      return;
+    }
+
+    await persist();
+    final parts = <String>[
+      'применено: $applied',
+      if (unmatched.isNotEmpty) 'нет такой игры: ${unmatched.length}',
+      if (failed.isNotEmpty) 'с ошибкой: ${failed.length}',
+    ];
+    emit(
+      state.copyWith(
+        busy: _withBusy(bulkKey, false),
+        notice: _notice(
+          parts.join(', '),
+          isError: failed.isNotEmpty || unmatched.isNotEmpty,
+        ),
+      ),
+    );
+  }
+
+  /// Идентификаторы игр на разных устройствах не совпадают, поэтому
+  /// пакеты сопоставляются по названию.
+  Game? _matchGame(String title) {
+    final wanted = title.trim().toLowerCase();
+    for (final game in state.games) {
+      if (game.title.trim().toLowerCase() == wanted) return game;
+    }
+    return null;
   }
 
   Future<void> _onSyncScanRequested(

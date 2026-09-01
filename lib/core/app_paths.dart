@@ -63,6 +63,9 @@ class AppPaths {
   /// Сессия aria2: незавершённые загрузки переживают перезапуск приложения.
   String get downloadSessionFile => p.join(dataDir, 'aria2.session');
 
+  /// Кэш открытой базы путей сохранений.
+  String get savePathsCacheFile => p.join(dataDir, 'save-paths.json');
+
   /// Список загрузок движка: он переживает перезапуск приложения.
   String get engineStateFile => p.join(dataDir, 'downloads.json');
 

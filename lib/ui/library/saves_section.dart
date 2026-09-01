@@ -32,12 +32,34 @@ class SavePathsSection extends StatelessWidget {
       icon: Icons.folder_special_outlined,
       trailing: Row(
         children: [
-          TextButton.icon(
+          Builder(
+            builder: (context) {
+              final busy = context.select<LibraryBloc, bool>(
+                (bloc) => bloc.state.isBusy(LibraryBloc.savePathsKey(game.id)),
+              );
+              return TextButton.icon(
+                onPressed: busy
+                    ? null
+                    : () => context.read<LibraryBloc>().add(
+                        SavePathsLookupRequested(game),
+                      ),
+                icon: busy
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.travel_explore, size: 16),
+                label: const Text('Из базы'),
+              );
+            },
+          ),
+          IconButton(
             onPressed: () => _autoDetect(context),
             icon: const Icon(Icons.auto_awesome, size: 16),
-            label: const Text('Найти'),
+            tooltip: 'Поискать папку по названию игры',
+            visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 4),
           TextButton.icon(
             onPressed: () => _addRule(context),
             icon: const Icon(Icons.add, size: 16),
@@ -363,8 +385,9 @@ class SnapshotsSection extends StatelessWidget {
   Future<void> _export(BuildContext context, SaveSnapshot snapshot) async {
     final library = context.read<LibraryBloc>();
     final suggested =
-        '${snapshot.gameTitle} ${formatDateTime(snapshot.createdAt)}'
-            .replaceAll(RegExp(r'[^\w\s.-]', unicode: true), '_') +
+        safeFileName(
+          '${snapshot.gameTitle} ${formatDateTime(snapshot.createdAt)}',
+        ) +
         SaveSnapshot.fileExtension;
 
     final location = await getSaveLocation(suggestedName: suggested);

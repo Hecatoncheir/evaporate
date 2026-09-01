@@ -53,6 +53,7 @@ class _SavesPageState extends State<SavesPage> {
           ),
         ),
         const SizedBox(height: 20),
+        const _BulkTransferCard(),
         _SyncFolderCard(
           folder: settings.syncFolder,
           packages: library.syncPackages,
@@ -390,11 +391,7 @@ class _SnapshotRow extends StatelessWidget {
             icon: const Icon(Icons.ios_share, size: 17),
             onPressed: () async {
               final suggested =
-                  snapshot.gameTitle.replaceAll(
-                    RegExp(r'[^\w\s.-]', unicode: true),
-                    '_',
-                  ) +
-                  SaveSnapshot.fileExtension;
+                  safeFileName(snapshot.gameTitle) + SaveSnapshot.fileExtension;
               final location = await getSaveLocation(suggestedName: suggested);
               if (location == null) return;
               library.add(
@@ -408,5 +405,96 @@ class _SnapshotRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Перенос всей библиотеки разом: снять сохранения всех игр в одну папку
+/// и разложить их обратно на другом устройстве.
+class _BulkTransferCard extends StatelessWidget {
+  const _BulkTransferCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = context.select<LibraryBloc, bool>(
+      (bloc) => bloc.state.isBusy(LibraryBloc.bulkKey),
+    );
+    final configured = context.select<LibraryBloc, int>(
+      (bloc) =>
+          bloc.state.games.where((g) => g.saveProfile.isConfigured).length,
+    );
+
+    return SectionCard(
+      title: 'Перенос всей библиотеки',
+      icon: Icons.swap_horiz,
+      trailing: busy
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(
+              'игр с путями: $configured',
+              style: const TextStyle(
+                fontSize: 12,
+                color: EvaporateTheme.textSecondary,
+              ),
+            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Выгрузка снимет свежие снимки всех игр, у которых заданы папки '
+            'сохранений, и сложит их в одну папку. На другом устройстве '
+            'загрузка разберёт её обратно, сопоставляя пакеты с играми по '
+            'названию.',
+            style: TextStyle(
+              fontSize: 13,
+              color: EvaporateTheme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              FilledButton.icon(
+                onPressed: busy ? null : () => _export(context),
+                icon: const Icon(Icons.upload_outlined, size: 16),
+                label: const Text('Выгрузить все'),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: busy ? null : () => _import(context),
+                icon: const Icon(Icons.download_outlined, size: 16),
+                label: const Text('Загрузить все'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _export(BuildContext context) async {
+    final library = context.read<LibraryBloc>();
+    final dir = await getDirectoryPath(confirmButtonText: 'Выгрузить');
+    if (dir == null) return;
+    library.add(BulkExportRequested(dir));
+  }
+
+  Future<void> _import(BuildContext context) async {
+    final library = context.read<LibraryBloc>();
+    final dir = await getDirectoryPath(confirmButtonText: 'Загрузить');
+    if (dir == null || !context.mounted) return;
+
+    final ok = await confirm(
+      context,
+      title: 'Загрузить все сохранения?',
+      message:
+          'Пакеты из папки будут разложены по играм с такими же названиями. '
+          'Текущие сохранения каждой игры сначала попадут в резервный снимок.',
+      confirmLabel: 'Загрузить',
+    );
+    if (!ok) return;
+    library.add(BulkImportRequested(dir));
   }
 }

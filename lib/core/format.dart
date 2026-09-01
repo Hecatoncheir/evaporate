@@ -64,3 +64,23 @@ String platformLabel(String key) => switch (key) {
   'linux' => 'Linux',
   _ => key,
 };
+
+/// Имя файла, безопасное для файловой системы.
+///
+/// Заменяются только символы, недопустимые в именах файлов. Буквы любых
+/// алфавитов остаются: в Dart `\w` — это только латиница, и «очистка» по
+/// нему превращала русские названия в одинаковые ряды подчёркиваний,
+/// из-за чего файлы разных игр затирали друг друга.
+String safeFileName(String value, {int maxLength = 120}) {
+  final cleaned = value
+      .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+      .replaceAll(RegExp(r'[\x00-\x1F]'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim()
+      .replaceAll(RegExp(r'^\.+|\.+$'), '')
+      .trim();
+  if (cleaned.isEmpty) return 'save';
+  return cleaned.length <= maxLength
+      ? cleaned
+      : cleaned.substring(0, maxLength);
+}
