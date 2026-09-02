@@ -106,7 +106,18 @@ class SaveSnapshot {
     'rules': rules.map((r) => r.toJson()).toList(),
   };
 
+  /// Формат, которым подписываются новые пакеты.
   static const manifestFormat = 'evaporate.save/1';
+
+  /// Форматы, которые эта сборка умеет читать.
+  ///
+  /// Множество, а не сравнение с [manifestFormat]: пакеты живут на дисках и
+  /// в облачных папках дольше, чем версия приложения. Проверка на равенство
+  /// означала бы, что в день перехода на `/2` сборка перестала читать всё
+  /// снятое раньше — то есть ровно ту переносимость, ради которой формат и
+  /// подписан версией. Добавляя новую версию, старую отсюда не убирают,
+  /// пока где-то могут лежать такие пакеты.
+  static const readableFormats = {manifestFormat};
   static const manifestEntry = 'manifest.json';
   static const dataPrefix = 'data';
   static const fileExtension = '.evsave';

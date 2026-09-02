@@ -406,7 +406,7 @@ class SaveManager {
     if (manifest == null) {
       throw SaveException(_l.saveNotEvaporatePackage);
     }
-    if (manifest['format'] != SaveSnapshot.manifestFormat) {
+    if (!SaveSnapshot.readableFormats.contains(manifest['format'])) {
       throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
     }
 

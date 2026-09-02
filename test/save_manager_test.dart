@@ -180,6 +180,57 @@ void main() {
     },
   );
 
+  /// Кладёт рядом пакет с подписью [format] и больше ничем.
+  Future<String> packageWithFormat(String format) async {
+    final archivePath = p.join(tmp.path, 'foreign.evsave');
+    final encoder = ZipFileEncoder();
+    encoder.create(archivePath);
+    encoder.addArchiveFile(
+      ArchiveFile.string(
+        SaveSnapshot.manifestEntry,
+        jsonEncode({
+          'format': format,
+          'id': 'чужой',
+          'gameId': 'game-1',
+          'gameTitle': 'Игра',
+          'createdAt': DateTime.now().toIso8601String(),
+          'rules': const [],
+        }),
+      ),
+    );
+    await encoder.close();
+    return archivePath;
+  }
+
+  // Проверка версии — единственное, что стоит между чужим пакетом и папкой
+  // сохранений. Ветку отказа никто не проходил, и сломаться она могла молча.
+  test('пакет незнакомой версии не читается', () async {
+    final path = await packageWithFormat('evaporate.save/2');
+
+    await expectLater(
+      manager.inspectPackage(path),
+      throwsA(
+        isA<SaveException>().having(
+          (e) => e.message,
+          'сообщение',
+          contains('evaporate.save/2'),
+        ),
+      ),
+    );
+  });
+
+  // Иначе список читаемых версий разошёлся бы с тем, чем подписывают свои:
+  // сборка перестала бы читать собственные пакеты, и заметил бы это
+  // пользователь, а не тест.
+  test('своя версия входит в число читаемых', () async {
+    expect(SaveSnapshot.readableFormats, contains(SaveSnapshot.manifestFormat));
+
+    final path = await packageWithFormat(SaveSnapshot.manifestFormat);
+    final info = await manager.inspectPackage(path);
+
+    expect(info.snapshot.gameTitle, 'Игра');
+  });
+
   test('пакет с выходом за пределы папки отклоняется (zip-slip)', () async {
     final saves = await writeSaves('victim', {'ok.sav': 'ok'});
     final game = gameWith(
