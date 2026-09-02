@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 
@@ -353,7 +354,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   ) async {
     if (!_finalizing.add(game.id)) return;
     try {
-      final installDir = _deriveInstallDir(task) ?? settings.state.installDir;
+      final installDir = deriveInstallDir(task) ?? settings.state.installDir;
       var updated = game.copyWith(
         status: GameStatus.installed,
         installDir: installDir,
@@ -427,7 +428,11 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
 
   /// Торрент с корневой папкой должен дать именно эту папку, а не общий
   /// каталог загрузок — иначе «удалить игру» снесёт лишнее.
-  static String? _deriveInstallDir(DownloadTask task) {
+  ///
+  /// Открыто для тестов: ошибка здесь стоит чужих файлов, а проверить её
+  /// можно на одной задаче, без движка и без диска.
+  @visibleForTesting
+  static String? deriveInstallDir(DownloadTask task) {
     if (task.files.isEmpty) return task.dir;
     final dir = task.dir;
     if (dir == null) return p.dirname(task.files.first);

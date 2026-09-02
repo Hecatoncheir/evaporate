@@ -118,6 +118,59 @@ void main() {
     expect(json.containsKey('downloadGid'), isFalse);
   });
 
+  // Снимки пишутся в library.json вместе с играми, но обратно их до сих пор
+  // никто не читал: `toJson` покрыт записью, `fromJson` не исполнялся ни
+  // разу. Сломайся он — при следующем запуске вся история сохранений
+  // исчезла бы молча, а файлы снимков остались бы лежать сиротами.
+  test('снимки переживают перезагрузку вместе с играми', () async {
+    final savesDir = Directory(p.join(tmp.path, 'сейвы'));
+    await savesDir.create(recursive: true);
+    await File(p.join(savesDir.path, 'slot.sav')).writeAsString('прогресс');
+
+    final id = addGame('Игра');
+    final added = await waitFor((s) => s.gameById(id) != null);
+    library.add(
+      GameUpdated(
+        added
+            .gameById(id)!
+            .copyWith(
+              saveProfile: SaveProfile(
+                rules: [
+                  SavePathRule(
+                    id: 'rule-1',
+                    label: 'Сохранения',
+                    template: savesDir.path,
+                  ),
+                ],
+              ),
+            ),
+      ),
+    );
+    final configured = await waitFor(
+      (s) => s.gameById(id)!.saveProfile.isConfigured,
+    );
+
+    library.add(SnapshotRequested(configured.gameById(id)!));
+    final withSnapshot = await waitFor((s) => s.snapshotsFor(id).isNotEmpty);
+    final before = withSnapshot.snapshotsFor(id).single;
+
+    await library.persist();
+    final reopened = LibraryBloc(paths: paths, settings: settings);
+    addTearDown(reopened.close);
+    reopened.add(const LibraryLoadRequested());
+    await reopened.stream.firstWhere((s) => s.loaded);
+
+    final after = reopened.state.snapshotsFor(id).single;
+    expect(after.id, before.id);
+    expect(after.gameTitle, before.gameTitle);
+    expect(after.archivePath, before.archivePath);
+    expect(after.fileCount, before.fileCount);
+    expect(after.origin, before.origin);
+    // По времени снятия массовая загрузка решает, не откатывает ли она
+    // прогресс: потеряйся оно при чтении — проверка стала бы бессмысленной.
+    expect(after.createdAt, before.createdAt);
+  });
+
   test(
     'снимок без настроенных путей сообщает об ошибке, а не падает',
     () async {
