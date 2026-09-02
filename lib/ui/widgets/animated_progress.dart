@@ -24,7 +24,7 @@ class AnimatedProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final line = color ?? EvaporateTheme.primary;
+    final line = color ?? context.colors.primary;
 
     // Неопределённому прогрессу сглаживать нечего: там своя анимация.
     if (value == null) {
@@ -32,7 +32,7 @@ class AnimatedProgress extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: LinearProgressIndicator(
           minHeight: height,
-          backgroundColor: EvaporateTheme.surfaceHigh,
+          backgroundColor: context.colors.surfaceHigh,
           valueColor: AlwaysStoppedAnimation(line),
         ),
       );
@@ -49,7 +49,7 @@ class AnimatedProgress extends StatelessWidget {
         child: LinearProgressIndicator(
           value: animated,
           minHeight: height,
-          backgroundColor: EvaporateTheme.surfaceHigh,
+          backgroundColor: context.colors.surfaceHigh,
           valueColor: AlwaysStoppedAnimation(line),
         ),
       ),

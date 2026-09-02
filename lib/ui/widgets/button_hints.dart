@@ -90,26 +90,23 @@ class _HintChip extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
           decoration: BoxDecoration(
-            color: EvaporateTheme.surfaceHigh,
+            color: context.colors.surfaceHigh,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: EvaporateTheme.outline),
+            border: Border.all(color: context.colors.outline),
           ),
           child: Text(
             glyph,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: EvaporateTheme.textPrimary,
+              color: context.colors.textPrimary,
             ),
           ),
         ),
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: EvaporateTheme.textSecondary,
-          ),
+          style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
         ),
       ],
     );

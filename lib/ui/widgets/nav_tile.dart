@@ -55,7 +55,7 @@ class _NavTileState extends State<NavTile> {
   @override
   Widget build(BuildContext context) {
     final background = widget.selected
-        ? EvaporateTheme.surfaceHigh
+        ? context.colors.surfaceHigh
         : Colors.transparent;
 
     return Padding(
@@ -78,7 +78,7 @@ class _NavTileState extends State<NavTile> {
               color: background,
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: Border.all(
-                color: _focused ? EvaporateTheme.primary : Colors.transparent,
+                color: _focused ? context.colors.primary : Colors.transparent,
                 width: 1.5,
               ),
             ),

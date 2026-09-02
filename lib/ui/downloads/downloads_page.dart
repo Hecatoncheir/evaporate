@@ -46,9 +46,9 @@ class DownloadsPage extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 'одновременно — $maxConcurrent',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
               const Spacer(),
@@ -128,13 +128,13 @@ class _AvailableGames extends StatelessWidget {
         ),
         Expanded(
           child: available.isEmpty
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.all(16),
                   child: Text(
                     'Все игры с источником уже в очереди или установлены.',
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: EvaporateTheme.textSecondary,
+                      color: context.colors.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -188,16 +188,16 @@ class _GameChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: EvaporateTheme.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: EvaporateTheme.outline),
+        border: Border.all(color: context.colors.outline),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.drag_indicator,
             size: 16,
-            color: EvaporateTheme.textSecondary,
+            color: context.colors.textSecondary,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -252,10 +252,10 @@ class _QueueColumn extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: highlight
-                ? EvaporateTheme.primary.withValues(alpha: 0.06)
+                ? context.colors.primary.withValues(alpha: 0.06)
                 : null,
             border: Border.all(
-              color: highlight ? EvaporateTheme.primary : Colors.transparent,
+              color: highlight ? context.colors.primary : Colors.transparent,
             ),
           ),
           child: ListView(
@@ -354,20 +354,20 @@ class _QueuedCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.drag_indicator,
               size: 17,
-              color: EvaporateTheme.textSecondary,
+              color: context.colors.textSecondary,
             ),
             const SizedBox(width: 10),
             SizedBox(
               width: 22,
               child: Text(
                 '$position',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ),
@@ -379,11 +379,11 @@ class _QueuedCard extends StatelessWidget {
                 style: const TextStyle(fontSize: 13.5),
               ),
             ),
-            const Text(
+            Text(
               'ждёт очереди',
               style: TextStyle(
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             if (game != null)
@@ -422,9 +422,9 @@ class _SectionTitle extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               trailing!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ],
@@ -445,9 +445,9 @@ class _Hint extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12.5,
-          color: EvaporateTheme.textSecondary,
+          color: context.colors.textSecondary,
           height: 1.5,
         ),
       ),
@@ -466,27 +466,20 @@ class _EngineFailure extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: EvaporateTheme.danger.withValues(alpha: 0.08),
+        color: context.colors.danger.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: EvaporateTheme.danger.withValues(alpha: 0.35),
+          color: context.colors.danger.withValues(alpha: 0.35),
         ),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.error_outline,
-            size: 18,
-            color: EvaporateTheme.danger,
-          ),
+          Icon(Icons.error_outline, size: 18, color: context.colors.danger),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message ?? 'Движок загрузок остановлен',
-              style: const TextStyle(
-                color: EvaporateTheme.danger,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: context.colors.danger, fontSize: 13),
             ),
           ),
         ],
@@ -531,8 +524,8 @@ class _TaskCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: task.state == DownloadState.error
-                        ? EvaporateTheme.danger
-                        : EvaporateTheme.textSecondary,
+                        ? context.colors.danger
+                        : context.colors.textSecondary,
                   ),
                 ),
                 if (game != null) ...[
@@ -571,9 +564,9 @@ class _TaskCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             DefaultTextStyle(
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
               child: Row(
                 children: [
@@ -604,10 +597,7 @@ class _TaskCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 task.errorMessage!,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: EvaporateTheme.danger,
-                ),
+                style: TextStyle(fontSize: 12, color: context.colors.danger),
               ),
             ],
           ],

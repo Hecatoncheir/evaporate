@@ -106,7 +106,7 @@ class TestHarness {
     return id;
   }
 
-  Widget buildApp() {
+  Widget buildApp({ThemeData? theme}) {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: settings),
@@ -120,18 +120,18 @@ class TestHarness {
           Provider<NotificationService>.value(value: notifications),
         ],
         child: MaterialApp(
-          theme: EvaporateTheme.build(),
+          theme: theme ?? EvaporateTheme.dark(),
           home: const AppShell(),
         ),
       ),
     );
   }
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {ThemeData? theme}) async {
     tester.view.physicalSize = const Size(1600, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(buildApp());
+    await tester.pumpWidget(buildApp(theme: theme));
     await tester.pumpAndSettle();
     // Отложенная запись библиотеки на диск.
     await tester.pump(const Duration(milliseconds: 500));

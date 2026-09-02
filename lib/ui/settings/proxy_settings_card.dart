@@ -130,10 +130,10 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
               Expanded(
                 child: Text(
                   proxy.isUsable ? proxy.uri : 'адрес не задан',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontFamily: EvaporateTheme.monoFontFamily,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -229,18 +229,18 @@ class _Warning extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
+        Icon(
           Icons.warning_amber_rounded,
           size: 15,
-          color: EvaporateTheme.warning,
+          color: context.colors.warning,
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: EvaporateTheme.warning,
+              color: context.colors.warning,
               height: 1.4,
             ),
           ),
@@ -259,9 +259,9 @@ class _Note extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
-        color: EvaporateTheme.textSecondary,
+        color: context.colors.textSecondary,
         height: 1.4,
       ),
     );

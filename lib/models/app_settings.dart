@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 
 import '../input/gamepad_binding.dart';
 import 'proxy_settings.dart';
@@ -15,6 +16,7 @@ class AppSettings extends Equatable {
     this.rememberWindowSize = true,
     this.startMaximized = false,
     this.checkUpdates = true,
+    this.themeMode = ThemeMode.system,
     this.ludusaviPath,
     this.proxy = const ProxySettings(),
     this.gamepad = const GamepadBinding(),
@@ -54,6 +56,9 @@ class AppSettings extends Equatable {
   /// Приложение ничего не скачивает и не ставит само — только сообщает.
   final bool checkUpdates;
 
+  /// Светлая, тёмная или как в системе.
+  final ThemeMode themeMode;
+
   /// Путь к Ludusavi, если он установлен не там, где мы его ищем.
   /// Пустое значение означает «искать самим».
   final String? ludusaviPath;
@@ -75,6 +80,7 @@ class AppSettings extends Equatable {
     bool? rememberWindowSize,
     bool? startMaximized,
     bool? checkUpdates,
+    ThemeMode? themeMode,
     Object? ludusaviPath = _u,
     ProxySettings? proxy,
     GamepadBinding? gamepad,
@@ -90,6 +96,7 @@ class AppSettings extends Equatable {
       rememberWindowSize: rememberWindowSize ?? this.rememberWindowSize,
       startMaximized: startMaximized ?? this.startMaximized,
       checkUpdates: checkUpdates ?? this.checkUpdates,
+      themeMode: themeMode ?? this.themeMode,
       ludusaviPath: ludusaviPath == _u
           ? this.ludusaviPath
           : ludusaviPath as String?,
@@ -109,6 +116,7 @@ class AppSettings extends Equatable {
     'rememberWindowSize': rememberWindowSize,
     'startMaximized': startMaximized,
     'checkUpdates': checkUpdates,
+    'themeMode': themeMode.name,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
     'gamepad': gamepad.toJson(),
@@ -126,6 +134,7 @@ class AppSettings extends Equatable {
         rememberWindowSize: json['rememberWindowSize'] as bool? ?? true,
         startMaximized: json['startMaximized'] as bool? ?? false,
         checkUpdates: json['checkUpdates'] as bool? ?? true,
+        themeMode: _themeModeFromName(json['themeMode'] as String?),
         ludusaviPath: json['ludusaviPath'] as String?,
         proxy: json['proxy'] == null
             ? const ProxySettings()
@@ -147,10 +156,19 @@ class AppSettings extends Equatable {
     rememberWindowSize,
     startMaximized,
     checkUpdates,
+    themeMode,
     ludusaviPath,
     proxy,
     gamepad,
   ];
+
+  /// Неизвестное значение — это «как в системе»: чужой или испорченный
+  /// файл настроек не должен запирать пользователя в чужой теме.
+  static ThemeMode _themeModeFromName(String? name) => switch (name) {
+    'light' => ThemeMode.light,
+    'dark' => ThemeMode.dark,
+    _ => ThemeMode.system,
+  };
 
   static const _u = Object();
 }

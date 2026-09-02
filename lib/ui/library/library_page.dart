@@ -132,10 +132,10 @@ class _LibraryPageState extends State<LibraryPage> {
         const Divider(height: 1),
         Expanded(
           child: games.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'Ничего не найдено',
-                    style: TextStyle(color: EvaporateTheme.textSecondary),
+                    style: TextStyle(color: context.colors.textSecondary),
                   ),
                 )
               : ListView.builder(
@@ -210,16 +210,16 @@ class _GameListTile extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: EvaporateTheme.surfaceHigh,
+              color: context.colors.surfaceHigh,
               borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: EvaporateTheme.outline),
+              border: Border.all(color: context.colors.outline),
             ),
             alignment: Alignment.center,
             child: Text(
               game.title.characters.take(1).toString().toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           ),
@@ -245,20 +245,16 @@ class _GameListTile extends StatelessWidget {
                     _subtitle(game),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
-                      color: EvaporateTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
               ],
             ),
           ),
           if (game.status == GameStatus.running)
-            const Icon(
-              Icons.play_circle,
-              size: 16,
-              color: EvaporateTheme.accent,
-            ),
+            Icon(Icons.play_circle, size: 16, color: context.colors.accent),
         ],
       ),
     );
@@ -294,10 +290,7 @@ class _MiniProgress extends StatelessWidget {
         Text(
           '${(progress * 100).toStringAsFixed(0)}% · '
           '${formatSpeed(task.downloadSpeed)}',
-          style: const TextStyle(
-            fontSize: 11,
-            color: EvaporateTheme.textSecondary,
-          ),
+          style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
         ),
       ],
     );

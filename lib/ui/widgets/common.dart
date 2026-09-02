@@ -15,13 +15,13 @@ class StatusChip extends StatelessWidget {
     final (label, color) = switch (status) {
       GameStatus.notInstalled => (
         'Не установлена',
-        EvaporateTheme.textSecondary,
+        context.colors.textSecondary,
       ),
-      GameStatus.downloading => ('Загрузка', EvaporateTheme.primary),
-      GameStatus.paused => ('Пауза', EvaporateTheme.warning),
-      GameStatus.installed => ('Установлена', EvaporateTheme.accent),
-      GameStatus.running => ('Запущена', EvaporateTheme.accent),
-      GameStatus.error => ('Ошибка', EvaporateTheme.danger),
+      GameStatus.downloading => ('Загрузка', context.colors.primary),
+      GameStatus.paused => ('Пауза', context.colors.warning),
+      GameStatus.installed => ('Установлена', context.colors.accent),
+      GameStatus.running => ('Запущена', context.colors.accent),
+      GameStatus.error => ('Ошибка', context.colors.danger),
     };
 
     return Container(
@@ -71,7 +71,7 @@ class SectionCard extends StatelessWidget {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 18, color: EvaporateTheme.textSecondary),
+                  Icon(icon, size: 18, color: context.colors.textSecondary),
                   const SizedBox(width: 8),
                 ],
 
@@ -118,7 +118,7 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 46, color: EvaporateTheme.outline),
+            Icon(icon, size: 46, color: context.colors.outline),
             const SizedBox(height: 16),
             Text(
               title,
@@ -132,8 +132,8 @@ class EmptyState extends StatelessWidget {
                 child: Text(
                   description!,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: EvaporateTheme.textSecondary,
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -175,8 +175,8 @@ class InfoRow extends StatelessWidget {
             width: 150,
             child: Text(
               label,
-              style: const TextStyle(
-                color: EvaporateTheme.textSecondary,
+              style: TextStyle(
+                color: context.colors.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -202,7 +202,7 @@ void showError(BuildContext context, Object error) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(error.toString()),
-      backgroundColor: EvaporateTheme.danger.withValues(alpha: 0.9),
+      backgroundColor: context.colors.danger.withValues(alpha: 0.9),
     ),
   );
 }
@@ -230,7 +230,7 @@ Future<bool> confirm(
         ),
         FilledButton(
           style: destructive
-              ? FilledButton.styleFrom(backgroundColor: EvaporateTheme.danger)
+              ? FilledButton.styleFrom(backgroundColor: context.colors.danger)
               : null,
           onPressed: () => Navigator.pop(context, true),
           child: Text(confirmLabel),

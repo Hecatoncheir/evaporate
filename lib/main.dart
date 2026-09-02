@@ -12,6 +12,7 @@ import 'bloc/settings/settings_bloc.dart';
 import 'core/app_paths.dart';
 import 'core/json_store.dart';
 import 'input/gamepad_service.dart';
+import 'models/app_settings.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
 import 'services/system/managed_window.dart';
@@ -131,11 +132,16 @@ class EvaporateApp extends StatelessWidget {
           Provider.value(value: gamepad),
           Provider<NotificationService>.value(value: notifications),
         ],
-        child: MaterialApp(
-          title: 'Evaporate',
-          debugShowCheckedModeBanner: false,
-          theme: EvaporateTheme.build(),
-          home: const AppShell(),
+        child: BlocSelector<SettingsBloc, AppSettings, ThemeMode>(
+          selector: (settings) => settings.themeMode,
+          builder: (context, mode) => MaterialApp(
+            title: 'Evaporate',
+            debugShowCheckedModeBanner: false,
+            theme: EvaporateTheme.light(),
+            darkTheme: EvaporateTheme.dark(),
+            themeMode: mode,
+            home: const AppShell(),
+          ),
         ),
       ),
     );

@@ -43,7 +43,7 @@ class GameDetail extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed: () => _remove(context),
-            style: TextButton.styleFrom(foregroundColor: EvaporateTheme.danger),
+            style: TextButton.styleFrom(foregroundColor: context.colors.danger),
             icon: const Icon(Icons.delete_outline, size: 17),
             label: const Text('Удалить из библиотеки'),
           ),
@@ -77,7 +77,7 @@ class GameDetail extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(context, _RemoveChoice.withFiles),
               style: TextButton.styleFrom(
-                foregroundColor: EvaporateTheme.danger,
+                foregroundColor: context.colors.danger,
               ),
               child: const Text('Удалить вместе с файлами'),
             ),
@@ -119,9 +119,9 @@ class _Cover extends StatelessWidget {
       height: 64,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: EvaporateTheme.surfaceHigh,
+        color: context.colors.surfaceHigh,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: EvaporateTheme.outline),
+        border: Border.all(color: context.colors.outline),
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -130,10 +130,10 @@ class _Cover extends StatelessWidget {
             Center(
               child: Text(
                 game.title.characters.take(1).toString().toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             )
@@ -142,10 +142,10 @@ class _Cover extends StatelessWidget {
               url,
               fit: BoxFit.cover,
               // Обложка — украшение: не грузится, значит её просто нет.
-              errorBuilder: (context, error, stack) => const Icon(
+              errorBuilder: (context, error, stack) => Icon(
                 Icons.image_not_supported_outlined,
                 size: 20,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           if (showProgress) _CoverProgress(task: task),
@@ -176,6 +176,9 @@ class _CoverProgress extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
+        // Затемнение и белый текст здесь не из палитры и не должны в неё
+        // уходить: подложка — обложка игры, а не фон приложения, и на
+        // светлой теме она остаётся такой же тёмной.
         color: Colors.black.withValues(alpha: 0.62),
         padding: const EdgeInsets.fromLTRB(6, 3, 6, 4),
         child: Column(
@@ -232,9 +235,9 @@ class _Header extends StatelessWidget {
                   game.description!,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -247,9 +250,9 @@ class _Header extends StatelessWidget {
                   if (game.playtime.inMinutes > 0)
                     Text(
                       'Наиграно ${formatDuration(game.playtime)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: EvaporateTheme.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ),
                 ],
@@ -294,18 +297,18 @@ class _ActionPanel extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.error_outline,
                     size: 16,
-                    color: EvaporateTheme.danger,
+                    color: context.colors.danger,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       game.lastError!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: EvaporateTheme.danger,
+                        color: context.colors.danger,
                         height: 1.4,
                       ),
                     ),
@@ -331,9 +334,9 @@ class _ActionPanel extends StatelessWidget {
           label: const Text('Остановить'),
         ),
         const SizedBox(width: 14),
-        const Text(
+        Text(
           'Игра запущена',
-          style: TextStyle(color: EvaporateTheme.accent, fontSize: 13),
+          style: TextStyle(color: context.colors.accent, fontSize: 13),
         ),
       ];
     }
@@ -371,12 +374,12 @@ class _ActionPanel extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         if (!game.canLaunch)
-          const Expanded(
+          Expanded(
             child: Text(
               'Укажите исполняемый файл ниже, чтобы запускать игру отсюда.',
               style: TextStyle(
                 fontSize: 12.5,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
           )
@@ -475,10 +478,7 @@ class _ProgressBlock extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         DefaultTextStyle(
-          style: const TextStyle(
-            fontSize: 12.5,
-            color: EvaporateTheme.textSecondary,
-          ),
+          style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
           child: Row(
             children: [
               Text(
@@ -522,7 +522,7 @@ class _FilesSection extends StatelessWidget {
             value: game.installDir ?? 'не задана',
             monospace: game.installDir != null,
             valueColor: game.installDir == null
-                ? EvaporateTheme.textSecondary
+                ? context.colors.textSecondary
                 : null,
           ),
           InfoRow(
@@ -530,7 +530,7 @@ class _FilesSection extends StatelessWidget {
             value: game.executablePath ?? 'не выбрано',
             monospace: game.executablePath != null,
             valueColor: game.executablePath == null
-                ? EvaporateTheme.textSecondary
+                ? context.colors.textSecondary
                 : null,
           ),
           const SizedBox(height: 12),

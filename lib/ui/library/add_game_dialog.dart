@@ -108,19 +108,16 @@ class _AddGameDialogState extends State<_AddGameDialog> {
                       : Text(
                           'Движок загрузок недоступен: ${downloads.engine.label}. '
                           'Игру можно добавить и запустить загрузку позже.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: EvaporateTheme.warning,
+                            color: context.colors.warning,
                           ),
                         ),
                 ),
               ],
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: const TextStyle(color: EvaporateTheme.danger),
-                ),
+                Text(_error!, style: TextStyle(color: context.colors.danger)),
               ],
             ],
           ),
@@ -178,12 +175,12 @@ class _AddGameDialogState extends State<_AddGameDialog> {
             onPick: _pickFolder,
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Игра уже на диске: скачивать ничего не нужно, приложение только '
             'запомнит её и попробует найти исполняемый файл.',
             style: TextStyle(
               fontSize: 12,
-              color: EvaporateTheme.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.4,
             ),
           ),
@@ -347,13 +344,13 @@ class _PathPicker extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: EvaporateTheme.surfaceHigh,
+          color: context.colors.surfaceHigh,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: EvaporateTheme.outline),
+          border: Border.all(color: context.colors.outline),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: EvaporateTheme.textSecondary),
+            Icon(icon, size: 18, color: context.colors.textSecondary),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -361,9 +358,9 @@ class _PathPicker extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: EvaporateTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -374,8 +371,8 @@ class _PathPicker extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       color: value == null
-                          ? EvaporateTheme.textSecondary
-                          : EvaporateTheme.textPrimary,
+                          ? context.colors.textSecondary
+                          : context.colors.textPrimary,
                     ),
                   ),
                 ],

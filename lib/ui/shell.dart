@@ -144,13 +144,13 @@ class _Rail extends StatelessWidget {
         selectedIndex: section,
         onDestinationSelected: (index) => nav.add(SectionSelected(index)),
         labelType: NavigationRailLabelType.all,
-        leading: const Padding(
+        leading: Padding(
           padding: EdgeInsets.only(top: 16, bottom: 8),
           child: Column(
             children: [
               Icon(
                 Icons.water_drop_outlined,
-                color: EvaporateTheme.primary,
+                color: context.colors.primary,
                 size: 26,
               ),
               SizedBox(height: 6),
@@ -160,7 +160,7 @@ class _Rail extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5,
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
             ],
@@ -214,24 +214,24 @@ class _StatusBar extends StatelessWidget {
     final stats = downloads.stats;
 
     final (color, icon) = switch (status.state) {
-      EngineState.ready => (EvaporateTheme.accent, Icons.check_circle_outline),
-      EngineState.starting => (EvaporateTheme.warning, Icons.hourglass_empty),
+      EngineState.ready => (context.colors.accent, Icons.check_circle_outline),
+      EngineState.starting => (context.colors.warning, Icons.hourglass_empty),
       EngineState.missingBinary => (
-        EvaporateTheme.warning,
+        context.colors.warning,
         Icons.warning_amber_rounded,
       ),
-      EngineState.failed => (EvaporateTheme.danger, Icons.error_outline),
+      EngineState.failed => (context.colors.danger, Icons.error_outline),
       EngineState.stopped => (
-        EvaporateTheme.textSecondary,
+        context.colors.textSecondary,
         Icons.stop_circle_outlined,
       ),
     };
 
     return Container(
       height: 30,
-      decoration: const BoxDecoration(
-        color: Color(0xFF10151C),
-        border: Border(top: BorderSide(color: EvaporateTheme.outline)),
+      decoration: BoxDecoration(
+        color: context.colors.railBackground,
+        border: Border(top: BorderSide(color: context.colors.outline)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
@@ -253,21 +253,17 @@ class _StatusBar extends StatelessWidget {
           ),
           if (stats.activeCount > 0) ...[
             const SizedBox(width: 16),
-            const Icon(
-              Icons.arrow_downward,
-              size: 13,
-              color: EvaporateTheme.primary,
-            ),
+            Icon(Icons.arrow_downward, size: 13, color: context.colors.primary),
             const SizedBox(width: 3),
             Text(
               formatSpeed(stats.downloadSpeed),
               style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(width: 14),
-            const Icon(
+            Icon(
               Icons.arrow_upward,
               size: 13,
-              color: EvaporateTheme.textSecondary,
+              color: context.colors.textSecondary,
             ),
             const SizedBox(width: 3),
             Text(

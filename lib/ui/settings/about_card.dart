@@ -82,10 +82,10 @@ class _AboutCardState extends State<AboutCard> {
                 const SizedBox(width: 8),
                 SelectableText(
                   _found!.url,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontFamily: EvaporateTheme.monoFontFamily,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -98,8 +98,8 @@ class _AboutCardState extends State<AboutCard> {
               style: TextStyle(
                 fontSize: 12.5,
                 color: _isError
-                    ? EvaporateTheme.danger
-                    : EvaporateTheme.textSecondary,
+                    ? context.colors.danger
+                    : context.colors.textSecondary,
               ),
             ),
           ],

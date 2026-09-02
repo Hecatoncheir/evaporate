@@ -79,14 +79,14 @@ void main() {
     // Без этого шрифты остались бы объявленными, но неприменёнными: код
     // выглядел бы правильным, а интерфейс рисовался бы системным шрифтом.
     test('обычный текст набирается основным семейством', () {
-      final theme = EvaporateTheme.build();
+      final theme = EvaporateTheme.dark();
 
       expect(theme.textTheme.bodyMedium?.fontFamily, EvaporateTheme.fontFamily);
       expect(theme.textTheme.labelLarge?.fontFamily, EvaporateTheme.fontFamily);
     });
 
     test('заголовки набираются вторым семейством', () {
-      final theme = EvaporateTheme.build();
+      final theme = EvaporateTheme.dark();
 
       expect(
         theme.textTheme.titleLarge?.fontFamily,

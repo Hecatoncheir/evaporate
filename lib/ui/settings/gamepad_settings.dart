@@ -52,8 +52,8 @@ class GamepadSettingsCard extends StatelessWidget {
               label: 'Геймпад',
               value: status.label,
               valueColor: status.hasDevice
-                  ? EvaporateTheme.accent
-                  : EvaporateTheme.textSecondary,
+                  ? context.colors.accent
+                  : context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
@@ -101,9 +101,9 @@ class GamepadSettingsCard extends StatelessWidget {
                 width: 44,
                 child: Text(
                   binding.deadzone.toStringAsFixed(2),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12.5,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ),
@@ -182,8 +182,8 @@ class _BindingRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 color: buttons.isEmpty
-                    ? EvaporateTheme.warning
-                    : EvaporateTheme.textSecondary,
+                    ? context.colors.warning
+                    : context.colors.textSecondary,
               ),
             ),
           ),
@@ -231,10 +231,10 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.sports_esports_outlined,
               size: 44,
-              color: EvaporateTheme.primary,
+              color: context.colors.primary,
             ),
             const SizedBox(height: 14),
             const Text(
@@ -251,8 +251,8 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
                 style: TextStyle(
                   fontSize: 12,
                   color: status.hasDevice
-                      ? EvaporateTheme.textSecondary
-                      : EvaporateTheme.warning,
+                      ? context.colors.textSecondary
+                      : context.colors.warning,
                 ),
               ),
             ),

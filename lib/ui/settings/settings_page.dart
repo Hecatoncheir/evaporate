@@ -102,20 +102,20 @@ class SettingsPage extends StatelessWidget {
                     downloads.state.engine.message ??
                     downloads.state.engine.label,
                 valueColor: downloads.state.engine.isReady
-                    ? EvaporateTheme.accent
-                    : EvaporateTheme.warning,
+                    ? context.colors.accent
+                    : context.colors.warning,
               ),
               const InfoRow(
                 label: 'Реализация',
                 value: 'Встроенный клиент на Dart',
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Движок встроен в приложение — внешних программ ставить не '
                 'нужно. Список загрузок переживает перезапуск.',
                 style: TextStyle(
                   fontSize: 12.5,
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                   height: 1.5,
                 ),
               ),
@@ -166,7 +166,7 @@ class SettingsPage extends StatelessWidget {
                     : () => update(settings.copyWith(ludusaviPath: null)),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Пути сохранений берутся у Ludusavi — он идёт в комплекте, '
                 'ставить отдельно ничего не нужно. Здесь можно указать свою '
                 'копию: её настройки могут знать про нестандартные папки с '
@@ -174,11 +174,16 @@ class SettingsPage extends StatelessWidget {
                 'путей — она покрывает меньше случаев, но не требует ничего.',
                 style: TextStyle(
                   fontSize: 12.5,
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                   height: 1.5,
                 ),
               ),
               const SizedBox(height: 6),
+              _ThemePicker(
+                value: settings.themeMode,
+                onChanged: (mode) => update(settings.copyWith(themeMode: mode)),
+              ),
+              const SizedBox(height: 10),
               SwitchListTile(
                 value: settings.rememberWindowSize,
                 onChanged: (value) =>
@@ -240,6 +245,62 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
+/// Выбор оформления.
+///
+/// Три кнопки, а не переключатель: «как в системе» — не середина между
+/// светлой и тёмной, а отдельный вариант, и выпадающим списком его пришлось
+/// бы искать.
+class _ThemePicker extends StatelessWidget {
+  const _ThemePicker({required this.value, required this.onChanged});
+
+  final ThemeMode value;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 220,
+          child: Text('Оформление', style: const TextStyle(fontSize: 13)),
+        ),
+        Expanded(
+          child: SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(
+                value: ThemeMode.system,
+                icon: Icon(Icons.brightness_auto_outlined, size: 17),
+                label: Text('Как в системе'),
+              ),
+              ButtonSegment(
+                value: ThemeMode.light,
+                icon: Icon(Icons.light_mode_outlined, size: 17),
+                label: Text('Светлое'),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                icon: Icon(Icons.dark_mode_outlined, size: 17),
+                label: Text('Тёмное'),
+              ),
+            ],
+            selected: {value},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) => onChanged(selection.first),
+            style: ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(
+                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.fontFamily,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _PathSetting extends StatelessWidget {
   const _PathSetting({
     required this.label,
@@ -264,10 +325,10 @@ class _PathSetting extends StatelessWidget {
         Expanded(
           child: SelectableText(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
               fontFamily: EvaporateTheme.monoFontFamily,
-              color: EvaporateTheme.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),

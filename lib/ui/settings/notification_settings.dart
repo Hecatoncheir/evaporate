@@ -43,13 +43,13 @@ class NotificationSettingsCard extends StatelessWidget {
           ),
           if (!notifications.isAvailable) ...[
             const SizedBox(height: 6),
-            const Row(
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
                   size: 15,
-                  color: EvaporateTheme.warning,
+                  color: context.colors.warning,
                 ),
                 SizedBox(width: 8),
                 Expanded(
@@ -58,7 +58,7 @@ class NotificationSettingsCard extends StatelessWidget {
                     'сообщать о фоновых событиях не сможет.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: EvaporateTheme.warning,
+                      color: context.colors.warning,
                       height: 1.4,
                     ),
                   ),
@@ -89,12 +89,12 @@ class NotificationSettingsCard extends StatelessWidget {
           ),
           if (Platform.isMacOS) ...[
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'macOS спрашивает разрешение один раз. Если вы его отклонили, '
               'включить уведомления можно только в системных настройках.',
               style: TextStyle(
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
             ),

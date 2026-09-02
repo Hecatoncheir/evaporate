@@ -68,14 +68,14 @@ class SavePathsSection extends StatelessWidget {
         ],
       ),
       child: rules.isEmpty
-          ? const Padding(
+          ? Padding(
               padding: EdgeInsets.symmetric(vertical: 6),
               child: Text(
                 'Пути не заданы. Нажмите «Найти», чтобы поискать папку по '
                 'названию игры, или «Добавить», чтобы указать её вручную. '
                 'Без этого снимки сохранений делать не из чего.',
                 style: TextStyle(
-                  color: EvaporateTheme.textSecondary,
+                  color: context.colors.textSecondary,
                   height: 1.5,
                   fontSize: 13,
                 ),
@@ -186,9 +186,9 @@ class _RuleTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: EvaporateTheme.surfaceHigh,
+        color: context.colors.surfaceHigh,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: EvaporateTheme.outline),
+        border: Border.all(color: context.colors.outline),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,8 +197,8 @@ class _RuleTile extends StatelessWidget {
             exists ? Icons.folder_outlined : Icons.folder_off_outlined,
             size: 17,
             color: exists
-                ? EvaporateTheme.accent
-                : EvaporateTheme.textSecondary,
+                ? context.colors.accent
+                : context.colors.textSecondary,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -218,20 +218,20 @@ class _RuleTile extends StatelessWidget {
                     if (rule.platform != null)
                       _Tag(
                         text: platformLabel(rule.platform!),
-                        color: EvaporateTheme.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     if (!rule.isPortable) ...[
                       const SizedBox(width: 6),
-                      const _Tag(
+                      _Tag(
                         text: 'непереносимый путь',
-                        color: EvaporateTheme.warning,
+                        color: context.colors.warning,
                       ),
                     ],
                     if (!exists) ...[
                       const SizedBox(width: 6),
-                      const _Tag(
+                      _Tag(
                         text: 'нет на диске',
-                        color: EvaporateTheme.textSecondary,
+                        color: context.colors.textSecondary,
                       ),
                     ],
                   ],
@@ -239,9 +239,9 @@ class _RuleTile extends StatelessWidget {
                 const SizedBox(height: 3),
                 SelectableText(
                   rule.template,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                     fontFamily: EvaporateTheme.monoFontFamily,
                   ),
                 ),
@@ -340,12 +340,12 @@ class SnapshotsSection extends StatelessWidget {
         ],
       ),
       child: snapshots.isEmpty
-          ? const Text(
+          ? Text(
               'Снимков пока нет. Снимок — это zip с вашими сохранениями плюс '
               'описание путей; его можно перенести на другое устройство и '
               'продолжить игру с того же места.',
               style: TextStyle(
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
                 fontSize: 13,
               ),
@@ -467,9 +467,9 @@ class _SnapshotTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: EvaporateTheme.surfaceHigh,
+        color: context.colors.surfaceHigh,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: EvaporateTheme.outline),
+        border: Border.all(color: context.colors.outline),
       ),
       child: Row(
         children: [
@@ -490,8 +490,8 @@ class _SnapshotTile extends StatelessWidget {
                     _Tag(
                       text: snapshot.origin.label,
                       color: snapshot.origin == SnapshotOrigin.imported
-                          ? EvaporateTheme.primary
-                          : EvaporateTheme.textSecondary,
+                          ? context.colors.primary
+                          : context.colors.textSecondary,
                     ),
                   ],
                 ),
@@ -501,9 +501,9 @@ class _SnapshotTile extends StatelessWidget {
                   '${platformLabel(snapshot.platform)} · '
                   '${snapshot.fileCount} файлов · '
                   '${formatBytes(snapshot.sizeBytes)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -620,19 +620,19 @@ class _RuleDialogState extends State<_RuleDialog> {
             const SizedBox(height: 8),
             Text(
               'Развернётся в: ${SavePathTemplate.expand(template)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             if (!portable) ...[
               const SizedBox(height: 10),
-              const Row(
+              Row(
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
                     size: 15,
-                    color: EvaporateTheme.warning,
+                    color: context.colors.warning,
                   ),
                   SizedBox(width: 6),
                   Expanded(
@@ -641,7 +641,7 @@ class _RuleDialogState extends State<_RuleDialog> {
                       'не совпадёт.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: EvaporateTheme.warning,
+                        color: context.colors.warning,
                         height: 1.4,
                       ),
                     ),
@@ -707,12 +707,12 @@ class _SuggestionsDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Найдено по названию игры. Проверьте, что это действительно '
               'папка сохранений.',
               style: TextStyle(
                 fontSize: 13,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -796,21 +796,21 @@ class _RestoreDialogState extends State<_RestoreDialog> {
               style: const TextStyle(fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'Файлы лягут сюда:',
               style: TextStyle(
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 6),
             if (targets.isEmpty)
-              const Text(
+              Text(
                 'Не удалось определить целевые папки на этом устройстве. '
                 'Задайте путь сохранений в карточке игры.',
                 style: TextStyle(
                   fontSize: 12.5,
-                  color: EvaporateTheme.warning,
+                  color: context.colors.warning,
                   height: 1.4,
                 ),
               )
@@ -820,10 +820,10 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
                     '${entry.key}: ${entry.value}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontFamily: EvaporateTheme.monoFontFamily,
-                      color: EvaporateTheme.textSecondary,
+                      color: context.colors.textSecondary,
                     ),
                   ),
                 ),

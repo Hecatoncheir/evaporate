@@ -285,8 +285,20 @@ about the order things happened in.
 
 ## Appearance
 
-The dark theme is deliberate and the only one: the app lives in a full-screen
-window next to games.
+There are two themes, light and dark, plus "follow the system", which is the
+default. The dark one is unchanged from where the app started: it lives in a
+full-screen window next to games.
+
+The light one is not the dark one lightened. Cyan and teal that read well on a
+dark background dissolve into white, so its accents are markedly darker.
+Contrast was not eyeballed: a test measures the ratio for every colour against
+every surface and demands WCAG levels — 4.5 for captions and accents, 7 for
+body text.
+
+Colours come from a theme extension (`context.colors.textSecondary`) rather
+than constants, because two schemes cannot both be constants. There is one
+exception: the scrim over a game's cover art, where the backdrop is a picture
+rather than the app background, so white text stays white in either theme.
 
 Three fonts, all bundled rather than fetched at runtime: Nunito Sans for the
 interface, Nunito for headings, JetBrains Mono for paths and sizes. They are

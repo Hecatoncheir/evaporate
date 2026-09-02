@@ -4,6 +4,7 @@ import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -148,5 +149,22 @@ void main() {
 
     expect(find.text('Первая'), findsNothing);
     expect(find.text('Вторая'), findsWidgets);
+  });
+
+  // Светлая тема появилась позже тёмной, и легко забыть перевести на палитру
+  // один-два экрана. Здесь оболочка целиком строится в обеих: вшитый цвет
+  // сам по себе тест не завалит, но упавшая вёрстка или потерянный контекст —
+  // да, а обход всех разделов задевает почти весь интерфейс.
+  testWidgets('оболочка строится в светлой теме', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester, theme: EvaporateTheme.light());
+
+    for (final section in ['Загрузки', 'Сохранения', 'Настройки']) {
+      await tester.tap(find.text(section).first);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'раздел «$section»');
+    }
   });
 }

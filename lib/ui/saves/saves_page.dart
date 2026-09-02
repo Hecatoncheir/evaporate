@@ -42,12 +42,12 @@ class _SavesPageState extends State<SavesPage> {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Снимок сохранений — это один файл .evsave: положите его в облачную '
           'папку или на флешку, откройте на другом устройстве и продолжите '
           'с того же места.',
           style: TextStyle(
-            color: EvaporateTheme.textSecondary,
+            color: context.colors.textSecondary,
             height: 1.5,
             fontSize: 13,
           ),
@@ -68,14 +68,14 @@ class _SavesPageState extends State<SavesPage> {
           icon: Icons.history,
           trailing: Text(
             '${entries.length}',
-            style: const TextStyle(color: EvaporateTheme.textSecondary),
+            style: TextStyle(color: context.colors.textSecondary),
           ),
           child: entries.isEmpty
-              ? const Text(
+              ? Text(
                   'Снимков пока нет. Откройте игру в библиотеке, задайте папку '
                   'сохранений и нажмите «Снять».',
                   style: TextStyle(
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -150,16 +150,16 @@ class _SavesPageState extends State<SavesPage> {
                       ? Icons.check_circle_outline
                       : Icons.videogame_asset_outlined,
                   size: 18,
-                  color: matches ? EvaporateTheme.accent : null,
+                  color: matches ? context.colors.accent : null,
                 ),
                 title: Text(game.title, style: const TextStyle(fontSize: 13)),
                 subtitle: game.saveProfile.isConfigured
                     ? null
-                    : const Text(
+                    : Text(
                         'Пути сохранений не заданы',
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: EvaporateTheme.warning,
+                          color: context.colors.warning,
                         ),
                       ),
                 onTap: () => Navigator.pop(context, game),
@@ -219,12 +219,12 @@ class _SyncFolderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (folder == null) ...[
-            const Text(
+            Text(
               'Укажите папку, которая синхронизируется между устройствами — '
               'Dropbox, iCloud, Syncthing. Новые снимки будут попадать туда '
               'автоматически, а на другом устройстве появятся в этом списке.',
               style: TextStyle(
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
                 fontSize: 13,
                 height: 1.5,
               ),
@@ -246,18 +246,18 @@ class _SyncFolderCard extends StatelessWidget {
           ] else ...[
             SelectableText(
               folder!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: EvaporateTheme.monoFontFamily,
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 14),
             if (packages.isEmpty)
               Text(
                 scannedOnce ? 'Пакетов .evsave в папке не найдено.' : 'Нажмите «Проверить», чтобы посмотреть, что лежит в папке.',
-                style: const TextStyle(
-                  color: EvaporateTheme.textSecondary,
+                style: TextStyle(
+                  color: context.colors.textSecondary,
                   fontSize: 13,
                 ),
               )
@@ -284,9 +284,9 @@ class _PackageRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: EvaporateTheme.surfaceHigh,
+        color: context.colors.surfaceHigh,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: EvaporateTheme.outline),
+        border: Border.all(color: context.colors.outline),
       ),
       child: Row(
         children: [
@@ -307,23 +307,23 @@ class _PackageRow extends StatelessWidget {
                   '${snapshot.deviceName} · '
                   '${platformLabel(snapshot.platform)} · '
                   '${snapshot.fileCount} файлов',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
           if (!package.isCompatible)
-            const Tooltip(
+            Tooltip(
               message:
                   'В пакете нет путей для этой платформы — '
                   'понадобится правило с той же меткой',
               child: Icon(
                 Icons.warning_amber_rounded,
                 size: 17,
-                color: EvaporateTheme.warning,
+                color: context.colors.warning,
               ),
             ),
           const SizedBox(width: 8),
@@ -354,9 +354,9 @@ class _SnapshotRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: EvaporateTheme.surfaceHigh,
+        color: context.colors.surfaceHigh,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: EvaporateTheme.outline),
+        border: Border.all(color: context.colors.outline),
       ),
       child: Row(
         children: [
@@ -377,9 +377,9 @@ class _SnapshotRow extends StatelessWidget {
                   '${snapshot.origin.label} · '
                   '${snapshot.deviceName} · '
                   '${formatBytes(snapshot.sizeBytes)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: EvaporateTheme.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ),
               ],
@@ -434,22 +434,22 @@ class _BulkTransferCard extends StatelessWidget {
             )
           : Text(
               'игр с путями: $configured',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: EvaporateTheme.textSecondary,
+                color: context.colors.textSecondary,
               ),
             ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Выгрузка снимет свежие снимки всех игр, у которых заданы папки '
             'сохранений, и сложит их в одну папку. На другом устройстве '
             'загрузка разберёт её обратно, сопоставляя пакеты с играми по '
             'названию.',
             style: TextStyle(
               fontSize: 13,
-              color: EvaporateTheme.textSecondary,
+              color: context.colors.textSecondary,
               height: 1.5,
             ),
           ),
