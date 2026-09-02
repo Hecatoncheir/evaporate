@@ -83,9 +83,11 @@ void main() {
 
   group('папка игры', () {
     test('{GAME} разворачивается в папку установки', () {
+      // Шаблоны всегда пишутся через `/`, а expand приводит путь к
+      // разделителю системы — на Windows это `\`, поэтому normalize.
       expect(
         SavePathTemplate.expand('{GAME}/saves', gameDir: '/opt/hk'),
-        p.join('/opt/hk', 'saves'),
+        p.normalize(p.join('/opt/hk', 'saves')),
       );
     });
 

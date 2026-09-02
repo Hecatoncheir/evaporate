@@ -240,7 +240,12 @@ Hollow Knight:
     );
 
     expect(rule.resolve(), isNull);
-    expect(rule.resolve(gameDir: '/opt/hk'), p.join('/opt/hk', 'saves'));
+    // normalize: на Windows развёрнутый путь приходит с `\`, а p.join
+    // оставил бы косые чёрточки из шаблона нетронутыми.
+    expect(
+      rule.resolve(gameDir: '/opt/hk'),
+      p.normalize(p.join('/opt/hk', 'saves')),
+    );
     expect(SavePathTemplate.needsGameDir(rule.template), isTrue);
   });
 }

@@ -124,7 +124,9 @@ void main() {
     test('иконка ищется рядом с исполняемым файлом', () {
       final entry = make(executable: '/opt/evaporate/evaporate');
 
-      expect(entry.iconPath, '/opt/evaporate/data/app_icon.png');
+      // Через p.join, а не строкой: на Windows разделитель другой, и
+      // ожидание, записанное по-юниксовому, там разошлось бы с делом.
+      expect(entry.iconPath, p.join('/opt/evaporate', 'data', 'app_icon.png'));
     });
   });
 }
