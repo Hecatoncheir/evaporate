@@ -23,12 +23,21 @@ void main() {
     String executable = '/Приложения/Evaporate.app/Contents/MacOS/Evaporate',
     List<List<String>>? calls,
   }) {
+    // Подделка ведёт себя как реестр: пока записи нет, query отвечает
+    // ненулевым кодом. Прежняя отвечала успехом на всё подряд, и на Windows
+    // «выключено» читалось как «включено» — тест проходил там, где не должен.
+    var present = false;
     return Autostart(
       executablePath: executable,
       homeDir: home.path,
       environment: {'HOME': home.path},
       run: (exe, args) async {
         calls?.add([exe, ...args]);
+        if (args.contains('add')) present = true;
+        if (args.contains('delete')) present = false;
+        if (args.contains('query')) {
+          return ProcessResult(0, present ? 0 : 1, '', '');
+        }
         return ProcessResult(0, 0, '', '');
       },
     );
