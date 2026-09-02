@@ -221,9 +221,9 @@ python3 tool/make_icon.py
 
 A push to `main` runs the analysis and the tests only. The three platform
 builds run on a `v*` tag, and that is when the finished archives are attached
-to the release. This is deliberate: on a push those builds would establish
-what the tests already do, and on a private repository the minutes are
-metered — macOS at a ten-times multiplier.
+to the release. On a push they would establish what the tests already do, and
+take four times as long doing it: the macOS build runs for minutes, while
+“the tests passed” is wanted at once.
 
 To check a build without cutting a release, run the workflow by hand
 (`workflow_dispatch`) — the builds run there too. They still wait for the
