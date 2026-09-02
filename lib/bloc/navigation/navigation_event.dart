@@ -36,6 +36,16 @@ final class GameSelected extends NavigationEvent {
   List<Object?> get props => [gameId];
 }
 
+/// Открыть страницу игры поверх сетки; `null` — вернуться к сетке.
+final class GameOpened extends NavigationEvent {
+  const GameOpened(this.gameId);
+
+  final String? gameId;
+
+  @override
+  List<Object?> get props => [gameId];
+}
+
 /// Уйти в поиск: раздел «Библиотека» плюс фокус в поле.
 final class SearchFocusRequested extends NavigationEvent {
   const SearchFocusRequested();

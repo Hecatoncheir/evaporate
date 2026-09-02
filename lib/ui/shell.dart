@@ -81,6 +81,7 @@ class AppShell extends StatelessWidget {
         onSectionChange: (delta) => nav.add(SectionCycled(delta)),
         onPrimaryAction: () => _primaryAction(context),
         onSearch: () => nav.add(const SearchFocusRequested()),
+        onBack: nav.closeOpenedGame,
         child: Scaffold(
           body: Column(
             children: [

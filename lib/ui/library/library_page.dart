@@ -2,24 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
-import '../../models/download_task.dart';
 import '../../models/game.dart';
-import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../widgets/nav_tile.dart';
 
 import 'package:file_selector/file_selector.dart';
 
 import 'add_game_dialog.dart';
+import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
-import '../widgets/animated_progress.dart';
 import '../../l10n/app_localizations.dart';
 
+/// Вкладки поверх сетки. Раскладывают библиотеку без остатка: игра ровно в
+/// одной из двух, и суммы сходятся с «Все».
+enum _Shelf { all, installed, notInstalled }
+
+/// Библиотека: сетка вертикальных обложек, поверх неё — страница игры.
+///
+/// Список с подписями уступил место обложкам не ради красоты: пятьдесят
+/// строк одинакового вида глазами не разбираются, а картинки узнаются
+/// мгновенно и с дивана, куда это приложение и метит.
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
 
@@ -29,46 +34,94 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   String _query = '';
+  _Shelf _shelf = _Shelf.all;
 
   @override
   Widget build(BuildContext context) {
     final library = context.watch<LibraryBloc>().state;
     final nav = context.read<NavigationBloc>();
-    final selectedId = context.select<NavigationBloc, String?>(
-      (bloc) => bloc.state.selectedGameId,
-    );
-    final games = _filter(library.games);
+    final navState = context.watch<NavigationBloc>().state;
 
-    // Выбор мог указывать на удалённую или отфильтрованную игру.
-    final selected = games.isEmpty
-        ? null
-        : games.firstWhere(
-            (g) => g.id == selectedId,
-            orElse: () => games.first,
-          );
+    final found = _search(library.games);
+    final games = _onShelf(found, _shelf);
+    final opened = library.gameById(navState.openedGameId);
 
-    // Кнопке «Играть» на геймпаде нужно знать выбранную игру, поэтому
-    // фактический выбор поднимается в общий блок навигации.
-    if (selected?.id != selectedId) {
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (mounted) nav.add(GameSelected(selected?.id));
-      });
-    }
+    // Открытую игру могли удалить, а выбранную — отфильтровать. И то и
+    // другое чинится после кадра: менять состояние во время сборки нельзя.
+    _repairSelection(nav, navState, games, opened);
 
-    return Row(
+    if (opened != null) return _GamePage(game: opened);
+
+    return Column(
       children: [
-        SizedBox(width: 300, child: _buildList(context, games, selected, nav)),
-        const VerticalDivider(width: 1),
+        _Toolbar(
+          shelf: _shelf,
+          counts: {
+            for (final shelf in _Shelf.values)
+              shelf: _onShelf(found, shelf).length,
+          },
+          onShelf: (value) => setState(() => _shelf = value),
+          searchFocus: nav.searchFocus,
+          onQuery: (value) => setState(() => _query = value),
+          onScan: () => _scanFolder(context),
+          onAdd: () => _addGame(context),
+        ),
         Expanded(
-          child: selected == null
-              ? _buildEmpty(context, library.games.isEmpty)
-              : GameDetail(key: ValueKey(selected.id), game: selected),
+          child: games.isEmpty
+              ? _empty(context, library.games.isEmpty)
+              : _grid(games, navState.selectedGameId, nav),
         ),
       ],
     );
   }
 
-  List<Game> _filter(List<Game> games) {
+  Widget _grid(List<Game> games, String? selectedId, NavigationBloc nav) {
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        // По ширине, а не по числу столбцов: обложка должна остаться
+        // читаемой и в узком окне, и на весь экран телевизора.
+        maxCrossAxisExtent: 215,
+        childAspectRatio: 2 / 3,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 20,
+      ),
+      itemCount: games.length,
+      itemBuilder: (context, index) {
+        final game = games[index];
+        return GameCoverTile(
+          key: ValueKey(game.id),
+          game: game,
+          selected: game.id == selectedId,
+          onOpen: () => nav.add(GameOpened(game.id)),
+          // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
+          // работать по той игре, на которую смотришь, не заходя внутрь.
+          onFocused: () => nav.add(GameSelected(game.id)),
+        );
+      },
+    );
+  }
+
+  /// Возвращает выбор в осмысленное состояние, если он повис в воздухе.
+  void _repairSelection(
+    NavigationBloc nav,
+    NavigationState state,
+    List<Game> games,
+    Game? opened,
+  ) {
+    final selectionLost =
+        games.isNotEmpty && !games.any((g) => g.id == state.selectedGameId);
+    final openingLost = state.openedGameId != null && opened == null;
+    if (!selectionLost && !openingLost) return;
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (openingLost) nav.add(const GameOpened(null));
+      if (selectionLost) nav.add(GameSelected(games.first.id));
+    });
+  }
+
+  List<Game> _search(List<Game> games) {
     final query = _query.trim().toLowerCase();
     final filtered = query.isEmpty
         ? [...games]
@@ -87,6 +140,27 @@ class _LibraryPageState extends State<LibraryPage> {
     return filtered;
   }
 
+  static List<Game> _onShelf(List<Game> games, _Shelf shelf) => switch (shelf) {
+    _Shelf.all => games,
+    // Запущенная игра установлена по определению, качающаяся — ещё нет.
+    _Shelf.installed =>
+      games
+          .where(
+            (g) =>
+                g.status == GameStatus.installed ||
+                g.status == GameStatus.running,
+          )
+          .toList(),
+    _Shelf.notInstalled =>
+      games
+          .where(
+            (g) =>
+                g.status != GameStatus.installed &&
+                g.status != GameStatus.running,
+          )
+          .toList(),
+  };
+
   static int _activityRank(Game game) => switch (game.status) {
     GameStatus.running => 0,
     GameStatus.downloading => 1,
@@ -96,80 +170,11 @@ class _LibraryPageState extends State<LibraryPage> {
     GameStatus.notInstalled => 5,
   };
 
-  Widget _buildList(
-    BuildContext context,
-    List<Game> games,
-    Game? selected,
-    NavigationBloc nav,
-  ) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 38,
-                  child: TextField(
-                    focusNode: nav.searchFocus,
-                    onChanged: (value) => setState(() => _query = value),
-                    // Enter в поиске уводит фокус в список — удобно и с
-                    // клавиатуры, и с геймпадной экранной клавиатуры.
-                    onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-                    decoration: InputDecoration(
-                      hintText: L.of(context).searchHint,
-                      prefixIcon: Icon(Icons.search, size: 18),
-                      isDense: true,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () => _scanFolder(context),
-                icon: const Icon(Icons.folder_open_outlined, size: 19),
-                tooltip: L.of(context).findGamesInFolder,
-              ),
-              IconButton.filled(
-                onPressed: () => _addGame(context),
-                icon: const Icon(Icons.add, size: 20),
-                tooltip: L.of(context).addGame,
-              ),
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: games.isEmpty
-              ? Center(
-                  child: Text(
-                    L.of(context).nothingFound,
-                    style: TextStyle(color: context.colors.textSecondary),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  itemCount: games.length,
-                  itemBuilder: (context, index) {
-                    final game = games[index];
-                    return _GameListTile(
-                      game: game,
-                      isSelected: game.id == selected?.id,
-                      onTap: () => nav.add(GameSelected(game.id)),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmpty(BuildContext context, bool libraryIsEmpty) {
+  Widget _empty(BuildContext context, bool libraryIsEmpty) {
     if (!libraryIsEmpty) {
       return EmptyState(
         icon: Icons.videogame_asset_outlined,
-        title: L.of(context).pickGameOnTheLeft,
+        title: L.of(context).nothingFound,
       );
     }
     return EmptyState(
@@ -188,7 +193,7 @@ class _LibraryPageState extends State<LibraryPage> {
   Future<void> _scanFolder(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     final l = L.of(context);
-    final dir = await getDirectoryPath(confirmButtonText: L.of(context).scan);
+    final dir = await getDirectoryPath(confirmButtonText: l.scan);
     if (dir == null || !context.mounted) return;
 
     final added = await showScanFolderDialog(context, dir);
@@ -203,113 +208,176 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 }
 
-class _GameListTile extends StatelessWidget {
-  const _GameListTile({
-    required this.game,
-    required this.isSelected,
-    required this.onTap,
+/// Верхняя строка: полки с числами, поиск и добавление.
+class _Toolbar extends StatelessWidget {
+  const _Toolbar({
+    required this.shelf,
+    required this.counts,
+    required this.onShelf,
+    required this.searchFocus,
+    required this.onQuery,
+    required this.onScan,
+    required this.onAdd,
   });
 
-  final Game game;
-  final bool isSelected;
-  final VoidCallback onTap;
+  final _Shelf shelf;
+  final Map<_Shelf, int> counts;
+  final ValueChanged<_Shelf> onShelf;
+  final FocusNode searchFocus;
+  final ValueChanged<String> onQuery;
+  final VoidCallback onScan;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
-    final task = context.select<DownloadsBloc, DownloadTask?>(
-      (bloc) => bloc.state.taskForGame(game),
-    );
-
-    return NavTile(
-      selected: isSelected,
-      onTap: onTap,
+    final l = L.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.colors.outline)),
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
       child: Row(
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: context.colors.surfaceHigh,
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: context.colors.outline),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              game.title.characters.take(1).toString().toUpperCase(),
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: context.colors.textSecondary,
+          Flexible(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final value in _Shelf.values)
+                    _ShelfButton(
+                      label: _label(l, value),
+                      count: counts[value] ?? 0,
+                      active: value == shelf,
+                      onTap: () => onShelf(value),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  game.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                if (task != null && task.isRunning)
-                  _MiniProgress(progress: task.progress, task: task)
-                else
-                  Text(
-                    _subtitle(L.of(context), game),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-              ],
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 210,
+            height: 36,
+            child: TextField(
+              focusNode: searchFocus,
+              onChanged: onQuery,
+              // Enter в поиске уводит фокус в сетку — удобно и с клавиатуры,
+              // и с геймпадной экранной клавиатуры.
+              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+              decoration: InputDecoration(
+                hintText: l.searchHint,
+                prefixIcon: const Icon(Icons.search, size: 18),
+                isDense: true,
+              ),
             ),
           ),
-          if (game.status == GameStatus.running)
-            Icon(Icons.play_circle, size: 16, color: context.colors.accent),
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: onScan,
+            icon: const Icon(Icons.folder_open_outlined, size: 19),
+            tooltip: l.findGamesInFolder,
+          ),
+          IconButton.filled(
+            onPressed: onAdd,
+            icon: const Icon(Icons.add, size: 20),
+            tooltip: l.addGame,
+          ),
         ],
       ),
     );
   }
 
-  static String _subtitle(L l, Game game) {
-    if (game.status == GameStatus.error) return game.lastError ?? l.statusError;
-    if (game.playtime.inMinutes > 0) {
-      return l.playtime(formatDurationLabel(l, game.playtime));
-    }
-    return switch (game.status) {
-      GameStatus.installed => l.statusInstalled,
-      GameStatus.notInstalled => l.statusNotInstalled,
-      GameStatus.paused => l.downloadPaused,
-      _ => '',
-    };
-  }
+  static String _label(L l, _Shelf shelf) => switch (shelf) {
+    _Shelf.all => l.tabAll,
+    _Shelf.installed => l.tabInstalled,
+    _Shelf.notInstalled => l.tabNotInstalled,
+  };
 }
 
-class _MiniProgress extends StatelessWidget {
-  const _MiniProgress({required this.progress, required this.task});
+/// Полка с числом рядом — как вкладки в библиотеке Steam.
+class _ShelfButton extends StatelessWidget {
+  const _ShelfButton({
+    required this.label,
+    required this.count,
+    required this.active,
+    required this.onTap,
+  });
 
-  final double progress;
-  final DownloadTask task;
+  final String label;
+  final int count;
+  final bool active;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          backgroundColor: active ? colors.surfaceHigh : Colors.transparent,
+          foregroundColor: active ? colors.textPrimary : colors.textSecondary,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Страница игры поверх сетки: заголовок с возвратом и карточка под ним.
+class _GamePage extends StatelessWidget {
+  const _GamePage({required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    final nav = context.read<NavigationBloc>();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedProgress(value: progress == 0 ? null : progress, height: 3),
-        const SizedBox(height: 3),
-        Text(
-          '${(progress * 100).toStringAsFixed(0)}% · '
-          '${speedLabel(L.of(context), task.downloadSpeed)}',
-          style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
+        Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: context.colors.outline)),
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 8, 18, 8),
+          child: Row(
+            children: [
+              TextButton.icon(
+                onPressed: () => nav.add(const GameOpened(null)),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: Text(L.of(context).backToLibrary),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: GameDetail(key: ValueKey(game.id), game: game),
         ),
       ],
     );

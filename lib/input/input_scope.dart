@@ -37,6 +37,7 @@ class InputScope extends StatefulWidget {
     required this.onSectionChange,
     required this.onPrimaryAction,
     required this.onSearch,
+    required this.onBack,
   });
 
   final Widget child;
@@ -44,6 +45,10 @@ class InputScope extends StatefulWidget {
   final void Function(int delta) onSectionChange;
   final VoidCallback onPrimaryAction;
   final VoidCallback onSearch;
+
+  /// Что закрыть по «назад». Возвращает `true`, если что-то закрылось: тогда
+  /// фокус остаётся на месте, иначе он сбрасывается, как и раньше.
+  final bool Function() onBack;
 
   @override
   State<InputScope> createState() => _InputScopeState();
@@ -135,13 +140,15 @@ class _InputScopeState extends State<InputScope> {
       navigator.pop();
       return;
     }
-    // Ничего закрывать не нужно — выходим из текстового поля.
+    // Из текстового поля выходим раньше, чем закрываем страницу: Escape в
+    // поиске должен отпускать поле, а не уводить с открытой игры.
     final focused = primaryFocus;
     if (focused != null && focused.context?.widget is EditableText) {
       focused.unfocus();
-    } else {
-      FocusManager.instance.primaryFocus?.unfocus();
+      return;
     }
+    if (widget.onBack()) return;
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   void _scroll(double delta) {

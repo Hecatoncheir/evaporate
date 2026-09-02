@@ -22,8 +22,20 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
       emit(state.copyWith(selectedGameId: event.gameId));
     });
 
+    on<GameOpened>((event, emit) {
+      // Открытая игра всегда и выбранная: закрыв её страницу, курсор в
+      // сетке должен оказаться на ней же.
+      emit(
+        state.copyWith(
+          openedGameId: event.gameId,
+          selectedGameId: event.gameId ?? state.selectedGameId,
+        ),
+      );
+    });
+
     on<SearchFocusRequested>((event, emit) {
-      emit(state.copyWith(section: 0));
+      // Поиск живёт над сеткой — страница игры его закрывает собой.
+      emit(state.copyWith(section: 0, openedGameId: null));
       // Фокус — не состояние, а ресурс: его нельзя положить в state,
       // поэтому запрашиваем прямо здесь.
       searchFocus.requestFocus();
@@ -31,6 +43,15 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   }
 
   static const sectionCount = 4;
+
+  /// Закрывает страницу игры, если она открыта. Возвращает `true`, когда
+  /// закрывать было что: кнопке «назад» этого достаточно, чтобы не идти
+  /// дальше и не сбрасывать заодно фокус.
+  bool closeOpenedGame() {
+    if (state.section != 0 || state.openedGameId == null) return false;
+    add(const GameOpened(null));
+    return true;
+  }
 
   /// Фокус поля поиска.
   final FocusNode searchFocus = FocusNode(debugLabel: 'search');

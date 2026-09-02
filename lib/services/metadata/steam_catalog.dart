@@ -82,6 +82,17 @@ class SteamCatalog {
     return override != null ? override(uri) : _httpFetch(uri);
   }
 
+  /// Вертикальная обложка из библиотеки Steam — та самая, из которой
+  /// складывается сетка в Big Picture. Соотношение 2:3.
+  ///
+  /// Собирается по идентификатору, а не спрашивается у API: в ответе
+  /// `appdetails` её нет, зато на CDN она лежит по предсказуемому адресу.
+  /// Есть не у всякой игры — на старые и мелкие её просто не рисовали, и
+  /// тогда CDN отвечает отказом, а показывать приходится горизонтальную.
+  static String portraitUrl(int appId) =>
+      'https://cdn.cloudflare.steamstatic.com/steam/apps/$appId'
+      '/library_600x900.jpg';
+
   static const _searchLimit = 8;
 
   /// Ищет кандидатов по имени раздачи, предварительно очистив его.

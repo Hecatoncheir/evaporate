@@ -70,6 +70,11 @@ void main() {
 
     await harness.pump(tester);
 
+    // В сетке игра — плитка; страница с блоками открывается нажатием.
+    expect(find.text('Тестовая игра'), findsOneWidget);
+    await tester.tap(find.text('Тестовая игра'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Тестовая игра'), findsWidgets);
     expect(find.text('Папки сохранений'), findsOneWidget);
     expect(find.text('Снимки сохранений'), findsOneWidget);

@@ -11,7 +11,9 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 
 ## What it does
 
-- **Library** — games, states, time played, last launch date.
+- **Library** — a grid of portrait covers, the way Steam does it: the All,
+  Installed and Not installed shelves, cover art pulled from Steam by the
+  game's id, states, time played, last launch date.
 - **Downloads** — magnet links and `.torrent` files through a pure-Dart client
   (`dtorrent_task_v2`): DHT, a reorderable queue, pause and resume, and
   **SOCKS5 all the way down to peer connections**. The queue survives a restart.

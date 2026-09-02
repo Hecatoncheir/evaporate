@@ -29,6 +29,18 @@ class GameDetail extends StatelessWidget {
       (bloc) => bloc.state.taskForGame(game),
     );
 
+    // Страница занимает всё окно, а строка длиной в тысячу точек не
+    // читается — колонка держится в разумной ширине и стоит по центру.
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 940),
+        child: _content(context, task),
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context, DownloadTask? task) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
       children: [
