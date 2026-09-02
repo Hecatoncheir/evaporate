@@ -1,9 +1,13 @@
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
+import '../../services/launch/drop_import.dart';
 import '../../models/game.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -36,6 +40,13 @@ class _LibraryPageState extends State<LibraryPage> {
   String _query = '';
   _Shelf _shelf = _Shelf.all;
 
+  /// Над окном что-то держат. Пока это так, показываем, что сюда можно.
+  bool _dragging = false;
+
+  /// Разбор сброшенного идёт с обращениями к диску, и второй сброс поверх
+  /// первого наплодил бы дубли.
+  bool _importing = false;
+
   @override
   Widget build(BuildContext context) {
     final library = context.watch<LibraryBloc>().state;
@@ -67,12 +78,117 @@ class _LibraryPageState extends State<LibraryPage> {
           onAdd: () => _addGame(context),
         ),
         Expanded(
-          child: games.isEmpty
-              ? _empty(context, library.games.isEmpty)
-              : _grid(games, navState.selectedGameId, nav),
+          child: DropTarget(
+            onDragEntered: (_) => setState(() => _dragging = true),
+            onDragExited: (_) => setState(() => _dragging = false),
+            onDragDone: (details) {
+              setState(() => _dragging = false);
+              _handleDrop(context, [for (final f in details.files) f.path]);
+            },
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: games.isEmpty
+                      ? _empty(context, library.games.isEmpty)
+                      : _grid(games, navState.selectedGameId, nav),
+                ),
+                if (_dragging) const Positioned.fill(child: _DropOverlay()),
+              ],
+            ),
+          ),
         ),
       ],
     );
+  }
+
+  /// Сброшенное в окно: папка становится установленной игрой, `.torrent` —
+  /// игрой в очереди загрузки.
+  ///
+  /// Magnet-ссылку сюда не притащить: системы отдают её не файлом, и до
+  /// приложения она не доезжает. Для неё есть «Добавить игру».
+  Future<void> _handleDrop(BuildContext context, List<String> paths) async {
+    if (_importing || paths.isEmpty) return;
+    setState(() => _importing = true);
+
+    // До первого await: после него context трогать нельзя.
+    final l = L.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final library = context.read<LibraryBloc>();
+    final downloads = context.read<DownloadsBloc>();
+    final nav = context.read<NavigationBloc>();
+
+    try {
+      final candidates = await DropImport.inspect(paths);
+      var added = 0;
+      var queued = 0;
+      String? lastId;
+
+      for (final candidate in candidates) {
+        if (candidate.kind == DropKind.unsupported) continue;
+
+        final id = const Uuid().v4();
+        library.add(
+          GameAdded(
+            id: id,
+            title: candidate.title,
+            source: candidate.source,
+            installDir: candidate.kind == DropKind.folder
+                ? candidate.path
+                : null,
+            executablePath: candidate.executablePath,
+            status: candidate.kind == DropKind.folder
+                ? GameStatus.installed
+                : GameStatus.notInstalled,
+          ),
+        );
+        added++;
+        lastId = id;
+
+        if (candidate.kind == DropKind.torrent) {
+          if (await _startDownload(library, downloads, id, candidate.source)) {
+            queued++;
+          }
+        }
+      }
+
+      if (added == 0) {
+        messenger.showSnackBar(SnackBar(content: Text(l.dropNothing)));
+        return;
+      }
+      if (lastId != null) nav.add(GameSelected(lastId));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            queued == 0
+                ? l.dropAdded(added)
+                : '${l.dropAdded(added)}, ${l.dropQueued(queued)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  /// Событие добавления обрабатывается асинхронно, поэтому перед запуском
+  /// загрузки дожидаемся, пока игра действительно появится в состоянии.
+  ///
+  /// Возвращает `false`, когда движок не готов: игра всё равно добавлена,
+  /// и загрузку можно запустить руками позже.
+  Future<bool> _startDownload(
+    LibraryBloc library,
+    DownloadsBloc downloads,
+    String id,
+    GameSource source,
+  ) async {
+    if (!downloads.state.engine.isReady) return false;
+    var game = library.state.gameById(id);
+    game ??= (await library.stream.firstWhere(
+      (state) => state.gameById(id) != null,
+    )).gameById(id);
+    if (game == null) return false;
+    downloads.add(DownloadRequested(game: game, source: source));
+    return true;
   }
 
   Widget _grid(List<Game> games, String? selectedId, NavigationBloc nav) {
@@ -205,6 +321,73 @@ class _LibraryPageState extends State<LibraryPage> {
     final nav = context.read<NavigationBloc>();
     final addedId = await showAddGameDialog(context);
     if (addedId != null && mounted) nav.add(GameSelected(addedId));
+  }
+}
+
+/// Подсказка поверх сетки, пока над окном что-то держат.
+///
+/// Молчаливый приёмник — худший из возможных: пользователь не знает ни что
+/// сюда можно, ни что случится, и проверяет это на своей библиотеке.
+class _DropOverlay extends StatelessWidget {
+  const _DropOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    return IgnorePointer(
+      child: Container(
+        color: context.colors.background.withValues(alpha: 0.86),
+        padding: const EdgeInsets.all(24),
+        child: DottedBorderBox(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.download_for_offline_outlined,
+                size: 44,
+                color: context.colors.accent,
+              ),
+              const SizedBox(height: 14),
+              Text(
+                l.dropRelease,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: context.colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${l.dropHintFolder} • ${l.dropHintTorrent}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Рамка, показывающая границу приёмника.
+class DottedBorderBox extends StatelessWidget {
+  const DottedBorderBox({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.colors.accent, width: 2),
+      ),
+      child: Center(child: child),
+    );
   }
 }
 

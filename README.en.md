@@ -17,6 +17,9 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 - **Downloads** — magnet links and `.torrent` files through a pure-Dart client
   (`dtorrent_task_v2`): DHT, a reorderable queue, pause and resume, and
   **SOCKS5 all the way down to peer connections**. The queue survives a restart.
+- **Drag and drop** — a game folder or a `.torrent` can be dropped straight
+  into the library window: the folder is added as an installed game, the
+  torrent goes into the download queue.
 - **Launching** — finds the executable inside a downloaded folder, runs the
   `.app` on macOS, the `.exe` on Windows, the binary on Linux, and counts
   play time.
