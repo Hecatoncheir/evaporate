@@ -92,7 +92,7 @@ jobs:
 
       - name: Приложить отчёт о покрытии
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ github.sha }}
           path: coverage/lcov.info
@@ -134,7 +134,7 @@ jobs:
           ditto -c -k --keepParent "$APP" \
             "evaporate-${GITHUB_REF_NAME#v}-macos.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: evaporate-macos-${{ github.sha }}
           path: evaporate-*-macos.zip
@@ -175,7 +175,7 @@ jobs:
           tar -czf "evaporate-${GITHUB_REF_NAME#v}-linux.tar.gz" \
             -C build/linux/x64/release/bundle .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: evaporate-linux-${{ github.sha }}
           path: evaporate-*-linux.tar.gz
@@ -210,7 +210,7 @@ jobs:
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "evaporate-$slug-windows.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: evaporate-windows-${{ github.sha }}
           path: evaporate-*-windows.zip
