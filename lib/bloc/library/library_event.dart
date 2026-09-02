@@ -208,12 +208,17 @@ final class BulkExportRequested extends LibraryEvent {
 
 /// Забрать все пакеты сохранений из папки и разложить по играм.
 final class BulkImportRequested extends LibraryEvent {
-  const BulkImportRequested(this.sourceDir);
+  const BulkImportRequested(this.sourceDir, {this.overwriteNewer = false});
 
   final String sourceDir;
 
+  /// Восстанавливать и те игры, где сохранения на этом устройстве
+  /// новее пакета. По умолчанию такие пропускаются: пакет с другого
+  /// устройства может оказаться старым, а прогресс — уже не вернуть.
+  final bool overwriteNewer;
+
   @override
-  List<Object?> get props => [sourceDir];
+  List<Object?> get props => [sourceDir, overwriteNewer];
 }
 
 final class SyncFolderScanRequested extends LibraryEvent {

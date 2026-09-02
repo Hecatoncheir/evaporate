@@ -481,20 +481,49 @@ class _BulkTransferCard extends StatelessWidget {
     library.add(BulkExportRequested(dir));
   }
 
+  /// Спрашивает, как поступить с играми, где здешние сохранения новее.
+  ///
+  /// Возвращает `null`, если загрузку отменили. Разделение на два действия
+  /// вместо галочки намеренное: это выбор, а не настройка, и человек должен
+  /// сделать его осознанно в тот момент, когда он что-то значит.
+  Future<bool?> _askAboutNewer(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Загрузить все сохранения?'),
+        content: const Text(
+          'Пакеты из папки будут разложены по играм с такими же названиями. '
+          'Текущие сохранения каждой игры сначала попадут в резервный снимок.'
+          '\n\n'
+          'Если на этом устройстве сохранения новее, чем в пакете, игра будет '
+          'пропущена: пакет может оказаться старым, а прогресс — уже не '
+          'вернуть.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Загрузить всё, даже поверх новых'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Пропустить новые'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _import(BuildContext context) async {
     final library = context.read<LibraryBloc>();
     final dir = await getDirectoryPath(confirmButtonText: 'Загрузить');
     if (dir == null || !context.mounted) return;
 
-    final ok = await confirm(
-      context,
-      title: 'Загрузить все сохранения?',
-      message:
-          'Пакеты из папки будут разложены по играм с такими же названиями. '
-          'Текущие сохранения каждой игры сначала попадут в резервный снимок.',
-      confirmLabel: 'Загрузить',
-    );
-    if (!ok) return;
-    library.add(BulkImportRequested(dir));
+    final overwrite = await _askAboutNewer(context);
+    if (overwrite == null) return;
+    library.add(BulkImportRequested(dir, overwriteNewer: overwrite));
   }
 }

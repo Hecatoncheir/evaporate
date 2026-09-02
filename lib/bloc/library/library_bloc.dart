@@ -117,6 +117,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Ключ занятости для операций над всей библиотекой сразу.
   static const bulkKey = 'bulk';
 
+  /// Часы разных устройств расходятся, а время изменения файла хранится
+  /// с разной точностью на разных файловых системах. Небольшую разницу
+  /// за конфликт не считаем, иначе он будет срабатывать на ровном месте.
+  static const conflictTolerance = Duration(minutes: 2);
+
   static String launchKey(String gameId) => 'launch:$gameId';
 
   void _pushRunningGames() =>
@@ -737,6 +742,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     var applied = 0;
     final unmatched = <String>[];
     final failed = <String>[];
+    final conflicted = <String>[];
 
     try {
       final packages = await _saves.scanSyncFolder(event.sourceDir);
@@ -746,6 +752,20 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           unmatched.add(package.snapshot.gameTitle);
           continue;
         }
+        // Пакет мог быть снят раньше, чем игра шла на этом устройстве.
+        // Восстановить его — значит откатить прогресс, и резервная копия
+        // тут слабое утешение: о ней ещё надо догадаться.
+        if (!event.overwriteNewer) {
+          final local = await _saves.lastLocalChange(game);
+          if (local != null &&
+              local.isAfter(
+                package.snapshot.createdAt.add(conflictTolerance),
+              )) {
+            conflicted.add(game.title);
+            continue;
+          }
+        }
+
         try {
           final snapshot = await _saves.importPackage(package.path, game: game);
           emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
@@ -778,6 +798,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     await persist();
     final parts = <String>[
       'применено: $applied',
+      if (conflicted.isNotEmpty) 'здесь новее, пропущено: ${conflicted.length}',
       if (unmatched.isNotEmpty) 'нет такой игры: ${unmatched.length}',
       if (failed.isNotEmpty) 'с ошибкой: ${failed.length}',
     ];

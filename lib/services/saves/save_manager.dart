@@ -161,6 +161,41 @@ class SaveManager {
     return snapshot;
   }
 
+  /// Когда сохранения игры в последний раз менялись на этом устройстве.
+  ///
+  /// Нужно, чтобы не затереть свежий прогресс пакетом с другого устройства:
+  /// сравнивать больше нечего — общего журнала у устройств нет, есть только
+  /// время изменения файлов и время снятия пакета.
+  ///
+  /// `null` означает, что сохранений нет вовсе, — затирать нечего.
+  Future<DateTime?> lastLocalChange(Game game) async {
+    DateTime? newest;
+
+    for (final rule in game.saveProfile.rulesForCurrentPlatform) {
+      final resolved = rule.resolve();
+
+      final file = File(resolved);
+      if (await file.exists()) {
+        final modified = (await file.stat()).modified;
+        if (newest == null || modified.isAfter(newest)) newest = modified;
+        continue;
+      }
+
+      final directory = Directory(resolved);
+      if (!await directory.exists()) continue;
+      await for (final entity in directory.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        if (entity is! File) continue;
+        if (_skipNames.contains(p.basename(entity.path))) continue;
+        final modified = (await entity.stat()).modified;
+        if (newest == null || modified.isAfter(newest)) newest = modified;
+      }
+    }
+    return newest;
+  }
+
   Future<List<_PendingEntry>> _collect(
     SavePathRule rule,
     String resolved,
