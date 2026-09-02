@@ -23,6 +23,7 @@ import '../../services/saves/ludusavi_catalog.dart';
 import '../../services/saves/save_activity_watch.dart';
 import '../../services/saves/save_path_finder.dart';
 import '../../services/saves/save_path_globs.dart';
+import '../../services/saves/bulk_transfer.dart';
 import '../../services/saves/save_manager.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -59,6 +60,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
        _launcher = launcher ?? GameLauncher(),
        _saveRoots = saveRoots ?? SavePathFinder.roots,
        super(const LibraryState()) {
+    // Собирается здесь, а не в списке инициализации: там на _saves,
+    // от которого он зависит, ссылаться ещё нельзя.
+    _bulk = BulkTransfer(saves: _saves, localizations: _localizations);
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
     on<GameUpdated>(_onGameUpdated);
@@ -116,6 +120,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   final JsonStore _store;
   final SaveManager _saves;
+
+  /// Перенос сохранений всей библиотеки: единственная операция, идущая по
+  /// всем играм разом, и единственная со своим счётом исходов.
+  late final BulkTransfer _bulk;
   final GameLauncher _launcher;
 
   Timer? _persistTimer;
@@ -138,10 +146,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Ключ занятости для операций над всей библиотекой сразу.
   static const bulkKey = 'bulk';
 
-  /// Часы разных устройств расходятся, а время изменения файла хранится
-  /// с разной точностью на разных файловых системах. Небольшую разницу
-  /// за конфликт не считаем, иначе он будет срабатывать на ровном месте.
-  static const conflictTolerance = Duration(minutes: 2);
+  /// Допуск на расхождение часов при массовой загрузке. Само правило живёт
+  /// в [BulkTransfer]; здесь — чтобы на него можно было сослаться, зная
+  /// только блок.
+  static const conflictTolerance = BulkTransfer.defaultConflictTolerance;
 
   static String launchKey(String gameId) => 'launch:$gameId';
 
@@ -839,170 +847,50 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Снимает сохранения всех настроенных игр и складывает пакеты в папку —
   /// то, с чего начинается переезд на другое устройство.
+
   Future<void> _onBulkExport(
     BulkExportRequested event,
     Emitter<LibraryState> emit,
   ) async {
     emit(state.copyWith(busy: _withBusy(bulkKey, true)));
 
-    final report = <BulkEntry>[];
-    var exported = 0;
-    var skipped = 0;
-    final failed = <String>[];
-
-    for (final game in state.games) {
-      if (!game.saveProfile.isConfigured) {
-        skipped++;
-        report.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.skipped,
-            detail: _l.detailNoSavePaths,
-          ),
-        );
-        continue;
-      }
-      try {
-        final snapshot = await _saves.createSnapshot(game);
-        emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
-
-        await _saves.exportSnapshot(
-          snapshot,
-          p.join(
-            event.destinationDir,
-            '${safeFileName(game.title)}${SaveSnapshot.fileExtension}',
-          ),
-        );
-        exported++;
-        report.add(BulkEntry(title: game.title, outcome: BulkOutcome.applied));
-      } on SaveException {
-        // Пути заданы, но файлов ещё нет — это не ошибка переноса.
-        skipped++;
-        report.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.skipped,
-            detail: _l.detailNoSavesYet,
-          ),
-        );
-      } on Object catch (error) {
-        failed.add(game.title);
-        report.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.failed,
-            detail: error.toString(),
-          ),
-        );
-      }
-    }
+    final result = await _bulk.exportAll(
+      games: state.games,
+      destinationDir: event.destinationDir,
+      // Снимок ложится в состояние сразу, а не всей пачкой в конце:
+      // выгрузка большой библиотеки идёт минуты.
+      onSnapshot: (snapshot) =>
+          emit(state.copyWith(snapshots: _withSnapshot(snapshot))),
+    );
 
     await persist();
     emit(
       state.copyWith(
         busy: _withBusy(bulkKey, false),
-        bulkReport: BulkReport(isExport: true, entries: report),
-        notice: _notice(
-          failed.isEmpty
-              ? _l.noticeExported(exported, skipped)
-              : _l.noticeExportedWithErrors(
-                  exported,
-                  skipped,
-                  failed.join(', '),
-                ),
-          isError: failed.isNotEmpty,
-        ),
+        bulkReport: result.report,
+        notice: _notice(result.message, isError: result.isError),
       ),
     );
   }
 
-  /// Разбирает папку с пакетами и раскладывает сохранения по играм —
-  /// вторая половина переезда, уже на новом устройстве.
   Future<void> _onBulkImport(
     BulkImportRequested event,
     Emitter<LibraryState> emit,
   ) async {
     emit(state.copyWith(busy: _withBusy(bulkKey, true)));
 
-    final report = <BulkEntry>[];
-    var applied = 0;
-    final unmatched = <String>[];
-    final failed = <String>[];
-    final conflicted = <String>[];
-
+    final BulkResult result;
     try {
-      final packages = await _saves.scanSyncFolder(event.sourceDir);
-      for (final package in packages) {
-        final game = _matchGame(package.snapshot.gameTitle);
-        if (game == null) {
-          unmatched.add(package.snapshot.gameTitle);
-          report.add(
-            BulkEntry(
-              title: package.snapshot.gameTitle,
-              outcome: BulkOutcome.unmatched,
-              detail: _l.detailNoMatchingGame,
-            ),
-          );
-          continue;
-        }
-        // Пакет мог быть снят раньше, чем игра шла на этом устройстве.
-        // Восстановить его — значит откатить прогресс, и резервная копия
-        // тут слабое утешение: о ней ещё надо догадаться.
-        if (!event.overwriteNewer) {
-          final local = await _saves.lastLocalChange(game);
-          if (local != null &&
-              local.isAfter(
-                package.snapshot.createdAt.add(conflictTolerance),
-              )) {
-            conflicted.add(game.title);
-            report.add(
-              BulkEntry(
-                title: game.title,
-                outcome: BulkOutcome.conflicted,
-                detail: _l.detailNewerHere,
-              ),
-            );
-            continue;
-          }
-        }
-
-        try {
-          final snapshot = await _saves.importPackage(package.path, game: game);
-          emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
-          final restored = await _saves.restoreSnapshot(
-            game: game,
-            snapshot: snapshot,
-          );
-          if (restored.backup != null) {
-            emit(state.copyWith(snapshots: _withSnapshot(restored.backup!)));
-          }
-          if (restored.isComplete) {
-            applied++;
-            report.add(
-              BulkEntry(title: game.title, outcome: BulkOutcome.applied),
-            );
-          } else {
-            failed.add(game.title);
-            report.add(
-              BulkEntry(
-                title: game.title,
-                outcome: BulkOutcome.failed,
-                detail: _l.detailPartialRestore,
-              ),
-            );
-          }
-        } on Object catch (error) {
-          failed.add(game.title);
-          report.add(
-            BulkEntry(
-              title: game.title,
-              outcome: BulkOutcome.failed,
-              detail: error.toString(),
-            ),
-          );
-        }
-      }
+      result = await _bulk.importAll(
+        games: state.games,
+        sourceDir: event.sourceDir,
+        overwriteNewer: event.overwriteNewer,
+        onSnapshot: (snapshot) =>
+            emit(state.copyWith(snapshots: _withSnapshot(snapshot))),
+      );
     } on Object catch (error) {
+      // Папку не прочитать — разбирать нечего: это провал всей операции,
+      // а не исход отдельной игры, и отчёта по играм тут не будет.
       emit(
         state.copyWith(
           busy: _withBusy(bulkKey, false),
@@ -1013,32 +901,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     }
 
     await persist();
-    final parts = <String>[
-      _l.noticeApplied(applied),
-      if (conflicted.isNotEmpty) _l.noticeNewerHere(conflicted.length),
-      if (unmatched.isNotEmpty) _l.noticeNoSuchGame(unmatched.length),
-      if (failed.isNotEmpty) _l.noticeFailedCount(failed.length),
-    ];
     emit(
       state.copyWith(
         busy: _withBusy(bulkKey, false),
-        bulkReport: BulkReport(isExport: false, entries: report),
-        notice: _notice(
-          parts.join(', '),
-          isError: failed.isNotEmpty || unmatched.isNotEmpty,
-        ),
+        bulkReport: result.report,
+        notice: _notice(result.message, isError: result.isError),
       ),
     );
-  }
-
-  /// Идентификаторы игр на разных устройствах не совпадают, поэтому
-  /// пакеты сопоставляются по названию.
-  Game? _matchGame(String title) {
-    final wanted = title.trim().toLowerCase();
-    for (final game in state.games) {
-      if (game.title.trim().toLowerCase() == wanted) return game;
-    }
-    return null;
   }
 
   Future<void> _onSyncScanRequested(

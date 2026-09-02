@@ -3,8 +3,12 @@ import 'dart:io';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/models/bulk_report.dart';
+import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
+import 'package:evaporate/services/saves/bulk_transfer.dart';
+import 'package:evaporate/services/saves/save_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -175,6 +179,101 @@ void main() {
     await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
 
     expect(library.state.notice!.message, contains('применено: 0'));
+  });
+
+  // Ради этого перенос и вынесен из блока: цену переезда всей библиотеки
+  // видно на входе и выходе, без состояния, событий и ожиданий.
+  group('перенос без блока', () {
+    late BulkTransfer bulk;
+
+    setUp(() => bulk = BulkTransfer(saves: SaveManager(paths: paths)));
+
+    /// Игра с настоящей папкой сохранений — без участия блока.
+    Future<Game> plainGame(String title, {bool withFiles = true}) async {
+      final savesDir = Directory(p.join(tmp.path, 'прямые', title));
+      await savesDir.create(recursive: true);
+      if (withFiles) {
+        await File(p.join(savesDir.path, 'slot.sav'))
+            .writeAsString('прогресс $title');
+      }
+      return Game(
+        id: const Uuid().v4(),
+        title: title,
+        addedAt: DateTime.now(),
+        saveProfile: SaveProfile(
+          rules: [
+            SavePathRule(
+              id: const Uuid().v4(),
+              label: 'Сохранения',
+              template: savesDir.path,
+            ),
+          ],
+        ),
+      );
+    }
+
+    test('отчёт различает выгруженное и пропущенное', () async {
+      final games = [
+        await plainGame('С файлами'),
+        await plainGame('Пустая', withFiles: false),
+        Game(id: 'нет-путей', title: 'Без путей', addedAt: DateTime.now()),
+      ];
+      final target = await emptyDir('прямой вывоз');
+
+      final result = await bulk.exportAll(
+        games: games,
+        destinationDir: target.path,
+        onSnapshot: (_) {},
+      );
+
+      expect(result.report.count(BulkOutcome.applied), 1);
+      expect(result.report.count(BulkOutcome.skipped), 2);
+      expect(result.isError, isFalse);
+    });
+
+    test('каждый снимок отдаётся сразу, а не пачкой в конце', () async {
+      final games = [await plainGame('Раз'), await plainGame('Два')];
+      final target = await emptyDir('пачка');
+      final seen = <String>[];
+
+      await bulk.exportAll(
+        games: games,
+        destinationDir: target.path,
+        onSnapshot: (snapshot) => seen.add(snapshot.gameTitle),
+      );
+
+      expect(seen, ['Раз', 'Два']);
+    });
+
+    // Папка синхронизации живёт в Dropbox или на флешке и вполне может
+    // не оказаться на месте. Это не авария: переносить просто нечего.
+    test('пропавшая папка даёт пустой отчёт, а не ошибку', () async {
+      final result = await bulk.importAll(
+        games: const [],
+        sourceDir: p.join(tmp.path, 'нет такой папки'),
+        overwriteNewer: false,
+        onSnapshot: (_) {},
+      );
+
+      expect(result.report.isEmpty, isTrue);
+      expect(result.isError, isFalse);
+    });
+
+    test(
+      'пакет сопоставляется с игрой по названию, а не по идентификатору',
+      () {
+        final games = [
+          Game(
+            id: 'здешний',
+            title: ' Hollow Knight ',
+            addedAt: DateTime.now(),
+          ),
+        ];
+
+        expect(BulkTransfer.matchGame(games, 'hollow knight')?.id, 'здешний');
+        expect(BulkTransfer.matchGame(games, 'Другая'), isNull);
+      },
+    );
   });
 
   test('занятость снимается после массовой операции', () async {
