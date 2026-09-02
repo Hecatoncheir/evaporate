@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/json_store.dart';
 import '../../models/download_task.dart';
+import '../../models/speed_limits.dart';
 import '../../models/proxy_settings.dart';
 import 'download_engine.dart';
 
@@ -290,10 +291,55 @@ class DtorrentEngine implements DownloadEngine {
       );
       managed.task = task;
       await task.start();
+      // Ограничение задаётся задаче, а не движку целиком, поэтому новую
+      // нужно догнать текущими настройками.
+      _limitTask(task);
     } on Object catch (error) {
       managed.error = error.toString();
     }
   }
+
+  /// Действующие ограничения и то, идёт ли игра.
+  SpeedLimits _limits = SpeedLimits.unlimited;
+  bool _playing = false;
+
+  @override
+  Future<void> applyLimits(SpeedLimits limits, {required bool playing}) async {
+    if (limits == _limits && playing == _playing) return;
+    _limits = limits;
+    _playing = playing;
+    for (final managed in _downloads.values) {
+      final task = managed.task;
+      if (task != null) _limitTask(task);
+    }
+  }
+
+  /// Публичного способа задать предел разом у движка нет — есть окно
+  /// расписания у задачи. Ставим одно окно на все дни и все сутки:
+  /// расписанием мы не пользуемся, нужен только предел скорости.
+  void _limitTask(dt.TorrentTask task) {
+    final download = _limits.downloadBytes(playing: _playing);
+    final upload = _limits.uploadBytes;
+    if (download == null && upload == null) {
+      task.removeScheduleWindow(_limitWindowId);
+      return;
+    }
+    task.addScheduleWindow(
+      dt.ScheduleWindow(
+        id: _limitWindowId,
+        weekdays: const {1, 2, 3, 4, 5, 6, 7},
+        start: Duration.zero,
+        end: const Duration(hours: 23, minutes: 59),
+        maxDownloadRate: download,
+        maxUploadRate: upload,
+        // Иначе вне окна задача встала бы на паузу — а окно у нас
+        // круглосуточное только по недосмотру расписания.
+        pauseOutsideWindow: false,
+      ),
+    );
+  }
+
+  static const _limitWindowId = 'evaporate-speed-limit';
 
   /// Открыто для тестов: настройки прокси приложения в конфиг движка.
   @visibleForTesting

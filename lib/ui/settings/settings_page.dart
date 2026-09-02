@@ -82,6 +82,37 @@ class SettingsPage extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              _SpeedField(
+                label: 'Ограничение приёма',
+                value: settings.limits.download,
+                onChanged: (value) => update(
+                  settings.copyWith(
+                    limits: settings.limits.copyWith(download: value),
+                  ),
+                ),
+              ),
+              _SpeedField(
+                label: 'Ограничение раздачи',
+                value: settings.limits.upload,
+                hint:
+                    'Раздача — плата за скачанное, совсем перекрывать не стоит',
+                onChanged: (value) => update(
+                  settings.copyWith(
+                    limits: settings.limits.copyWith(upload: value),
+                  ),
+                ),
+              ),
+              _SpeedField(
+                label: 'Приём, пока идёт игра',
+                value: settings.limits.whilePlaying,
+                hint: 'Качая на полную, легко испортить себе же отклик в игре',
+                onChanged: (value) => update(
+                  settings.copyWith(
+                    limits: settings.limits.copyWith(whilePlaying: value),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -233,6 +264,88 @@ class SettingsPage extends StatelessWidget {
 /// Три кнопки, а не переключатель: «как в системе» — не середина между
 /// светлой и тёмной, а отдельный вариант, и выпадающим списком его пришлось
 /// бы искать.
+/// Поле скорости в килобайтах в секунду. Пустое значение и ноль означают
+/// «без ограничения» — так понятнее, чем отдельная галочка рядом с числом.
+class _SpeedField extends StatefulWidget {
+  const _SpeedField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.hint,
+  });
+
+  final String label;
+  final int value;
+  final String? hint;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_SpeedField> createState() => _SpeedFieldState();
+}
+
+class _SpeedFieldState extends State<_SpeedField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value > 0 ? '${widget.value}' : '',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit(String raw) {
+    final parsed = int.tryParse(raw.trim()) ?? 0;
+    widget.onChanged(parsed > 0 ? parsed : 0);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 220,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(widget.label, style: const TextStyle(fontSize: 13)),
+            ),
+          ),
+          SizedBox(
+            width: 130,
+            child: TextField(
+              controller: _controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                isDense: true,
+                hintText: 'без огр.',
+                suffixText: 'КБ/с',
+              ),
+              onSubmitted: _submit,
+              onTapOutside: (_) => _submit(_controller.text),
+            ),
+          ),
+          if (widget.hint != null)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12, top: 12),
+                child: Text(
+                  widget.hint!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Каким открывать окно при запуске.
 class _WindowStartPicker extends StatelessWidget {
   const _WindowStartPicker({required this.value, required this.onChanged});

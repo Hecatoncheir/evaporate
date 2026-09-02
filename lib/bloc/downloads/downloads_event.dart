@@ -20,6 +20,11 @@ final class DownloadSettingsApplied extends DownloadsEvent {
   const DownloadSettingsApplied();
 }
 
+/// Пересчитать ограничения: сменились настройки или запустилась игра.
+final class DownloadLimitsRefreshed extends DownloadsEvent {
+  const DownloadLimitsRefreshed();
+}
+
 final class DownloadRequested extends DownloadsEvent {
   const DownloadRequested({required this.game, required this.source});
 

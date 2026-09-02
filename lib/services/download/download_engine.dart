@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../models/download_task.dart';
+import '../../models/speed_limits.dart';
 
 enum EngineState {
   /// Движок ещё не запускали.
@@ -63,6 +64,9 @@ abstract class DownloadEngine {
 
   /// Разовое обновление списка задач вне обычного цикла опроса.
   Future<void> refresh();
+
+  /// Ограничить скорость. [playing] — идёт ли сейчас игра.
+  Future<void> applyLimits(SpeedLimits limits, {required bool playing});
 
   DownloadTask? taskById(String id) {
     for (final task in tasks.value) {

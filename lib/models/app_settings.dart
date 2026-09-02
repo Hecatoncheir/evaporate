@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../input/gamepad_binding.dart';
 import 'proxy_settings.dart';
+import 'speed_limits.dart';
 import 'window_start_mode.dart';
 
 class AppSettings extends Equatable {
@@ -19,6 +20,7 @@ class AppSettings extends Equatable {
     this.themeMode = ThemeMode.system,
     this.ludusaviPath,
     this.proxy = const ProxySettings(),
+    this.limits = SpeedLimits.unlimited,
     this.gamepad = const GamepadBinding(),
   });
 
@@ -60,6 +62,9 @@ class AppSettings extends Equatable {
   /// Пустое значение означает «искать самим».
   final String? ludusaviPath;
 
+  /// Ограничения скорости, в том числе на время игры.
+  final SpeedLimits limits;
+
   /// HTTP-прокси для движка загрузок.
   final ProxySettings proxy;
 
@@ -79,6 +84,7 @@ class AppSettings extends Equatable {
     ThemeMode? themeMode,
     Object? ludusaviPath = _u,
     ProxySettings? proxy,
+    SpeedLimits? limits,
     GamepadBinding? gamepad,
   }) {
     return AppSettings(
@@ -96,6 +102,7 @@ class AppSettings extends Equatable {
           ? this.ludusaviPath
           : ludusaviPath as String?,
       proxy: proxy ?? this.proxy,
+      limits: limits ?? this.limits,
       gamepad: gamepad ?? this.gamepad,
     );
   }
@@ -113,6 +120,7 @@ class AppSettings extends Equatable {
     'themeMode': themeMode.name,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
+    'limits': limits.toJson(),
     'gamepad': gamepad.toJson(),
   };
 
@@ -129,6 +137,9 @@ class AppSettings extends Equatable {
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
         ludusaviPath: json['ludusaviPath'] as String?,
+        limits: json['limits'] == null
+            ? SpeedLimits.unlimited
+            : SpeedLimits.fromJson(json['limits'] as Map<String, dynamic>),
         proxy: json['proxy'] == null
             ? const ProxySettings()
             : ProxySettings.fromJson(json['proxy'] as Map<String, dynamic>),
@@ -151,6 +162,7 @@ class AppSettings extends Equatable {
     themeMode,
     ludusaviPath,
     proxy,
+    limits,
     gamepad,
   ];
 

@@ -44,6 +44,8 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       await engine.start();
     });
     on<DownloadSettingsApplied>(_onSettingsApplied);
+    on<DownloadLimitsRefreshed>(_onLimitsRefreshed);
+    library.launcher.runningIds.addListener(_onRunningChanged);
     on<DownloadRequested>(_onDownloadRequested);
     on<DownloadPauseRequested>(_onPauseRequested);
     on<DownloadResumeRequested>(_onResumeRequested);
@@ -103,7 +105,25 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       ..maxConcurrent = settings.state.maxConcurrent
       ..pumpQueue();
     await engine.setProxy(settings.state.proxy);
+    await applyLimits();
   }
+
+  /// Передаёт движку ограничения скорости с учётом того, играют ли сейчас.
+  ///
+  /// Про запущенную игру знает библиотека, про скорость — настройки, поэтому
+  /// свести их может только тот, кто владеет движком.
+  Future<void> applyLimits() => engine.applyLimits(
+    settings.state.limits,
+    playing: library.launcher.runningIds.value.isNotEmpty,
+  );
+
+  /// Игру запустили или закрыли — предел на время игры меняется.
+  void _onRunningChanged() => add(const DownloadLimitsRefreshed());
+
+  Future<void> _onLimitsRefreshed(
+    DownloadLimitsRefreshed event,
+    Emitter<DownloadsState> emit,
+  ) => applyLimits();
 
   // ------------------------------------------------------------ действия
 
@@ -406,6 +426,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     engine.tasks.removeListener(_pushTasks);
     engine.status.removeListener(_pushStatus);
     engine.stats.removeListener(_pushStats);
+    library.launcher.runningIds.removeListener(_onRunningChanged);
     engine.dispose();
     return super.close();
   }
