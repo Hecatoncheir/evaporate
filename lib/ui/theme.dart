@@ -42,45 +42,59 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   bool get isDark => brightness == Brightness.dark;
 
-  /// Тёмная схема — та, с которой приложение начиналось: оно живёт в
-  /// полноэкранном окне рядом с играми.
+  /// Тёмная схема на палитре FFFCF2 / CCC5B9 / 403D39 / 252422 / EB5E28.
+  ///
+  /// Четыре цвета из пяти взяты как есть. Акцент осветлён на четыре процента
+  /// светлоты — тон и насыщенность те же: в исходном виде EB5E28 не дотягивал
+  /// до порога читаемости на подложке карточек, а им набрана метка статуса,
+  /// не только рамка. Сделать подложку темнее не вышло бы: она сравнялась бы
+  /// с фоном, и карточки перестали бы читаться как карточки.
+  ///
+  /// Хроматический цвет в палитре один, поэтому «запущена», «ошибка» и
+  /// «внимание» разведены поворотом тона от него же — семейство остаётся
+  /// тёплым, а состояния различаются.
   static const dark = EvaporatePalette(
     brightness: Brightness.dark,
-    background: Color(0xFF0D1117),
-    surface: Color(0xFF151B23),
-    surfaceHigh: Color(0xFF1D242E),
-    outline: Color(0xFF2A3441),
-    primary: Color(0xFF4FC3F7),
-    onPrimary: Color(0xFF06202B),
-    accent: Color(0xFF7DD3C0),
-    danger: Color(0xFFF87171),
-    warning: Color(0xFFFBBF24),
-    textPrimary: Color(0xFFE6EDF3),
-    textSecondary: Color(0xFF8B98A5),
-    railBackground: Color(0xFF10151C),
-    railIndicator: Color(0x334FC3F7),
+    background: Color(0xFF252422),
+    surface: Color(0xFF2E2C2A),
+    surfaceHigh: Color(0xFF403D39),
+    outline: Color(0xFF4B4740),
+    primary: Color(0xFFED6C3B),
+    onPrimary: Color(0xFF1A1815),
+    accent: Color(0xFFE8A87C),
+    danger: Color(0xFFF2685A),
+    warning: Color(0xFFDFAE4E),
+    textPrimary: Color(0xFFFFFCF2),
+    textSecondary: Color(0xFFCCC5B9),
+    railBackground: Color(0xFF1F1E1C),
+    railIndicator: Color(0x33ED6C3B),
   );
 
-  /// Светлая схема — не осветлённая тёмная.
+  /// Светлая схема на палитре 264653 / 2A9D8F / E9C46A / F4A261 / E76F51.
   ///
-  /// Цвета акцентов взяты заметно темнее: голубой и бирюзовый, читаемые на
-  /// тёмном фоне, на белом сливаются с ним и не дотягивают до нужного
-  /// контраста. За этим следит тест.
+  /// Тёмно-бирюзовый взят как есть — он отлично читается как текст. А вот
+  /// светлого фона в палитре нет вовсе, поэтому подложки выведены как очень
+  /// светлые оттенки того же тона.
+  ///
+  /// Три тёплых цвета затемнены, и заметно. В исходном виде это цвета для
+  /// заливок, а не для подписей: песочный E9C46A даёт на светлом фоне 1.5 при
+  /// нужных 4.5 — втрое меньше нормы. Тон и насыщенность сохранены, так что
+  /// палитра узнаётся, но подписи ими теперь можно набирать.
   static const light = EvaporatePalette(
     brightness: Brightness.light,
-    background: Color(0xFFF4F7FA),
+    background: Color(0xFFF2F6F7),
     surface: Color(0xFFFFFFFF),
-    surfaceHigh: Color(0xFFEAEFF5),
-    outline: Color(0xFFD3DBE4),
-    primary: Color(0xFF0E7490),
+    surfaceHigh: Color(0xFFE3EDEE),
+    outline: Color(0xFFC2D2D6),
+    primary: Color(0xFF217D72),
     onPrimary: Color(0xFFFFFFFF),
-    accent: Color(0xFF127C68),
-    danger: Color(0xFFB42318),
-    warning: Color(0xFF8A5B00),
-    textPrimary: Color(0xFF19212B),
-    textSecondary: Color(0xFF56616E),
-    railBackground: Color(0xFFEDF1F6),
-    railIndicator: Color(0x330E7490),
+    accent: Color(0xFFB2560C),
+    danger: Color(0xFFC44020),
+    warning: Color(0xFF8E6B15),
+    textPrimary: Color(0xFF264653),
+    textSecondary: Color(0xFF4F6B75),
+    railBackground: Color(0xFFE7EFF0),
+    railIndicator: Color(0x33217D72),
   );
 
   @override

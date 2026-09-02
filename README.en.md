@@ -289,11 +289,18 @@ There are two themes, light and dark, plus "follow the system", which is the
 default. The dark one is unchanged from where the app started: it lives in a
 full-screen window next to games.
 
-The light one is not the dark one lightened. Cyan and teal that read well on a
-dark background dissolve into white, so its accents are markedly darker.
+The dark theme is built on the palette `FFFCF2 / CCC5B9 / 403D39 / 252422 /
+EB5E28`, the light one on `264653 / 2A9D8F / E9C46A / F4A261 / E76F51`.
+
 Contrast was not eyeballed: a test measures the ratio for every colour against
 every surface and demands WCAG levels — 4.5 for captions and accents, 7 for
-body text.
+body text. That test is also what forced the departures from the source values
+where text would otherwise be unreadable. The light palette contains no light
+background at all, and three of its colours are fills rather than type: sandy
+`E9C46A` scores 1.5 against a light background where 4.5 is required, a third
+of the mark, so those three are darkened with their hue preserved. In the dark
+theme the orange is lightened by four percent, because a status label is set in
+it, not just a border. Everything else is used as given.
 
 Colours come from a theme extension (`context.colors.textSecondary`) rather
 than constants, because two schemes cannot both be constants. There is one
