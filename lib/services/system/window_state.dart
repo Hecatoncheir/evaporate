@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:equatable/equatable.dart';
 
 import '../../core/json_store.dart';
+import '../../models/window_start_mode.dart';
 
 /// Размер и положение окна между запусками.
 class WindowGeometry extends Equatable {
@@ -119,21 +120,24 @@ class WindowState {
   }
 
   /// Ставит окно так, как договорились настройки.
-  ///
-  /// [remember] — восстанавливать прошлые размер и положение.
-  /// [alwaysMaximized] — разворачивать всегда, что бы ни было запомнено.
-  Future<void> restore({
-    required bool remember,
-    required bool alwaysMaximized,
-  }) async {
-    final saved = remember ? (await read())?.sanitized() : null;
-
+  Future<void> restore(WindowStartMode mode) async {
+    // Размер и положение восстанавливаем всегда, даже перед сворачиванием:
+    // окно, развёрнутое из трея, должно оказаться там же, где было.
+    final saved = (await read())?.sanitized();
     if (saved != null && !saved.maximized) {
       await _controller.setBounds(saved.bounds);
     }
-    if (alwaysMaximized || (saved?.maximized ?? false)) {
-      await _controller.maximize();
+
+    if (mode == WindowStartMode.minimized) {
+      // Окно не показываем вовсе: приложение живёт в трее, пока его
+      // оттуда не позовут.
+      return;
     }
+
+    final maximize =
+        mode == WindowStartMode.maximized || (saved?.maximized ?? false);
+    if (maximize) await _controller.maximize();
+
     // Окно показываем последним: иначе пользователь увидит, как оно
     // прыгает из одного положения в другое.
     await _controller.show();

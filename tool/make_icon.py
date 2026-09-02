@@ -249,6 +249,27 @@ def main():
             os.remove(os.path.join(out_dir, '_ico_%d.png' % size))
         sys.stderr.write('Windows: %s\n' % win_icon)
 
+    # Значок в трее: мелкий и без полей — там и так тесно. Кладём и PNG,
+    # и .ico: Windows принимает в трее только его.
+    sys.stderr.write('рисую значок для трея\n')
+    tray_sizes = (16, 24, 32, 48)
+    tray_blobs = {}
+    for size in tray_sizes:
+        tray_blobs[size] = write_png(
+            render(size), size,
+            os.path.join(out_dir, '_tray_%d.png' % size),
+        )
+    os.replace(
+        os.path.join(out_dir, '_tray_32.png'),
+        os.path.join(out_dir, 'tray_icon.png'),
+    )
+    write_ico(tray_blobs, os.path.join(out_dir, 'tray_icon.ico'))
+    for size in tray_sizes:
+        leftover = os.path.join(out_dir, '_tray_%d.png' % size)
+        if os.path.exists(leftover):
+            os.remove(leftover)
+    sys.stderr.write('трей: %s\n' % os.path.join(out_dir, 'tray_icon.png'))
+
     # Linux: иконку ставит окно, файл кладём рядом с остальными ресурсами.
     sys.stderr.write('мастер-файл: %s\n' % master_path)
 

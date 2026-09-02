@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
+import '../../models/window_start_mode.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'about_card.dart';
@@ -184,30 +185,12 @@ class SettingsPage extends StatelessWidget {
                 onChanged: (mode) => update(settings.copyWith(themeMode: mode)),
               ),
               const SizedBox(height: 10),
-              SwitchListTile(
-                value: settings.rememberWindowSize,
-                onChanged: (value) =>
-                    update(settings.copyWith(rememberWindowSize: value)),
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Открывать окно там же, где закрыли',
-                  style: TextStyle(fontSize: 13),
-                ),
+              _WindowStartPicker(
+                value: settings.windowStart,
+                onChanged: (mode) =>
+                    update(settings.copyWith(windowStart: mode)),
               ),
-              SwitchListTile(
-                value: settings.startMaximized,
-                onChanged: (value) =>
-                    update(settings.copyWith(startMaximized: value)),
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Всегда разворачивать при запуске',
-                  style: TextStyle(fontSize: 13),
-                ),
-                subtitle: const Text(
-                  'Перекрывает запомненный размер',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
+              const SizedBox(height: 10),
               SwitchListTile(
                 value: settings.launchAtStartup,
                 onChanged: (value) =>
@@ -250,6 +233,58 @@ class SettingsPage extends StatelessWidget {
 /// Три кнопки, а не переключатель: «как в системе» — не середина между
 /// светлой и тёмной, а отдельный вариант, и выпадающим списком его пришлось
 /// бы искать.
+/// Каким открывать окно при запуске.
+class _WindowStartPicker extends StatelessWidget {
+  const _WindowStartPicker({required this.value, required this.onChanged});
+
+  final WindowStartMode value;
+  final ValueChanged<WindowStartMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const SizedBox(
+          width: 220,
+          child: Text('Окно при запуске', style: TextStyle(fontSize: 13)),
+        ),
+        Expanded(
+          child: SegmentedButton<WindowStartMode>(
+            segments: const [
+              ButtonSegment(
+                value: WindowStartMode.remembered,
+                icon: Icon(Icons.crop_din, size: 17),
+                label: Text('Как закрыли'),
+              ),
+              ButtonSegment(
+                value: WindowStartMode.maximized,
+                icon: Icon(Icons.fullscreen, size: 17),
+                label: Text('Развёрнутым'),
+              ),
+              ButtonSegment(
+                value: WindowStartMode.minimized,
+                icon: Icon(Icons.expand_more, size: 17),
+                label: Text('В трей'),
+              ),
+            ],
+            selected: {value},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) => onChanged(selection.first),
+            style: const ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(
+                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.fontFamily,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ThemePicker extends StatelessWidget {
   const _ThemePicker({required this.value, required this.onChanged});
 

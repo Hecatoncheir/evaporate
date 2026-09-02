@@ -15,6 +15,7 @@ import 'input/gamepad_service.dart';
 import 'models/app_settings.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
+import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/update_check.dart';
 import 'services/system/window_state.dart';
@@ -47,11 +48,11 @@ Future<void> main() async {
       title: 'Evaporate',
       minimumSize: Size(WindowGeometry.minWidth, WindowGeometry.minHeight),
     ),
-    () => window.restore(
-      remember: settings.state.rememberWindowSize,
-      alwaysMaximized: settings.state.startMaximized,
-    ),
+    () => window.restore(settings.state.windowStart),
   );
+  // Значок в трее ставим всегда: без него свёрнутое при запуске окно
+  // было бы ничем не открыть, а режим запуска можно поменять на ходу.
+  unawaited(AppTray().install());
   // Пишем всегда, даже когда восстановление выключено: включив его позже,
   // пользователь получит осмысленные значения, а не размер по умолчанию.
   WindowStateSaver(window).attach();

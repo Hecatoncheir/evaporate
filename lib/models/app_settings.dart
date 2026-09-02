@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../input/gamepad_binding.dart';
 import 'proxy_settings.dart';
+import 'window_start_mode.dart';
 
 class AppSettings extends Equatable {
   const AppSettings({
@@ -13,8 +14,7 @@ class AppSettings extends Equatable {
     this.autoSnapshotOnExit = true,
     this.systemNotifications = true,
     this.launchAtStartup = false,
-    this.rememberWindowSize = true,
-    this.startMaximized = false,
+    this.windowStart = WindowStartMode.remembered,
     this.checkUpdates = true,
     this.themeMode = ThemeMode.system,
     this.ludusaviPath,
@@ -45,11 +45,8 @@ class AppSettings extends Equatable {
   /// загрузке настроек, потому что автозапуск могли отключить снаружи.
   final bool launchAtStartup;
 
-  /// Восстанавливать размер и положение окна при запуске.
-  final bool rememberWindowSize;
-
-  /// Всегда открываться развёрнутым, что бы ни было запомнено.
-  final bool startMaximized;
+  /// Каким открывать окно при запуске.
+  final WindowStartMode windowStart;
 
   /// Спрашивать при запуске, не вышла ли версия новее.
   ///
@@ -77,8 +74,7 @@ class AppSettings extends Equatable {
     bool? autoSnapshotOnExit,
     bool? systemNotifications,
     bool? launchAtStartup,
-    bool? rememberWindowSize,
-    bool? startMaximized,
+    WindowStartMode? windowStart,
     bool? checkUpdates,
     ThemeMode? themeMode,
     Object? ludusaviPath = _u,
@@ -93,8 +89,7 @@ class AppSettings extends Equatable {
       autoSnapshotOnExit: autoSnapshotOnExit ?? this.autoSnapshotOnExit,
       systemNotifications: systemNotifications ?? this.systemNotifications,
       launchAtStartup: launchAtStartup ?? this.launchAtStartup,
-      rememberWindowSize: rememberWindowSize ?? this.rememberWindowSize,
-      startMaximized: startMaximized ?? this.startMaximized,
+      windowStart: windowStart ?? this.windowStart,
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
       ludusaviPath: ludusaviPath == _u
@@ -113,8 +108,7 @@ class AppSettings extends Equatable {
     'autoSnapshotOnExit': autoSnapshotOnExit,
     'systemNotifications': systemNotifications,
     'launchAtStartup': launchAtStartup,
-    'rememberWindowSize': rememberWindowSize,
-    'startMaximized': startMaximized,
+    'windowStart': windowStart.name,
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
@@ -131,8 +125,7 @@ class AppSettings extends Equatable {
         autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
         systemNotifications: json['systemNotifications'] as bool? ?? true,
         launchAtStartup: json['launchAtStartup'] as bool? ?? false,
-        rememberWindowSize: json['rememberWindowSize'] as bool? ?? true,
-        startMaximized: json['startMaximized'] as bool? ?? false,
+        windowStart: _windowStartFromJson(json),
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
         ludusaviPath: json['ludusaviPath'] as String?,
@@ -153,14 +146,25 @@ class AppSettings extends Equatable {
     autoSnapshotOnExit,
     systemNotifications,
     launchAtStartup,
-    rememberWindowSize,
-    startMaximized,
+    windowStart,
     checkUpdates,
     themeMode,
     ludusaviPath,
     proxy,
     gamepad,
   ];
+
+  /// Читает режим запуска, понимая и прежние две галочки: файл настроек
+  /// у пользователя уже есть, и терять его выбор при обновлении нельзя.
+  static WindowStartMode _windowStartFromJson(Map<String, dynamic> json) {
+    final name = json['windowStart'] as String?;
+    if (name != null) return WindowStartMode.fromName(name);
+    if (json['startMaximized'] == true) return WindowStartMode.maximized;
+    if (json['rememberWindowSize'] == false) {
+      return WindowStartMode.maximized;
+    }
+    return WindowStartMode.remembered;
+  }
 
   /// Неизвестное значение — это «как в системе»: чужой или испорченный
   /// файл настроек не должен запирать пользователя в чужой теме.

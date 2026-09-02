@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:evaporate/core/json_store.dart';
+import 'package:evaporate/models/window_start_mode.dart';
 import 'package:evaporate/services/system/window_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -136,22 +137,27 @@ void main() {
       );
       final window = FakeWindow();
 
-      await stateWith(window).restore(remember: true, alwaysMaximized: false);
+      await stateWith(window).restore(WindowStartMode.remembered);
 
       expect(window.bounds, const Rect.fromLTWH(120, 60, 1400, 900));
       expect(window.shown, isTrue);
     });
 
-    test('без запоминания окно остаётся как есть', () async {
+    // Ради этого режима и нужен значок в трее: окна пользователь не увидит.
+    test('в режиме «в трей» окно не показывается', () async {
       await store.write(
         const WindowGeometry(x: 120, y: 60, width: 1400, height: 900).toJson(),
       );
       final window = FakeWindow();
 
-      await stateWith(window).restore(remember: false, alwaysMaximized: false);
+      await stateWith(window).restore(WindowStartMode.minimized);
 
-      expect(window.calls, isNot(contains('setBounds')));
-      expect(window.shown, isTrue);
+      expect(window.shown, isFalse);
+      expect(
+        window.bounds,
+        const Rect.fromLTWH(120, 60, 1400, 900),
+        reason: 'развёрнутое из трея окно должно оказаться там же, где было',
+      );
     });
 
     test('развёрнутое окно возвращается развёрнутым', () async {
@@ -166,7 +172,7 @@ void main() {
       );
       final window = FakeWindow();
 
-      await stateWith(window).restore(remember: true, alwaysMaximized: false);
+      await stateWith(window).restore(WindowStartMode.remembered);
 
       expect(window.maximized, isTrue);
       // Размер развёрнутому окну не задаём: он всё равно будет по экрану.
@@ -179,7 +185,7 @@ void main() {
       );
       final window = FakeWindow();
 
-      await stateWith(window).restore(remember: true, alwaysMaximized: true);
+      await stateWith(window).restore(WindowStartMode.maximized);
 
       expect(window.maximized, isTrue);
     });
@@ -187,7 +193,7 @@ void main() {
     test('первый запуск обходится без записи', () async {
       final window = FakeWindow();
 
-      await stateWith(window).restore(remember: true, alwaysMaximized: false);
+      await stateWith(window).restore(WindowStartMode.remembered);
 
       expect(window.calls, isNot(contains('setBounds')));
       expect(window.shown, isTrue);
@@ -200,7 +206,7 @@ void main() {
       );
       final window = FakeWindow();
 
-      await stateWith(window).restore(remember: true, alwaysMaximized: false);
+      await stateWith(window).restore(WindowStartMode.remembered);
 
       expect(window.calls.last, 'show');
     });
