@@ -20,6 +20,8 @@ import '../../services/launch/game_launcher.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../services/saves/ludusavi_catalog.dart';
+import '../../services/saves/save_activity_watch.dart';
+import '../../services/saves/save_path_finder.dart';
 import '../../services/saves/save_path_globs.dart';
 import '../../services/saves/save_manager.dart';
 import '../notice.dart';
@@ -42,6 +44,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     SteamCatalog? steam,
     LudusaviCatalog? savePaths,
     L Function()? localizations,
+    List<SaveRoot> Function()? saveRoots,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        savePaths =
            savePaths ??
@@ -54,6 +57,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),
        _launcher = launcher ?? GameLauncher(),
+       _saveRoots = saveRoots ?? SavePathFinder.roots,
        super(const LibraryState()) {
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
@@ -71,6 +75,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SteamLookupRequested>(_onSteamLookup);
     on<SavePathsLookupRequested>(_onSavePathsLookup);
     on<SavePathsProgressChanged>(_onSavePathsProgress);
+    on<SaveHintsRequested>(_onSaveHintsRequested);
+    on<SaveHintsAccepted>(_onSaveHintsAccepted);
+    on<SaveHintsDismissed>(_onSaveHintsDismissed);
     // this нужен явно: без него имя разрешается в параметр конструктора.
     this.savePaths.onProgress = (value) => add(SavePathsProgressChanged(value));
     on<BulkExportRequested>(_onBulkExport);
@@ -102,6 +109,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Открытая база путей сохранений — та часть работы, которую иначе
   /// пришлось бы делать руками для каждой игры.
   final LudusaviCatalog savePaths;
+
+  /// Где смотреть следы работы игры. Подменяется в тестах: настоящие
+  /// «Документы» и `AppData` там обходить незачем и небезопасно.
+  final List<SaveRoot> Function() _saveRoots;
 
   final JsonStore _store;
   final SaveManager _saves;
@@ -318,7 +329,21 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         updated.saveProfile.isConfigured) {
       add(SnapshotRequested(updated, origin: SnapshotOrigin.autoOnExit));
     }
+
+    // Слишком короткий сеанс — обычно неудачный запуск: игра не успела
+    // ничего записать, а обход папок стоит секунд.
+    if (event.played >= _shortestWatchedSession) {
+      add(
+        SaveHintsRequested(
+          game: updated,
+          since: DateTime.now().subtract(event.played),
+        ),
+      );
+    }
   }
+
+  /// Короче этого запуск не считаем игрой: сейвы за такое время не заводят.
+  static const _shortestWatchedSession = Duration(seconds: 30);
 
   void _onRunningGamesChanged(
     RunningGamesChanged event,
@@ -594,6 +619,114 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     SavePathsProgressChanged event,
     Emitter<LibraryState> emit,
   ) => emit(state.copyWith(savePathsProgress: event.progress));
+
+  /// Смотрит, что изменилось, пока игра работала.
+  ///
+  /// База путей знает не всякую игру — торрент-релизов в ней нет вовсе. Зато
+  /// игра сама создаёт себе папку под сейвы, и промежуток её работы нам
+  /// известен точно.
+  Future<void> _onSaveHintsRequested(
+    SaveHintsRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final List<SavePathSuggestion> found;
+    try {
+      found = await SaveActivityWatch.changedSince(
+        event.since,
+        gameTitle: event.game.title,
+        gameDir: event.game.installDir,
+        roots: _saveRoots(),
+      );
+    } on Object {
+      // Обход папок — дело подсобное: не вышло, значит подсказок не будет.
+      return;
+    }
+
+    final fresh = _withoutKnownPaths(event.game, found);
+    if (fresh.isEmpty) return;
+
+    emit(
+      state.copyWith(
+        saveHints: {...state.saveHints, event.game.id: fresh},
+        notice: _notice(_l.noticeSaveHints(fresh.length, event.game.title)),
+      ),
+    );
+  }
+
+  /// Отсеивает то, что уже покрыто заданными правилами: подсказывать
+  /// известное — значит приучить не читать подсказки вовсе.
+  static List<SavePathSuggestion> _withoutKnownPaths(
+    Game game,
+    List<SavePathSuggestion> found,
+  ) {
+    final known = <String>[];
+    for (final rule in game.saveProfile.rules) {
+      final resolved = rule.resolve(gameDir: game.installDir);
+      if (resolved != null) known.add(p.normalize(resolved));
+    }
+    return [
+      for (final item in found)
+        if (!known.any(
+          (path) => p.equals(path, item.path) || p.isWithin(path, item.path),
+        ))
+          item,
+    ];
+  }
+
+  Future<void> _onSaveHintsAccepted(
+    SaveHintsAccepted event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final current = state.gameById(event.game.id);
+    if (current == null || event.suggestions.isEmpty) return;
+
+    final existing = current.saveProfile.rules.map((r) => r.template).toSet();
+    final templates = [
+      for (final item in event.suggestions)
+        if (!existing.contains(item.template)) item.template,
+    ];
+    if (templates.isEmpty) {
+      emit(state.copyWith(saveHints: _withoutHints(current.id)));
+      return;
+    }
+
+    final labels = SavePathRule.labelsFor([...existing, ...templates]);
+    final added = <SavePathRule>[
+      for (var i = 0; i < templates.length; i++)
+        SavePathRule(
+          id: const Uuid().v4(),
+          label: labels[existing.length + i],
+          template: templates[i],
+        ),
+    ];
+
+    final games = [...state.games];
+    games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
+      saveProfile: current.saveProfile.copyWith(
+        rules: [...current.saveProfile.rules, ...added],
+      ),
+    );
+    emit(
+      state.copyWith(
+        games: games,
+        saveHints: _withoutHints(current.id),
+        notice: _notice(
+          _l.noticePathsAdded(_l.sourceWatch, added.length, current.title),
+        ),
+      ),
+    );
+    _schedulePersist();
+  }
+
+  void _onSaveHintsDismissed(
+    SaveHintsDismissed event,
+    Emitter<LibraryState> emit,
+  ) => emit(state.copyWith(saveHints: _withoutHints(event.gameId)));
+
+  Map<String, List<SavePathSuggestion>> _withoutHints(String gameId) => {
+    for (final entry in state.saveHints.entries)
+      if (entry.key != gameId) entry.key: entry.value,
+  };
 
   /// Ищет пути в базе и доводит их до состояния, пригодного для правила.
   ///

@@ -1,8 +1,26 @@
 {
   "@@locale": "en",
+  "@noticeSaveHints": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@watchedFilesChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "about": "About",
   "absolutePathWarning": "The path is absolute: on another machine it most likely will not match.",
   "add": "Add",
+  "addAll": "Add all",
   "addCount": "Add: {count}",
   "addGame": "Add a game",
   "addGameFirst": "Add the game to the library first.",
@@ -192,6 +210,7 @@
   "notChosen": "not chosen",
   "notPortablePath": "not portable",
   "notSet": "not set",
+  "notThis": "Not it",
   "nothingDownloading": "Nothing is downloading.",
   "nothingFound": "Nothing found",
   "nothingToVerify": "Nothing to verify: metadata was not fetched",
@@ -220,6 +239,7 @@
   "noticeRestorePartial": "Restored {files} files. These paths did not match: {paths}. The rest was restored.",
   "noticeRestoredFiles": "Restored {files} files ({size}).",
   "noticeSaveFailedBody": "“{title}”: {error}",
+  "noticeSaveHints": "While \"{title}\" was running, {count} folders changed. Have a look at \"Save folders\".",
   "noticeSavedTo": "Saved to: {path}",
   "noticeSnapshotFailed": "Saves were not captured",
   "noticeSnapshotImported": "Snapshot imported",
@@ -335,6 +355,7 @@
   "sourceFolder": "Folder",
   "sourceMagnet": "Magnet link",
   "sourceTorrent": "Torrent file",
+  "sourceWatch": "from watching",
   "speedPerSecond": "{value}/s",
   "startDownloadNow": "Start downloading right away",
   "stateCancelled": "Cancelled",
@@ -386,6 +407,9 @@
   "uploadedTotal": "{size} shared",
   "version": "Version",
   "waitingInQueue": "waiting in queue",
+  "watchedFilesChanged": "{count} files changed",
+  "watchedFolders": "Changed while the game was running",
+  "watchedFoldersNote": "These folders changed while the game was running. They look like saves — but games write logs and caches next to them, so the call is yours.",
   "whatToRun": "What to run",
   "whatToRunQuestion": "What should run?",
   "whichGameToApply": "Which game should it go to?",

@@ -183,6 +183,43 @@ final class SteamLookupRequested extends LibraryEvent {
   List<Object?> get props => [game.id, query];
 }
 
+/// Посмотреть, что изменилось, пока игра работала.
+///
+/// Отдельным событием, а не внутри выхода из игры: обход папок занимает
+/// секунды, а состояние после выхода должно обновиться сразу.
+final class SaveHintsRequested extends LibraryEvent {
+  const SaveHintsRequested({required this.game, required this.since});
+
+  final Game game;
+
+  /// Момент запуска игры: всё, что изменилось позже, — след её работы.
+  final DateTime since;
+
+  @override
+  List<Object?> get props => [game, since];
+}
+
+/// Принять найденные папки как правила.
+final class SaveHintsAccepted extends LibraryEvent {
+  const SaveHintsAccepted({required this.game, required this.suggestions});
+
+  final Game game;
+  final List<SavePathSuggestion> suggestions;
+
+  @override
+  List<Object?> get props => [game, suggestions];
+}
+
+/// Убрать подсказки, ничего не приняв.
+final class SaveHintsDismissed extends LibraryEvent {
+  const SaveHintsDismissed(this.gameId);
+
+  final String gameId;
+
+  @override
+  List<Object?> get props => [gameId];
+}
+
 /// Подобрать папки сохранений по открытой базе путей.
 final class SavePathsLookupRequested extends LibraryEvent {
   const SavePathsLookupRequested(this.game, {this.refresh = false});

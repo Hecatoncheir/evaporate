@@ -13,6 +13,7 @@ class LibraryState extends Equatable {
     this.syncScanned = false,
     this.bulkReport,
     this.savePathsProgress,
+    this.saveHints = const {},
   });
 
   final List<Game> games;
@@ -32,6 +33,10 @@ class LibraryState extends Equatable {
 
   /// Ход подготовки базы путей, пока она качается и разбирается.
   final CatalogProgress? savePathsProgress;
+
+  /// Папки, изменившиеся, пока игра работала, — по игре. Это догадка, и
+  /// пока человек её не подтвердил, правилом она не становится.
+  final Map<String, List<SavePathSuggestion>> saveHints;
 
   /// Пакеты `.evsave`, найденные в папке синхронизации.
   final List<SavePackageInfo> syncPackages;
@@ -56,6 +61,9 @@ class LibraryState extends Equatable {
 
   bool isRunning(String gameId) => runningIds.contains(gameId);
 
+  List<SavePathSuggestion> hintsFor(String gameId) =>
+      saveHints[gameId] ?? const <SavePathSuggestion>[];
+
   LibraryState copyWith({
     List<Game>? games,
     Map<String, List<SaveSnapshot>>? snapshots,
@@ -68,6 +76,7 @@ class LibraryState extends Equatable {
     bool? syncScanned,
     Object? bulkReport = _unset,
     Object? savePathsProgress = _unset,
+    Map<String, List<SavePathSuggestion>>? saveHints,
   }) {
     return LibraryState(
       games: games ?? this.games,
@@ -85,6 +94,7 @@ class LibraryState extends Equatable {
       savePathsProgress: savePathsProgress == _unset
           ? this.savePathsProgress
           : savePathsProgress as CatalogProgress?,
+      saveHints: saveHints ?? this.saveHints,
     );
   }
 
@@ -101,6 +111,7 @@ class LibraryState extends Equatable {
     syncPackages,
     scanningSync,
     syncScanned,
+    saveHints,
   ];
 
   static const _unset = Object();

@@ -21,7 +21,13 @@ void main() {
       defaultInstallDir: p.join(tmp.path, 'games'),
     );
     settings = SettingsBloc(paths);
-    library = LibraryBloc(paths: paths, settings: settings);
+    library = LibraryBloc(
+      paths: paths,
+      settings: settings,
+      // Выход из игры запускает обход папок в поисках следов её работы.
+      // Настоящие «Документы» и AppData в тесте обходить нечего.
+      saveRoots: () => const [],
+    );
   });
 
   tearDown(() async {

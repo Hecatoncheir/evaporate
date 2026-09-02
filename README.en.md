@@ -158,6 +158,25 @@ What stays unresolvable are the paths that go through a store account
 (`<storeUserId>`) or another launcher's root (`<root>`). That is Steam cloud;
 the games Evaporate installs do not have it.
 
+### Watching the session
+
+The database does not know every game: torrent releases, obscure titles and
+anything outside Steam are simply not in it. But a game creates its own save
+folder, and the app knows exactly when it was running — it started it.
+
+After the game exits, Evaporate looks at what changed during that window in
+the places games keep saves, and inside the game's own folder. What it finds
+shows up under "Save folders" as an offer, not as a silent decision: games
+write logs, shader caches and telemetry right next to their saves, and telling
+them apart with certainty is not possible.
+
+Several signals are weighed at once: a name resembling the game's title, being
+inside the game folder, a known games location such as "My Games", file
+extensions. Known caches and logs are dropped by name, and a folder that
+gained hundreds of files during one session loses weight — that is a cache,
+not a save. Sessions shorter than thirty seconds are not examined at all:
+those are usually failed launches.
+
 The database knows the Windows registry keys too. The app cannot transfer them,
 but it does not keep quiet either: when a game keeps its saves in the registry,
 it says so — otherwise the snapshot would come out incomplete without a word.

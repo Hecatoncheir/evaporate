@@ -55,6 +55,15 @@ class SavePathFinder {
     return list.take(12).toList();
   }
 
+  /// Места, где игры держат сохранения, — без привязки к конкретной игре.
+  ///
+  /// Нужны не только поиску по названию: по этим же папкам смотрят, что
+  /// изменилось, пока игра работала.
+  static List<SaveRoot> roots() => [
+    for (final root in _roots())
+      SaveRoot(path: root.path, insideKnownGamesFolder: root.suffix != null),
+  ];
+
   static List<_Root> _roots() {
     final placeholders = SavePathTemplate.placeholders;
     final roots = <_Root>[];
@@ -178,6 +187,17 @@ class SavePathFinder {
     }
     return count;
   }
+}
+
+/// Корень поиска сохранений.
+class SaveRoot {
+  const SaveRoot({required this.path, required this.insideKnownGamesFolder});
+
+  final String path;
+
+  /// Папка вроде «My Games» или «Saved Games» — то, что уже само по себе
+  /// говорит о назначении, и найденное в ней заслуживает больше доверия.
+  final bool insideKnownGamesFolder;
 }
 
 class _Root {

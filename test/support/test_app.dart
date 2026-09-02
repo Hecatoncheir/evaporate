@@ -43,6 +43,9 @@ class TestHarness {
       paths: paths,
       settings: settings,
       notifications: notifications,
+      // Выход из игры запускает обход папок в поисках следов её работы:
+      // настоящий файловый ввод-вывод внутри testWidgets не завершается.
+      saveRoots: () => const [],
     );
     downloads = DownloadsBloc(
       paths: paths,

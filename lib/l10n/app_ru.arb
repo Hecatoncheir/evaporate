@@ -407,6 +407,16 @@
       }
     }
   },
+  "@noticeSaveHints": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "@noticeSavedTo": {
     "placeholders": {
       "path": {
@@ -642,9 +652,17 @@
       }
     }
   },
+  "@watchedFilesChanged": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "about": "О программе",
   "absolutePathWarning": "Путь абсолютный: на другом устройстве он, скорее всего, не совпадёт.",
   "add": "Добавить",
+  "addAll": "Добавить все",
   "addCount": "Добавить: {count}",
   "addGame": "Добавить игру",
   "addGameFirst": "Сначала добавьте игру в библиотеку.",
@@ -834,6 +852,7 @@
   "notChosen": "не выбрано",
   "notPortablePath": "непереносимый путь",
   "notSet": "не задана",
+  "notThis": "Не то",
   "nothingDownloading": "Ничего не качается.",
   "nothingFound": "Ничего не найдено",
   "nothingToVerify": "Проверять нечего: метаданные не получены",
@@ -862,6 +881,7 @@
   "noticeRestorePartial": "Восстановлено {files} файлов. Не сопоставились пути: {paths}. Остальное восстановлено.",
   "noticeRestoredFiles": "Восстановлено {files} файлов ({size}).",
   "noticeSaveFailedBody": "«{title}»: {error}",
+  "noticeSaveHints": "Пока «{title}» работала, изменились папки: {count}. Загляните в «Папки сохранений».",
   "noticeSavedTo": "Сохранено: {path}",
   "noticeSnapshotFailed": "Сохранения не сняты",
   "noticeSnapshotImported": "Снимок импортирован",
@@ -977,6 +997,7 @@
   "sourceFolder": "Папка",
   "sourceMagnet": "Magnet-ссылка",
   "sourceTorrent": "Torrent-файл",
+  "sourceWatch": "из наблюдения",
   "speedPerSecond": "{value}/с",
   "startDownloadNow": "Начать загрузку сразу",
   "stateCancelled": "Отменено",
@@ -1028,6 +1049,9 @@
   "uploadedTotal": "отдано {size}",
   "version": "Версия",
   "waitingInQueue": "ждёт очереди",
+  "watchedFilesChanged": "изменено файлов: {count}",
+  "watchedFolders": "Изменились, пока игра работала",
+  "watchedFoldersNote": "Эти папки менялись, пока игра работала. Похоже на сохранения — но рядом с ними игры пишут и логи, и кэш, поэтому решать вам.",
   "whatToRun": "Что запускать",
   "whatToRunQuestion": "Что запускать?",
   "whichGameToApply": "В какую игру применить?",
