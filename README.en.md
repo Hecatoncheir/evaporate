@@ -328,6 +328,11 @@ transition there reads as lag. Sections cross-fade, progress bars glide toward
 their new value, and selection highlights ease in — the detail panel
 deliberately does not animate, because people flick through it quickly.
 
+## Contributing
+
+Bug reports, translation fixes and notes about clumsy wording are welcome —
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how it works.
+
 ## License
 
 Evaporate is distributed under the [MIT license](LICENSE). It ships with work

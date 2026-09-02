@@ -1,0 +1,33 @@
+name: Перевод / Translation
+description: Строка звучит неестественно или переведена неверно
+labels: [translation]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Английский перевод не вычитывался носителем языка — замечания к нему
+        особенно уместны.
+  - type: input
+    id: current
+    attributes:
+      label: Как сейчас
+    validations:
+      required: true
+  - type: input
+    id: suggested
+    attributes:
+      label: Как лучше
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Где встретилось
+      placeholder: "Настройки → Сохранения"
+  - type: dropdown
+    id: language
+    attributes:
+      label: Язык
+      options: [English, Русский]
+    validations:
+      required: true

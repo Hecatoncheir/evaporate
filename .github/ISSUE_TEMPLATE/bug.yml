@@ -1,0 +1,40 @@
+name: Ошибка / Bug
+description: Что-то работает не так, как обещано
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Что произошло
+      description: Что вы делали и чем это кончилось. Если было сообщение об ошибке — приведите его целиком.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Чего вы ожидали
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Версия
+      description: Видна в «Настройки → О программе»
+      placeholder: "0.5.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Система
+      options: [macOS, Windows, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: saves
+    attributes:
+      label: Если дело в сохранениях
+      description: >-
+        Назовите игру и то, что показывает раздел «Папки сохранений». Пути
+        можно обезличить — важна их форма, а не содержимое. Сами файлы
+        сохранений прикладывать не нужно.
