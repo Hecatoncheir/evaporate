@@ -173,6 +173,8 @@ over. The app handles that quietly — a copy that cannot run is simply skipped.
 
 - Flutter 3.47+ (verified on 3.47.2, Dart 3.13.2).
 - No external programs needed: the download engine is built into the app.
+- Building for Linux needs `libayatana-appindicator3-dev` — the tray icon
+  will not compile without it.
 
 Building for macOS needs **full Xcode** (not just the Command Line Tools) and
 CocoaPods:

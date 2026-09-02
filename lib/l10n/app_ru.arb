@@ -7,6 +7,13 @@
       }
     }
   },
+  "@engineUnavailable": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
   "@playtime": {
     "placeholders": {
       "duration": {
@@ -15,11 +22,13 @@
     }
   },
   "about": "О программе",
+  "add": "Добавить",
   "addGame": "Добавить игру",
   "allGamesQueued": "Все игры с источником уже в очереди или установлены.",
   "appearance": "Оформление",
   "assign": "Назначить",
   "availableToDownload": "Можно скачать",
+  "badMagnet": "Введите корректную magnet-ссылку.",
   "bindings": "Назначение кнопок",
   "buttonFor": "Кнопка для «{action}»",
   "cancel": "Отмена",
@@ -43,8 +52,11 @@
   "engineNote": "Движок встроен в приложение — внешних программ ставить не нужно. Список загрузок переживает перезапуск.",
   "engineState": "Состояние",
   "engineStopped": "Движок загрузок остановлен",
+  "engineUnavailable": "Движок загрузок недоступен: {state}. Игру можно добавить и запустить загрузку позже.",
   "fetchingMetadata": "Получаем метаданные…",
   "findGamesInFolder": "Найти игры в папке",
+  "folderMissing": "Папка не найдена.",
+  "gameFolder": "Папка с игрой",
   "gamepad": "Геймпад",
   "gamepadControls": "Управление геймпадом",
   "gamepadNavigationNote": "Навигация — D-pad или левый стик, прокрутка — правый стик",
@@ -71,6 +83,7 @@
   "limitUpload": "Ограничение раздачи",
   "limitUploadNote": "Раздача — плата за скачанное, совсем перекрывать не стоит",
   "limitWhilePlaying": "Приём, пока идёт игра",
+  "localFolderNote": "Игра уже на диске: скачивать ничего не нужно, приложение только запомнит её и попробует найти исполняемый файл.",
   "ludusaviFindOurselves": "искать самим",
   "ludusaviNote": "Пути сохранений берутся у Ludusavi — он идёт в комплекте, ставить отдельно ничего не нужно. Здесь можно указать свою копию: её настройки могут знать про нестандартные папки с играми. Если Ludusavi недоступен, работает встроенная база путей — она покрывает меньше случаев, но не требует ничего.",
   "ludusaviOptional": "Ludusavi (необязательно)",
@@ -78,6 +91,7 @@
   "menuEntryAdded": "Приложение есть в меню",
   "menuEntryMissing": "Приложения нет в меню системы",
   "menuEntryRemove": "Убрать из меню",
+  "newGame": "Новая игра",
   "nextInQueue": "Дальше в очереди",
   "notSet": "не задана",
   "nothingDownloading": "Ничего не качается.",
@@ -91,7 +105,9 @@
   "permissionDenied": "Система не дала разрешение. Проверьте настройки уведомлений macOS.",
   "permissionGranted": "Разрешение получено",
   "permissionNote": "macOS спрашивает разрешение один раз. Если вы его отклонили, включить уведомления можно только в системных настройках.",
+  "pickFolder": "Выберите папку с игрой.",
   "pickGameOnTheLeft": "Выберите игру слева",
+  "pickTorrent": "Выберите .torrent файл.",
   "playtime": "Наиграно {duration}",
   "pressAnyButton": "Нажмите нужную кнопку на геймпаде.",
   "proxy": "Прокси",
@@ -121,6 +137,10 @@
   "searchHint": "Поиск  ( / )",
   "settings": "Настройки",
   "snapshotOnExit": "Снимать сохранения после выхода из игры",
+  "sourceFolder": "Папка",
+  "sourceMagnet": "Magnet-ссылка",
+  "sourceTorrent": "Torrent-файл",
+  "startDownloadNow": "Начать загрузку сразу",
   "statusDownloading": "Загрузка",
   "statusError": "Ошибка",
   "statusInstalled": "Установлена",
@@ -130,11 +150,14 @@
   "syncFolder": "Папка синхронизации",
   "systemNotifications": "Системные уведомления",
   "systemNotificationsNote": "О том, что закончилось, пока окно свёрнуто: загрузка завершена или сорвалась, автоснимок сохранений не удался",
+  "tapToChoose": "Нажмите, чтобы выбрать",
   "test": "Проверить",
   "testNotificationBody": "Проверка: уведомления работают.",
   "themeDark": "Тёмное",
   "themeLight": "Светлое",
   "themeSystem": "Как в системе",
+  "title": "Название",
+  "titleHint": "Как показывать в библиотеке",
   "unassigned": "не назначено",
   "unlimitedShort": "без огр.",
   "upToDate": "Установлена последняя версия",

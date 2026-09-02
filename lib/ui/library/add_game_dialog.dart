@@ -11,6 +11,7 @@ import '../../services/launch/executable_finder.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../theme.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Возвращает идентификатор добавленной игры: событие ничего не возвращает,
 /// а вызывающему нужно выделить новую игру в списке.
@@ -51,7 +52,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
     final engineReady = downloads.engine.isReady;
 
     return AlertDialog(
-      title: const Text('Добавить игру'),
+      title: Text(L.of(context).addGame),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -60,7 +61,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SegmentedButton<GameSourceKind>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: GameSourceKind.magnet,
                     icon: Icon(Icons.link, size: 16),
@@ -74,7 +75,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
                   ButtonSegment(
                     value: GameSourceKind.localFolder,
                     icon: Icon(Icons.folder_outlined, size: 16),
-                    label: Text('Папка'),
+                    label: Text(L.of(context).sourceFolder),
                   ),
                 ],
                 selected: {_kind},
@@ -86,9 +87,9 @@ class _AddGameDialogState extends State<_AddGameDialog> {
               const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Название',
-                  hintText: 'Как показывать в библиотеке',
+                decoration: InputDecoration(
+                  labelText: L.of(context).title,
+                  hintText: L.of(context).titleHint,
                 ),
               ),
               if (_kind != GameSourceKind.localFolder) ...[
@@ -102,12 +103,13 @@ class _AddGameDialogState extends State<_AddGameDialog> {
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
                   dense: true,
-                  title: const Text('Начать загрузку сразу'),
+                  title: Text(L.of(context).startDownloadNow),
                   subtitle: engineReady
                       ? null
                       : Text(
-                          'Движок загрузок недоступен: ${downloads.engine.label}. '
-                          'Игру можно добавить и запустить загрузку позже.',
+                          L
+                              .of(context)
+                              .engineUnavailable(downloads.engine.label),
                           style: TextStyle(
                             fontSize: 12,
                             color: context.colors.warning,
@@ -126,7 +128,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
         FilledButton(
           onPressed: _busy ? null : _submit,
@@ -136,7 +138,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Добавить'),
+              : Text(L.of(context).add),
         ),
       ],
     );
@@ -151,8 +153,8 @@ class _AddGameDialogState extends State<_AddGameDialog> {
             maxLines: 3,
             minLines: 2,
             onChanged: _onMagnetChanged,
-            decoration: const InputDecoration(
-              labelText: 'Magnet-ссылка',
+            decoration: InputDecoration(
+              labelText: L.of(context).sourceMagnet,
               hintText: 'magnet:?xt=urn:btih:...',
             ),
           ),
@@ -160,7 +162,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
       case GameSourceKind.torrentFile:
         return [
           _PathPicker(
-            label: 'Torrent-файл',
+            label: L.of(context).sourceTorrent,
             value: _filePath,
             icon: Icons.description_outlined,
             onPick: _pickTorrent,
@@ -169,15 +171,14 @@ class _AddGameDialogState extends State<_AddGameDialog> {
       case GameSourceKind.localFolder:
         return [
           _PathPicker(
-            label: 'Папка с игрой',
+            label: L.of(context).gameFolder,
             value: _folderPath,
             icon: Icons.folder_outlined,
             onPick: _pickFolder,
           ),
           const SizedBox(height: 8),
           Text(
-            'Игра уже на диске: скачивать ничего не нужно, приложение только '
-            'запомнит её и попробует найти исполняемый файл.',
+            L.of(context).localFolderNote,
             style: TextStyle(
               fontSize: 12,
               color: context.colors.textSecondary,
@@ -262,14 +263,14 @@ class _AddGameDialogState extends State<_AddGameDialog> {
         case GameSourceKind.magnet:
           final magnet = _magnetController.text.trim();
           if (!magnet.startsWith('magnet:')) {
-            throw 'Введите корректную magnet-ссылку.';
+            throw L.of(context).badMagnet;
           }
           final source = GameSource(kind: GameSourceKind.magnet, value: magnet);
           library.add(
             GameAdded(
               id: id,
               title: title.isEmpty
-                  ? (_displayNameFromMagnet(magnet) ?? 'Новая игра')
+                  ? (_displayNameFromMagnet(magnet) ?? L.of(context).newGame)
                   : title,
               source: source,
             ),
@@ -279,7 +280,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
         case GameSourceKind.torrentFile:
           final path = _filePath;
-          if (path == null) throw 'Выберите .torrent файл.';
+          if (path == null) throw L.of(context).pickTorrent;
           final source = GameSource(
             kind: GameSourceKind.torrentFile,
             value: path,
@@ -296,8 +297,8 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
         case GameSourceKind.localFolder:
           final dir = _folderPath;
-          if (dir == null) throw 'Выберите папку с игрой.';
-          if (!await Directory(dir).exists()) throw 'Папка не найдена.';
+          if (dir == null) throw L.of(context).pickFolder;
+          if (!await Directory(dir).exists()) throw L.of(context).folderMissing;
 
           final candidates = await ExecutableFinder.scan(dir);
           library.add(
@@ -365,7 +366,7 @@ class _PathPicker extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    value ?? 'Нажмите, чтобы выбрать',
+                    value ?? L.of(context).tapToChoose,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
