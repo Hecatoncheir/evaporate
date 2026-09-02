@@ -236,7 +236,7 @@ jobs:
           channel: stable
           cache: true
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           # Только сборки: отчёт о покрытии тоже артефакт прогона, и без
           # маски он уехал бы в релиз файлом, которого там никто не ждёт.
