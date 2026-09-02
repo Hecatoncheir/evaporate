@@ -179,6 +179,30 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               SwitchListTile(
+                value: settings.rememberWindowSize,
+                onChanged: (value) =>
+                    update(settings.copyWith(rememberWindowSize: value)),
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Открывать окно там же, где закрыли',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              SwitchListTile(
+                value: settings.startMaximized,
+                onChanged: (value) =>
+                    update(settings.copyWith(startMaximized: value)),
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Всегда разворачивать при запуске',
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'Перекрывает запомненный размер',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+              SwitchListTile(
                 value: settings.launchAtStartup,
                 onChanged: (value) =>
                     update(settings.copyWith(launchAtStartup: value)),

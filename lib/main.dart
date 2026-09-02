@@ -3,15 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
 import 'bloc/navigation/navigation_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
 import 'core/app_paths.dart';
+import 'core/json_store.dart';
 import 'input/gamepad_service.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
+import 'services/system/managed_window.dart';
+import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
 
@@ -28,6 +32,27 @@ Future<void> main() async {
     const Duration(seconds: 2),
     onTimeout: () => settings.state,
   );
+
+  // Окно ставим до того, как оно появится на экране: иначе пользователь
+  // увидит, как оно прыгает из одного положения в другое.
+  await windowManager.ensureInitialized();
+  final window = WindowState(
+    store: JsonStore(paths.windowStateFile),
+    controller: const ManagedWindowController(),
+  );
+  await windowManager.waitUntilReadyToShow(
+    const WindowOptions(
+      title: 'Evaporate',
+      minimumSize: Size(WindowGeometry.minWidth, WindowGeometry.minHeight),
+    ),
+    () => window.restore(
+      remember: settings.state.rememberWindowSize,
+      alwaysMaximized: settings.state.startMaximized,
+    ),
+  );
+  // Пишем всегда, даже когда восстановление выключено: включив его позже,
+  // пользователь получит осмысленные значения, а не размер по умолчанию.
+  WindowStateSaver(window).attach();
 
   // Разрешение у системы не спрашиваем на старте: это делает пользователь
   // кнопкой в настройках, чтобы диалог не выскакивал при первом запуске.

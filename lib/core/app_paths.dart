@@ -66,6 +66,10 @@ class AppPaths {
   /// Кэш открытой базы путей сохранений.
   String get savePathsCacheFile => p.join(dataDir, 'save-paths.json');
 
+  /// Размер и положение окна. Отдельно от настроек: это не выбор
+  /// пользователя, а состояние, которое меняется само.
+  String get windowStateFile => p.join(dataDir, 'window.json');
+
   /// Настройки встроенной копии Ludusavi. Отдельная папка нужна, чтобы
   /// не переписать конфигурацию тому, у кого Ludusavi уже стоит своим.
   String get ludusaviConfigDir => p.join(dataDir, 'ludusavi');

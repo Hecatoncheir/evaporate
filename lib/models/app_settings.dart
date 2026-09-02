@@ -12,6 +12,8 @@ class AppSettings extends Equatable {
     this.autoSnapshotOnExit = true,
     this.systemNotifications = true,
     this.launchAtStartup = false,
+    this.rememberWindowSize = true,
+    this.startMaximized = false,
     this.ludusaviPath,
     this.proxy = const ProxySettings(),
     this.gamepad = const GamepadBinding(),
@@ -40,6 +42,12 @@ class AppSettings extends Equatable {
   /// загрузке настроек, потому что автозапуск могли отключить снаружи.
   final bool launchAtStartup;
 
+  /// Восстанавливать размер и положение окна при запуске.
+  final bool rememberWindowSize;
+
+  /// Всегда открываться развёрнутым, что бы ни было запомнено.
+  final bool startMaximized;
+
   /// Путь к Ludusavi, если он установлен не там, где мы его ищем.
   /// Пустое значение означает «искать самим».
   final String? ludusaviPath;
@@ -58,6 +66,8 @@ class AppSettings extends Equatable {
     bool? autoSnapshotOnExit,
     bool? systemNotifications,
     bool? launchAtStartup,
+    bool? rememberWindowSize,
+    bool? startMaximized,
     Object? ludusaviPath = _u,
     ProxySettings? proxy,
     GamepadBinding? gamepad,
@@ -70,6 +80,8 @@ class AppSettings extends Equatable {
       autoSnapshotOnExit: autoSnapshotOnExit ?? this.autoSnapshotOnExit,
       systemNotifications: systemNotifications ?? this.systemNotifications,
       launchAtStartup: launchAtStartup ?? this.launchAtStartup,
+      rememberWindowSize: rememberWindowSize ?? this.rememberWindowSize,
+      startMaximized: startMaximized ?? this.startMaximized,
       ludusaviPath: ludusaviPath == _u
           ? this.ludusaviPath
           : ludusaviPath as String?,
@@ -86,6 +98,8 @@ class AppSettings extends Equatable {
     'autoSnapshotOnExit': autoSnapshotOnExit,
     'systemNotifications': systemNotifications,
     'launchAtStartup': launchAtStartup,
+    'rememberWindowSize': rememberWindowSize,
+    'startMaximized': startMaximized,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
     'gamepad': gamepad.toJson(),
@@ -100,6 +114,8 @@ class AppSettings extends Equatable {
         autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
         systemNotifications: json['systemNotifications'] as bool? ?? true,
         launchAtStartup: json['launchAtStartup'] as bool? ?? false,
+        rememberWindowSize: json['rememberWindowSize'] as bool? ?? true,
+        startMaximized: json['startMaximized'] as bool? ?? false,
         ludusaviPath: json['ludusaviPath'] as String?,
         proxy: json['proxy'] == null
             ? const ProxySettings()
@@ -118,6 +134,8 @@ class AppSettings extends Equatable {
     autoSnapshotOnExit,
     systemNotifications,
     launchAtStartup,
+    rememberWindowSize,
+    startMaximized,
     ludusaviPath,
     proxy,
     gamepad,
