@@ -11,6 +11,7 @@ import '../../core/format.dart';
 import '../../core/json_store.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
+import '../../models/bulk_report.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/metadata/steam_catalog.dart';
@@ -687,6 +688,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     emit(state.copyWith(busy: _withBusy(bulkKey, true)));
 
+    final report = <BulkEntry>[];
     var exported = 0;
     var skipped = 0;
     final failed = <String>[];
@@ -694,6 +696,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     for (final game in state.games) {
       if (!game.saveProfile.isConfigured) {
         skipped++;
+        report.add(
+          BulkEntry(
+            title: game.title,
+            outcome: BulkOutcome.skipped,
+            detail: 'папки сохранений не заданы',
+          ),
+        );
         continue;
       }
       try {
@@ -708,11 +717,26 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           ),
         );
         exported++;
+        report.add(BulkEntry(title: game.title, outcome: BulkOutcome.applied));
       } on SaveException {
         // Пути заданы, но файлов ещё нет — это не ошибка переноса.
         skipped++;
-      } on Object {
+        report.add(
+          BulkEntry(
+            title: game.title,
+            outcome: BulkOutcome.skipped,
+            detail: 'сохранений пока нет',
+          ),
+        );
+      } on Object catch (error) {
         failed.add(game.title);
+        report.add(
+          BulkEntry(
+            title: game.title,
+            outcome: BulkOutcome.failed,
+            detail: error.toString(),
+          ),
+        );
       }
     }
 
@@ -720,6 +744,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     emit(
       state.copyWith(
         busy: _withBusy(bulkKey, false),
+        bulkReport: BulkReport(isExport: true, entries: report),
         notice: _notice(
           failed.isEmpty
               ? 'Выгружено игр: $exported, пропущено: $skipped'
@@ -739,6 +764,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     emit(state.copyWith(busy: _withBusy(bulkKey, true)));
 
+    final report = <BulkEntry>[];
     var applied = 0;
     final unmatched = <String>[];
     final failed = <String>[];
@@ -750,6 +776,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         final game = _matchGame(package.snapshot.gameTitle);
         if (game == null) {
           unmatched.add(package.snapshot.gameTitle);
+          report.add(
+            BulkEntry(
+              title: package.snapshot.gameTitle,
+              outcome: BulkOutcome.unmatched,
+              detail: 'в библиотеке нет игры с таким названием',
+            ),
+          );
           continue;
         }
         // Пакет мог быть снят раньше, чем игра шла на этом устройстве.
@@ -762,6 +795,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
                 package.snapshot.createdAt.add(conflictTolerance),
               )) {
             conflicted.add(game.title);
+            report.add(
+              BulkEntry(
+                title: game.title,
+                outcome: BulkOutcome.conflicted,
+                detail: 'здешние сохранения новее пакета',
+              ),
+            );
             continue;
           }
         }
@@ -769,20 +809,37 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         try {
           final snapshot = await _saves.importPackage(package.path, game: game);
           emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
-          final report = await _saves.restoreSnapshot(
+          final restored = await _saves.restoreSnapshot(
             game: game,
             snapshot: snapshot,
           );
-          if (report.backup != null) {
-            emit(state.copyWith(snapshots: _withSnapshot(report.backup!)));
+          if (restored.backup != null) {
+            emit(state.copyWith(snapshots: _withSnapshot(restored.backup!)));
           }
-          if (report.isComplete) {
+          if (restored.isComplete) {
             applied++;
+            report.add(
+              BulkEntry(title: game.title, outcome: BulkOutcome.applied),
+            );
           } else {
             failed.add(game.title);
+            report.add(
+              BulkEntry(
+                title: game.title,
+                outcome: BulkOutcome.failed,
+                detail: 'часть файлов не восстановилась',
+              ),
+            );
           }
-        } on Object {
+        } on Object catch (error) {
           failed.add(game.title);
+          report.add(
+            BulkEntry(
+              title: game.title,
+              outcome: BulkOutcome.failed,
+              detail: error.toString(),
+            ),
+          );
         }
       }
     } on Object catch (error) {
@@ -805,6 +862,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     emit(
       state.copyWith(
         busy: _withBusy(bulkKey, false),
+        bulkReport: BulkReport(isExport: false, entries: report),
         notice: _notice(
           parts.join(', '),
           isError: failed.isNotEmpty || unmatched.isNotEmpty,

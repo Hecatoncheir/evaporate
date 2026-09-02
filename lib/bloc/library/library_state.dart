@@ -11,6 +11,7 @@ class LibraryState extends Equatable {
     this.syncPackages = const [],
     this.scanningSync = false,
     this.syncScanned = false,
+    this.bulkReport,
   });
 
   final List<Game> games;
@@ -23,6 +24,10 @@ class LibraryState extends Equatable {
   final Set<String> busy;
   final bool loaded;
   final Notice? notice;
+
+  /// Итог последней массовой операции: одной строкой «с ошибкой: 3»
+  /// пользоваться нельзя — непонятно, какие игры и почему.
+  final BulkReport? bulkReport;
 
   /// Пакеты `.evsave`, найденные в папке синхронизации.
   final List<SavePackageInfo> syncPackages;
@@ -57,6 +62,7 @@ class LibraryState extends Equatable {
     List<SavePackageInfo>? syncPackages,
     bool? scanningSync,
     bool? syncScanned,
+    Object? bulkReport = _unset,
   }) {
     return LibraryState(
       games: games ?? this.games,
@@ -68,6 +74,9 @@ class LibraryState extends Equatable {
       syncPackages: syncPackages ?? this.syncPackages,
       scanningSync: scanningSync ?? this.scanningSync,
       syncScanned: syncScanned ?? this.syncScanned,
+      bulkReport: bulkReport == _unset
+          ? this.bulkReport
+          : bulkReport as BulkReport?,
     );
   }
 
@@ -78,6 +87,7 @@ class LibraryState extends Equatable {
     runningIds,
     busy,
     loaded,
+    bulkReport,
     notice,
     syncPackages,
     scanningSync,

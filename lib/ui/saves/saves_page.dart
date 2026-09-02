@@ -7,6 +7,7 @@ import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/saves/save_manager.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../../models/bulk_report.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -410,6 +411,96 @@ class _SnapshotRow extends StatelessWidget {
 
 /// Перенос всей библиотеки разом: снять сохранения всех игр в одну папку
 /// и разложить их обратно на другом устройстве.
+/// Подробности последней массовой операции.
+///
+/// Одной строкой «с ошибкой: 3» пользоваться нельзя: непонятно, какие игры и
+/// почему. Для операции над всей библиотекой это важно — там легко не
+/// заметить, что часть сохранений не перенеслась.
+class _BulkReportView extends StatelessWidget {
+  const _BulkReportView({required this.report});
+
+  final BulkReport report;
+
+  static const _titles = {
+    BulkOutcome.applied: 'Перенесено',
+    BulkOutcome.conflicted: 'Пропущено: здесь новее',
+    BulkOutcome.unmatched: 'Без пары в библиотеке',
+    BulkOutcome.skipped: 'Пропущено',
+    BulkOutcome.failed: 'С ошибкой',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    // Сначала то, из-за чего стоит беспокоиться.
+    const order = [
+      BulkOutcome.failed,
+      BulkOutcome.conflicted,
+      BulkOutcome.unmatched,
+      BulkOutcome.applied,
+      BulkOutcome.skipped,
+    ];
+
+    final groups = [
+      for (final outcome in order)
+        if (report.count(outcome) > 0) outcome,
+    ];
+    if (groups.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        // Раскрыт сразу, если есть о чём беспокоиться: спрятанное
+        // предупреждение — почти то же самое, что его отсутствие.
+        initiallyExpanded: report.hasProblems,
+        title: Text(
+          report.isExport ? 'Что выгрузилось' : 'Что загрузилось',
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+        children: [
+          for (final outcome in groups) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6, bottom: 2),
+                child: Text(
+                  '${_titles[outcome]} — ${report.count(outcome)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: outcome == BulkOutcome.applied
+                        ? context.colors.accent
+                        : outcome == BulkOutcome.skipped
+                        ? context.colors.textSecondary
+                        : context.colors.warning,
+                  ),
+                ),
+              ),
+            ),
+            for (final entry in report.withOutcome(outcome))
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10, top: 1),
+                  child: Text(
+                    entry.detail == null
+                        ? entry.title
+                        : '${entry.title} — ${entry.detail}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _BulkTransferCard extends StatelessWidget {
   const _BulkTransferCard();
 
@@ -421,6 +512,9 @@ class _BulkTransferCard extends StatelessWidget {
     final configured = context.select<LibraryBloc, int>(
       (bloc) =>
           bloc.state.games.where((g) => g.saveProfile.isConfigured).length,
+    );
+    final report = context.select<LibraryBloc, BulkReport?>(
+      (bloc) => bloc.state.bulkReport,
     );
 
     return SectionCard(
@@ -469,6 +563,8 @@ class _BulkTransferCard extends StatelessWidget {
               ),
             ],
           ),
+          if (report != null && !report.isEmpty)
+            _BulkReportView(report: report),
         ],
       ),
     );
