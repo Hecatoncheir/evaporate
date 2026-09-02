@@ -12,6 +12,8 @@ import '../../services/download/download_engine.dart';
 import '../../services/download/dtorrent_engine.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 import '../library/library_bloc.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -30,7 +32,9 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     required this.library,
     required this.settings,
     NotificationService? notifications,
-  }) : notifications = notifications ?? const NoopNotificationService(),
+    L Function()? localizations,
+  }) : _localizations = localizations ?? _defaultLocalizations,
+       notifications = notifications ?? const NoopNotificationService(),
        engine = DtorrentEngine(
          downloadDir: settings.state.installDir,
          stateFile: paths.engineStateFile,
@@ -67,7 +71,15 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   }
 
   final AppPaths paths;
+  static L _defaultLocalizations() => LRu();
+
   final LibraryBloc library;
+
+  /// Откуда брать переводы: у блока нет `BuildContext`, а язык может
+  /// смениться на ходу. По умолчанию русский — как и в блоке библиотеки.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
   final SettingsBloc settings;
   final DtorrentEngine engine;
 
@@ -135,7 +147,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       emit(
         state.copyWith(
           notice: _notice(
-            'Движок загрузок не готов: ${engine.status.value.label}',
+            _l.noticeEngineNotReady(engine.status.value.label),
             isError: true,
           ),
         ),
@@ -158,10 +170,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         case GameSourceKind.localFolder:
           emit(
             state.copyWith(
-              notice: _notice(
-                'Локальная папка не требует загрузки.',
-                isError: true,
-              ),
+              notice: _notice(_l.noticeLocalFolderNoDownload, isError: true),
             ),
           );
           return;
@@ -177,7 +186,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
           ),
         ),
       );
-      emit(state.copyWith(notice: _notice('Загрузка начата')));
+      emit(state.copyWith(notice: _notice(_l.noticeDownloadStarted)));
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
     }
@@ -277,13 +286,13 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         case DownloadState.complete:
           if (!task.isMetadata) await _finalize(game, task, emit);
         case DownloadState.error:
-          final reason = task.errorMessage ?? 'Загрузка завершилась ошибкой';
+          final reason = task.errorMessage ?? _l.noticeDownloadFailedTitle;
           // Опрос движка идёт раз в секунду; уведомляем только на переходе
           // в ошибку, иначе система захлебнётся повторами.
           if (game.status != GameStatus.error) {
             _notifySystem(
               AppNotification(
-                title: 'Загрузка не удалась',
+                title: _l.noticeDownloadFailed,
                 body: '«${game.title}»: $reason',
                 kind: NotificationKind.downloadFailed,
               ),
@@ -361,7 +370,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
               status: GameStatus.error,
               installDir: installDir,
               downloadGid: null,
-              lastError: 'Загрузка неполная — ${report.describe()}',
+              lastError: _l.noticeDownloadIncompleteBody(report.describe()),
             ),
           ),
         );
@@ -369,14 +378,14 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         emit(
           state.copyWith(
             notice: _notice(
-              '«${game.title}»: загрузка неполная (${report.describe()})',
+              _l.noticeDownloadIncomplete(game.title, report.describe()),
               isError: true,
             ),
           ),
         );
         _notifySystem(
           AppNotification(
-            title: 'Загрузка неполная',
+            title: _l.noticeDownloadIncompleteShort,
             body: '«${game.title}»: ${report.describe()}',
             kind: NotificationKind.downloadFailed,
           ),
@@ -392,11 +401,13 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         library.add(SteamLookupRequested(updated, query: task.name));
       }
 
-      emit(state.copyWith(notice: _notice('«${game.title}» загружена')));
+      emit(
+        state.copyWith(notice: _notice(_l.noticeGameDownloaded(game.title))),
+      );
       _notifySystem(
         AppNotification(
-          title: 'Загрузка завершена',
-          body: '«${game.title}» готова к запуску',
+          title: _l.noticeDownloadFinished,
+          body: _l.noticeGameReady(game.title),
           kind: NotificationKind.downloadFinished,
         ),
       );

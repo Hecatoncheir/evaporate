@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 import '../../core/format.dart';
 import '../../core/json_store.dart';
 import '../../models/game.dart';
@@ -40,6 +42,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     SteamCatalog? steam,
     LudusaviCatalog? savePaths,
     LudusaviCli? ludusavi,
+    L Function()? localizations,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        savePaths =
            savePaths ??
@@ -53,6 +56,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
              configuredPath: () => settings.state.ludusaviPath,
              configDir: paths.ludusaviConfigDir,
            ),
+       _localizations = localizations ?? _defaultLocalizations,
        notifications = notifications ?? const NoopNotificationService(),
        _store = JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths),
@@ -86,6 +90,15 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   final SettingsBloc settings;
 
+  /// Откуда брать переводы для уведомлений.
+  ///
+  /// У блока нет `BuildContext`, поэтому локализация приходит извне функцией:
+  /// язык может смениться на ходу, и держать один объект нельзя. По умолчанию
+  /// русский — тесты проверяют текст уведомлений и языка не задают.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
   /// Автоснимок после выхода из игры молчалив по замыслу, но его провал
   /// пользователь обязан заметить — иначе узнает, только потеряв прогресс.
   final NotificationService notifications;
@@ -112,6 +125,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   SaveManager get saveManager => _saves;
 
   GameLauncher get launcher => _launcher;
+
+  static L _defaultLocalizations() => LRu();
 
   static String snapshotKey(String gameId) => 'snapshot:$gameId';
 
@@ -193,7 +208,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final title = event.title.trim();
     final game = Game(
       id: event.id,
-      title: title.isEmpty ? 'Без названия' : title,
+      title: title.isEmpty ? _l.untitled : title,
       addedAt: DateTime.now(),
       source: event.source,
       installDir: event.installDir,
@@ -356,8 +371,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           notice: silent
               ? state.notice
               : _notice(
-                  'Снимок готов: ${snapshot.fileCount} файлов, '
-                  '${_formatSize(snapshot.sizeBytes)}',
+                  _l.noticeSnapshotReady(
+                    snapshot.fileCount,
+                    _formatSize(snapshot.sizeBytes),
+                  ),
                 ),
         ),
       );
@@ -368,8 +385,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         // Молчаливый автоснимок провалился — единственный способ сообщить.
         _notifySystem(
           AppNotification(
-            title: 'Сохранения не сняты',
-            body: '«${game.title}»: ${error.message}',
+            title: _l.noticeSnapshotFailed,
+            body: _l.noticeSaveFailedBody(game.title, error.message),
             kind: NotificationKind.saveFailed,
           ),
         );
@@ -437,12 +454,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           busy: _withBusy(key, false),
           notice: report.isComplete
               ? _notice(
-                  'Восстановлено ${report.filesWritten} файлов '
-                  '(${_formatSize(report.bytesWritten)}).',
+                  _l.noticeRestoredFiles(
+                    report.filesWritten,
+                    _formatSize(report.bytesWritten),
+                  ),
                 )
               : _notice(
-                  'Часть путей не сопоставилась: '
-                  '${report.unresolved.join(', ')}. Остальное восстановлено.',
+                  _l.noticeUnresolvedPaths(report.unresolved.join(', ')),
                   isError: true,
                 ),
         ),
@@ -470,7 +488,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         state.copyWith(
           snapshots: _withSnapshot(snapshot),
           busy: _withBusy(key, false),
-          notice: _notice('Снимок импортирован'),
+          notice: _notice(_l.noticeSnapshotImported),
         ),
       );
       await persist();
@@ -490,7 +508,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     try {
       await _saves.exportSnapshot(event.snapshot, event.destination);
-      emit(state.copyWith(notice: _notice('Сохранено: ${event.destination}')));
+      emit(
+        state.copyWith(notice: _notice(_l.noticeSavedTo(event.destination))),
+      );
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
     }
@@ -519,7 +539,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   Future<File> _exportToSyncFolder(SaveSnapshot snapshot) async {
     final folder = settings.state.syncFolder;
     if (folder == null) {
-      throw SaveException('Папка синхронизации не задана в настройках.');
+      throw SaveException(_l.noticeSyncFolderNotSet);
     }
     final name =
         '${safeFileName('${snapshot.gameTitle} - ${snapshot.deviceName}')}'
@@ -541,7 +561,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         emit(
           state.copyWith(
             busy: _withBusy(key, false),
-            notice: _notice('В Steam ничего похожего не нашлось'),
+            notice: _notice(_l.noticeSteamNothingFound),
           ),
         );
         return;
@@ -564,7 +584,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         state.copyWith(
           games: games,
           busy: _withBusy(key, false),
-          notice: _notice('Найдено в Steam: ${match.name}'),
+          notice: _notice(_l.noticeSteamFound(match.name)),
         ),
       );
       _schedulePersist();
@@ -635,7 +655,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         emit(
           state.copyWith(
             busy: _withBusy(key, false),
-            notice: _notice('В базе путей ничего не нашлось для этой игры'),
+            notice: _notice(_l.noticePathsNothingFound),
           ),
         );
         done();
@@ -655,7 +675,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           if (!existing.contains(template))
             SavePathRule(
               id: const Uuid().v4(),
-              label: entry.labelFor(template),
+              label: entry.labelFor(_l, template),
               template: template,
             ),
       ];
@@ -664,7 +684,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         emit(
           state.copyWith(
             busy: _withBusy(key, false),
-            notice: _notice('Пути из базы уже заданы'),
+            notice: _notice(_l.noticePathsAlreadySet),
           ),
         );
         done();
@@ -681,7 +701,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         state.copyWith(
           games: games,
           busy: _withBusy(key, false),
-          notice: _notice(entry.describe(added.length)),
+          notice: _notice(entry.describe(_l, added.length)),
         ),
       );
       _schedulePersist();
@@ -717,7 +737,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           BulkEntry(
             title: game.title,
             outcome: BulkOutcome.skipped,
-            detail: 'папки сохранений не заданы',
+            detail: _l.detailNoSavePaths,
           ),
         );
         continue;
@@ -742,7 +762,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           BulkEntry(
             title: game.title,
             outcome: BulkOutcome.skipped,
-            detail: 'сохранений пока нет',
+            detail: _l.detailNoSavesYet,
           ),
         );
       } on Object catch (error) {
@@ -764,9 +784,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         bulkReport: BulkReport(isExport: true, entries: report),
         notice: _notice(
           failed.isEmpty
-              ? 'Выгружено игр: $exported, пропущено: $skipped'
-              : 'Выгружено: $exported, пропущено: $skipped, '
-                    'с ошибкой: ${failed.join(', ')}',
+              ? _l.noticeExported(exported, skipped)
+              : _l.noticeExportedWithErrors(
+                  exported,
+                  skipped,
+                  failed.join(', '),
+                ),
           isError: failed.isNotEmpty,
         ),
       ),
@@ -797,7 +820,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
             BulkEntry(
               title: package.snapshot.gameTitle,
               outcome: BulkOutcome.unmatched,
-              detail: 'в библиотеке нет игры с таким названием',
+              detail: _l.detailNoMatchingGame,
             ),
           );
           continue;
@@ -816,7 +839,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
               BulkEntry(
                 title: game.title,
                 outcome: BulkOutcome.conflicted,
-                detail: 'здешние сохранения новее пакета',
+                detail: _l.detailNewerHere,
               ),
             );
             continue;
@@ -844,7 +867,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
               BulkEntry(
                 title: game.title,
                 outcome: BulkOutcome.failed,
-                detail: 'часть файлов не восстановилась',
+                detail: _l.detailPartialRestore,
               ),
             );
           }
@@ -871,10 +894,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
     await persist();
     final parts = <String>[
-      'применено: $applied',
-      if (conflicted.isNotEmpty) 'здесь новее, пропущено: ${conflicted.length}',
-      if (unmatched.isNotEmpty) 'нет такой игры: ${unmatched.length}',
-      if (failed.isNotEmpty) 'с ошибкой: ${failed.length}',
+      _l.noticeApplied(applied),
+      if (conflicted.isNotEmpty) _l.noticeNewerHere(conflicted.length),
+      if (unmatched.isNotEmpty) _l.noticeNoSuchGame(unmatched.length),
+      if (failed.isNotEmpty) _l.noticeFailedCount(failed.length),
     ];
     emit(
       state.copyWith(
@@ -949,9 +972,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
               : _withSnapshot(report.backup!),
           busy: _withBusy(key, false),
           notice: report.isComplete
-              ? _notice('Готово: ${report.filesWritten} файлов восстановлено.')
+              ? _notice(_l.noticeRestoreDone(report.filesWritten))
               : _notice(
-                  'Не сопоставились пути: ${report.unresolved.join(', ')}.',
+                  _l.noticeUnresolvedShort(report.unresolved.join(', ')),
                   isError: true,
                 ),
         ),
@@ -1004,15 +1027,15 @@ class _FoundPaths {
 
   /// У Ludusavi имя папки осмысленное, и по нему сейвы сопоставляются
   /// между устройствами. У манифеста путь один на игру — метка не нужна.
-  String labelFor(String template) =>
-      fromCli ? LudusaviCli.labelFor(template) : 'Сохранения';
+  String labelFor(L l, String template) =>
+      fromCli ? LudusaviCli.labelFor(template) : l.saves;
 
-  String describe(int added) {
-    final source = fromCli ? 'Ludusavi' : 'базы';
-    final message = 'Добавлено путей из $source: $added ($title)';
+  String describe(L l, int added) {
+    final source = fromCli ? l.sourceLudusavi : l.sourceDatabase;
+    final message = l.noticePathsAdded(source, added, title);
     if (registryKeys.isEmpty) return message;
     // Реестр мы не переносим, но умолчать о нём нельзя: иначе пользователь
     // решит, что забрал сейв целиком.
-    return '$message; в реестре осталось веток: ${registryKeys.length}';
+    return l.noticeRegistryLeft(message, registryKeys.length);
   }
 }

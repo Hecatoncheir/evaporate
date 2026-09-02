@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -63,10 +64,18 @@ Future<void> main() async {
   final notifications = SystemNotificationService();
   await notifications.initialize();
 
+  // Блоки берут язык у настроек: у них нет BuildContext, а уведомления они
+  // формируют сами. Пусто — значит язык системы.
+  L localizations() {
+    final code = settings.state.locale;
+    return lookupL(code == null ? _systemLocale() : Locale(code));
+  }
+
   final library = LibraryBloc(
     paths: paths,
     settings: settings,
     notifications: notifications,
+    localizations: localizations,
   );
   library.add(const LibraryLoadRequested());
 
@@ -75,6 +84,7 @@ Future<void> main() async {
     library: library,
     settings: settings,
     notifications: notifications,
+    localizations: localizations,
   );
   // Движок поднимается в фоне: без aria2c приложение всё равно должно
   // открыться — библиотекой и сейвами можно пользоваться.
@@ -177,4 +187,16 @@ Future<void> _announceUpdate(
     // Проверка обновлений — удобство, а не обязанность: недоступная сеть
     // не должна ничем оборачиваться для пользователя.
   }
+}
+
+/// Язык системы, приведённый к поддерживаемому.
+///
+/// `lookupL` падает на незнакомой локали, а система вполне может сообщить
+/// язык, на который приложение не переведено.
+Locale _systemLocale() {
+  final system = PlatformDispatcher.instance.locale;
+  final supported = L.supportedLocales.map((l) => l.languageCode);
+  return supported.contains(system.languageCode)
+      ? Locale(system.languageCode)
+      : L.supportedLocales.first;
 }

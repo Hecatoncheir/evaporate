@@ -132,6 +132,193 @@
       }
     }
   },
+  "@noticeApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticeDownloadIncomplete": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeDownloadIncompleteBody": {
+    "placeholders": {
+      "details": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeEngineNotReady": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeExported": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticeExportedWithErrors": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticeGameDownloaded": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeGameReady": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeNewerHere": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticeNoSuchGame": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticePathsAdded": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeRegistryLeft": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticeRestoreDone": {
+    "placeholders": {
+      "files": {
+        "type": "int"
+      }
+    }
+  },
+  "@noticeRestorePartial": {
+    "placeholders": {
+      "files": {
+        "type": "int"
+      },
+      "paths": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeRestoredFiles": {
+    "placeholders": {
+      "files": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeSaveFailedBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeSnapshotReady": {
+    "placeholders": {
+      "files": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeSteamFound": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeUnresolvedPaths": {
+    "placeholders": {
+      "paths": {
+        "type": "String"
+      }
+    }
+  },
+  "@noticeUnresolvedShort": {
+    "placeholders": {
+      "paths": {
+        "type": "String"
+      }
+    }
+  },
   "@ofAmount": {
     "placeholders": {
       "done": {
@@ -261,6 +448,11 @@
   "delete": "Удалить",
   "deleteSnapshotNote": "Снимок от {when} будет удалён без возможности восстановления.",
   "deleteSnapshotQuestion": "Удалить снимок?",
+  "detailNewerHere": "здешние сохранения новее пакета",
+  "detailNoMatchingGame": "в библиотеке нет игры с таким названием",
+  "detailNoSavePaths": "папки сохранений не заданы",
+  "detailNoSavesYet": "сохранений пока нет",
+  "detailPartialRestore": "часть файлов не восстановилась",
   "details": "Сведения",
   "download": "Скачать",
   "downloadEngine": "Движок загрузок",
@@ -376,6 +568,40 @@
   "notSet": "не задана",
   "nothingDownloading": "Ничего не качается.",
   "nothingFound": "Ничего не найдено",
+  "noticeApplied": "применено: {count}",
+  "noticeDownloadFailed": "Загрузка не удалась",
+  "noticeDownloadFailedTitle": "Загрузка завершилась ошибкой",
+  "noticeDownloadFinished": "Загрузка завершена",
+  "noticeDownloadIncomplete": "«{title}»: загрузка неполная ({details})",
+  "noticeDownloadIncompleteBody": "Загрузка неполная — {details}",
+  "noticeDownloadIncompleteShort": "Загрузка неполная",
+  "noticeDownloadStarted": "Загрузка начата",
+  "noticeEngineNotReady": "Движок загрузок не готов: {state}",
+  "noticeExported": "Выгружено игр: {done}, пропущено: {skipped}",
+  "noticeExportedWithErrors": "Выгружено: {done}, пропущено: {skipped}, с ошибкой: {failed}",
+  "noticeFailedCount": "с ошибкой: {count}",
+  "noticeGameDownloaded": "«{title}» загружена",
+  "noticeGameReady": "«{title}» готова к запуску",
+  "noticeLocalFolderNoDownload": "Локальная папка не требует загрузки.",
+  "noticeNewerHere": "здесь новее, пропущено: {count}",
+  "noticeNoSuchGame": "нет такой игры: {count}",
+  "noticePathsAdded": "Добавлено путей из {source}: {count} ({title})",
+  "noticePathsAlreadySet": "Пути из базы уже заданы",
+  "noticePathsNothingFound": "В базе путей ничего не нашлось для этой игры",
+  "noticeRegistryLeft": "{message}; в реестре осталось веток: {count}",
+  "noticeRestoreDone": "Готово: {files} файлов восстановлено.",
+  "noticeRestorePartial": "Восстановлено {files} файлов. Не сопоставились пути: {paths}. Остальное восстановлено.",
+  "noticeRestoredFiles": "Восстановлено {files} файлов ({size}).",
+  "noticeSaveFailedBody": "«{title}»: {error}",
+  "noticeSavedTo": "Сохранено: {path}",
+  "noticeSnapshotFailed": "Сохранения не сняты",
+  "noticeSnapshotImported": "Снимок импортирован",
+  "noticeSnapshotReady": "Снимок готов: {files} файлов, {size}",
+  "noticeSteamFound": "Найдено в Steam: {name}",
+  "noticeSteamNothingFound": "В Steam ничего похожего не нашлось",
+  "noticeSyncFolderNotSet": "Папка синхронизации не задана в настройках.",
+  "noticeUnresolvedPaths": "Часть путей не сопоставилась: {paths}. Остальное восстановлено.",
+  "noticeUnresolvedShort": "Не сопоставились пути: {paths}.",
   "notificationSent": "Уведомление отправлено",
   "notifications": "Уведомления",
   "notificationsUnavailable": "Служба уведомлений недоступна",
@@ -454,7 +680,9 @@
   "snapshotOnExit": "Снимать сохранения после выхода из игры",
   "snapshots": "Снимки сохранений",
   "source": "Источник",
+  "sourceDatabase": "базы",
   "sourceFolder": "Папка",
+  "sourceLudusavi": "Ludusavi",
   "sourceMagnet": "Magnet-ссылка",
   "sourceTorrent": "Torrent-файл",
   "speedPerSecond": "{value}/с",
@@ -486,6 +714,7 @@
   "titleHint": "Как показывать в библиотеке",
   "unassigned": "не назначено",
   "unlimitedShort": "без огр.",
+  "untitled": "Без названия",
   "upToDate": "Установлена последняя версия",
   "updateNote": "Приложение только сообщает о новой версии и даёт ссылку — скачивать и ставить ничего само не будет",
   "updateNoteLine1": "Приложение только сообщает о новой версии и даёт ссылку — ",
