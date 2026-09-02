@@ -8,6 +8,7 @@ import '../../input/gamepad_binding.dart';
 import '../../input/gamepad_service.dart';
 import '../../input/nav_action.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
@@ -173,7 +174,10 @@ class _BindingRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 220,
-            child: Text(action.label, style: const TextStyle(fontSize: 13)),
+            child: Text(
+              navActionLabel(L.of(context), action),
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
           Expanded(
             child: Text(
@@ -226,7 +230,9 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(L.of(context).buttonFor(widget.action.label)),
+      title: Text(
+        L.of(context).buttonFor(navActionLabel(L.of(context), widget.action)),
+      ),
       content: SizedBox(
         width: 380,
         child: Column(

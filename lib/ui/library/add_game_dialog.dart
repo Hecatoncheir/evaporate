@@ -247,6 +247,9 @@ class _AddGameDialogState extends State<_AddGameDialog> {
   }
 
   Future<void> _submit() async {
+    // До первого await: после него трогать context нельзя — виджет мог
+    // исчезнуть, пока шла работа.
+    final l = L.of(context);
     final library = context.read<LibraryBloc>();
     final downloads = context.read<DownloadsBloc>();
 
@@ -263,14 +266,14 @@ class _AddGameDialogState extends State<_AddGameDialog> {
         case GameSourceKind.magnet:
           final magnet = _magnetController.text.trim();
           if (!magnet.startsWith('magnet:')) {
-            throw L.of(context).badMagnet;
+            throw l.badMagnet;
           }
           final source = GameSource(kind: GameSourceKind.magnet, value: magnet);
           library.add(
             GameAdded(
               id: id,
               title: title.isEmpty
-                  ? (_displayNameFromMagnet(magnet) ?? L.of(context).newGame)
+                  ? (_displayNameFromMagnet(magnet) ?? l.newGame)
                   : title,
               source: source,
             ),
@@ -280,7 +283,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
         case GameSourceKind.torrentFile:
           final path = _filePath;
-          if (path == null) throw L.of(context).pickTorrent;
+          if (path == null) throw l.pickTorrent;
           final source = GameSource(
             kind: GameSourceKind.torrentFile,
             value: path,
@@ -297,8 +300,8 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
         case GameSourceKind.localFolder:
           final dir = _folderPath;
-          if (dir == null) throw L.of(context).pickFolder;
-          if (!await Directory(dir).exists()) throw L.of(context).folderMissing;
+          if (dir == null) throw l.pickFolder;
+          if (!await Directory(dir).exists()) throw l.folderMissing;
 
           final candidates = await ExecutableFinder.scan(dir);
           library.add(

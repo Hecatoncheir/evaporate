@@ -8,6 +8,7 @@ import '../../bloc/navigation/navigation_bloc.dart';
 import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/nav_tile.dart';
@@ -281,7 +282,7 @@ class _GameListTile extends StatelessWidget {
   static String _subtitle(L l, Game game) {
     if (game.status == GameStatus.error) return game.lastError ?? l.statusError;
     if (game.playtime.inMinutes > 0) {
-      return l.playtime(formatDuration(game.playtime));
+      return l.playtime(formatDurationLabel(l, game.playtime));
     }
     return switch (game.status) {
       GameStatus.installed => l.statusInstalled,

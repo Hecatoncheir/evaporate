@@ -7,6 +7,30 @@
       }
     }
   },
+  "@durationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "@engineUnavailable": {
     "placeholders": {
       "state": {
@@ -14,9 +38,23 @@
       }
     }
   },
+  "@etaMoreThanDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "@playtime": {
     "placeholders": {
       "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@speedPerSecond": {
+    "placeholders": {
+      "value": {
         "type": "String"
       }
     }
@@ -47,12 +85,17 @@
   "downloadEngine": "Движок загрузок",
   "downloadPaused": "Загрузка на паузе",
   "downloads": "Загрузки",
+  "durationHours": "{hours} ч",
+  "durationHoursMinutes": "{hours} ч {minutes} мин",
+  "durationLessThanMinute": "меньше минуты",
+  "durationMinutes": "{minutes} мин",
   "engineBuiltIn": "Встроенный клиент на Dart",
   "engineImplementation": "Реализация",
   "engineNote": "Движок встроен в приложение — внешних программ ставить не нужно. Список загрузок переживает перезапуск.",
   "engineState": "Состояние",
   "engineStopped": "Движок загрузок остановлен",
   "engineUnavailable": "Движок загрузок недоступен: {state}. Игру можно добавить и запустить загрузку позже.",
+  "etaMoreThanDays": "> {days} дн",
   "fetchingMetadata": "Получаем метаданные…",
   "findGamesInFolder": "Найти игры в папке",
   "folderMissing": "Папка не найдена.",
@@ -91,6 +134,15 @@
   "menuEntryAdded": "Приложение есть в меню",
   "menuEntryMissing": "Приложения нет в меню системы",
   "menuEntryRemove": "Убрать из меню",
+  "navDown": "Вниз",
+  "navLeft": "Влево",
+  "navNextSection": "Следующий раздел",
+  "navPreviousSection": "Предыдущий раздел",
+  "navPrimary": "Играть / Скачать",
+  "navRight": "Вправо",
+  "navScrollDown": "Прокрутка вниз",
+  "navScrollUp": "Прокрутка вверх",
+  "navUp": "Вверх",
   "newGame": "Новая игра",
   "nextInQueue": "Дальше в очереди",
   "notSet": "не задана",
@@ -140,7 +192,12 @@
   "sourceFolder": "Папка",
   "sourceMagnet": "Magnet-ссылка",
   "sourceTorrent": "Torrent-файл",
+  "speedPerSecond": "{value}/с",
   "startDownloadNow": "Начать загрузку сразу",
+  "stateCancelled": "Отменено",
+  "stateCompleted": "Готово",
+  "stateMetadata": "Метаданные",
+  "stateQueued": "В очереди",
   "statusDownloading": "Загрузка",
   "statusError": "Ошибка",
   "statusInstalled": "Установлена",
