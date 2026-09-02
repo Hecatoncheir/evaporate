@@ -242,7 +242,7 @@ class _RuleTile extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     color: EvaporateTheme.textSecondary,
-                    fontFamily: 'Menlo',
+                    fontFamily: EvaporateTheme.monoFontFamily,
                   ),
                 ),
               ],
@@ -611,7 +611,10 @@ class _RuleDialogState extends State<_RuleDialog> {
             TextField(
               controller: _templateController,
               onChanged: (_) => setState(() {}),
-              style: const TextStyle(fontFamily: 'Menlo', fontSize: 13),
+              style: const TextStyle(
+                fontFamily: EvaporateTheme.monoFontFamily,
+                fontSize: 13,
+              ),
               decoration: const InputDecoration(labelText: 'Шаблон пути'),
             ),
             const SizedBox(height: 8),
@@ -819,7 +822,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                     '${entry.key}: ${entry.value}',
                     style: const TextStyle(
                       fontSize: 12,
-                      fontFamily: 'Menlo',
+                      fontFamily: EvaporateTheme.monoFontFamily,
                       color: EvaporateTheme.textSecondary,
                     ),
                   ),

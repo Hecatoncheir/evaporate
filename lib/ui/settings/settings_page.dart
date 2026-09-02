@@ -264,7 +264,7 @@ class _PathSetting extends StatelessWidget {
             value,
             style: const TextStyle(
               fontSize: 12.5,
-              fontFamily: 'Menlo',
+              fontFamily: EvaporateTheme.monoFontFamily,
               color: EvaporateTheme.textSecondary,
             ),
           ),

@@ -74,6 +74,18 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Шрифты вариативные: один файл на всё семейство вместо десятка начертаний.
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito.ttf
+    - family: Nunito Sans
+      fonts:
+        - asset: assets/fonts/NunitoSans.ttf
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono.ttf
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

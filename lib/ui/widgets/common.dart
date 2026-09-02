@@ -187,7 +187,7 @@ class InfoRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 color: valueColor,
-                fontFamily: monospace ? 'Menlo' : null,
+                fontFamily: monospace ? EvaporateTheme.monoFontFamily : null,
               ),
             ),
           ),

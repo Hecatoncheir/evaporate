@@ -14,6 +14,17 @@ class EvaporateTheme {
   static const textPrimary = Color(0xFFE6EDF3);
   static const textSecondary = Color(0xFF8B98A5);
 
+  /// Основной шрифт интерфейса: нейтральный, хорошо читается в плотных
+  /// списках, где текста много и он мелкий.
+  static const fontFamily = 'Nunito Sans';
+
+  /// Заголовки набираются округлым Nunito: он мягче и отделяет заголовок
+  /// от текста лучше, чем один только размер.
+  static const displayFontFamily = 'Nunito';
+
+  /// Пути, размеры и прочее, что читают глазами по знакам, а не словами.
+  static const monoFontFamily = 'JetBrains Mono';
+
   static ThemeData build() {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
@@ -34,10 +45,44 @@ class EvaporateTheme {
         space: 1,
         thickness: 1,
       ),
-      textTheme: base.textTheme.apply(
-        bodyColor: textPrimary,
-        displayColor: textPrimary,
-      ),
+      textTheme: base.textTheme
+          .apply(
+            bodyColor: textPrimary,
+            displayColor: textPrimary,
+            fontFamily: fontFamily,
+          )
+          .copyWith(
+            // Заголовкам — второе семейство: разница в начертании работает
+            // там, где разница в размере уже исчерпана.
+            displayLarge: base.textTheme.displayLarge?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+            displayMedium: base.textTheme.displayMedium?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+            displaySmall: base.textTheme.displaySmall?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+            headlineLarge: base.textTheme.headlineLarge?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+            headlineMedium: base.textTheme.headlineMedium?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+            headlineSmall: base.textTheme.headlineSmall?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+            titleLarge: base.textTheme.titleLarge?.copyWith(
+              fontFamily: displayFontFamily,
+              color: textPrimary,
+            ),
+          ),
       cardTheme: CardThemeData(
         color: surface,
         elevation: 0,

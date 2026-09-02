@@ -247,7 +247,7 @@ class _SyncFolderCard extends StatelessWidget {
             SelectableText(
               folder!,
               style: const TextStyle(
-                fontFamily: 'Menlo',
+                fontFamily: EvaporateTheme.monoFontFamily,
                 fontSize: 12,
                 color: EvaporateTheme.textSecondary,
               ),

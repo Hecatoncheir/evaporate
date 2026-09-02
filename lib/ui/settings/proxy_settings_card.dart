@@ -132,7 +132,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
                   proxy.isUsable ? proxy.uri : 'адрес не задан',
                   style: const TextStyle(
                     fontSize: 12,
-                    fontFamily: 'Menlo',
+                    fontFamily: EvaporateTheme.monoFontFamily,
                     color: EvaporateTheme.textSecondary,
                   ),
                 ),
