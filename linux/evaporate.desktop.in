@@ -1,0 +1,16 @@
+; Шаблон для тех, кто собирает пакет.
+;
+; Само приложение умеет добавить себя в меню по кнопке в настройках — эта
+; запись нужна пакету, где путь установки известен заранее. Замените
+; @EXEC@ и @ICON@ на пути внутри пакета.
+[Desktop Entry]
+Type=Application
+Name=Evaporate
+GenericName=Game launcher
+Comment=Лончер игр с переносимыми сохранениями
+Comment[en]=Game launcher with portable save files
+Exec=@EXEC@ %U
+Icon=@ICON@
+Terminal=false
+Categories=Game;
+StartupWMClass=evaporate

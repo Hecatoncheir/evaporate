@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
+import '../../services/system/desktop_entry.dart';
 import '../../services/system/update_check.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -25,6 +26,12 @@ class _AboutCardState extends State<AboutCard> {
   String? _message;
   bool _isError = false;
   Release? _found;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshMenuState();
+  }
 
   Future<void> _lookForUpdate() async {
     setState(() {
@@ -52,6 +59,56 @@ class _AboutCardState extends State<AboutCard> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  final _desktop = DesktopEntry();
+  bool? _inMenu;
+
+  Future<void> _refreshMenuState() async {
+    if (!_desktop.isSupported) return;
+    final installed = await _desktop.isInstalled();
+    if (mounted) setState(() => _inMenu = installed);
+  }
+
+  Future<void> _toggleMenuEntry() async {
+    final wasIn = _inMenu ?? false;
+    try {
+      wasIn ? await _desktop.remove() : await _desktop.install();
+    } on Object catch (error) {
+      if (mounted) {
+        setState(() {
+          _isError = true;
+          _message = error.toString();
+        });
+      }
+    }
+    await _refreshMenuState();
+  }
+
+  /// Сборка под Linux — папка с файлом, а не установленный пакет, поэтому
+  /// в меню приложений оно само не появляется.
+  Widget _menuEntryRow(BuildContext context) {
+    final l = L.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              _inMenu ?? false ? l.menuEntryAdded : l.menuEntryMissing,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: context.colors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: _toggleMenuEntry,
+            child: Text(_inMenu ?? false ? l.menuEntryRemove : l.menuEntryAdd),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -104,6 +161,7 @@ class _AboutCardState extends State<AboutCard> {
               ),
             ),
           ],
+          if (_desktop.isSupported) _menuEntryRow(context),
           SwitchListTile(
             value: settings.checkUpdates,
             onChanged: (value) => context.read<SettingsBloc>().add(
