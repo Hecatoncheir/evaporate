@@ -3,6 +3,19 @@
 Формат следует [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — [семантическому версионированию](https://semver.org/lang/ru/).
 
+## [0.4.1] — 2026-09-02
+
+### Исправлено
+
+- Сборка Linux падала: `tray_manager` требует `ayatana-appindicator3`, а CI
+  её не ставил — поэтому у 0.4.0 нет ни одного архива.
+- Локализация бралась после `await` в диалоге добавления игры: к тому моменту
+  виджета может уже не быть.
+
+### Добавлено
+
+- Перевод карточки игры, страницы сохранений и диалога добавления.
+
 ## [0.4.0] — 2026-09-02
 
 ### Добавлено
@@ -94,6 +107,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.4.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.4.1
 [0.4.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.4.0
 [0.3.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.3.1
 [0.3.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.3.0
