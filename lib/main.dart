@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'bloc/downloads/downloads_bloc.dart';
@@ -10,6 +11,7 @@ import 'bloc/library/library_bloc.dart';
 import 'bloc/navigation/navigation_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
 import 'core/app_paths.dart';
+import 'l10n/app_localizations.dart';
 import 'core/json_store.dart';
 import 'input/gamepad_service.dart';
 import 'models/app_settings.dart';
@@ -133,14 +135,21 @@ class EvaporateApp extends StatelessWidget {
           Provider.value(value: gamepad),
           Provider<NotificationService>.value(value: notifications),
         ],
-        child: BlocSelector<SettingsBloc, AppSettings, ThemeMode>(
-          selector: (settings) => settings.themeMode,
-          builder: (context, mode) => MaterialApp(
+        child: BlocBuilder<SettingsBloc, AppSettings>(
+          buildWhen: (before, after) =>
+              before.themeMode != after.themeMode ||
+              before.locale != after.locale,
+          builder: (context, settings) => MaterialApp(
             title: 'Evaporate',
             debugShowCheckedModeBanner: false,
             theme: EvaporateTheme.light(),
             darkTheme: EvaporateTheme.dark(),
-            themeMode: mode,
+            themeMode: settings.themeMode,
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            // null означает «взять язык системы»: MaterialApp сам
+            // подберёт ближайший из поддерживаемых.
+            locale: settings.locale == null ? null : Locale(settings.locale!),
             home: const AppShell(),
           ),
         ),

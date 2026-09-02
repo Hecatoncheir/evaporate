@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "language": "Language",
+  "languageSystem": "Follow the system",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "appearance": "Appearance",
+  "themeSystem": "Follow the system",
+  "themeLight": "Light",
+  "themeDark": "Dark"
+}

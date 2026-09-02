@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../../models/window_start_mode.dart';
 import '../theme.dart';
@@ -211,6 +212,11 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
+              _LanguagePicker(
+                value: settings.locale,
+                onChanged: (code) => update(settings.copyWith(locale: code)),
+              ),
+              const SizedBox(height: 10),
               _ThemePicker(
                 value: settings.themeMode,
                 onChanged: (mode) => update(settings.copyWith(themeMode: mode)),
@@ -342,6 +348,51 @@ class _SpeedFieldState extends State<_SpeedField> {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Выбор языка интерфейса.
+class _LanguagePicker extends StatelessWidget {
+  const _LanguagePicker({required this.value, required this.onChanged});
+
+  /// null — брать язык системы.
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    return Row(
+      children: [
+        SizedBox(
+          width: 220,
+          child: Text(l.language, style: const TextStyle(fontSize: 13)),
+        ),
+        Expanded(
+          child: SegmentedButton<String>(
+            segments: [
+              ButtonSegment(value: '', label: Text(l.languageSystem)),
+              ButtonSegment(value: 'ru', label: Text(l.languageRussian)),
+              ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
+            ],
+            selected: {value ?? ''},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              final code = selection.first;
+              onChanged(code.isEmpty ? null : code);
+            },
+            style: const ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(
+                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.fontFamily,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

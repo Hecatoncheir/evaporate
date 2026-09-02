@@ -18,6 +18,7 @@ class AppSettings extends Equatable {
     this.windowStart = WindowStartMode.remembered,
     this.checkUpdates = true,
     this.themeMode = ThemeMode.system,
+    this.locale,
     this.ludusaviPath,
     this.proxy = const ProxySettings(),
     this.limits = SpeedLimits.unlimited,
@@ -58,6 +59,12 @@ class AppSettings extends Equatable {
   /// Светлая, тёмная или как в системе.
   final ThemeMode themeMode;
 
+  /// Код языка интерфейса или null — брать язык системы.
+  ///
+  /// Хранится строкой, а не Locale: в файле настроек это всё равно
+  /// строка, и лишний тип только добавил бы преобразований.
+  final String? locale;
+
   /// Путь к Ludusavi, если он установлен не там, где мы его ищем.
   /// Пустое значение означает «искать самим».
   final String? ludusaviPath;
@@ -82,6 +89,7 @@ class AppSettings extends Equatable {
     WindowStartMode? windowStart,
     bool? checkUpdates,
     ThemeMode? themeMode,
+    Object? locale = _u,
     Object? ludusaviPath = _u,
     ProxySettings? proxy,
     SpeedLimits? limits,
@@ -98,6 +106,7 @@ class AppSettings extends Equatable {
       windowStart: windowStart ?? this.windowStart,
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
+      locale: locale == _u ? this.locale : locale as String?,
       ludusaviPath: ludusaviPath == _u
           ? this.ludusaviPath
           : ludusaviPath as String?,
@@ -118,6 +127,7 @@ class AppSettings extends Equatable {
     'windowStart': windowStart.name,
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
+    if (locale != null) 'locale': locale,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
     'limits': limits.toJson(),
@@ -136,6 +146,7 @@ class AppSettings extends Equatable {
         windowStart: _windowStartFromJson(json),
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
+        locale: _localeFromJson(json['locale']),
         ludusaviPath: json['ludusaviPath'] as String?,
         limits: json['limits'] == null
             ? SpeedLimits.unlimited
@@ -160,11 +171,23 @@ class AppSettings extends Equatable {
     windowStart,
     checkUpdates,
     themeMode,
+    locale,
     ludusaviPath,
     proxy,
     limits,
     gamepad,
   ];
+
+  /// Незнакомый язык читается как «из системы»: приложение переведено
+  /// не на все языки мира, и чужой файл настроек не должен оставлять
+  /// пользователя перед пустым интерфейсом.
+  static String? _localeFromJson(Object? value) {
+    if (value is! String) return null;
+    return supportedLocales.contains(value) ? value : null;
+  }
+
+  /// Языки, на которые приложение переведено.
+  static const supportedLocales = ['ru', 'en'];
 
   /// Читает режим запуска, понимая и прежние две галочки: файл настроек
   /// у пользователя уже есть, и терять его выбор при обновлении нельзя.

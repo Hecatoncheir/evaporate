@@ -52,6 +52,8 @@ dependencies:
   collection: ^1.19.0
   window_manager: ^0.5.2
   tray_manager: ^0.5.3
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +76,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Строки интерфейса генерируются из lib/l10n/*.arb.
+  generate: true
 
   assets:
     # Значок для трея грузится в рантайме, поэтому лежит в ассетах.

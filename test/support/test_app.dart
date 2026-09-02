@@ -7,6 +7,7 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/input/gamepad_service.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/ui/shell.dart';
@@ -106,7 +107,7 @@ class TestHarness {
     return id;
   }
 
-  Widget buildApp({ThemeData? theme}) {
+  Widget buildApp({ThemeData? theme, Locale? locale}) {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: settings),
@@ -121,17 +122,24 @@ class TestHarness {
         ],
         child: MaterialApp(
           theme: theme ?? EvaporateTheme.dark(),
+          localizationsDelegates: L.localizationsDelegates,
+          supportedLocales: L.supportedLocales,
+          locale: locale,
           home: const AppShell(),
         ),
       ),
     );
   }
 
-  Future<void> pump(WidgetTester tester, {ThemeData? theme}) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    ThemeData? theme,
+    Locale? locale,
+  }) async {
     tester.view.physicalSize = const Size(1600, 1100);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(buildApp(theme: theme));
+    await tester.pumpWidget(buildApp(theme: theme, locale: locale));
     await tester.pumpAndSettle();
     // Отложенная запись библиотеки на диск.
     await tester.pump(const Duration(milliseconds: 500));
