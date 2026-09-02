@@ -469,6 +469,13 @@
       }
     }
   },
+  "@openLinkFailed": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "@pathsDatabaseUnavailable": {
     "placeholders": {
       "status": {
@@ -884,6 +891,8 @@
   "ofAmount": "{done} из {total}",
   "onlyForPlatform": "Только для {platform}",
   "onlyForPlatformNote": "Включите, если на других ОС у игры другой путь",
+  "openLinkFailed": "Не удалось открыть ссылку: {url}",
+  "openReleasePage": "Открыть страницу релиза",
   "originAutoOnExit": "Авто после игры",
   "originImported": "Импорт",
   "originManual": "Вручную",

@@ -242,6 +242,8 @@
   "ofAmount": "{done} of {total}",
   "onlyForPlatform": "For {platform} only",
   "onlyForPlatformNote": "Turn on if the game uses another path on other systems",
+  "openLinkFailed": "Could not open the link: {url}",
+  "openReleasePage": "Open the release page",
   "originAutoOnExit": "Auto after playing",
   "originImported": "Imported",
   "originManual": "Manual",
