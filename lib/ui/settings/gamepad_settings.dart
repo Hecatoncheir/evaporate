@@ -183,7 +183,9 @@ class _BindingRow extends StatelessWidget {
             child: Text(
               buttons.isEmpty
                   ? L.of(context).unassigned
-                  : buttons.map((b) => b.label).join(', '),
+                  : buttons
+                        .map((b) => gamepadButtonLabel(L.of(context), b))
+                        .join(', '),
               style: TextStyle(
                 fontSize: 12.5,
                 color: buttons.isEmpty

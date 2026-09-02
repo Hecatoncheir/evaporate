@@ -7,6 +7,8 @@ import 'package:socks5_proxy/socks_client.dart' as socks;
 
 import '../../models/proxy_settings.dart';
 import 'release_name.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 
 /// Игра, найденная в каталоге Steam.
 class SteamGame extends Equatable {
@@ -51,9 +53,19 @@ class SteamCatalog {
     Future<String> Function(Uri uri)? fetch,
     this.language = 'russian',
     ProxySettings Function()? proxy,
-  }) : _proxy = proxy ?? _noProxy {
+    L Function()? localizations,
+  }) : _proxy = proxy ?? _noProxy,
+       _localizations = localizations ?? _defaultLocalizations {
     _fetch = fetch;
   }
+
+  /// Откуда брать переводы: ошибки отсюда доходят до пользователя
+  /// уведомлениями, а `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   /// Подменяется в тестах, чтобы не ходить в сеть.
   late final Future<String> Function(Uri uri)? _fetch;
@@ -179,7 +191,7 @@ class SteamCatalog {
       final decoded = jsonDecode(body);
       return decoded is Map<String, dynamic> ? decoded : const {};
     } on FormatException {
-      throw SteamLookupException('Steam вернул неожиданный ответ');
+      throw SteamLookupException(_defaultLocalizations().steamUnexpectedAnswer);
     }
   }
 
@@ -248,12 +260,12 @@ class SteamCatalog {
       final request = await client.getUrl(uri);
       final response = await request.close();
       if (response.statusCode != 200) {
-        throw SteamLookupException('Steam ответил ${response.statusCode}');
+        throw SteamLookupException(_l.steamStatus(response.statusCode));
       }
       // Без await клиент в finally закроется раньше, чем дочитается тело.
       return await response.transform(utf8.decoder).join();
     } on SocketException catch (error) {
-      throw SteamLookupException('Нет связи со Steam: ${error.message}');
+      throw SteamLookupException(_l.steamNoConnection(error.message));
     } finally {
       client.close(force: true);
     }

@@ -125,6 +125,9 @@ extension GamepadButtonLabel on GamepadButton {
     GamepadButton.dpadDown => 'D-pad ↓',
     GamepadButton.dpadLeft => 'D-pad ←',
     GamepadButton.dpadRight => 'D-pad →',
-    GamepadButton.touchpad => 'Тачпад',
+    // Остальные кнопки называются буквами и в переводе не нуждаются;
+    // эта — единственная словесная, её показывают через
+    // `gamepadButtonLabel` в слое интерфейса.
+    GamepadButton.touchpad => 'Touchpad',
   };
 }

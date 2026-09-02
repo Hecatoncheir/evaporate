@@ -98,7 +98,7 @@ Future<void> main() async {
   // открыться сразу. Молчим и при ошибке — недоступный GitHub не повод
   // встречать пользователя сообщением.
   if (settings.state.checkUpdates) {
-    unawaited(_announceUpdate(notifications, settings));
+    unawaited(_announceUpdate(notifications, settings, localizations()));
   }
 
   runApp(
@@ -171,6 +171,7 @@ class EvaporateApp extends StatelessWidget {
 Future<void> _announceUpdate(
   NotificationService notifications,
   SettingsBloc settings,
+  L l,
 ) async {
   try {
     final release = await UpdateCheck().latest();
@@ -178,8 +179,8 @@ Future<void> _announceUpdate(
     if (!settings.state.systemNotifications) return;
     await notifications.show(
       AppNotification(
-        title: 'Вышла версия ${release.version}',
-        body: 'Скачать можно на странице релизов на GitHub.',
+        title: l.newVersionOut(release.version),
+        body: l.updateAvailableBody,
         kind: NotificationKind.test,
       ),
     );

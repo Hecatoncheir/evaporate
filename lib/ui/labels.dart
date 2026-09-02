@@ -1,8 +1,12 @@
+import 'package:gamepads/gamepads.dart';
+
+import '../input/gamepad_binding.dart';
 import '../input/gamepad_service.dart';
 import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
 import '../core/format.dart';
 import '../models/download_task.dart';
+import '../models/save_profile.dart';
 import '../models/save_snapshot.dart';
 import '../services/download/download_engine.dart';
 
@@ -87,3 +91,18 @@ String snapshotOriginLabel(L l, SnapshotOrigin origin) => switch (origin) {
   SnapshotOrigin.imported => l.originImported,
   SnapshotOrigin.preRestore => l.originPreRestore,
 };
+
+/// Подпись метки правила.
+///
+/// Хранится метка неизменной — по ней правила сопоставляются между
+/// устройствами. Переводится только показ, и только для значения по
+/// умолчанию: всё, что человек вписал сам, остаётся как вписано.
+String ruleLabelText(L l, String label) =>
+    label == SavePathRule.defaultLabel ? l.saves : label;
+
+/// Подпись кнопки геймпада.
+///
+/// Почти все называются буквами и в переводе не нуждаются — переводится
+/// единственная словесная.
+String gamepadButtonLabel(L l, GamepadButton button) =>
+    button == GamepadButton.touchpad ? l.buttonTouchpad : button.label;

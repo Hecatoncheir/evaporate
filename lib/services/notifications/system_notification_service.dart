@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'notification_service.dart';
+import '../../l10n/app_localizations_ru.dart';
 
 /// Реализация поверх `flutter_local_notifications` для macOS, Windows и Linux.
 class SystemNotificationService implements NotificationService {
@@ -25,15 +26,17 @@ class SystemNotificationService implements NotificationService {
   Future<bool> initialize() async {
     if (!_isSupportedPlatform) return false;
     try {
-      const settings = InitializationSettings(
-        macOS: DarwinInitializationSettings(
+      final settings = InitializationSettings(
+        macOS: const DarwinInitializationSettings(
           // Разрешение спрашиваем отдельно и осознанно, а не при старте.
           requestAlertPermission: false,
           requestBadgePermission: false,
           requestSoundPermission: false,
         ),
-        linux: LinuxInitializationSettings(defaultActionName: 'Открыть'),
-        windows: WindowsInitializationSettings(
+        linux: LinuxInitializationSettings(
+          defaultActionName: LRu().notificationOpen,
+        ),
+        windows: const WindowsInitializationSettings(
           appName: 'Evaporate',
           appUserModelId: 'Evaporate.GameLauncher',
           guid: _windowsGuid,

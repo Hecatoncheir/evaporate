@@ -136,8 +136,10 @@ class SavePathsSection extends StatelessWidget {
     final library = context.read<LibraryBloc>();
     final result = await showDialog<_RuleDraft>(
       context: context,
-      builder: (_) =>
-          _RuleDialog(template: template, label: label ?? L.of(context).saves),
+      builder: (_) => _RuleDialog(
+        template: template,
+        label: label ?? SavePathRule.defaultLabel,
+      ),
     );
     if (result == null) return;
 
@@ -232,7 +234,7 @@ class _RuleTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      rule.label,
+                      ruleLabelText(L.of(context), rule.label),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

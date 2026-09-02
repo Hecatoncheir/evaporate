@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
+
 /// Версия приложения.
 ///
 /// Держится константой, а не читается из пакета: иначе понадобилась бы
@@ -87,7 +90,17 @@ class UpdateCheck {
     String? currentVersion,
     this._fetch,
     this.releasesUrl = _defaultUrl,
-  }) : current = currentVersion ?? AppVersion.current;
+    L Function()? localizations,
+  }) : current = currentVersion ?? AppVersion.current,
+       _localizations = localizations ?? _defaultLocalizations;
+
+  /// Откуда брать переводы: сообщения отсюда доходят до пользователя
+  /// уведомлениями, а `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   static const _defaultUrl =
       'https://api.github.com/repos/Hecatoncheir/evaporate/releases/latest';
@@ -111,7 +124,7 @@ class UpdateCheck {
     try {
       decoded = jsonDecode(body);
     } on FormatException {
-      throw const UpdateCheckException('Ответ о версиях не разобрать');
+      throw UpdateCheckException(_defaultLocalizations().updateBadAnswer);
     }
     if (decoded is! Map<String, dynamic>) return null;
     if (decoded['draft'] == true || decoded['prerelease'] == true) return null;
@@ -143,9 +156,7 @@ class UpdateCheck {
       request.headers.set(HttpHeaders.userAgentHeader, 'Evaporate/$current');
       final response = await request.close();
       if (response.statusCode != 200) {
-        throw UpdateCheckException(
-          'Список версий недоступен: ${response.statusCode}',
-        );
+        throw UpdateCheckException(_l.updateUnavailable(response.statusCode));
       }
       // Без await клиент закроется раньше, чем дочитается тело.
       return await response.transform(utf8.decoder).join();

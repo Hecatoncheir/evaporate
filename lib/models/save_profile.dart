@@ -4,6 +4,12 @@ import '../core/save_path_template.dart';
 /// Одна папка (или файл) с сохранениями. Хранится шаблоном, а не абсолютным
 /// путём — см. [SavePathTemplate].
 class SavePathRule {
+  /// Метка по умолчанию. Намеренно не переводится: по ней правила
+  /// сопоставляются между устройствами, и переведись она — снимок с русской
+  /// машины перестал бы сходиться с правилом на английской. Показывают её
+  /// переведённой (`ruleLabelText`), а хранят как есть.
+  static const defaultLabel = 'Сохранения';
+
   const SavePathRule({
     required this.id,
     required this.label,
@@ -49,7 +55,7 @@ class SavePathRule {
 
   factory SavePathRule.fromJson(Map<String, dynamic> json) => SavePathRule(
     id: json['id'] as String,
-    label: json['label'] as String? ?? 'Сохранения',
+    label: json['label'] as String? ?? defaultLabel,
     template: json['template'] as String,
     platform: json['platform'] as String?,
   );

@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_en.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/save_profile.dart';
+import 'package:evaporate/ui/labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -127,5 +131,53 @@ void main() {
 
       expect(fallback, isNotEmpty);
     });
+  });
+
+  // Метка правила — ключ сопоставления между устройствами, а не подпись.
+  // Переведись она, снимок с русской машины перестал бы сходиться с
+  // правилом на английской, и заметить это было бы почти невозможно.
+  group('метка правила не переводится', () {
+    test('значение по умолчанию одинаково на всех языках', () {
+      expect(SavePathRule.defaultLabel, isNotEmpty);
+      expect(
+        LRu().saves == LEn().saves,
+        isFalse,
+        reason: 'подписи переводятся, а ключ — нет: в этом весь смысл',
+      );
+    });
+
+    test('показывается переведённой, а хранится как есть', () {
+      expect(ruleLabelText(LEn(), SavePathRule.defaultLabel), LEn().saves);
+      expect(ruleLabelText(LRu(), SavePathRule.defaultLabel), LRu().saves);
+    });
+
+    test('вписанное человеком не трогаем', () {
+      expect(ruleLabelText(LEn(), 'Мои слоты'), 'Мои слоты');
+      expect(ruleLabelText(LRu(), 'Profile 2'), 'Profile 2');
+    });
+  });
+
+  // Строку легко вписать прямо в виджет и не заметить, что она осталась
+  // непереведённой: приложение соберётся, тесты пройдут, и обнаружится это
+  // только у человека с английским интерфейсом.
+  test('в слое интерфейса не осталось непереведённых строк', () {
+    final offenders = <String>[];
+    final literal = RegExp(r"'[^']*[а-яёА-ЯЁ][^']*'");
+
+    for (final entity in Directory('lib/ui').listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      for (final line in entity.readAsLinesSync()) {
+        final code = line.trimLeft();
+        // Комментарии по-русски — это норма, речь только о строках.
+        if (code.startsWith('//') || code.startsWith('///')) continue;
+        if (literal.hasMatch(line)) offenders.add('${entity.path}: $code');
+      }
+    }
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'эти строки нужно вынести в lib/l10n/app_ru.arb',
+    );
   });
 }

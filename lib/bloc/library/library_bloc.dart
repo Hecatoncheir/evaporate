@@ -675,7 +675,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           if (!existing.contains(template))
             SavePathRule(
               id: const Uuid().v4(),
-              label: entry.labelFor(_l, template),
+              label: entry.labelFor(template),
               template: template,
             ),
       ];
@@ -1027,8 +1027,8 @@ class _FoundPaths {
 
   /// У Ludusavi имя папки осмысленное, и по нему сейвы сопоставляются
   /// между устройствами. У манифеста путь один на игру — метка не нужна.
-  String labelFor(L l, String template) =>
-      fromCli ? LudusaviCli.labelFor(template) : l.saves;
+  String labelFor(String template) =>
+      fromCli ? LudusaviCli.labelFor(template) : SavePathRule.defaultLabel;
 
   String describe(L l, int added) {
     final source = fromCli ? l.sourceLudusavi : l.sourceDatabase;

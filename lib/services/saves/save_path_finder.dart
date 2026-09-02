@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/save_path_template.dart';
+import '../../models/save_profile.dart';
 
 class SavePathSuggestion {
   const SavePathSuggestion({
@@ -126,7 +127,7 @@ class SavePathFinder {
       out[entity.path] = SavePathSuggestion(
         path: entity.path,
         template: SavePathTemplate.collapse(entity.path),
-        label: 'Сохранения',
+        label: SavePathRule.defaultLabel,
         score: score + (root.suffix != null ? 15 : 0),
         fileCount: fileCount,
       );

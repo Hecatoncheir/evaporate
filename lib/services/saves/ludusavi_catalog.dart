@@ -8,6 +8,8 @@ import '../../models/catalog_progress.dart';
 import '../../models/proxy_settings.dart';
 import '../metadata/release_name.dart';
 import 'ludusavi_manifest.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 
 /// Разбор в отдельном изоляте: манифест — это десятки тысяч записей,
 /// в главном потоке такой разбор заморозил бы интерфейс на секунды.
@@ -24,7 +26,9 @@ class LudusaviCatalog {
     Future<String> Function(Uri uri)? fetch,
     ProxySettings Function()? proxy,
     this.onProgress,
+    L Function()? localizations,
   }) : _store = JsonStore(cacheFile),
+       _localizations = localizations ?? _defaultLocalizations,
        _proxy = proxy ?? _noProxy {
     _fetch = fetch;
   }
@@ -35,6 +39,14 @@ class LudusaviCatalog {
   /// Поле изменяемое: блок подключается к нему уже после создания
   /// каталога, потому что в списке инициализации события слать некуда.
   void Function(CatalogProgress)? onProgress;
+
+  /// Откуда брать переводы: ошибка загрузки доходит до пользователя
+  /// уведомлением, а `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   final JsonStore _store;
   final ProxySettings Function() _proxy;
@@ -108,7 +120,7 @@ class LudusaviCatalog {
       final request = await client.getUrl(Uri.parse(LudusaviManifest.source));
       final response = await request.close();
       if (response.statusCode != 200) {
-        throw HttpException('База путей недоступна: ${response.statusCode}');
+        throw HttpException(_l.pathsDatabaseUnavailable(response.statusCode));
       }
       // Читаем кусками, а не целиком: иначе о ходе загрузки сказать
       // нечего, а ждать пришлось бы молча.

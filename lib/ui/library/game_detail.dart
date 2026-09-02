@@ -496,7 +496,7 @@ class _ProgressBlock extends StatelessWidget {
               const Spacer(),
               if (!task.isMetadata) ...[
                 Text(
-                  '${formatSpeed(task.downloadSpeed)} · '
+                  '${speedLabel(L.of(context), task.downloadSpeed)} · '
                   '${L.of(context).etaLeft(formatEtaLabel(L.of(context), task.etaSeconds))}',
                 ),
                 const SizedBox(width: 12),
@@ -638,7 +638,7 @@ class _InfoSection extends StatelessWidget {
           InfoRow(
             label: L.of(context).playtimeLabel,
             value: game.playtime.inMinutes > 0
-                ? formatDuration(game.playtime)
+                ? formatDurationLabel(L.of(context), game.playtime)
                 : L.of(context).neverPlayed,
           ),
           InfoRow(

@@ -1,3 +1,11 @@
+/// Форматирование чисел и дат.
+///
+/// Функции с единицами измерения словами (`formatDuration`,
+/// `formatEta`, `formatSpeed`) остались только для журналов: в
+/// интерфейсе те же величины показывают переводимые обёртки из
+/// `lib/ui/labels.dart`, потому что языка здесь взять неоткуда.
+library;
+
 import 'dart:io';
 
 String formatBytes(num bytes, {int decimals = 1}) {

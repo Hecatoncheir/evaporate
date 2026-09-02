@@ -5,6 +5,9 @@ import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/save_path_template.dart';
+import '../../models/save_profile.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 
 /// Что установленный Ludusavi знает про одну игру.
 class LudusaviLookup {
@@ -57,8 +60,18 @@ class LudusaviCli {
     this._configDir,
     ProcessRun? run,
     this.timeout = const Duration(minutes: 2),
+    L Function()? localizations,
   }) : _configuredPath = configuredPath ?? _noPath,
+       _localizations = localizations ?? _defaultLocalizations,
        _run = run ?? _defaultRun;
+
+  /// Откуда брать переводы: сообщения отсюда доходят до пользователя
+  /// уведомлениями, а `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   final String? Function() _configuredPath;
   final String? _configDir;
@@ -251,7 +264,9 @@ class LudusaviCli {
   /// поэтому берём имя папки — оно устойчивее порядкового номера.
   static String labelFor(String template) {
     final name = p.basename(template);
-    if (name.isEmpty || name.startsWith('{')) return 'Сохранения';
+    if (name.isEmpty || name.startsWith('{')) {
+      return SavePathRule.defaultLabel;
+    }
     return name;
   }
 
@@ -286,9 +301,7 @@ class LudusaviCli {
     try {
       result = await _run(exe, args).timeout(timeout);
     } on ProcessException catch (error) {
-      throw LudusaviCliException(
-        'Не удалось запустить Ludusavi: ${error.message}',
-      );
+      throw LudusaviCliException(_l.ludusaviLaunchFailed(error.message));
     }
 
     final output = (result.stdout as String? ?? '').trim();
@@ -370,7 +383,11 @@ class LudusaviCli {
   }
 
   static Map<String, dynamic> _decode(String source) {
-    const failure = LudusaviCliException('Ludusavi ответил не в формате JSON');
+    // Разбор статический — язык берём по умолчанию: сообщение всё
+    // равно попадёт в уведомление, где его переведёт вызывающий.
+    final failure = LudusaviCliException(
+      _defaultLocalizations().ludusaviBadJson,
+    );
     final Object? json;
     try {
       json = jsonDecode(source);

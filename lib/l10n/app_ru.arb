@@ -244,6 +244,13 @@
       }
     }
   },
+  "@ludusaviLaunchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "@magnetParseFailed": {
     "placeholders": {
       "error": {
@@ -462,6 +469,13 @@
       }
     }
   },
+  "@pathsDatabaseUnavailable": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "@peersCount": {
     "placeholders": {
       "count": {
@@ -569,6 +583,20 @@
       }
     }
   },
+  "@steamNoConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@steamStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "@suggestionLine": {
     "placeholders": {
       "template": {
@@ -590,6 +618,13 @@
     "placeholders": {
       "error": {
         "type": "String"
+      }
+    }
+  },
+  "@updateUnavailable": {
+    "placeholders": {
+      "status": {
+        "type": "int"
       }
     }
   },
@@ -615,6 +650,7 @@
   "bulkTransfer": "Перенос всей библиотеки",
   "bulkTransferNote": "Выгрузка снимет свежие снимки всех игр, у которых заданы папки сохранений, и сложит их в одну папку. На другом устройстве загрузка разберёт её обратно, сопоставляя пакеты с играми по названию.",
   "buttonFor": "Кнопка для «{action}»",
+  "buttonTouchpad": "Тачпад",
   "cancel": "Отмена",
   "cancelDownload": "Отменить",
   "cancelDownloadNote": "Задача будет снята. Уже скачанные файлы останутся на диске.",
@@ -749,7 +785,9 @@
   "limitUploadNote": "Раздача — плата за скачанное, совсем перекрывать не стоит",
   "limitWhilePlaying": "Приём, пока идёт игра",
   "localFolderNote": "Игра уже на диске: скачивать ничего не нужно, приложение только запомнит её и попробует найти исполняемый файл.",
+  "ludusaviBadJson": "Ludusavi ответил не в формате JSON",
   "ludusaviFindOurselves": "искать самим",
+  "ludusaviLaunchFailed": "Не удалось запустить Ludusavi: {error}",
   "ludusaviNote": "Пути сохранений берутся у Ludusavi — он идёт в комплекте, ставить отдельно ничего не нужно. Здесь можно указать свою копию: её настройки могут знать про нестандартные папки с играми. Если Ludusavi недоступен, работает встроенная база путей — она покрывает меньше случаев, но не требует ничего.",
   "ludusaviOptional": "Ludusavi (необязательно)",
   "magnetParseFailed": "Не удалось разобрать ссылку: {error}",
@@ -823,6 +861,7 @@
   "noticeSyncFolderNotSet": "Папка синхронизации не задана в настройках.",
   "noticeUnresolvedPaths": "Часть путей не сопоставилась: {paths}. Остальное восстановлено.",
   "noticeUnresolvedShort": "Не сопоставились пути: {paths}.",
+  "notificationOpen": "Открыть",
   "notificationSent": "Уведомление отправлено",
   "notifications": "Уведомления",
   "notificationsUnavailable": "Служба уведомлений недоступна",
@@ -841,6 +880,7 @@
   "outcomeSkipped": "Пропущено",
   "outcomeUnmatched": "Без пары в библиотеке",
   "pathTemplate": "Шаблон пути",
+  "pathsDatabaseUnavailable": "База путей недоступна: {status}",
   "pause": "Пауза",
   "pausedShort": "пауза",
   "peersCount": "пиров: {count}",
@@ -934,6 +974,9 @@
   "statusNotInstalled": "Не установлена",
   "statusPaused": "Пауза",
   "statusRunning": "Запущена",
+  "steamNoConnection": "Нет связи со Steam: {error}",
+  "steamStatus": "Steam ответил {status}",
+  "steamUnexpectedAnswer": "Steam вернул неожиданный ответ",
   "stop": "Остановить",
   "suggestionLine": "{template} · {count} файлов",
   "syncFolder": "Папка синхронизации",
@@ -958,9 +1001,12 @@
   "unlimitedShort": "без огр.",
   "untitled": "Без названия",
   "upToDate": "Установлена последняя версия",
+  "updateAvailableBody": "Скачать можно на странице релизов на GitHub.",
+  "updateBadAnswer": "Ответ о версиях не разобрать",
   "updateNote": "Приложение только сообщает о новой версии и даёт ссылку — скачивать и ставить ничего само не будет",
   "updateNoteLine1": "Приложение только сообщает о новой версии и даёт ссылку — ",
   "updateNoteLine2": "скачивать и ставить ничего само не будет",
+  "updateUnavailable": "Список версий недоступен: {status}",
   "version": "Версия",
   "waitingInQueue": "ждёт очереди",
   "whatToRun": "Что запускать",
