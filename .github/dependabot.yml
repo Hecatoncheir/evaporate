@@ -1,0 +1,20 @@
+# За обновлениями следит бот: pubspec.lock зафиксирован ради воспроизводимых
+# сборок, и без напоминания он тихо стареет.
+version: 2
+updates:
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Зависимости
+
+  # Экшены в CI устаревают так же незаметно, как пакеты.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: Экшены
