@@ -20,6 +20,7 @@ import 'theme.dart';
 import 'widgets/button_hints.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
+import '../l10n/app_localizations.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
@@ -167,10 +168,10 @@ class _Rail extends StatelessWidget {
           ),
         ),
         destinations: [
-          const NavigationRailDestination(
+          NavigationRailDestination(
             icon: Icon(Icons.grid_view_outlined),
             selectedIcon: Icon(Icons.grid_view_rounded),
-            label: Text('Библиотека'),
+            label: Text(L.of(context).library),
           ),
           NavigationRailDestination(
             icon: Badge(
@@ -183,17 +184,17 @@ class _Rail extends StatelessWidget {
               label: Text('$activeCount'),
               child: const Icon(Icons.download_rounded),
             ),
-            label: const Text('Загрузки'),
+            label: Text(L.of(context).downloads),
           ),
-          const NavigationRailDestination(
+          NavigationRailDestination(
             icon: Icon(Icons.save_outlined),
             selectedIcon: Icon(Icons.save_rounded),
-            label: Text('Сохранения'),
+            label: Text(L.of(context).saves),
           ),
-          const NavigationRailDestination(
+          NavigationRailDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings_rounded),
-            label: Text('Настройки'),
+            label: Text(L.of(context).settings),
           ),
         ],
       ),
@@ -248,7 +249,7 @@ class _StatusBar extends StatelessWidget {
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Text(
-            status.message ?? 'Движок загрузок: ${status.label}',
+            status.message ?? L.of(context).engineStatus(status.label),
             style: TextStyle(fontSize: 12, color: color),
           ),
           if (stats.activeCount > 0) ...[

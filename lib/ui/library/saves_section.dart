@@ -16,6 +16,7 @@ import '../../models/save_snapshot.dart';
 import '../../services/saves/save_path_finder.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Где лежат сохранения игры. Пути хранятся шаблонами, поэтому один и тот же
 /// профиль работает на разных машинах и платформах.
@@ -24,14 +25,14 @@ import '../widgets/common.dart';
 /// Первый поиск качает семнадцать мегабайт и разбирает их несколько секунд.
 /// Без слов о том, что происходит, это выглядит зависанием, поэтому подпись
 /// меняется вместе с этапом.
-String _lookupLabel(CatalogProgress? progress, {required bool busy}) {
-  if (!busy || progress == null) return 'Из базы';
+String _lookupLabel(L l, CatalogProgress? progress, {required bool busy}) {
+  if (!busy || progress == null) return l.fromDatabase;
   return switch (progress.phase) {
-    CatalogPhase.parsing => 'Разбор базы…',
+    CatalogPhase.parsing => l.databaseParsing,
     CatalogPhase.downloading =>
       progress.fraction == null
-          ? 'Загрузка базы…'
-          : 'Загрузка ${(progress.fraction! * 100).round()}%',
+          ? l.databaseDownloading
+          : l.databaseDownloadingPercent((progress.fraction! * 100).round()),
   };
 }
 
@@ -45,7 +46,7 @@ class SavePathsSection extends StatelessWidget {
     final rules = game.saveProfile.rules;
 
     return SectionCard(
-      title: 'Папки сохранений',
+      title: L.of(context).savePaths,
       icon: Icons.folder_special_outlined,
       trailing: Row(
         children: [
@@ -75,20 +76,20 @@ class SavePathsSection extends StatelessWidget {
                         ),
                       )
                     : const Icon(Icons.travel_explore, size: 16),
-                label: Text(_lookupLabel(progress, busy: busy)),
+                label: Text(_lookupLabel(L.of(context), progress, busy: busy)),
               );
             },
           ),
           IconButton(
             onPressed: () => _autoDetect(context),
             icon: const Icon(Icons.auto_awesome, size: 16),
-            tooltip: 'Поискать папку по названию игры',
+            tooltip: L.of(context).findFolderByTitle,
             visualDensity: VisualDensity.compact,
           ),
           TextButton.icon(
             onPressed: () => _addRule(context),
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Добавить'),
+            label: Text(L.of(context).add),
           ),
         ],
       ),
@@ -96,9 +97,7 @@ class SavePathsSection extends StatelessWidget {
           ? Padding(
               padding: EdgeInsets.symmetric(vertical: 6),
               child: Text(
-                'Пути не заданы. Нажмите «Найти», чтобы поискать папку по '
-                'названию игры, или «Добавить», чтобы указать её вручную. '
-                'Без этого снимки сохранений делать не из чего.',
+                L.of(context).noPathsSet,
                 style: TextStyle(
                   color: context.colors.textSecondary,
                   height: 1.5,
@@ -121,7 +120,7 @@ class SavePathsSection extends StatelessWidget {
   }
 
   Future<void> _addRule(BuildContext context) async {
-    final dir = await getDirectoryPath(confirmButtonText: 'Выбрать');
+    final dir = await getDirectoryPath(confirmButtonText: L.of(context).choose);
     if (dir == null || !context.mounted) return;
     await _saveRule(context, template: SavePathTemplate.collapse(dir));
   }
@@ -129,12 +128,15 @@ class SavePathsSection extends StatelessWidget {
   Future<void> _saveRule(
     BuildContext context, {
     required String template,
-    String label = 'Сохранения',
+    // Значение по умолчанию обязано быть константой, а перевод ею
+    // быть не может: подставляем ниже.
+    String? label,
   }) async {
     final library = context.read<LibraryBloc>();
     final result = await showDialog<_RuleDraft>(
       context: context,
-      builder: (_) => _RuleDialog(template: template, label: label),
+      builder: (_) =>
+          _RuleDialog(template: template, label: label ?? L.of(context).saves),
     );
     if (result == null) return;
 
@@ -177,11 +179,7 @@ class SavePathsSection extends StatelessWidget {
 
     if (suggestions.isEmpty) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Похожих папок не нашлось. Укажите путь вручную через «Добавить».',
-          ),
-        ),
+        SnackBar(content: Text(L.of(context).noSimilarFolders)),
       );
       return;
     }
@@ -248,14 +246,14 @@ class _RuleTile extends StatelessWidget {
                     if (!rule.isPortable) ...[
                       const SizedBox(width: 6),
                       _Tag(
-                        text: 'непереносимый путь',
+                        text: L.of(context).notPortablePath,
                         color: context.colors.warning,
                       ),
                     ],
                     if (!exists) ...[
                       const SizedBox(width: 6),
                       _Tag(
-                        text: 'нет на диске',
+                        text: L.of(context).missingOnDisk,
                         color: context.colors.textSecondary,
                       ),
                     ],
@@ -276,7 +274,7 @@ class _RuleTile extends StatelessWidget {
           IconButton(
             onPressed: onRemove,
             icon: const Icon(Icons.close, size: 16),
-            tooltip: 'Убрать путь',
+            tooltip: L.of(context).removePath,
             visualDensity: VisualDensity.compact,
           ),
         ],
@@ -308,9 +306,9 @@ class _AutoSnapshotToggle extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: Text(
-            'Снимать сохранения автоматически после выхода из игры',
+            L.of(context).autoSnapshotOnExit,
             style: TextStyle(fontSize: 13),
           ),
         ),
@@ -335,14 +333,14 @@ class SnapshotsSection extends StatelessWidget {
     final busy = library.isBusy(LibraryBloc.snapshotKey(game.id));
 
     return SectionCard(
-      title: 'Снимки сохранений',
+      title: L.of(context).snapshots,
       icon: Icons.history,
       trailing: Row(
         children: [
           TextButton.icon(
             onPressed: busy ? null : () => _import(context),
             icon: const Icon(Icons.file_download_outlined, size: 16),
-            label: const Text('Импорт'),
+            label: Text(L.of(context).importShort),
           ),
           const SizedBox(width: 4),
           FilledButton.icon(
@@ -360,15 +358,13 @@ class SnapshotsSection extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.add_a_photo_outlined, size: 16),
-            label: const Text('Снять'),
+            label: Text(L.of(context).takeSnapshot),
           ),
         ],
       ),
       child: snapshots.isEmpty
           ? Text(
-              'Снимков пока нет. Снимок — это zip с вашими сохранениями плюс '
-              'описание путей; его можно перенести на другое устройство и '
-              'продолжить игру с того же места.',
+              L.of(context).noSnapshotsNote,
               style: TextStyle(
                 color: context.colors.textSecondary,
                 height: 1.5,
@@ -426,11 +422,11 @@ class SnapshotsSection extends StatelessWidget {
     final library = context.read<LibraryBloc>();
     final ok = await confirm(
       context,
-      title: 'Удалить снимок?',
-      message:
-          'Снимок от ${formatDateTime(snapshot.createdAt)} будет удалён '
-          'без возможности восстановления.',
-      confirmLabel: 'Удалить',
+      title: L.of(context).deleteSnapshotQuestion,
+      message: L
+          .of(context)
+          .deleteSnapshotNote(formatDateTime(snapshot.createdAt)),
+      confirmLabel: L.of(context).delete,
       destructive: true,
     );
     if (!ok) return;
@@ -439,11 +435,11 @@ class SnapshotsSection extends StatelessWidget {
 
   Future<void> _import(BuildContext context) async {
     final library = context.read<LibraryBloc>();
-    const group = XTypeGroup(
-      label: 'Пакет сохранений',
-      extensions: ['evsave', 'zip'],
+    final group = XTypeGroup(
+      label: L.of(context).savePackage,
+      extensions: const ['evsave', 'zip'],
     );
-    final file = await openFile(acceptedTypeGroups: const [group]);
+    final file = await openFile(acceptedTypeGroups: [group]);
     if (file == null || !context.mounted) return;
 
     try {
@@ -452,16 +448,18 @@ class SnapshotsSection extends StatelessWidget {
 
       final ok = await confirm(
         context,
-        title: 'Импортировать снимок?',
-        message:
-            'Игра: ${info.snapshot.gameTitle}\n'
-            'Создан: ${formatDateTime(info.snapshot.createdAt)}\n'
-            'Устройство: ${info.snapshot.deviceName} '
-            '(${platformLabel(info.snapshot.platform)})\n'
-            'Файлов: ${info.snapshot.fileCount}\n\n'
-            'Снимок добавится в список «${game.title}». Восстановить '
-            'его можно будет отдельным действием.',
-        confirmLabel: 'Импортировать',
+        title: L.of(context).importSnapshotQuestion,
+        message: L
+            .of(context)
+            .importSnapshotNote(
+              info.snapshot.gameTitle,
+              formatDateTime(info.snapshot.createdAt),
+              info.snapshot.deviceName,
+              platformLabel(info.snapshot.platform),
+              info.snapshot.fileCount,
+              game.title,
+            ),
+        confirmLabel: L.of(context).importAction,
       );
       if (!ok) return;
       library.add(SnapshotImportRequested(path: file.path, game: game));
@@ -524,7 +522,7 @@ class _SnapshotTile extends StatelessWidget {
                 Text(
                   '${snapshot.deviceName} · '
                   '${platformLabel(snapshot.platform)} · '
-                  '${snapshot.fileCount} файлов · '
+                  '${L.of(context).filesCount(snapshot.fileCount)} · '
                   '${formatBytes(snapshot.sizeBytes)}',
                   style: TextStyle(
                     fontSize: 12,
@@ -537,19 +535,19 @@ class _SnapshotTile extends StatelessWidget {
           IconButton(
             onPressed: onRestore,
             icon: const Icon(Icons.restore, size: 17),
-            tooltip: 'Восстановить',
+            tooltip: L.of(context).restore,
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
             onPressed: onExport,
             icon: const Icon(Icons.ios_share, size: 17),
-            tooltip: 'Экспортировать файл',
+            tooltip: L.of(context).exportFile,
             visualDensity: VisualDensity.compact,
           ),
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline, size: 17),
-            tooltip: 'Удалить',
+            tooltip: L.of(context).delete,
             visualDensity: VisualDensity.compact,
           ),
         ],
@@ -618,7 +616,7 @@ class _RuleDialogState extends State<_RuleDialog> {
     final portable = SavePathTemplate.isPortable(template);
 
     return AlertDialog(
-      title: const Text('Папка сохранений'),
+      title: Text(L.of(context).savePath),
       content: SizedBox(
         width: 540,
         child: Column(
@@ -627,9 +625,9 @@ class _RuleDialogState extends State<_RuleDialog> {
           children: [
             TextField(
               controller: _labelController,
-              decoration: const InputDecoration(
-                labelText: 'Метка',
-                helperText: 'По метке пути сопоставляются между устройствами',
+              decoration: InputDecoration(
+                labelText: L.of(context).label,
+                helperText: L.of(context).labelNote,
               ),
             ),
             const SizedBox(height: 16),
@@ -640,11 +638,13 @@ class _RuleDialogState extends State<_RuleDialog> {
                 fontFamily: EvaporateTheme.monoFontFamily,
                 fontSize: 13,
               ),
-              decoration: const InputDecoration(labelText: 'Шаблон пути'),
+              decoration: InputDecoration(
+                labelText: L.of(context).pathTemplate,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Развернётся в: ${SavePathTemplate.expand(template)}',
+              L.of(context).expandsTo(SavePathTemplate.expand(template)),
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -662,8 +662,7 @@ class _RuleDialogState extends State<_RuleDialog> {
                   SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Путь абсолютный: на другом устройстве он, скорее всего, '
-                      'не совпадёт.',
+                      L.of(context).absolutePathWarning,
                       style: TextStyle(
                         fontSize: 12,
                         color: context.colors.warning,
@@ -683,11 +682,13 @@ class _RuleDialogState extends State<_RuleDialog> {
               controlAffinity: ListTileControlAffinity.leading,
               dense: true,
               title: Text(
-                'Только для ${platformLabel(currentPlatformKey())}',
+                L
+                    .of(context)
+                    .onlyForPlatform(platformLabel(currentPlatformKey())),
                 style: const TextStyle(fontSize: 13),
               ),
-              subtitle: const Text(
-                'Включите, если на других ОС у игры другой путь',
+              subtitle: Text(
+                L.of(context).onlyForPlatformNote,
                 style: TextStyle(fontSize: 12),
               ),
             ),
@@ -697,20 +698,20 @@ class _RuleDialogState extends State<_RuleDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(
             context,
             _RuleDraft(
               _labelController.text.trim().isEmpty
-                  ? 'Сохранения'
+                  ? L.of(context).saves
                   : _labelController.text.trim(),
               _templateController.text.trim(),
               _currentPlatformOnly,
             ),
           ),
-          child: const Text('Сохранить'),
+          child: Text(L.of(context).save),
         ),
       ],
     );
@@ -725,7 +726,7 @@ class _SuggestionsDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Похожие папки'),
+      title: Text(L.of(context).similarFolders),
       content: SizedBox(
         width: 560,
         child: Column(
@@ -733,8 +734,7 @@ class _SuggestionsDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Найдено по названию игры. Проверьте, что это действительно '
-              'папка сохранений.',
+              L.of(context).foundByTitleNote,
               style: TextStyle(
                 fontSize: 13,
                 color: context.colors.textSecondary,
@@ -757,7 +757,12 @@ class _SuggestionsDialog extends StatelessWidget {
                       style: const TextStyle(fontSize: 13),
                     ),
                     subtitle: Text(
-                      '${suggestion.template} · ${suggestion.fileCount} файлов',
+                      L
+                          .of(context)
+                          .suggestionLine(
+                            suggestion.template,
+                            suggestion.fileCount,
+                          ),
                       style: const TextStyle(fontSize: 11.5),
                     ),
                     onTap: () => Navigator.pop(context, suggestion),
@@ -771,7 +776,7 @@ class _SuggestionsDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
       ],
     );
@@ -807,7 +812,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
     final targets = _resolveTargets();
 
     return AlertDialog(
-      title: const Text('Восстановить сохранения'),
+      title: Text(L.of(context).restoreSaves),
       content: SizedBox(
         width: 560,
         child: Column(
@@ -815,14 +820,18 @@ class _RestoreDialogState extends State<_RestoreDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Снимок от ${formatDateTime(widget.snapshot.createdAt)}, '
-              'устройство «${widget.snapshot.deviceName}» '
-              '(${platformLabel(widget.snapshot.platform)}).',
+              L
+                  .of(context)
+                  .snapshotFrom(
+                    formatDateTime(widget.snapshot.createdAt),
+                    widget.snapshot.deviceName,
+                    platformLabel(widget.snapshot.platform),
+                  ),
               style: const TextStyle(fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 14),
             Text(
-              'Файлы лягут сюда:',
+              L.of(context).filesGoHere,
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -831,8 +840,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
             const SizedBox(height: 6),
             if (targets.isEmpty)
               Text(
-                'Не удалось определить целевые папки на этом устройстве. '
-                'Задайте путь сохранений в карточке игры.',
+                L.of(context).noTargetFolders,
                 style: TextStyle(
                   fontSize: 12.5,
                   color: context.colors.warning,
@@ -859,8 +867,8 @@ class _RestoreDialogState extends State<_RestoreDialog> {
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               dense: true,
-              title: const Text(
-                'Сначала снять снимок текущих сохранений',
+              title: Text(
+                L.of(context).backupFirst,
                 style: TextStyle(fontSize: 13),
               ),
             ),
@@ -870,12 +878,12 @@ class _RestoreDialogState extends State<_RestoreDialog> {
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               dense: true,
-              title: const Text(
-                'Очистить папки перед распаковкой',
+              title: Text(
+                L.of(context).wipeBeforeUnpack,
                 style: TextStyle(fontSize: 13),
               ),
-              subtitle: const Text(
-                'Иначе файлы из снимка просто перезапишут одноимённые',
+              subtitle: Text(
+                L.of(context).wipeNote,
                 style: TextStyle(fontSize: 11.5),
               ),
             ),
@@ -885,7 +893,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
         FilledButton(
           onPressed: targets.isEmpty
@@ -894,7 +902,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                   context,
                   _RestoreOptions(backupCurrent: _backup, wipeTarget: _wipe),
                 ),
-          child: const Text('Восстановить'),
+          child: Text(L.of(context).restore),
         ),
       ],
     );

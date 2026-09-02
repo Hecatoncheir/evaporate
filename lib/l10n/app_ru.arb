@@ -23,6 +23,20 @@
       }
     }
   },
+  "@databaseDownloadingPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "@deleteSnapshotNote": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "@durationHours": {
     "placeholders": {
       "hours": {
@@ -47,6 +61,13 @@
       }
     }
   },
+  "@engineStatus": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
   "@engineUnavailable": {
     "placeholders": {
       "state": {
@@ -68,6 +89,13 @@
       }
     }
   },
+  "@expandsTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "@filesCount": {
     "placeholders": {
       "count": {
@@ -82,12 +110,41 @@
       }
     }
   },
+  "@importSnapshotNote": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      },
+      "platform": {
+        "type": "String"
+      },
+      "files": {
+        "type": "int"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "@ofAmount": {
     "placeholders": {
       "done": {
         "type": "String"
       },
       "total": {
+        "type": "String"
+      }
+    }
+  },
+  "@onlyForPlatform": {
+    "placeholders": {
+      "platform": {
         "type": "String"
       }
     }
@@ -127,6 +184,19 @@
       }
     }
   },
+  "@snapshotFrom": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      },
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
   "@speedPerSecond": {
     "placeholders": {
       "value": {
@@ -134,7 +204,18 @@
       }
     }
   },
+  "@suggestionLine": {
+    "placeholders": {
+      "template": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "about": "О программе",
+  "absolutePathWarning": "Путь абсолютный: на другом устройстве он, скорее всего, не совпадёт.",
   "add": "Добавить",
   "addGame": "Добавить игру",
   "addGameFirst": "Сначала добавьте игру в библиотеку.",
@@ -146,7 +227,9 @@
   "applyNote": "Снимок «{game}» от {when} (устройство {device}) будет распакован в папки сохранений игры «{target}».\n\nТекущие сохранения сначала попадут в резервный снимок.",
   "applySaves": "Применить сохранения?",
   "assign": "Назначить",
+  "autoSnapshotOnExit": "Снимать сохранения автоматически после выхода из игры",
   "availableToDownload": "Можно скачать",
+  "backupFirst": "Сначала снять снимок текущих сохранений",
   "badMagnet": "Введите корректную magnet-ссылку.",
   "bindings": "Назначение кнопок",
   "bulkTransfer": "Перенос всей библиотеки",
@@ -161,6 +244,7 @@
   "checkFolderHint": "Нажмите «Проверить», чтобы посмотреть, что лежит в папке.",
   "checkForUpdates": "Проверить обновления",
   "checkUpdatesOnStart": "Проверять обновления при запуске",
+  "choose": "Выбрать",
   "chooseFile": "Выбрать файл",
   "chooseFolder": "Выбрать папку",
   "clear": "Очистить",
@@ -168,9 +252,15 @@
   "confirm": "Продолжить",
   "controls": "Управление",
   "copyToSyncFolder": "Копировать новые снимки в папку синхронизации",
+  "databaseDownloading": "Загрузка базы…",
+  "databaseDownloadingPercent": "Загрузка {percent}%",
+  "databaseParsing": "Разбор базы…",
   "deadZone": "Зона нечувствительности",
   "defaultBinding": "Стандартная раскладка",
   "defaultForNewGames": "Значение по умолчанию для новых игр",
+  "delete": "Удалить",
+  "deleteSnapshotNote": "Снимок от {when} будет удалён без возможности восстановления.",
+  "deleteSnapshotQuestion": "Удалить снимок?",
   "details": "Сведения",
   "download": "Скачать",
   "downloadEngine": "Движок загрузок",
@@ -184,20 +274,26 @@
   "engineImplementation": "Реализация",
   "engineNote": "Движок встроен в приложение — внешних программ ставить не нужно. Список загрузок переживает перезапуск.",
   "engineState": "Состояние",
+  "engineStatus": "Движок загрузок: {state}",
   "engineStopped": "Движок загрузок остановлен",
   "engineUnavailable": "Движок загрузок недоступен: {state}. Игру можно добавить и запустить загрузку позже.",
   "etaLeft": "осталось {eta}",
   "etaMoreThanDays": "> {days} дн",
+  "expandsTo": "Развернётся в: {path}",
   "export": "Выгрузить",
   "exportAll": "Выгрузить все",
   "exportFile": "Экспортировать файл",
   "fetchingMetadata": "Получаем метаданные…",
   "fetchingTorrentMetadata": "Получаем метаданные торрента…",
   "filesCount": "{count} файлов",
+  "filesGoHere": "Файлы лягут сюда:",
   "findAutomatically": "Найти автоматически",
+  "findFolderByTitle": "Поискать папку по названию игры",
   "findGamesInFolder": "Найти игры в папке",
   "findInSteam": "Найти в Steam",
   "folderMissing": "Папка не найдена.",
+  "foundByTitleNote": "Найдено по названию игры. Проверьте, что это действительно папка сохранений.",
+  "fromDatabase": "Из базы",
   "gameFiles": "Файлы игры",
   "gameFolder": "Папка с игрой",
   "gameFolder2": "Папка игры",
@@ -215,14 +311,20 @@
   "hintSections": "Разделы",
   "hintSelect": "Выбрать",
   "import": "Загрузить",
+  "importAction": "Импортировать",
   "importAll": "Загрузить все",
   "importAllNote": "Пакеты из папки будут разложены по играм с такими же названиями. Текущие сохранения каждой игры сначала попадут в резервный снимок.\n\nЕсли на этом устройстве сохранения новее, чем в пакете, игра будет пропущена: пакет может оказаться старым, а прогресс — уже не вернуть.",
   "importAllQuestion": "Загрузить все сохранения?",
   "importOverwriteNewer": "Загрузить всё, даже поверх новых",
+  "importShort": "Импорт",
   "importSkipNewer": "Пропустить новые",
+  "importSnapshotNote": "Игра: {game}\nСоздан: {when}\nУстройство: {device} ({platform})\nФайлов: {files}\n\nСнимок добавится в список «{target}». Восстановить его можно будет отдельным действием.",
+  "importSnapshotQuestion": "Импортировать снимок?",
   "inQueue": "в очереди",
   "installFolder": "Папка установки",
   "kilobytesPerSecond": "КБ/с",
+  "label": "Метка",
+  "labelNote": "По метке пути сопоставляются между устройствами",
   "language": "Язык",
   "languageEnglish": "English",
   "languageRussian": "Русский",
@@ -247,6 +349,7 @@
   "menuEntryMissing": "Приложения нет в меню системы",
   "menuEntryRemove": "Убрать из меню",
   "metadataShort": "метаданные",
+  "missingOnDisk": "нет на диске",
   "navDown": "Вниз",
   "navLeft": "Влево",
   "navNextSection": "Следующий раздел",
@@ -262,9 +365,14 @@
   "noExecutablesFound": "Исполняемых файлов в папке не нашлось.",
   "noPackagesFound": "Пакетов .evsave в папке не найдено.",
   "noPathsForPlatform": "В пакете нет путей для этой платформы — понадобится правило с той же меткой",
+  "noPathsSet": "Пути не заданы. Нажмите «Найти», чтобы поискать папку по названию игры, или «Добавить», чтобы указать её вручную. Без этого снимки сохранений делать не из чего.",
   "noSavePaths": "Пути сохранений не заданы",
+  "noSimilarFolders": "Похожих папок не нашлось. Укажите путь вручную через «Добавить».",
+  "noSnapshotsNote": "Снимков пока нет. Снимок — это zip с вашими сохранениями плюс описание путей; его можно перенести на другое устройство и продолжить игру с того же места.",
   "noSnapshotsYet": "Снимков пока нет. Откройте игру в библиотеке, задайте папку сохранений и нажмите «Снять».",
+  "noTargetFolders": "Не удалось определить целевые папки на этом устройстве. Задайте путь сохранений в карточке игры.",
   "notChosen": "не выбрано",
+  "notPortablePath": "непереносимый путь",
   "notSet": "не задана",
   "nothingDownloading": "Ничего не качается.",
   "nothingFound": "Ничего не найдено",
@@ -274,11 +382,14 @@
   "notificationsUnavailableNote": "Служба уведомлений недоступна — приложение работает, но сообщать о фоновых событиях не сможет.",
   "nowDownloading": "Сейчас скачивается",
   "ofAmount": "{done} из {total}",
+  "onlyForPlatform": "Только для {platform}",
+  "onlyForPlatformNote": "Включите, если на других ОС у игры другой путь",
   "outcomeApplied": "Перенесено",
   "outcomeConflicted": "Пропущено: здесь новее",
   "outcomeFailed": "С ошибкой",
   "outcomeSkipped": "Пропущено",
   "outcomeUnmatched": "Без пары в библиотеке",
+  "pathTemplate": "Шаблон пути",
   "pause": "Пауза",
   "pausedShort": "пауза",
   "peersCount": "пиров: {count}",
@@ -314,6 +425,7 @@
   "removeFilesNote": "Файлы игры лежат в:\n{dir}",
   "removeFromLibrary": "Удалить из библиотеки",
   "removeFromQueue": "Убрать из очереди",
+  "removePath": "Убрать путь",
   "removeQuestion": "Удалить «{title}»?",
   "removeSnapshotsNote": "Снимки сохранений этой игры тоже будут удалены.",
   "removeWithFiles": "Удалить вместе с файлами",
@@ -322,7 +434,13 @@
   "requestPermission": "Запросить разрешение",
   "restart": "Перезапустить",
   "restartEngine": "Перезапустить движок",
+  "restore": "Восстановить",
+  "restoreSaves": "Восстановить сохранения",
   "resume": "Продолжить",
+  "save": "Сохранить",
+  "savePackage": "Пакет сохранений",
+  "savePath": "Папка сохранений",
+  "savePaths": "Папки сохранений",
   "saves": "Сохранения",
   "savesIntro": "Снимок сохранений — это один файл .evsave: положите его в облачную папку или на флешку, откройте на другом устройстве и продолжите с того же места.",
   "scan": "Сканировать",
@@ -330,8 +448,11 @@
   "seedsCount": "сидов: {count}",
   "setFolder": "Указать папку",
   "settings": "Настройки",
+  "similarFolders": "Похожие папки",
   "sizeLabel": "Размер",
+  "snapshotFrom": "Снимок от {when}, устройство «{device}» ({platform}).",
   "snapshotOnExit": "Снимать сохранения после выхода из игры",
+  "snapshots": "Снимки сохранений",
   "source": "Источник",
   "sourceFolder": "Папка",
   "sourceMagnet": "Magnet-ссылка",
@@ -349,10 +470,12 @@
   "statusPaused": "Пауза",
   "statusRunning": "Запущена",
   "stop": "Остановить",
+  "suggestionLine": "{template} · {count} файлов",
   "syncFolder": "Папка синхронизации",
   "syncFolderNote": "Укажите папку, которая синхронизируется между устройствами — Dropbox, iCloud, Syncthing. Новые снимки будут попадать туда автоматически, а на другом устройстве появятся в этом списке.",
   "systemNotifications": "Системные уведомления",
   "systemNotificationsNote": "О том, что закончилось, пока окно свёрнуто: загрузка завершена или сорвалась, автоснимок сохранений не удался",
+  "takeSnapshot": "Снять",
   "tapToChoose": "Нажмите, чтобы выбрать",
   "test": "Проверить",
   "testNotificationBody": "Проверка: уведомления работают.",
@@ -375,5 +498,7 @@
   "windowMaximized": "Развёрнутым",
   "windowMinimized": "В трей",
   "windowOnStart": "Окно при запуске",
-  "windowRemembered": "Как закрыли"
+  "windowRemembered": "Как закрыли",
+  "wipeBeforeUnpack": "Очистить папки перед распаковкой",
+  "wipeNote": "Иначе файлы из снимка просто перезапишут одноимённые"
 }
