@@ -14,6 +14,7 @@ import '../../services/launch/executable_finder.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'saves_section.dart';
+import '../widgets/animated_progress.dart';
 
 class GameDetail extends StatelessWidget {
   const GameDetail({super.key, required this.game});
@@ -190,13 +191,10 @@ class _CoverProgress extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: indeterminate ? null : task.progress,
-                minHeight: 3,
-                backgroundColor: Colors.white24,
-              ),
+            AnimatedProgress(
+              value: indeterminate ? null : task.progress,
+              height: 3,
+              borderRadius: 2,
             ),
           ],
         ),
@@ -470,12 +468,10 @@ class _ProgressBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: indeterminate ? null : task.progress,
-            minHeight: 6,
-          ),
+        AnimatedProgress(
+          value: indeterminate ? null : task.progress,
+          height: 6,
+          borderRadius: 4,
         ),
         const SizedBox(height: 10),
         DefaultTextStyle(

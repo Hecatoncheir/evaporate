@@ -13,6 +13,7 @@ import '../widgets/common.dart';
 import '../widgets/nav_tile.dart';
 import 'add_game_dialog.dart';
 import 'game_detail.dart';
+import '../widgets/animated_progress.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -288,13 +289,7 @@ class _MiniProgress extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            value: progress == 0 ? null : progress,
-            minHeight: 3,
-          ),
-        ),
+        AnimatedProgress(value: progress == 0 ? null : progress, height: 3),
         const SizedBox(height: 3),
         Text(
           '${(progress * 100).toStringAsFixed(0)}% · '

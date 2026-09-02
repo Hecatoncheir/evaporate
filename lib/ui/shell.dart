@@ -19,6 +19,7 @@ import 'settings/settings_page.dart';
 import 'theme.dart';
 import 'widgets/button_hints.dart';
 import 'widgets/common.dart';
+import 'widgets/fade_indexed_stack.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
@@ -92,7 +93,7 @@ class AppShell extends StatelessWidget {
                         child:
                             BlocSelector<NavigationBloc, NavigationState, int>(
                               selector: (state) => state.section,
-                              builder: (context, section) => IndexedStack(
+                              builder: (context, section) => FadeIndexedStack(
                                 index: section,
                                 children: const [
                                   LibraryPage(),

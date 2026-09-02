@@ -61,7 +61,9 @@ class _NavTileState extends State<NavTile> {
     return Padding(
       padding: widget.margin,
       child: Material(
-        color: background,
+        // Подсветку рисует контейнер ниже: на Material она переключалась бы
+        // рывком, тогда как рамка фокуса рядом уже плавная.
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(widget.borderRadius),
         child: InkWell(
           onTap: widget.onTap,
@@ -73,6 +75,7 @@ class _NavTileState extends State<NavTile> {
             duration: const Duration(milliseconds: 120),
             padding: widget.padding,
             decoration: BoxDecoration(
+              color: background,
               borderRadius: BorderRadius.circular(widget.borderRadius),
               border: Border.all(
                 color: _focused ? EvaporateTheme.primary : Colors.transparent,

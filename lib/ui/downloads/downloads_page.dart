@@ -9,6 +9,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../theme.dart';
+import '../widgets/animated_progress.dart';
 
 /// Загрузки: что качается сейчас и что пойдёт следом.
 ///
@@ -563,12 +564,10 @@ class _TaskCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: indeterminate ? null : task.progress,
-                minHeight: 5,
-              ),
+            AnimatedProgress(
+              value: indeterminate ? null : task.progress,
+              height: 5,
+              borderRadius: 4,
             ),
             const SizedBox(height: 10),
             DefaultTextStyle(
