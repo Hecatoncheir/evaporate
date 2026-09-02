@@ -12,6 +12,7 @@ class LibraryState extends Equatable {
     this.scanningSync = false,
     this.syncScanned = false,
     this.bulkReport,
+    this.savePathsProgress,
   });
 
   final List<Game> games;
@@ -28,6 +29,9 @@ class LibraryState extends Equatable {
   /// Итог последней массовой операции: одной строкой «с ошибкой: 3»
   /// пользоваться нельзя — непонятно, какие игры и почему.
   final BulkReport? bulkReport;
+
+  /// Ход подготовки базы путей, пока она качается и разбирается.
+  final CatalogProgress? savePathsProgress;
 
   /// Пакеты `.evsave`, найденные в папке синхронизации.
   final List<SavePackageInfo> syncPackages;
@@ -63,6 +67,7 @@ class LibraryState extends Equatable {
     bool? scanningSync,
     bool? syncScanned,
     Object? bulkReport = _unset,
+    Object? savePathsProgress = _unset,
   }) {
     return LibraryState(
       games: games ?? this.games,
@@ -77,6 +82,9 @@ class LibraryState extends Equatable {
       bulkReport: bulkReport == _unset
           ? this.bulkReport
           : bulkReport as BulkReport?,
+      savePathsProgress: savePathsProgress == _unset
+          ? this.savePathsProgress
+          : savePathsProgress as CatalogProgress?,
     );
   }
 
@@ -88,6 +96,7 @@ class LibraryState extends Equatable {
     busy,
     loaded,
     bulkReport,
+    savePathsProgress,
     notice,
     syncPackages,
     scanningSync,

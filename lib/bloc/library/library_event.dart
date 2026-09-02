@@ -196,6 +196,19 @@ final class SavePathsLookupRequested extends LibraryEvent {
   List<Object?> get props => [game.id, refresh];
 }
 
+/// Каталог путей сообщил, как продвигается загрузка или разбор.
+///
+/// Событие приходит не от пользователя, а от самого каталога — тот случай,
+/// ради которого события удобнее методов.
+final class SavePathsProgressChanged extends LibraryEvent {
+  const SavePathsProgressChanged(this.progress);
+
+  final CatalogProgress? progress;
+
+  @override
+  List<Object?> get props => [progress];
+}
+
 /// Снять сохранения всех настроенных игр и выгрузить их в одну папку.
 final class BulkExportRequested extends LibraryEvent {
   const BulkExportRequested(this.destinationDir);

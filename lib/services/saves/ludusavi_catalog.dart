@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../../core/json_store.dart';
+import '../../models/catalog_progress.dart';
 import '../../models/proxy_settings.dart';
 import '../metadata/release_name.dart';
 import 'ludusavi_manifest.dart';
@@ -22,10 +23,18 @@ class LudusaviCatalog {
     required String cacheFile,
     Future<String> Function(Uri uri)? fetch,
     ProxySettings Function()? proxy,
+    this.onProgress,
   }) : _store = JsonStore(cacheFile),
        _proxy = proxy ?? _noProxy {
     _fetch = fetch;
   }
+
+  /// Куда сообщать о ходе работы. Манифест весит семнадцать мегабайт,
+  /// а разбор занимает секунды — без указателя это выглядит зависанием.
+  ///
+  /// Поле изменяемое: блок подключается к нему уже после создания
+  /// каталога, потому что в списке инициализации события слать некуда.
+  void Function(CatalogProgress)? onProgress;
 
   final JsonStore _store;
   final ProxySettings Function() _proxy;
@@ -52,6 +61,7 @@ class LudusaviCatalog {
     }
 
     final source = await _download();
+    onProgress?.call(CatalogProgress.parsing);
     final json = await compute(_parseManifest, source);
     _manifest = LudusaviManifest.fromJson(json);
     await _store.write(json);
@@ -100,8 +110,21 @@ class LudusaviCatalog {
       if (response.statusCode != 200) {
         throw HttpException('База путей недоступна: ${response.statusCode}');
       }
-      // Без await клиент закроется раньше, чем дочитается тело.
-      return await response.transform(utf8.decoder).join();
+      // Читаем кусками, а не целиком: иначе о ходе загрузки сказать
+      // нечего, а ждать пришлось бы молча.
+      final total = response.contentLength;
+      final bytes = <int>[];
+      await for (final chunk in response) {
+        bytes.addAll(chunk);
+        onProgress?.call(
+          CatalogProgress(
+            phase: CatalogPhase.downloading,
+            received: bytes.length,
+            total: total > 0 ? total : 0,
+          ),
+        );
+      }
+      return utf8.decode(bytes);
     } finally {
       client.close(force: true);
     }

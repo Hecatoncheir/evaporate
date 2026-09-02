@@ -12,6 +12,7 @@ import '../../core/json_store.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/bulk_report.dart';
+import '../../models/catalog_progress.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/metadata/steam_catalog.dart';
@@ -72,6 +73,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SnapshotDeleted>(_onSnapshotDeleted);
     on<SteamLookupRequested>(_onSteamLookup);
     on<SavePathsLookupRequested>(_onSavePathsLookup);
+    on<SavePathsProgressChanged>(_onSavePathsProgress);
+    // this нужен явно: без него имя разрешается в параметр конструктора.
+    this.savePaths.onProgress = (value) => add(SavePathsProgressChanged(value));
     on<BulkExportRequested>(_onBulkExport);
     on<BulkImportRequested>(_onBulkImport);
     on<SyncFolderScanRequested>(_onSyncScanRequested);
@@ -582,6 +586,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// поэтому отдаёт и те пути, которые в манифесте записаны через
   /// неразрешимые плейсхолдеры. Но требовать его установки нельзя, и
   /// манифест остаётся рабочим запасным вариантом.
+  void _onSavePathsProgress(
+    SavePathsProgressChanged event,
+    Emitter<LibraryState> emit,
+  ) => emit(state.copyWith(savePathsProgress: event.progress));
+
   Future<_FoundPaths?> _lookupPaths(SavePathsLookupRequested event) async {
     try {
       final scan = await ludusavi.lookup(
@@ -616,6 +625,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     final key = savePathsKey(event.game.id);
     emit(state.copyWith(busy: _withBusy(key, true)));
+    // Указатель хода гасим в любом случае: оставшись висеть, он врал бы
+    // о продолжающейся работе.
+    void done() => add(const SavePathsProgressChanged(null));
     try {
       final entry = await _lookupPaths(event);
 
@@ -626,12 +638,14 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
             notice: _notice('В базе путей ничего не нашлось для этой игры'),
           ),
         );
+        done();
         return;
       }
 
       final current = state.gameById(event.game.id);
       if (current == null) {
         emit(state.copyWith(busy: _withBusy(key, false)));
+        done();
         return;
       }
 
@@ -653,6 +667,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
             notice: _notice('Пути из базы уже заданы'),
           ),
         );
+        done();
         return;
       }
 
@@ -670,7 +685,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         ),
       );
       _schedulePersist();
+      done();
     } on Object catch (error) {
+      done();
       emit(
         state.copyWith(
           busy: _withBusy(key, false),

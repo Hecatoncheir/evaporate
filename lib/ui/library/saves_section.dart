@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../bloc/library/library_bloc.dart';
+import '../../models/catalog_progress.dart';
 import '../../core/format.dart';
 import '../../core/save_path_template.dart';
 import '../../models/game.dart';
@@ -18,6 +19,22 @@ import '../widgets/common.dart';
 
 /// Где лежат сохранения игры. Пути хранятся шаблонами, поэтому один и тот же
 /// профиль работает на разных машинах и платформах.
+/// Подпись кнопки поиска путей.
+///
+/// Первый поиск качает семнадцать мегабайт и разбирает их несколько секунд.
+/// Без слов о том, что происходит, это выглядит зависанием, поэтому подпись
+/// меняется вместе с этапом.
+String _lookupLabel(CatalogProgress? progress, {required bool busy}) {
+  if (!busy || progress == null) return 'Из базы';
+  return switch (progress.phase) {
+    CatalogPhase.parsing => 'Разбор базы…',
+    CatalogPhase.downloading =>
+      progress.fraction == null
+          ? 'Загрузка базы…'
+          : 'Загрузка ${(progress.fraction! * 100).round()}%',
+  };
+}
+
 class SavePathsSection extends StatelessWidget {
   const SavePathsSection({super.key, required this.game});
 
@@ -37,6 +54,9 @@ class SavePathsSection extends StatelessWidget {
               final busy = context.select<LibraryBloc, bool>(
                 (bloc) => bloc.state.isBusy(LibraryBloc.savePathsKey(game.id)),
               );
+              final progress = context.select<LibraryBloc, CatalogProgress?>(
+                (bloc) => bloc.state.savePathsProgress,
+              );
               return TextButton.icon(
                 onPressed: busy
                     ? null
@@ -44,13 +64,18 @@ class SavePathsSection extends StatelessWidget {
                         SavePathsLookupRequested(game),
                       ),
                 icon: busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          // Пока размер неизвестен, полоса бежит сама, а не
+                          // показывает выдуманное число.
+                          value: progress?.fraction,
+                        ),
                       )
                     : const Icon(Icons.travel_explore, size: 16),
-                label: const Text('Из базы'),
+                label: Text(_lookupLabel(progress, busy: busy)),
               );
             },
           ),
