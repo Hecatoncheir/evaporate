@@ -124,7 +124,9 @@ class TestHarness {
           theme: theme ?? EvaporateTheme.dark(),
           localizationsDelegates: L.localizationsDelegates,
           supportedLocales: L.supportedLocales,
-          locale: locale,
+          // По умолчанию русский: иначе окружение выбрало бы системный
+          // язык, и тесты зависели бы от настроек машины.
+          locale: locale ?? const Locale('ru'),
           home: const AppShell(),
         ),
       ),

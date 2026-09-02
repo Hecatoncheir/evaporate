@@ -7,6 +7,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../models/proxy_settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Раздел «Прокси» для движка загрузок.
 class ProxySettingsCard extends StatefulWidget {
@@ -53,7 +54,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
     );
     store.add(SettingsChanged(store.state.copyWith(proxy: next)));
     context.read<DownloadsBloc>().add(const DownloadSettingsApplied());
-    showInfo(context, 'Настройки прокси применены');
+    showInfo(context, L.of(context).proxyApplied);
   }
 
   @override
@@ -67,7 +68,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
     }
 
     return SectionCard(
-      title: 'Прокси',
+      title: L.of(context).proxy,
       icon: Icons.vpn_lock_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,17 +77,20 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             value: proxy.enabled,
             onChanged: (value) => update(proxy.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Загружать через прокси',
+            title: Text(
+              L.of(context).proxyEnable,
               style: TextStyle(fontSize: 13),
             ),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 220,
-                child: Text('Тип', style: TextStyle(fontSize: 13)),
+                child: Text(
+                  L.of(context).proxyKind,
+                  style: TextStyle(fontSize: 13),
+                ),
               ),
               SegmentedButton<ProxyKind>(
                 segments: const [
@@ -101,20 +105,24 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             ],
           ),
           const SizedBox(height: 12),
-          _Field(label: 'Хост', controller: _host, enabled: proxy.enabled),
           _Field(
-            label: 'Порт',
+            label: L.of(context).proxyHost,
+            controller: _host,
+            enabled: proxy.enabled,
+          ),
+          _Field(
+            label: L.of(context).proxyPort,
             controller: _port,
             enabled: proxy.enabled,
             numeric: true,
           ),
           _Field(
-            label: 'Логин (если нужен)',
+            label: L.of(context).proxyUser,
             controller: _user,
             enabled: proxy.enabled,
           ),
           _Field(
-            label: 'Пароль',
+            label: L.of(context).proxyPassword,
             controller: _password,
             enabled: proxy.enabled,
             obscure: true,
@@ -124,12 +132,12 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             children: [
               FilledButton(
                 onPressed: proxy.enabled ? () => _apply(proxy) : null,
-                child: const Text('Применить'),
+                child: Text(L.of(context).proxyApply),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  proxy.isUsable ? proxy.uri : 'адрес не задан',
+                  proxy.isUsable ? proxy.uri : L.of(context).proxyNoAddress,
                   style: TextStyle(
                     fontSize: 12,
                     fontFamily: EvaporateTheme.monoFontFamily,
@@ -146,29 +154,22 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
                 ? (value) => update(proxy.copyWith(useForSteam: value))
                 : null,
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Применять к запросам Steam',
+            title: Text(
+              L.of(context).proxyForSteam,
               style: TextStyle(fontSize: 13),
             ),
-            subtitle: const Text(
-              'Поиск обложек и описаний пойдёт через тот же прокси',
+            subtitle: Text(
+              L.of(context).proxyForSteamNote,
               style: TextStyle(fontSize: 12),
             ),
           ),
           const SizedBox(height: 6),
           if (proxy.kind == ProxyKind.http)
-            const _Warning(
-              'HTTP-прокси покрывает только трекеры и обычные загрузки. '
-              'Обмен с пирами пойдёт напрямую — для приватности выбирайте '
-              'SOCKS5.',
-            )
+            _Warning(L.of(context).proxyHttpNote)
           else
-            const _Note(
-              'SOCKS5 применяется и к обмену с пирами, а не только к '
-              'трекерам.',
-            ),
+            _Note(L.of(context).proxySocksNote),
           const SizedBox(height: 6),
-          const _Warning('Пароль хранится в файле настроек открытым текстом.'),
+          _Warning(L.of(context).proxyPasswordWarning),
         ],
       ),
     );

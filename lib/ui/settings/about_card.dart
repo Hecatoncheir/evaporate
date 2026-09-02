@@ -5,6 +5,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../services/system/update_check.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Версия приложения и проверка обновлений.
 class AboutCard extends StatefulWidget {
@@ -39,7 +40,7 @@ class _AboutCardState extends State<AboutCard> {
         _found = release;
         _isError = false;
         _message = release == null
-            ? 'Установлена последняя версия'
+            ? L.of(context).upToDate
             : 'Вышла версия ${release.version}';
       });
     } on Object catch (error) {
@@ -58,12 +59,12 @@ class _AboutCardState extends State<AboutCard> {
     final settings = context.watch<SettingsBloc>().state;
 
     return SectionCard(
-      title: 'О программе',
+      title: L.of(context).about,
       icon: Icons.info_outline,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InfoRow(label: 'Версия', value: AppVersion.current),
+          InfoRow(label: L.of(context).version, value: AppVersion.current),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -76,7 +77,7 @@ class _AboutCardState extends State<AboutCard> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh, size: 18),
-                label: const Text('Проверить обновления'),
+                label: Text(L.of(context).checkForUpdates),
               ),
               if (_found != null) ...[
                 const SizedBox(width: 8),
@@ -109,13 +110,12 @@ class _AboutCardState extends State<AboutCard> {
               SettingsChanged(settings.copyWith(checkUpdates: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Проверять обновления при запуске',
+            title: Text(
+              L.of(context).checkUpdatesOnStart,
               style: TextStyle(fontSize: 13),
             ),
-            subtitle: const Text(
-              'Приложение только сообщает о новой версии и даёт ссылку — '
-              'скачивать и ставить ничего само не будет',
+            subtitle: Text(
+              L.of(context).updateNote,
               style: TextStyle(fontSize: 12),
             ),
           ),

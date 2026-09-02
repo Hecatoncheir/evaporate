@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/game.dart';
 import '../theme.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Небольшая цветная метка статуса — используется в списке и в карточке игры.
 class StatusChip extends StatelessWidget {
@@ -14,14 +15,23 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color) = switch (status) {
       GameStatus.notInstalled => (
-        'Не установлена',
+        L.of(context).statusNotInstalled,
         context.colors.textSecondary,
       ),
-      GameStatus.downloading => ('Загрузка', context.colors.primary),
-      GameStatus.paused => ('Пауза', context.colors.warning),
-      GameStatus.installed => ('Установлена', context.colors.accent),
-      GameStatus.running => ('Запущена', context.colors.accent),
-      GameStatus.error => ('Ошибка', context.colors.danger),
+      GameStatus.downloading => (
+        L.of(context).statusDownloading,
+        context.colors.primary,
+      ),
+      GameStatus.paused => (L.of(context).statusPaused, context.colors.warning),
+      GameStatus.installed => (
+        L.of(context).statusInstalled,
+        context.colors.accent,
+      ),
+      GameStatus.running => (
+        L.of(context).statusRunning,
+        context.colors.accent,
+      ),
+      GameStatus.error => (L.of(context).statusError, context.colors.danger),
     };
 
     return Container(
@@ -215,7 +225,9 @@ Future<bool> confirm(
   BuildContext context, {
   required String title,
   required String message,
-  String confirmLabel = 'Продолжить',
+  // Значение по умолчанию должно быть константой, а перевод ею быть не
+  // может: подставляем его внутри.
+  String? confirmLabel,
   bool destructive = false,
 }) async {
   final result = await showDialog<bool>(
@@ -226,14 +238,14 @@ Future<bool> confirm(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
         FilledButton(
           style: destructive
               ? FilledButton.styleFrom(backgroundColor: context.colors.danger)
               : null,
           onPressed: () => Navigator.pop(context, true),
-          child: Text(confirmLabel),
+          child: Text(confirmLabel ?? L.of(context).confirm),
         ),
       ],
     ),

@@ -8,6 +8,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../services/notifications/notification_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Раздел «Уведомления»: включение, разрешение системы и проверка.
 class NotificationSettingsCard extends StatelessWidget {
@@ -20,7 +21,7 @@ class NotificationSettingsCard extends StatelessWidget {
     final enabled = store.state.systemNotifications;
 
     return SectionCard(
-      title: 'Уведомления',
+      title: L.of(context).notifications,
       icon: Icons.notifications_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,13 +32,12 @@ class NotificationSettingsCard extends StatelessWidget {
               SettingsChanged(store.state.copyWith(systemNotifications: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Системные уведомления',
+            title: Text(
+              L.of(context).systemNotifications,
               style: TextStyle(fontSize: 13),
             ),
-            subtitle: const Text(
-              'О том, что закончилось, пока окно свёрнуто: загрузка завершена '
-              'или сорвалась, автоснимок сохранений не удался',
+            subtitle: Text(
+              L.of(context).systemNotificationsNote,
               style: TextStyle(fontSize: 12),
             ),
           ),
@@ -54,8 +54,7 @@ class NotificationSettingsCard extends StatelessWidget {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Служба уведомлений недоступна — приложение работает, но '
-                    'сообщать о фоновых событиях не сможет.',
+                    L.of(context).notificationsUnavailableNote,
                     style: TextStyle(
                       fontSize: 12,
                       color: context.colors.warning,
@@ -75,7 +74,7 @@ class NotificationSettingsCard extends StatelessWidget {
                       ? () => _requestPermission(context, notifications)
                       : null,
                   icon: const Icon(Icons.lock_open_outlined, size: 16),
-                  label: const Text('Запросить разрешение'),
+                  label: Text(L.of(context).requestPermission),
                 ),
               if (Platform.isMacOS) const SizedBox(width: 10),
               OutlinedButton.icon(
@@ -83,15 +82,14 @@ class NotificationSettingsCard extends StatelessWidget {
                     ? () => _sendTest(context, notifications)
                     : null,
                 icon: const Icon(Icons.send_outlined, size: 16),
-                label: const Text('Проверить'),
+                label: Text(L.of(context).test),
               ),
             ],
           ),
           if (Platform.isMacOS) ...[
             const SizedBox(height: 8),
             Text(
-              'macOS спрашивает разрешение один раз. Если вы его отклонили, '
-              'включить уведомления можно только в системных настройках.',
+              L.of(context).permissionNote,
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -111,12 +109,9 @@ class NotificationSettingsCard extends StatelessWidget {
     final granted = await notifications.requestPermission();
     if (!context.mounted) return;
     if (granted) {
-      showInfo(context, 'Разрешение получено');
+      showInfo(context, L.of(context).permissionGranted);
     } else {
-      showError(
-        context,
-        'Система не дала разрешение. Проверьте настройки уведомлений macOS.',
-      );
+      showError(context, L.of(context).permissionDenied);
     }
   }
 
@@ -125,9 +120,9 @@ class NotificationSettingsCard extends StatelessWidget {
     NotificationService notifications,
   ) async {
     await notifications.show(
-      const AppNotification(
+      AppNotification(
         title: 'Evaporate',
-        body: 'Проверка: уведомления работают.',
+        body: L.of(context).testNotificationBody,
         kind: NotificationKind.test,
       ),
     );
@@ -135,8 +130,8 @@ class NotificationSettingsCard extends StatelessWidget {
     showInfo(
       context,
       notifications.isAvailable
-          ? 'Уведомление отправлено'
-          : 'Служба уведомлений недоступна',
+          ? L.of(context).notificationSent
+          : L.of(context).notificationsUnavailable,
     );
   }
 }

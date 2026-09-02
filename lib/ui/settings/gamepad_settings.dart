@@ -10,6 +10,7 @@ import '../../input/nav_action.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Раздел «Управление»: состояние геймпада и переназначение кнопок.
 class GamepadSettingsCard extends StatelessWidget {
@@ -36,12 +37,12 @@ class GamepadSettingsCard extends StatelessWidget {
         store.add(SettingsChanged(store.state.copyWith(gamepad: next)));
 
     return SectionCard(
-      title: 'Управление',
+      title: L.of(context).controls,
       icon: Icons.sports_esports_outlined,
       trailing: TextButton.icon(
         onPressed: gamepad.refreshDevices,
         icon: const Icon(Icons.refresh, size: 16),
-        label: const Text('Обновить'),
+        label: Text(L.of(context).refresh),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +50,7 @@ class GamepadSettingsCard extends StatelessWidget {
           ValueListenableBuilder<GamepadStatus>(
             valueListenable: gamepad.status,
             builder: (context, status, _) => InfoRow(
-              label: 'Геймпад',
+              label: L.of(context).gamepad,
               value: status.label,
               valueColor: status.hasDevice
                   ? context.colors.accent
@@ -61,22 +62,22 @@ class GamepadSettingsCard extends StatelessWidget {
             value: binding.enabled,
             onChanged: (value) => save(binding.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Управление геймпадом',
+            title: Text(
+              L.of(context).gamepadControls,
               style: TextStyle(fontSize: 13),
             ),
-            subtitle: const Text(
-              'Навигация — D-pad или левый стик, прокрутка — правый стик',
+            subtitle: Text(
+              L.of(context).gamepadNavigationNote,
               style: TextStyle(fontSize: 12),
             ),
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              const SizedBox(
+              SizedBox(
                 width: 220,
                 child: Text(
-                  'Зона нечувствительности',
+                  L.of(context).deadZone,
                   style: TextStyle(fontSize: 13),
                 ),
               ),
@@ -110,8 +111,8 @@ class GamepadSettingsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Назначение кнопок',
+          Text(
+            L.of(context).bindings,
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -126,7 +127,7 @@ class GamepadSettingsCard extends StatelessWidget {
             onPressed: () =>
                 save(binding.copyWith(buttons: GamepadBinding.defaultButtons)),
             icon: const Icon(Icons.restart_alt, size: 16),
-            label: const Text('Стандартная раскладка'),
+            label: Text(L.of(context).defaultBinding),
           ),
         ],
       ),
@@ -177,7 +178,7 @@ class _BindingRow extends StatelessWidget {
           Expanded(
             child: Text(
               buttons.isEmpty
-                  ? 'не назначено'
+                  ? L.of(context).unassigned
                   : buttons.map((b) => b.label).join(', '),
               style: TextStyle(
                 fontSize: 12.5,
@@ -187,7 +188,7 @@ class _BindingRow extends StatelessWidget {
               ),
             ),
           ),
-          TextButton(onPressed: onAssign, child: const Text('Назначить')),
+          TextButton(onPressed: onAssign, child: Text(L.of(context).assign)),
         ],
       ),
     );
@@ -225,7 +226,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Кнопка для «${widget.action.label}»'),
+      title: Text(L.of(context).buttonFor(widget.action.label)),
       content: SizedBox(
         width: 380,
         child: Column(
@@ -237,8 +238,8 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
               color: context.colors.primary,
             ),
             const SizedBox(height: 14),
-            const Text(
-              'Нажмите нужную кнопку на геймпаде.',
+            Text(
+              L.of(context).pressAnyButton,
               style: TextStyle(fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
@@ -246,7 +247,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
             ValueListenableBuilder<GamepadStatus>(
               valueListenable: widget.gamepad.status,
               builder: (context, status, _) => Text(
-                status.hasDevice ? status.label : 'Геймпад не обнаружен — подключите его и попробуйте снова',
+                status.hasDevice ? status.label : L.of(context).gamepadNotFound,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
@@ -262,7 +263,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
       ],
     );

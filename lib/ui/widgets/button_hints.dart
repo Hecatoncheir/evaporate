@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../input/gamepad_binding.dart';
 import '../../input/nav_action.dart';
 import '../theme.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Подсказки управления в нижней строке — как на консольных экранах.
 ///
@@ -35,7 +36,8 @@ class ButtonHints extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hints = gamepadConnected ? _gamepadHints() : _keyboardLabels();
+    final l = L.of(context);
+    final hints = gamepadConnected ? _gamepadHints(l) : _keyboardLabels(l);
     if (hints.isEmpty) return const SizedBox.shrink();
 
     return Row(
@@ -49,29 +51,29 @@ class ButtonHints extends StatelessWidget {
     );
   }
 
-  List<(String, String)> _gamepadHints() {
+  List<(String, String)> _gamepadHints(L l) {
     final result = <(String, String)>[];
     for (final action in _shownActions) {
       final buttons = binding.buttonsFor(action);
       if (buttons.isEmpty) continue;
-      result.add((buttons.first.label, _shortLabel(action)));
+      result.add((buttons.first.label, _shortLabel(l, action)));
     }
     // Направления идут с D-pad и левого стика — показываем одной подсказкой.
-    result.insert(0, ('D-pad', 'Навигация'));
+    result.insert(0, ('D-pad', l.hintNavigate));
     return result;
   }
 
-  List<(String, String)> _keyboardLabels() => [
+  List<(String, String)> _keyboardLabels(L l) => [
     for (final (glyph, action) in _keyboardHints)
-      (glyph, action == NavAction.up ? 'Навигация' : _shortLabel(action)),
+      (glyph, action == NavAction.up ? l.hintNavigate : _shortLabel(l, action)),
   ];
 
-  static String _shortLabel(NavAction action) => switch (action) {
-    NavAction.confirm => 'Выбрать',
-    NavAction.back => 'Назад',
-    NavAction.primaryAction => 'Играть',
-    NavAction.search => 'Поиск',
-    NavAction.nextSection => 'Разделы',
+  static String _shortLabel(L l, NavAction action) => switch (action) {
+    NavAction.confirm => l.hintSelect,
+    NavAction.back => l.hintBack,
+    NavAction.primaryAction => l.hintPlay,
+    NavAction.search => l.hintSearch,
+    NavAction.nextSection => l.hintSections,
     _ => action.label,
   };
 }
