@@ -219,9 +219,15 @@ python3 tool/make_icon.py
 | Build Windows | windows | the Release directory, packed as `.zip` |
 | Attach to release | ubuntu | uploads the archives to the release for a `v*` tag |
 
-Builds run only after the tests pass (`needs: analyze`) — macOS runner minutes
-are the expensive ones. Pushing a tag runs the same pipeline and attaches the
-finished archives to the release.
+A push to `main` runs the analysis and the tests only. The three platform
+builds run on a `v*` tag, and that is when the finished archives are attached
+to the release. This is deliberate: on a push those builds would establish
+what the tests already do, and on a private repository the minutes are
+metered — macOS at a ten-times multiplier.
+
+To check a build without cutting a release, run the workflow by hand
+(`workflow_dispatch`) — the builds run there too. They still wait for the
+tests to pass (`needs: analyze`).
 
 Most tests need neither Xcode, nor the network, nor a gamepad: the engine is
 created with `autoStart: false` and the queue is exercised without a single
