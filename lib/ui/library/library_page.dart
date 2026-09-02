@@ -11,7 +11,11 @@ import '../../models/game.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/nav_tile.dart';
+
+import 'package:file_selector/file_selector.dart';
+
 import 'add_game_dialog.dart';
+import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
 import '../widgets/animated_progress.dart';
 
@@ -121,6 +125,11 @@ class _LibraryPageState extends State<LibraryPage> {
                 ),
               ),
               const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => _scanFolder(context),
+                icon: const Icon(Icons.folder_open_outlined, size: 19),
+                tooltip: 'Найти игры в папке',
+              ),
               IconButton.filled(
                 onPressed: () => _addGame(context),
                 icon: const Icon(Icons.add, size: 20),
@@ -175,6 +184,17 @@ class _LibraryPageState extends State<LibraryPage> {
         label: const Text('Добавить игру'),
       ),
     );
+  }
+
+  /// Добавление по одной терпимо для трёх игр и мучительно для сорока.
+  Future<void> _scanFolder(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final dir = await getDirectoryPath(confirmButtonText: 'Сканировать');
+    if (dir == null || !context.mounted) return;
+
+    final added = await showScanFolderDialog(context, dir);
+    if (added == null || added == 0) return;
+    messenger.showSnackBar(SnackBar(content: Text('Добавлено игр: $added')));
   }
 
   Future<void> _addGame(BuildContext context) async {
