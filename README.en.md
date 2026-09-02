@@ -328,6 +328,12 @@ transition there reads as lag. Sections cross-fade, progress bars glide toward
 their new value, and selection highlights ease in — the detail panel
 deliberately does not animate, because people flick through it quickly.
 
+## License
+
+Evaporate is distributed under the [MIT license](LICENSE). It ships with work
+by others under their own terms — Ludusavi under MIT and three fonts under the
+OFL; they are all listed in [NOTICE.md](NOTICE.md).
+
 ## Platform notes
 
 - **macOS**: the sandbox is disabled in the `*.entitlements` files — with it on,
