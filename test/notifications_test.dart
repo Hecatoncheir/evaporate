@@ -65,9 +65,9 @@ void main() {
   Future<void> settle() =>
       Future<void>.delayed(const Duration(milliseconds: 20));
 
-  /// Игра, которую движок «качает»: статус и gid выставлены вручную,
-  /// поэтому реальный aria2 для теста не нужен.
-  Future<Game> downloadingGame({String gid = 'gid-1'}) async {
+  /// Игра, которую движок «качает»: статус и идентификатор задачи выставлены
+  /// вручную, поэтому настоящий движок для теста не нужен.
+  Future<Game> downloadingGame({String taskId = 'taskId-1'}) async {
     final id = const Uuid().v4();
     library.add(GameAdded(id: id, title: 'Игра'));
     final added = await waitForLibrary((s) => s.gameById(id) != null);
@@ -76,7 +76,7 @@ void main() {
       GameUpdated(
         added
             .gameById(id)!
-            .copyWith(status: GameStatus.downloading, downloadGid: gid),
+            .copyWith(status: GameStatus.downloading, downloadTaskId: taskId),
       ),
     );
     final ready = await waitForLibrary(
@@ -85,8 +85,8 @@ void main() {
     return ready.gameById(id)!;
   }
 
-  DownloadTask failedTask(String gid) => DownloadTask(
-    id: gid,
+  DownloadTask failedTask(String taskId) => DownloadTask(
+    id: taskId,
     name: 'раздача',
     state: DownloadState.error,
     errorMessage: 'пиры не найдены',
@@ -95,7 +95,7 @@ void main() {
   test('сорвавшаяся загрузка даёт системное уведомление', () async {
     final game = await downloadingGame();
 
-    downloads.add(EngineTasksChanged([failedTask(game.downloadGid!)]));
+    downloads.add(EngineTasksChanged([failedTask(game.downloadTaskId!)]));
     await waitForLibrary(
       (s) => s.gameById(game.id)?.status == GameStatus.error,
     );
@@ -107,7 +107,7 @@ void main() {
 
   test('повторные опросы движка не плодят уведомлений', () async {
     final game = await downloadingGame();
-    final task = failedTask(game.downloadGid!);
+    final task = failedTask(game.downloadTaskId!);
 
     // Движок опрашивается раз в секунду и присылает одно и то же состояние.
     downloads.add(EngineTasksChanged([task]));
@@ -132,7 +132,7 @@ void main() {
     await settings.stream.firstWhere((s) => !s.systemNotifications);
 
     final game = await downloadingGame();
-    downloads.add(EngineTasksChanged([failedTask(game.downloadGid!)]));
+    downloads.add(EngineTasksChanged([failedTask(game.downloadTaskId!)]));
     await waitForLibrary(
       (s) => s.gameById(game.id)?.status == GameStatus.error,
     );

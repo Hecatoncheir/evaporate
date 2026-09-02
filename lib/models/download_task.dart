@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 enum DownloadState { waiting, active, paused, complete, error, removed }
 
 /// Состояние одной загрузки, нормализованное под UI.
-/// Конкретный движок (aria2 и т.п.) маппится в эту модель.
+/// Задачи движка маппятся в эту модель — UI о самом движке не знает.
 class DownloadTask extends Equatable {
   const DownloadTask({
     required this.id,
@@ -47,8 +47,8 @@ class DownloadTask extends Equatable {
   final bool isMetadata;
   final String? followedBy;
 
-  /// Infohash торрента. После перезапуска приложения gid меняется, и связать
-  /// задачу с игрой можно только по нему.
+  /// Infohash торрента. После перезапуска приложения идентификатор задачи
+  /// меняется, и связать её с игрой можно только по нему.
   final String? infoHash;
 
   /// Задача ждёт свободного слота: скачивание начнётся, когда закончится

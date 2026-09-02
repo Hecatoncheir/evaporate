@@ -76,7 +76,6 @@ String engineStateLabel(L l, EngineState state) => switch (state) {
   EngineState.stopped => l.engineStopped2,
   EngineState.starting => l.engineStarting,
   EngineState.ready => l.engineReady,
-  EngineState.missingBinary => l.engineMissingBinary,
   EngineState.failed => l.statusError,
 };
 

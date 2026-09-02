@@ -60,9 +60,6 @@ class AppPaths {
   /// Копии .torrent файлов, чтобы загрузку можно было возобновить.
   String get torrentsDir => p.join(dataDir, 'torrents');
 
-  /// Сессия aria2: незавершённые загрузки переживают перезапуск приложения.
-  String get downloadSessionFile => p.join(dataDir, 'aria2.session');
-
   /// Кэш открытой базы путей сохранений.
   String get savePathsCacheFile => p.join(dataDir, 'save-paths.json');
 

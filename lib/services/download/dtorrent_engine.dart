@@ -522,8 +522,8 @@ class DtorrentEngine implements DownloadEngine {
     });
   }
 
-  /// Список загрузок переживает перезапуск приложения: aria2 делал это сам
-  /// через файл сессии, здесь ведём его сами.
+  /// Список загрузок переживает перезапуск приложения: своего файла сессии
+  /// у библиотеки нет, поэтому ведём его сами.
   Future<void> _restoreState() async {
     final json = await _store.read();
     final entries = json?['downloads'] as List<dynamic>? ?? const [];

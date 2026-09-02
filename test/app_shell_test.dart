@@ -119,13 +119,13 @@ void main() {
     final game = harness.library.state.gameById(id)!;
     harness.library.add(
       GameUpdated(
-        game.copyWith(status: GameStatus.downloading, downloadGid: 'gid-1'),
+        game.copyWith(status: GameStatus.downloading, downloadTaskId: 'task-1'),
       ),
     );
     harness.downloads.add(
       const EngineTasksChanged([
         DownloadTask(
-          id: 'gid-1',
+          id: 'task-1',
           name: 'раздача',
           state: DownloadState.active,
           totalBytes: 1000,

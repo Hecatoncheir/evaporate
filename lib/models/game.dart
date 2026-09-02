@@ -50,7 +50,7 @@ class Game {
     this.playtime = Duration.zero,
     this.lastPlayed,
     this.status = GameStatus.notInstalled,
-    this.downloadGid,
+    this.downloadTaskId,
     this.infoHash,
     this.sizeBytes = 0,
     this.lastError,
@@ -83,10 +83,10 @@ class Game {
   final GameStatus status;
 
   /// Идентификатор задачи в движке загрузок, пока она жива.
-  final String? downloadGid;
+  final String? downloadTaskId;
 
-  /// Infohash торрента — устойчивая связь с задачей движка: gid живёт
-  /// только до перезапуска aria2, infohash не меняется никогда.
+  /// Infohash торрента — устойчивая связь с задачей движка: её
+  /// идентификатор живёт только до перезапуска, infohash не меняется никогда.
   final String? infoHash;
   final int sizeBytes;
   final String? lastError;
@@ -111,7 +111,7 @@ class Game {
     Duration? playtime,
     Object? lastPlayed = _u,
     GameStatus? status,
-    Object? downloadGid = _u,
+    Object? downloadTaskId = _u,
     Object? infoHash = _u,
     int? sizeBytes,
     Object? lastError = _u,
@@ -137,9 +137,9 @@ class Game {
       playtime: playtime ?? this.playtime,
       lastPlayed: lastPlayed == _u ? this.lastPlayed : lastPlayed as DateTime?,
       status: status ?? this.status,
-      downloadGid: downloadGid == _u
-          ? this.downloadGid
-          : downloadGid as String?,
+      downloadTaskId: downloadTaskId == _u
+          ? this.downloadTaskId
+          : downloadTaskId as String?,
       infoHash: infoHash == _u ? this.infoHash : infoHash as String?,
       sizeBytes: sizeBytes ?? this.sizeBytes,
       lastError: lastError == _u ? this.lastError : lastError as String?,
@@ -160,7 +160,7 @@ class Game {
     'playtimeSeconds': playtime.inSeconds,
     if (lastPlayed != null) 'lastPlayed': lastPlayed!.toIso8601String(),
     'status': status.name,
-    if (downloadGid != null) 'downloadGid': downloadGid,
+    if (downloadTaskId != null) 'downloadTaskId': downloadTaskId,
     if (infoHash != null) 'infoHash': infoHash,
     'sizeBytes': sizeBytes,
     if (lastError != null) 'lastError': lastError,
@@ -199,7 +199,11 @@ class Game {
       playtime: Duration(seconds: json['playtimeSeconds'] as int? ?? 0),
       lastPlayed: DateTime.tryParse(json['lastPlayed'] as String? ?? ''),
       status: status,
-      downloadGid: json['downloadGid'] as String?,
+      // downloadGid — имя времён aria2, у которого идентификатор задачи
+      // назывался gid. Библиотеки, записанные до переименования, несут его,
+      // и без этой ветки загрузка потеряла бы связь со своей игрой.
+      downloadTaskId:
+          (json['downloadTaskId'] ?? json['downloadGid']) as String?,
       infoHash: json['infoHash'] as String?,
       sizeBytes: json['sizeBytes'] as int? ?? 0,
       lastError: json['lastError'] as String?,

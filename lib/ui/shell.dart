@@ -218,10 +218,6 @@ class _StatusBar extends StatelessWidget {
     final (color, icon) = switch (status.state) {
       EngineState.ready => (context.colors.accent, Icons.check_circle_outline),
       EngineState.starting => (context.colors.warning, Icons.hourglass_empty),
-      EngineState.missingBinary => (
-        context.colors.warning,
-        Icons.warning_amber_rounded,
-      ),
       EngineState.failed => (context.colors.danger, Icons.error_outline),
       EngineState.stopped => (
         context.colors.textSecondary,

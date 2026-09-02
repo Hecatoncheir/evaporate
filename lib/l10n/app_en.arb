@@ -85,7 +85,6 @@
   "durationMinutes": "{minutes} min",
   "engineBuiltIn": "Built-in Dart client",
   "engineImplementation": "Implementation",
-  "engineMissingBinary": "Engine not found",
   "engineNote": "The engine is built into the app — no external programs to install. The download list survives a restart.",
   "engineReady": "Ready",
   "engineStartFailed": "Could not start the engine: {error}",

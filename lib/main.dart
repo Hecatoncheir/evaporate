@@ -86,8 +86,8 @@ Future<void> main() async {
     notifications: notifications,
     localizations: localizations,
   );
-  // Движок поднимается в фоне: без aria2c приложение всё равно должно
-  // открыться — библиотекой и сейвами можно пользоваться.
+  // Движок поднимается в фоне: даже если он не поднимется, приложение
+  // должно открыться — библиотекой и сейвами можно пользоваться.
   downloads.add(const DownloadEngineStartRequested());
 
   final gamepad = GamepadService(binding: settings.state.gamepad);

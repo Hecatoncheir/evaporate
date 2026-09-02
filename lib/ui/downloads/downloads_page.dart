@@ -232,7 +232,9 @@ class _QueueColumn extends StatelessWidget {
 
   Game? _gameFor(DownloadTask task) {
     for (final game in library.games) {
-      if (game.downloadGid == task.id || game.infoHash == task.id) return game;
+      if (game.downloadTaskId == task.id || game.infoHash == task.id) {
+        return game;
+      }
     }
     return null;
   }

@@ -162,14 +162,14 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       final dir = settings.state.installDir;
       await Directory(dir).create(recursive: true);
 
-      final String gid;
+      final String taskId;
       switch (event.source.kind) {
         case GameSourceKind.magnet:
-          gid = await engine.addMagnet(event.source.value, dir: dir);
+          taskId = await engine.addMagnet(event.source.value, dir: dir);
         case GameSourceKind.torrentFile:
           // Копию .torrent держим у себя: исходный файл могут удалить.
           final stored = await _storeTorrent(event.source.value, event.game.id);
-          gid = await engine.addTorrentFile(stored, dir: dir);
+          taskId = await engine.addTorrentFile(stored, dir: dir);
         case GameSourceKind.localFolder:
           emit(
             state.copyWith(
@@ -184,7 +184,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
           event.game.copyWith(
             source: event.source,
             status: GameStatus.downloading,
-            downloadGid: gid,
+            downloadTaskId: taskId,
             lastError: null,
           ),
         ),
@@ -206,10 +206,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     DownloadPauseRequested event,
     Emitter<DownloadsState> emit,
   ) async {
-    final gid = event.game.downloadGid;
-    if (gid == null) return;
+    final taskId = event.game.downloadTaskId;
+    if (taskId == null) return;
     try {
-      await engine.pause(gid);
+      await engine.pause(taskId);
       library.add(GameUpdated(event.game.copyWith(status: GameStatus.paused)));
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
@@ -220,10 +220,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     DownloadResumeRequested event,
     Emitter<DownloadsState> emit,
   ) async {
-    final gid = event.game.downloadGid;
-    if (gid == null) return;
+    final taskId = event.game.downloadTaskId;
+    if (taskId == null) return;
     try {
-      await engine.resume(gid);
+      await engine.resume(taskId);
       library.add(
         GameUpdated(event.game.copyWith(status: GameStatus.downloading)),
       );
@@ -236,15 +236,18 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     DownloadCancelRequested event,
     Emitter<DownloadsState> emit,
   ) async {
-    final gid = event.game.downloadGid;
+    final taskId = event.game.downloadTaskId;
     try {
-      if (gid != null) await engine.remove(gid);
+      if (taskId != null) await engine.remove(taskId);
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
     }
     library.add(
       GameUpdated(
-        event.game.copyWith(status: GameStatus.notInstalled, downloadGid: null),
+        event.game.copyWith(
+          status: GameStatus.notInstalled,
+          downloadTaskId: null,
+        ),
       ),
     );
   }
@@ -258,20 +261,20 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     emit(state.copyWith(tasks: event.tasks));
 
     for (final game in library.state.games) {
-      final gid = game.downloadGid;
-      if (gid == null) continue;
+      final taskId = game.downloadTaskId;
+      if (taskId == null) continue;
       if (game.status != GameStatus.downloading &&
           game.status != GameStatus.paused) {
         continue;
       }
 
-      var task = state.taskById(gid);
+      var task = state.taskById(taskId);
       if (task == null) {
-        // После перезапуска aria2 восстанавливает сессию с новыми gid —
-        // связываем задачу с игрой заново по infohash.
+        // После перезапуска движок поднимает задачи заново, с новыми
+        // идентификаторами — связываем задачу с игрой по infohash.
         task = _taskByInfoHash(event.tasks, game.infoHash);
         if (task == null) continue;
-        library.add(GameUpdated(game.copyWith(downloadGid: task.id)));
+        library.add(GameUpdated(game.copyWith(downloadTaskId: task.id)));
         continue;
       }
       if (task.infoHash != null && game.infoHash != task.infoHash) {
@@ -280,8 +283,8 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
 
       // Magnet сначала качает метаданные, затем порождает основную задачу.
       final next = task.followedBy;
-      if (next != null && next != gid) {
-        library.add(GameUpdated(game.copyWith(downloadGid: next)));
+      if (next != null && next != taskId) {
+        library.add(GameUpdated(game.copyWith(downloadTaskId: next)));
         continue;
       }
 
@@ -320,7 +323,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         case DownloadState.removed:
           library.add(
             GameUpdated(
-              game.copyWith(status: GameStatus.notInstalled, downloadGid: null),
+              game.copyWith(
+                status: GameStatus.notInstalled,
+                downloadTaskId: null,
+              ),
             ),
           );
       }
@@ -351,7 +357,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       var updated = game.copyWith(
         status: GameStatus.installed,
         installDir: installDir,
-        downloadGid: null,
+        downloadTaskId: null,
         sizeBytes: task.totalBytes,
         lastError: null,
       );
@@ -372,7 +378,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
             game.copyWith(
               status: GameStatus.error,
               installDir: installDir,
-              downloadGid: null,
+              downloadTaskId: null,
               lastError: _l.noticeDownloadIncompleteBody(report.describe(_l)),
             ),
           ),

@@ -727,7 +727,6 @@
   "durationMinutes": "{minutes} мин",
   "engineBuiltIn": "Встроенный клиент на Dart",
   "engineImplementation": "Реализация",
-  "engineMissingBinary": "Движок не найден",
   "engineNote": "Движок встроен в приложение — внешних программ ставить не нужно. Список загрузок переживает перезапуск.",
   "engineReady": "Готов",
   "engineStartFailed": "Не удалось запустить движок: {error}",

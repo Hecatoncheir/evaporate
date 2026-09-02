@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
@@ -79,6 +80,43 @@ void main() {
       await reopened.close();
     },
   );
+
+  // Идентификатор задачи звался `downloadGid` во времена aria2, где gid —
+  // родное имя. Библиотеки, записанные до переименования, лежат у людей на
+  // дисках, и незнакомый ключ молча оборвал бы связь игры с её загрузкой:
+  // качается, а к какой игре — неизвестно.
+  test('библиотека со старым ключом downloadGid не теряет загрузку', () async {
+    await Directory(paths.dataDir).create(recursive: true);
+    await File(paths.libraryFile).writeAsString(
+      jsonEncode({
+        'version': 1,
+        'games': [
+          {
+            'id': 'game-1',
+            'title': 'Игра из прошлой версии',
+            'addedAt': DateTime.now().toIso8601String(),
+            'status': 'downloading',
+            'downloadGid': 'task-7',
+          },
+        ],
+      }),
+    );
+
+    library.add(const LibraryLoadRequested());
+    await waitFor((s) => s.loaded);
+
+    expect(library.state.gameById('game-1')?.downloadTaskId, 'task-7');
+  });
+
+  test('идентификатор задачи записывается под новым именем', () async {
+    final id = addGame('Игра');
+    final game = (await waitFor((s) => s.gameById(id) != null)).gameById(id)!;
+
+    final json = game.copyWith(downloadTaskId: 'task-7').toJson();
+
+    expect(json['downloadTaskId'], 'task-7');
+    expect(json.containsKey('downloadGid'), isFalse);
+  });
 
   test(
     'снимок без настроенных путей сообщает об ошибке, а не падает',

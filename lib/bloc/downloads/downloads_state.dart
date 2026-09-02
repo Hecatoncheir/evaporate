@@ -25,7 +25,7 @@ class DownloadsState extends Equatable {
     return null;
   }
 
-  DownloadTask? taskForGame(Game game) => taskById(game.downloadGid);
+  DownloadTask? taskForGame(Game game) => taskById(game.downloadTaskId);
 
   DownloadsState copyWith({
     List<DownloadTask>? tasks,

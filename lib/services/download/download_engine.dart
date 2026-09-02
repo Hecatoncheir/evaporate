@@ -9,23 +9,19 @@ enum EngineState {
   stopped,
   starting,
   ready,
-
-  /// Бинарник aria2c не найден — приложение работает, но без загрузок.
-  missingBinary,
   failed,
 }
 
 class EngineStatus extends Equatable {
-  const EngineStatus(this.state, {this.message, this.binaryPath});
+  const EngineStatus(this.state, {this.message});
 
   final EngineState state;
   final String? message;
-  final String? binaryPath;
 
   bool get isReady => state == EngineState.ready;
 
   @override
-  List<Object?> get props => [state, message, binaryPath];
+  List<Object?> get props => [state, message];
 
   /// Для журналов. Пользователю состояние показывают словами через
   /// `engineStateLabel` в слое интерфейса — здесь языка нет.
@@ -33,14 +29,14 @@ class EngineStatus extends Equatable {
     EngineState.stopped => 'stopped',
     EngineState.starting => 'starting',
     EngineState.ready => 'ready',
-    EngineState.missingBinary => 'missing',
     EngineState.failed => 'failed',
   };
 }
 
-/// Контракт движка загрузок. Реализация на aria2 живёт в [Aria2Engine];
-/// интерфейс намеренно узкий, чтобы позже можно было подставить
-/// встроенный BitTorrent-клиент на чистом Dart, не трогая остальное приложение.
+/// Контракт движка загрузок. Единственная реализация — [DtorrentEngine],
+/// встроенный BitTorrent-клиент на чистом Dart. Интерфейс намеренно узкий:
+/// смена движка не должна трогать остальное приложение — так уже сменили
+/// один раз, уйдя с внешнего бинарника ради SOCKS5 до самих пиров.
 abstract class DownloadEngine {
   ValueListenable<EngineStatus> get status;
 
