@@ -31,21 +31,21 @@ class SettingsPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
       children: [
-        const Text(
-          'Настройки',
+        Text(
+          L.of(context).settings,
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 20),
         const GamepadSettingsCard(),
         const NotificationSettingsCard(),
         SectionCard(
-          title: 'Загрузки',
+          title: L.of(context).downloads,
           icon: Icons.download_outlined,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _PathSetting(
-                label: 'Папка для игр',
+                label: L.of(context).gamesFolder,
                 value: settings.installDir,
                 onPick: () async {
                   final dir = await getDirectoryPath();
@@ -59,10 +59,10 @@ class SettingsPage extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 220,
                     child: Text(
-                      'Одновременных загрузок',
+                      L.of(context).concurrentDownloads,
                       style: TextStyle(fontSize: 13),
                     ),
                   ),
@@ -85,7 +85,7 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _SpeedField(
-                label: 'Ограничение приёма',
+                label: L.of(context).limitDownload,
                 value: settings.limits.download,
                 onChanged: (value) => update(
                   settings.copyWith(
@@ -94,10 +94,9 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               _SpeedField(
-                label: 'Ограничение раздачи',
+                label: L.of(context).limitUpload,
                 value: settings.limits.upload,
-                hint:
-                    'Раздача — плата за скачанное, совсем перекрывать не стоит',
+                hint: L.of(context).limitUploadNote,
                 onChanged: (value) => update(
                   settings.copyWith(
                     limits: settings.limits.copyWith(upload: value),
@@ -105,9 +104,9 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               _SpeedField(
-                label: 'Приём, пока идёт игра',
+                label: L.of(context).limitWhilePlaying,
                 value: settings.limits.whilePlaying,
-                hint: 'Качая на полную, легко испортить себе же отклик в игре',
+                hint: L.of(context).limitPlayingNote,
                 onChanged: (value) => update(
                   settings.copyWith(
                     limits: settings.limits.copyWith(whilePlaying: value),
@@ -118,19 +117,19 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
         SectionCard(
-          title: 'Движок загрузок',
+          title: L.of(context).downloadEngine,
           icon: Icons.settings_ethernet,
           trailing: OutlinedButton.icon(
             onPressed: () =>
                 downloads.add(const DownloadEngineRestartRequested()),
             icon: const Icon(Icons.restart_alt, size: 16),
-            label: const Text('Перезапустить'),
+            label: Text(L.of(context).restart),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InfoRow(
-                label: 'Состояние',
+                label: L.of(context).engineState,
                 value:
                     downloads.state.engine.message ??
                     downloads.state.engine.label,
@@ -138,14 +137,13 @@ class SettingsPage extends StatelessWidget {
                     ? context.colors.accent
                     : context.colors.warning,
               ),
-              const InfoRow(
-                label: 'Реализация',
-                value: 'Встроенный клиент на Dart',
+              InfoRow(
+                label: L.of(context).engineImplementation,
+                value: L.of(context).engineBuiltIn,
               ),
               const SizedBox(height: 8),
               Text(
-                'Движок встроен в приложение — внешних программ ставить не '
-                'нужно. Список загрузок переживает перезапуск.',
+                L.of(context).engineNote,
                 style: TextStyle(
                   fontSize: 12.5,
                   color: context.colors.textSecondary,
@@ -157,14 +155,14 @@ class SettingsPage extends StatelessWidget {
         ),
         const ProxySettingsCard(),
         SectionCard(
-          title: 'Сохранения',
+          title: L.of(context).saves,
           icon: Icons.save_outlined,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _PathSetting(
-                label: 'Папка синхронизации',
-                value: settings.syncFolder ?? 'не задана',
+                label: L.of(context).syncFolder,
+                value: settings.syncFolder ?? L.of(context).notSet,
                 onPick: () async {
                   final dir = await getDirectoryPath();
                   if (dir == null) return;
@@ -180,15 +178,17 @@ class SettingsPage extends StatelessWidget {
                 onChanged: (value) =>
                     update(settings.copyWith(autoExportToSync: value)),
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Копировать новые снимки в папку синхронизации',
+                title: Text(
+                  L.of(context).copyToSyncFolder,
                   style: TextStyle(fontSize: 13),
                 ),
               ),
               const SizedBox(height: 6),
               _PathSetting(
-                label: 'Ludusavi (необязательно)',
-                value: settings.ludusaviPath ?? 'искать самим',
+                label: L.of(context).ludusaviOptional,
+                value:
+                    settings.ludusaviPath ??
+                    L.of(context).ludusaviFindOurselves,
                 onPick: () async {
                   final file = await openFile();
                   if (file == null) return;
@@ -200,11 +200,7 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Пути сохранений берутся у Ludusavi — он идёт в комплекте, '
-                'ставить отдельно ничего не нужно. Здесь можно указать свою '
-                'копию: её настройки могут знать про нестандартные папки с '
-                'играми. Если Ludusavi недоступен, работает встроенная база '
-                'путей — она покрывает меньше случаев, но не требует ничего.',
+                L.of(context).ludusaviNote,
                 style: TextStyle(
                   fontSize: 12.5,
                   color: context.colors.textSecondary,
@@ -233,12 +229,12 @@ class SettingsPage extends StatelessWidget {
                 onChanged: (value) =>
                     update(settings.copyWith(launchAtStartup: value)),
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Запускать вместе с системой',
+                title: Text(
+                  L.of(context).launchAtStartup,
                   style: TextStyle(fontSize: 13),
                 ),
-                subtitle: const Text(
-                  'Загрузки продолжатся сразу после входа',
+                subtitle: Text(
+                  L.of(context).launchAtStartupNote,
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -247,12 +243,12 @@ class SettingsPage extends StatelessWidget {
                 onChanged: (value) =>
                     update(settings.copyWith(autoSnapshotOnExit: value)),
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Снимать сохранения после выхода из игры',
+                title: Text(
+                  L.of(context).snapshotOnExit,
                   style: TextStyle(fontSize: 13),
                 ),
-                subtitle: const Text(
-                  'Значение по умолчанию для новых игр',
+                subtitle: Text(
+                  L.of(context).defaultForNewGames,
                   style: TextStyle(fontSize: 12),
                 ),
               ),
@@ -324,10 +320,10 @@ class _SpeedFieldState extends State<_SpeedField> {
             child: TextField(
               controller: _controller,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                hintText: 'без огр.',
-                suffixText: 'КБ/с',
+                hintText: L.of(context).unlimitedShort,
+                suffixText: L.of(context).kilobytesPerSecond,
               ),
               onSubmitted: _submit,
               onTapOutside: (_) => _submit(_controller.text),
@@ -408,27 +404,30 @@ class _WindowStartPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const SizedBox(
+        SizedBox(
           width: 220,
-          child: Text('Окно при запуске', style: TextStyle(fontSize: 13)),
+          child: Text(
+            L.of(context).windowOnStart,
+            style: TextStyle(fontSize: 13),
+          ),
         ),
         Expanded(
           child: SegmentedButton<WindowStartMode>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: WindowStartMode.remembered,
                 icon: Icon(Icons.crop_din, size: 17),
-                label: Text('Как закрыли'),
+                label: Text(L.of(context).windowRemembered),
               ),
               ButtonSegment(
                 value: WindowStartMode.maximized,
                 icon: Icon(Icons.fullscreen, size: 17),
-                label: Text('Развёрнутым'),
+                label: Text(L.of(context).windowMaximized),
               ),
               ButtonSegment(
                 value: WindowStartMode.minimized,
                 icon: Icon(Icons.expand_more, size: 17),
-                label: Text('В трей'),
+                label: Text(L.of(context).windowMinimized),
               ),
             ],
             selected: {value},
@@ -461,25 +460,28 @@ class _ThemePicker extends StatelessWidget {
       children: [
         SizedBox(
           width: 220,
-          child: Text('Оформление', style: const TextStyle(fontSize: 13)),
+          child: Text(
+            L.of(context).appearance,
+            style: const TextStyle(fontSize: 13),
+          ),
         ),
         Expanded(
           child: SegmentedButton<ThemeMode>(
-            segments: const [
+            segments: [
               ButtonSegment(
                 value: ThemeMode.system,
                 icon: Icon(Icons.brightness_auto_outlined, size: 17),
-                label: Text('Как в системе'),
+                label: Text(L.of(context).themeSystem),
               ),
               ButtonSegment(
                 value: ThemeMode.light,
                 icon: Icon(Icons.light_mode_outlined, size: 17),
-                label: Text('Светлое'),
+                label: Text(L.of(context).themeLight),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
                 icon: Icon(Icons.dark_mode_outlined, size: 17),
-                label: Text('Тёмное'),
+                label: Text(L.of(context).themeDark),
               ),
             ],
             selected: {value},
@@ -531,12 +533,12 @@ class _PathSetting extends StatelessWidget {
             ),
           ),
         ),
-        TextButton(onPressed: onPick, child: const Text('Изменить')),
+        TextButton(onPressed: onPick, child: Text(L.of(context).change)),
         if (onClear != null)
           IconButton(
             onPressed: onClear,
             icon: const Icon(Icons.close, size: 16),
-            tooltip: 'Очистить',
+            tooltip: L.of(context).clear,
             visualDensity: VisualDensity.compact,
           ),
       ],

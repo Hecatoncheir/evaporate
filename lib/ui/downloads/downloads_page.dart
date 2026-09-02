@@ -10,6 +10,7 @@ import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../theme.dart';
 import '../widgets/animated_progress.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Загрузки: что качается сейчас и что пойдёт следом.
 ///
@@ -39,8 +40,8 @@ class DownloadsPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
           child: Row(
             children: [
-              const Text(
-                'Загрузки',
+              Text(
+                L.of(context).downloads,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               ),
               const SizedBox(width: 12),
@@ -58,7 +59,7 @@ class DownloadsPage extends StatelessWidget {
                     const DownloadEngineRestartRequested(),
                   ),
                   icon: const Icon(Icons.refresh, size: 16),
-                  label: const Text('Перезапустить движок'),
+                  label: Text(L.of(context).restartEngine),
                 ),
             ],
           ),
@@ -119,10 +120,10 @@ class _AvailableGames extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Text(
-            'Можно скачать',
+            L.of(context).availableToDownload,
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
@@ -131,7 +132,7 @@ class _AvailableGames extends StatelessWidget {
               ? Padding(
                   padding: EdgeInsets.all(16),
                   child: Text(
-                    'Все игры с источником уже в очереди или установлены.',
+                    L.of(context).allGamesQueued,
                     style: TextStyle(
                       fontSize: 12.5,
                       color: context.colors.textSecondary,
@@ -261,19 +262,22 @@ class _QueueColumn extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
             children: [
-              _SectionTitle('Сейчас скачивается', trailing: '${active.length}'),
+              _SectionTitle(
+                L.of(context).nowDownloading,
+                trailing: '${active.length}',
+              ),
               if (active.isEmpty)
-                const _Hint('Ничего не качается.')
+                _Hint(L.of(context).nothingDownloading)
               else
                 for (final task in active)
                   _TaskCard(task: task, game: _gameFor(task)),
               const SizedBox(height: 18),
-              _SectionTitle('Дальше в очереди', trailing: '${queued.length}'),
+              _SectionTitle(
+                L.of(context).nextInQueue,
+                trailing: '${queued.length}',
+              ),
               if (queued.isEmpty)
-                const _Hint(
-                  'Очередь пуста. Перетащите сюда игру из списка слева — '
-                  'она начнёт качаться, когда освободится место.',
-                )
+                _Hint(L.of(context).queueEmptyNote)
               else
                 _QueueList(queued: queued, allTasks: allTasks, column: this),
             ],
@@ -380,7 +384,7 @@ class _QueuedCard extends StatelessWidget {
               ),
             ),
             Text(
-              'ждёт очереди',
+              L.of(context).waitingInQueue,
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -392,7 +396,7 @@ class _QueuedCard extends StatelessWidget {
                   DownloadCancelRequested(game!),
                 ),
                 icon: const Icon(Icons.close, size: 16),
-                tooltip: 'Убрать из очереди',
+                tooltip: L.of(context).removeFromQueue,
                 visualDensity: VisualDensity.compact,
               ),
           ],
@@ -478,7 +482,7 @@ class _EngineFailure extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              message ?? 'Движок загрузок остановлен',
+              message ?? L.of(context).engineStopped,
               style: TextStyle(color: context.colors.danger, fontSize: 13),
             ),
           ),
@@ -535,7 +539,7 @@ class _TaskCard extends StatelessWidget {
                       onPressed: () =>
                           downloads.add(DownloadResumeRequested(game!)),
                       icon: const Icon(Icons.play_arrow, size: 17),
-                      tooltip: 'Продолжить',
+                      tooltip: L.of(context).resume,
                       visualDensity: VisualDensity.compact,
                     )
                   else
@@ -543,14 +547,14 @@ class _TaskCard extends StatelessWidget {
                       onPressed: () =>
                           downloads.add(DownloadPauseRequested(game!)),
                       icon: const Icon(Icons.pause, size: 17),
-                      tooltip: 'Пауза',
+                      tooltip: L.of(context).pause,
                       visualDensity: VisualDensity.compact,
                     ),
                   IconButton(
                     onPressed: () =>
                         downloads.add(DownloadCancelRequested(game!)),
                     icon: const Icon(Icons.close, size: 17),
-                    tooltip: 'Отменить',
+                    tooltip: L.of(context).cancelDownload,
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
@@ -572,7 +576,7 @@ class _TaskCard extends StatelessWidget {
                 children: [
                   Text(
                     task.isMetadata
-                        ? 'Получаем метаданные…'
+                        ? L.of(context).fetchingMetadata
                         : '${formatBytes(task.completedBytes)} / '
                               '${formatBytes(task.totalBytes)}',
                   ),

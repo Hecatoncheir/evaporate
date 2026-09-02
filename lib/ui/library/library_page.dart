@@ -18,6 +18,7 @@ import 'add_game_dialog.dart';
 import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
 import '../widgets/animated_progress.dart';
+import '../../l10n/app_localizations.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({super.key});
@@ -116,8 +117,8 @@ class _LibraryPageState extends State<LibraryPage> {
                     // Enter в поиске уводит фокус в список — удобно и с
                     // клавиатуры, и с геймпадной экранной клавиатуры.
                     onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-                    decoration: const InputDecoration(
-                      hintText: 'Поиск  ( / )',
+                    decoration: InputDecoration(
+                      hintText: L.of(context).searchHint,
                       prefixIcon: Icon(Icons.search, size: 18),
                       isDense: true,
                     ),
@@ -128,12 +129,12 @@ class _LibraryPageState extends State<LibraryPage> {
               IconButton(
                 onPressed: () => _scanFolder(context),
                 icon: const Icon(Icons.folder_open_outlined, size: 19),
-                tooltip: 'Найти игры в папке',
+                tooltip: L.of(context).findGamesInFolder,
               ),
               IconButton.filled(
                 onPressed: () => _addGame(context),
                 icon: const Icon(Icons.add, size: 20),
-                tooltip: 'Добавить игру',
+                tooltip: L.of(context).addGame,
               ),
             ],
           ),
@@ -143,7 +144,7 @@ class _LibraryPageState extends State<LibraryPage> {
           child: games.isEmpty
               ? Center(
                   child: Text(
-                    'Ничего не найдено',
+                    L.of(context).nothingFound,
                     style: TextStyle(color: context.colors.textSecondary),
                   ),
                 )
@@ -166,22 +167,19 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Widget _buildEmpty(BuildContext context, bool libraryIsEmpty) {
     if (!libraryIsEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.videogame_asset_outlined,
-        title: 'Выберите игру слева',
+        title: L.of(context).pickGameOnTheLeft,
       );
     }
     return EmptyState(
       icon: Icons.videogame_asset_outlined,
-      title: 'Библиотека пуста',
-      description:
-          'Добавьте игру: magnet-ссылкой, .torrent-файлом или указав '
-          'папку с уже установленной игрой. Источники вы задаёте сами — '
-          'каталога в приложении нет.',
+      title: L.of(context).libraryEmpty,
+      description: L.of(context).libraryEmptyNote,
       action: FilledButton.icon(
         onPressed: () => _addGame(context),
         icon: const Icon(Icons.add),
-        label: const Text('Добавить игру'),
+        label: Text(L.of(context).addGame),
       ),
     );
   }
@@ -189,7 +187,7 @@ class _LibraryPageState extends State<LibraryPage> {
   /// Добавление по одной терпимо для трёх игр и мучительно для сорока.
   Future<void> _scanFolder(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
-    final dir = await getDirectoryPath(confirmButtonText: 'Сканировать');
+    final dir = await getDirectoryPath(confirmButtonText: L.of(context).scan);
     if (dir == null || !context.mounted) return;
 
     final added = await showScanFolderDialog(context, dir);
@@ -262,7 +260,7 @@ class _GameListTile extends StatelessWidget {
                   _MiniProgress(progress: task.progress, task: task)
                 else
                   Text(
-                    _subtitle(game),
+                    _subtitle(L.of(context), game),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -280,15 +278,15 @@ class _GameListTile extends StatelessWidget {
     );
   }
 
-  static String _subtitle(Game game) {
-    if (game.status == GameStatus.error) return game.lastError ?? 'Ошибка';
+  static String _subtitle(L l, Game game) {
+    if (game.status == GameStatus.error) return game.lastError ?? l.statusError;
     if (game.playtime.inMinutes > 0) {
-      return 'Наиграно ${formatDuration(game.playtime)}';
+      return l.playtime(formatDuration(game.playtime));
     }
     return switch (game.status) {
-      GameStatus.installed => 'Установлена',
-      GameStatus.notInstalled => 'Не установлена',
-      GameStatus.paused => 'Загрузка на паузе',
+      GameStatus.installed => l.statusInstalled,
+      GameStatus.notInstalled => l.statusNotInstalled,
+      GameStatus.paused => l.downloadPaused,
       _ => '',
     };
   }
