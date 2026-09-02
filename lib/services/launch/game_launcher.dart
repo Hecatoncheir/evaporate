@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../models/game.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 
 class LaunchException implements Exception {
   LaunchException(this.message);
@@ -34,6 +36,17 @@ class RunningGame {
 /// Время фиксируется по факту завершения процесса — именно этот момент
 /// нужен и для автоснимка сохранений.
 class GameLauncher {
+  GameLauncher({L Function()? localizations})
+    : _localizations = localizations ?? _defaultLocalizations;
+
+  /// Откуда брать переводы. Сообщения отсюда доходят до пользователя через
+  /// уведомления, поэтому язык им нужен, а `BuildContext` взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
+
   final Map<String, RunningGame> _running = {};
   final _runningIds = ValueNotifier<Set<String>>({});
 
@@ -50,22 +63,22 @@ class GameLauncher {
     required void Function(Game game, Duration played, int exitCode) onExit,
   }) async {
     if (_running.containsKey(game.id)) {
-      throw LaunchException('«${game.title}» уже запущена');
+      throw LaunchException(_l.launchAlreadyRunning(game.title));
     }
     final exePath = game.executablePath;
     if (exePath == null || exePath.isEmpty) {
-      throw LaunchException('Не указан исполняемый файл');
+      throw LaunchException(_l.launchNoExecutable);
     }
 
     final isMacApp = Platform.isMacOS && exePath.endsWith('.app');
     if (isMacApp) {
       if (!await Directory(exePath).exists()) {
-        throw LaunchException('Приложение не найдено: $exePath');
+        throw LaunchException(_l.launchAppMissing(exePath));
       }
     } else {
       final file = File(exePath);
       if (!await file.exists()) {
-        throw LaunchException('Файл не найден: $exePath');
+        throw LaunchException(_l.launchFileMissing(exePath));
       }
       if (!Platform.isWindows) await _ensureExecutable(exePath);
     }
@@ -93,7 +106,7 @@ class GameLauncher {
         );
       }
     } on ProcessException catch (error) {
-      throw LaunchException('Не удалось запустить: ${error.message}');
+      throw LaunchException(_l.launchFailed(error.message));
     }
 
     final running = RunningGame(

@@ -52,7 +52,7 @@ class GamepadSettingsCard extends StatelessWidget {
             valueListenable: gamepad.status,
             builder: (context, status, _) => InfoRow(
               label: L.of(context).gamepad,
-              value: status.label,
+              value: gamepadStatusLabel(L.of(context), status),
               valueColor: status.hasDevice
                   ? context.colors.accent
                   : context.colors.textSecondary,
@@ -253,7 +253,9 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
             ValueListenableBuilder<GamepadStatus>(
               valueListenable: widget.gamepad.status,
               builder: (context, status, _) => Text(
-                status.hasDevice ? status.label : L.of(context).gamepadNotFound,
+                status.hasDevice
+                    ? gamepadStatusLabel(L.of(context), status)
+                    : L.of(context).gamepadNotFound,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,

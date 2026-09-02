@@ -5,6 +5,8 @@ import 'package:gamepads/gamepads.dart';
 
 import 'gamepad_binding.dart';
 import 'nav_action.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_localizations_ru.dart';
 
 /// Превращает поток событий геймпада в поток [NavAction].
 ///
@@ -17,9 +19,18 @@ class GamepadService {
     this.source,
     this.repeatDelay = const Duration(milliseconds: 400),
     this.repeatInterval = const Duration(milliseconds: 110),
-  }) {
+    L Function()? localizations,
+  }) : _localizations = localizations ?? _defaultLocalizations {
     _binding = binding;
   }
+
+  /// Откуда брать переводы. Сообщения отсюда доходят до пользователя через
+  /// уведомления, поэтому язык им нужен, а `BuildContext` взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   /// Поток событий; в тестах подменяется, в приложении берётся из плагина.
   final Stream<NormalizedGamepadEvent>? source;
@@ -67,7 +78,7 @@ class GamepadService {
         onError: (Object error) {
           _status.value = GamepadStatus(
             available: false,
-            message: 'Ошибка чтения геймпада: $error',
+            message: _l.gamepadReadFailed('$error'),
           );
         },
       );
@@ -78,7 +89,7 @@ class GamepadService {
       // с мышью и клавиатурой.
       _status.value = GamepadStatus(
         available: false,
-        message: 'Геймпады недоступны: $error',
+        message: _l.gamepadUnavailable('$error'),
       );
     }
   }
@@ -94,7 +105,7 @@ class GamepadService {
     } on Object catch (error) {
       _status.value = GamepadStatus(
         available: false,
-        message: 'Не удалось получить список устройств: $error',
+        message: _l.gamepadListFailed('$error'),
       );
     }
   }
@@ -238,11 +249,8 @@ class GamepadStatus {
 
   bool get hasDevice => devices.isNotEmpty;
 
-  String get label {
-    if (message != null) return message!;
-    if (!available) return 'Не инициализирован';
-    if (devices.isEmpty) return 'Геймпад не найден';
-    if (devices.length == 1) return devices.first;
-    return '${devices.length} устройства';
-  }
+  /// Имя единственного устройства, если оно одно. Остальные состояния
+  /// описываются словами и потому живут в слое интерфейса —
+  /// `gamepadStatusLabel`: у класса-значения языка взять неоткуда.
+  String? get soleDevice => devices.length == 1 ? devices.first : null;
 }

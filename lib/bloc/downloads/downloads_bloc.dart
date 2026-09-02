@@ -13,6 +13,7 @@ import '../../services/download/dtorrent_engine.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../ui/labels.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../library/library_bloc.dart';
 import '../notice.dart';
@@ -147,7 +148,9 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       emit(
         state.copyWith(
           notice: _notice(
-            _l.noticeEngineNotReady(engine.status.value.label),
+            _l.noticeEngineNotReady(
+              engineStateLabel(_l, engine.status.value.state),
+            ),
             isError: true,
           ),
         ),
@@ -370,7 +373,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
               status: GameStatus.error,
               installDir: installDir,
               downloadGid: null,
-              lastError: _l.noticeDownloadIncompleteBody(report.describe()),
+              lastError: _l.noticeDownloadIncompleteBody(report.describe(_l)),
             ),
           ),
         );
@@ -378,7 +381,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         emit(
           state.copyWith(
             notice: _notice(
-              _l.noticeDownloadIncomplete(game.title, report.describe()),
+              _l.noticeDownloadIncomplete(game.title, report.describe(_l)),
               isError: true,
             ),
           ),
@@ -386,7 +389,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         _notifySystem(
           AppNotification(
             title: _l.noticeDownloadIncompleteShort,
-            body: '«${game.title}»: ${report.describe()}',
+            body: '«${game.title}»: ${report.describe(_l)}',
             kind: NotificationKind.downloadFailed,
           ),
         );

@@ -8,6 +8,7 @@ import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/animated_progress.dart';
 import '../../l10n/app_localizations.dart';
@@ -46,7 +47,7 @@ class DownloadsPage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'одновременно — $maxConcurrent',
+                L.of(context).concurrentAtOnce(maxConcurrent),
                 style: TextStyle(
                   fontSize: 12.5,
                   color: context.colors.textSecondary,
@@ -582,17 +583,23 @@ class _TaskCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (task.downloadSpeed > 0) ...[
-                    Text('↓ ${formatSpeed(task.downloadSpeed)}'),
+                    Text('↓ ${speedLabel(L.of(context), task.downloadSpeed)}'),
                     const SizedBox(width: 12),
                   ],
                   if (task.seeders > 0) ...[
-                    Text('сидов: ${task.seeders}'),
+                    Text(L.of(context).seedsCount(task.seeders)),
                     const SizedBox(width: 12),
                   ],
-                  Text('пиров: ${task.connections}'),
+                  Text(L.of(context).peersCount(task.connections)),
                   if (!task.isMetadata && task.etaSeconds > 0) ...[
                     const SizedBox(width: 12),
-                    Text('осталось ${formatEta(task.etaSeconds)}'),
+                    Text(
+                      L
+                          .of(context)
+                          .etaLeft(
+                            formatEtaLabel(L.of(context), task.etaSeconds),
+                          ),
+                    ),
                   ],
                 ],
               ),

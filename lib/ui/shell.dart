@@ -5,7 +5,6 @@ import '../bloc/downloads/downloads_bloc.dart';
 import '../bloc/library/library_bloc.dart';
 import '../bloc/navigation/navigation_bloc.dart';
 import '../bloc/settings/settings_bloc.dart';
-import '../core/format.dart';
 import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
 import '../bloc/notice.dart';
@@ -16,6 +15,7 @@ import 'downloads/downloads_page.dart';
 import 'library/library_page.dart';
 import 'saves/saves_page.dart';
 import 'settings/settings_page.dart';
+import 'labels.dart';
 import 'theme.dart';
 import 'widgets/button_hints.dart';
 import 'widgets/common.dart';
@@ -249,7 +249,12 @@ class _StatusBar extends StatelessWidget {
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Text(
-            status.message ?? L.of(context).engineStatus(status.label),
+            status.message ??
+                L
+                    .of(context)
+                    .engineStatus(
+                      engineStateLabel(L.of(context), status.state),
+                    ),
             style: TextStyle(fontSize: 12, color: color),
           ),
           if (stats.activeCount > 0) ...[
@@ -257,7 +262,7 @@ class _StatusBar extends StatelessWidget {
             Icon(Icons.arrow_downward, size: 13, color: context.colors.primary),
             const SizedBox(width: 3),
             Text(
-              formatSpeed(stats.downloadSpeed),
+              speedLabel(L.of(context), stats.downloadSpeed),
               style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(width: 14),
@@ -268,7 +273,7 @@ class _StatusBar extends StatelessWidget {
             ),
             const SizedBox(width: 3),
             Text(
-              formatSpeed(stats.uploadSpeed),
+              speedLabel(L.of(context), stats.uploadSpeed),
               style: const TextStyle(fontSize: 12),
             ),
           ],

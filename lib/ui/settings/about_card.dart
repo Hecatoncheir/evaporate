@@ -34,6 +34,8 @@ class _AboutCardState extends State<AboutCard> {
   }
 
   Future<void> _lookForUpdate() async {
+    // До первого await: потом трогать context нельзя.
+    final l = L.of(context);
     setState(() {
       _busy = true;
       _message = null;
@@ -47,8 +49,8 @@ class _AboutCardState extends State<AboutCard> {
         _found = release;
         _isError = false;
         _message = release == null
-            ? L.of(context).upToDate
-            : 'Вышла версия ${release.version}';
+            ? l.upToDate
+            : l.newVersionOut(release.version);
       });
     } on Object catch (error) {
       if (!mounted) return;

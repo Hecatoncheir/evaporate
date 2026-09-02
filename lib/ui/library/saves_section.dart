@@ -14,6 +14,7 @@ import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/saves/save_path_finder.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
@@ -511,7 +512,7 @@ class _SnapshotTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     _Tag(
-                      text: snapshot.origin.label,
+                      text: snapshotOriginLabel(L.of(context), snapshot.origin),
                       color: snapshot.origin == SnapshotOrigin.imported
                           ? context.colors.primary
                           : context.colors.textSecondary,

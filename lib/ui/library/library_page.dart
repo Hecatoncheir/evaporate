@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
-import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../labels.dart';
@@ -188,12 +187,13 @@ class _LibraryPageState extends State<LibraryPage> {
   /// Добавление по одной терпимо для трёх игр и мучительно для сорока.
   Future<void> _scanFolder(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = L.of(context);
     final dir = await getDirectoryPath(confirmButtonText: L.of(context).scan);
     if (dir == null || !context.mounted) return;
 
     final added = await showScanFolderDialog(context, dir);
     if (added == null || added == 0) return;
-    messenger.showSnackBar(SnackBar(content: Text('Добавлено игр: $added')));
+    messenger.showSnackBar(SnackBar(content: Text(l.gamesAdded(added))));
   }
 
   Future<void> _addGame(BuildContext context) async {
@@ -308,7 +308,7 @@ class _MiniProgress extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           '${(progress * 100).toStringAsFixed(0)}% · '
-          '${formatSpeed(task.downloadSpeed)}',
+          '${speedLabel(L.of(context), task.downloadSpeed)}',
           style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
         ),
       ],

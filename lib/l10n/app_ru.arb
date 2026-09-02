@@ -1,5 +1,12 @@
 {
   "@@locale": "ru",
+  "@addCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "@applyNote": {
     "placeholders": {
       "game": {
@@ -20,6 +27,13 @@
     "placeholders": {
       "action": {
         "type": "String"
+      }
+    }
+  },
+  "@concurrentAtOnce": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },
@@ -61,6 +75,13 @@
       }
     }
   },
+  "@engineStartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "@engineStatus": {
     "placeholders": {
       "state": {
@@ -96,7 +117,70 @@
       }
     }
   },
+  "@fileNotFound": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "@filesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@filesInPlace": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@filesMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@filesTruncated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@gamepadDevices": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@gamepadListFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@gamepadReadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@gamepadUnavailable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@gamesAdded": {
     "placeholders": {
       "count": {
         "type": "int"
@@ -128,6 +212,48 @@
         "type": "int"
       },
       "target": {
+        "type": "String"
+      }
+    }
+  },
+  "@launchAlreadyRunning": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@launchAppMissing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "@launchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@launchFileMissing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "@magnetParseFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@newVersionOut": {
+    "placeholders": {
+      "version": {
         "type": "String"
       }
     }
@@ -364,6 +490,58 @@
       }
     }
   },
+  "@saveArchiveMissing": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "@saveArchiveReadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@saveAutoBackupNote": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "@saveNoPathsForPlatform": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "@savePathEscapes": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@saveTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "@saveUnsupportedVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "@seedsCount": {
     "placeholders": {
       "count": {
@@ -401,9 +579,24 @@
       }
     }
   },
+  "@torrentNamed": {
+    "placeholders": {
+      "hash": {
+        "type": "String"
+      }
+    }
+  },
+  "@torrentReadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "about": "О программе",
   "absolutePathWarning": "Путь абсолютный: на другом устройстве он, скорее всего, не совпадёт.",
   "add": "Добавить",
+  "addCount": "Добавить: {count}",
   "addGame": "Добавить игру",
   "addGameFirst": "Сначала добавьте игру в библиотеку.",
   "added": "Добавлена",
@@ -435,6 +628,7 @@
   "chooseFile": "Выбрать файл",
   "chooseFolder": "Выбрать папку",
   "clear": "Очистить",
+  "concurrentAtOnce": "одновременно — {count}",
   "concurrentDownloads": "Одновременных загрузок",
   "confirm": "Продолжить",
   "controls": "Управление",
@@ -464,10 +658,15 @@
   "durationMinutes": "{minutes} мин",
   "engineBuiltIn": "Встроенный клиент на Dart",
   "engineImplementation": "Реализация",
+  "engineMissingBinary": "Движок не найден",
   "engineNote": "Движок встроен в приложение — внешних программ ставить не нужно. Список загрузок переживает перезапуск.",
+  "engineReady": "Готов",
+  "engineStartFailed": "Не удалось запустить движок: {error}",
+  "engineStarting": "Запускается…",
   "engineState": "Состояние",
   "engineStatus": "Движок загрузок: {state}",
   "engineStopped": "Движок загрузок остановлен",
+  "engineStopped2": "Остановлен",
   "engineUnavailable": "Движок загрузок недоступен: {state}. Игру можно добавить и запустить загрузку позже.",
   "etaLeft": "осталось {eta}",
   "etaMoreThanDays": "> {days} дн",
@@ -477,8 +676,12 @@
   "exportFile": "Экспортировать файл",
   "fetchingMetadata": "Получаем метаданные…",
   "fetchingTorrentMetadata": "Получаем метаданные торрента…",
+  "fileNotFound": "Файл не найден: {path}",
   "filesCount": "{count} файлов",
   "filesGoHere": "Файлы лягут сюда:",
+  "filesInPlace": "Файлы на месте: {count}",
+  "filesMissing": "нет файлов: {count}",
+  "filesTruncated": "недокачано: {count}",
   "findAutomatically": "Найти автоматически",
   "findFolderByTitle": "Поискать папку по названию игры",
   "findGamesInFolder": "Найти игры в папке",
@@ -492,9 +695,17 @@
   "gameRunning": "Игра запущена",
   "gamepad": "Геймпад",
   "gamepadControls": "Управление геймпадом",
+  "gamepadDevices": "{count} устройства",
+  "gamepadListFailed": "Не удалось получить список устройств: {error}",
   "gamepadNavigationNote": "Навигация — D-pad или левый стик, прокрутка — правый стик",
+  "gamepadNone": "Геймпад не найден",
   "gamepadNotFound": "Геймпад не обнаружен — подключите его и попробуйте снова",
+  "gamepadNotInitialised": "Не инициализирован",
+  "gamepadReadFailed": "Ошибка чтения геймпада: {error}",
+  "gamepadUnavailable": "Геймпады недоступны: {error}",
+  "gamesAdded": "Добавлено игр: {count}",
   "gamesFolder": "Папка для игр",
+  "gamesInFolder": "Игры в папке",
   "gamesWithPaths": "игр с путями: {count}",
   "hintBack": "Назад",
   "hintNavigate": "Навигация",
@@ -522,8 +733,13 @@
   "languageRussian": "Русский",
   "languageSystem": "Как в системе",
   "lastLaunch": "Последний запуск",
+  "launchAlreadyRunning": "«{title}» уже запущена",
+  "launchAppMissing": "Приложение не найдено: {path}",
   "launchAtStartup": "Запускать вместе с системой",
   "launchAtStartupNote": "Загрузки продолжатся сразу после входа",
+  "launchFailed": "Не удалось запустить: {error}",
+  "launchFileMissing": "Файл не найден: {path}",
+  "launchNoExecutable": "Не указан исполняемый файл",
   "library": "Библиотека",
   "libraryEmpty": "Библиотека пуста",
   "libraryEmptyNote": "Добавьте игру: magnet-ссылкой, .torrent-файлом или указав папку с уже установленной игрой. Источники вы задаёте сами — каталога в приложении нет.",
@@ -536,6 +752,7 @@
   "ludusaviFindOurselves": "искать самим",
   "ludusaviNote": "Пути сохранений берутся у Ludusavi — он идёт в комплекте, ставить отдельно ничего не нужно. Здесь можно указать свою копию: её настройки могут знать про нестандартные папки с играми. Если Ludusavi недоступен, работает встроенная база путей — она покрывает меньше случаев, но не требует ничего.",
   "ludusaviOptional": "Ludusavi (необязательно)",
+  "magnetParseFailed": "Не удалось разобрать ссылку: {error}",
   "menuEntryAdd": "Добавить в меню",
   "menuEntryAdded": "Приложение есть в меню",
   "menuEntryMissing": "Приложения нет в меню системы",
@@ -553,8 +770,10 @@
   "navUp": "Вверх",
   "neverPlayed": "ещё не играли",
   "newGame": "Новая игра",
+  "newVersionOut": "Вышла версия {version}",
   "nextInQueue": "Дальше в очереди",
   "noExecutablesFound": "Исполняемых файлов в папке не нашлось.",
+  "noInfohash": "В ссылке нет корректного infohash",
   "noPackagesFound": "Пакетов .evsave в папке не найдено.",
   "noPathsForPlatform": "В пакете нет путей для этой платформы — понадобится правило с той же меткой",
   "noPathsSet": "Пути не заданы. Нажмите «Найти», чтобы поискать папку по названию игры, или «Добавить», чтобы указать её вручную. Без этого снимки сохранений делать не из чего.",
@@ -563,11 +782,13 @@
   "noSnapshotsNote": "Снимков пока нет. Снимок — это zip с вашими сохранениями плюс описание путей; его можно перенести на другое устройство и продолжить игру с того же места.",
   "noSnapshotsYet": "Снимков пока нет. Откройте игру в библиотеке, задайте папку сохранений и нажмите «Снять».",
   "noTargetFolders": "Не удалось определить целевые папки на этом устройстве. Задайте путь сохранений в карточке игры.",
+  "notAMagnetLink": "Это не magnet-ссылка",
   "notChosen": "не выбрано",
   "notPortablePath": "непереносимый путь",
   "notSet": "не задана",
   "nothingDownloading": "Ничего не качается.",
   "nothingFound": "Ничего не найдено",
+  "nothingToVerify": "Проверять нечего: метаданные не получены",
   "noticeApplied": "применено: {count}",
   "noticeDownloadFailed": "Загрузка не удалась",
   "noticeDownloadFailedTitle": "Загрузка завершилась ошибкой",
@@ -610,6 +831,10 @@
   "ofAmount": "{done} из {total}",
   "onlyForPlatform": "Только для {platform}",
   "onlyForPlatformNote": "Включите, если на других ОС у игры другой путь",
+  "originAutoOnExit": "Авто после игры",
+  "originImported": "Импорт",
+  "originManual": "Вручную",
+  "originPreRestore": "Бэкап перед откатом",
   "outcomeApplied": "Перенесено",
   "outcomeConflicted": "Пропущено: здесь новее",
   "outcomeFailed": "С ошибкой",
@@ -664,12 +889,24 @@
   "restoreSaves": "Восстановить сохранения",
   "resume": "Продолжить",
   "save": "Сохранить",
+  "saveArchiveMissing": "Архив снимка не найден: {path}",
+  "saveArchiveReadFailed": "Не удалось прочитать архив: {error}",
+  "saveAutoBackupNote": "Автобэкап перед откатом на {when}",
+  "saveNoPathsForPlatform": "Для «{title}» не заданы папки сохранений на {platform}.",
+  "saveNoTargets": "Не удалось сопоставить ни одного пути сохранений с этим устройством. Задайте папку сохранений в карточке игры и повторите.",
+  "saveNotEvaporatePackage": "Это не пакет сохранений Evaporate.",
+  "saveNothingFound": "Ничего не найдено по заданным путям. Проверьте настройки сохранений — возможно, игра ещё не создала папку.",
   "savePackage": "Пакет сохранений",
   "savePath": "Папка сохранений",
+  "savePathEscapes": "Пакет содержит путь за пределами папки сохранений: {name}",
   "savePaths": "Папки сохранений",
+  "saveTooLarge": "Суммарный размер {size} слишком велик для снимка сохранений. Похоже, в правилах указана папка игры, а не сейвов.",
+  "saveUnknownDevice": "неизвестно",
+  "saveUnsupportedVersion": "Неподдерживаемая версия пакета: {version}",
   "saves": "Сохранения",
   "savesIntro": "Снимок сохранений — это один файл .evsave: положите его в облачную папку или на флешку, откройте на другом устройстве и продолжите с того же места.",
   "scan": "Сканировать",
+  "scanNothingFound": "Ничего не нашлось. Игрой считается подпапка, в которой есть исполняемый файл; уже добавленные пропускаются.",
   "searchHint": "Поиск  ( / )",
   "seedsCount": "сидов: {count}",
   "setFolder": "Указать папку",
@@ -712,6 +949,11 @@
   "themeSystem": "Как в системе",
   "title": "Название",
   "titleHint": "Как показывать в библиотеке",
+  "torrentFallbackName": "Раздача",
+  "torrentNamed": "Раздача {hash}",
+  "torrentReadFailed": "Не удалось прочитать торрент: {error}",
+  "trayOpen": "Открыть Evaporate",
+  "trayQuit": "Выйти",
   "unassigned": "не назначено",
   "unlimitedShort": "без огр.",
   "untitled": "Без названия",

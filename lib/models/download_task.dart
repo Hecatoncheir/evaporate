@@ -87,6 +87,7 @@ class DownloadTask extends Equatable {
     isQueued,
   ];
 
+  /// Для журналов. В интерфейсе состояние показывает `downloadStateLabel`.
   String get stateLabel => switch (state) {
     DownloadState.waiting => 'В очереди',
     DownloadState.active => isMetadata ? 'Метаданные' : 'Загрузка',

@@ -6,6 +6,7 @@ import '../../bloc/library/library_bloc.dart';
 import '../../models/game.dart';
 import '../../services/launch/library_scanner.dart';
 import '../theme.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Показывает найденные в папке игры и добавляет отмеченные.
 ///
@@ -84,7 +85,7 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
     final found = _found;
 
     return AlertDialog(
-      title: const Text('Игры в папке'),
+      title: Text(L.of(context).gamesInFolder),
       content: SizedBox(
         width: 520,
         child: switch ((found, _error)) {
@@ -97,8 +98,7 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
             child: Center(child: CircularProgressIndicator()),
           ),
           (final List<ScannedGame> games, _) when games.isEmpty => Text(
-            'Ничего не нашлось. Игрой считается подпапка, в которой есть '
-            'исполняемый файл; уже добавленные пропускаются.',
+            L.of(context).scanNothingFound,
             style: TextStyle(color: context.colors.textSecondary),
           ),
           (final List<ScannedGame> games, _) => _list(games),
@@ -107,11 +107,11 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Отмена'),
+          child: Text(L.of(context).cancel),
         ),
         FilledButton(
           onPressed: (found == null || _chosen.isEmpty) ? null : _add,
-          child: Text('Добавить: ${_chosen.length}'),
+          child: Text(L.of(context).addCount(_chosen.length)),
         ),
       ],
     );

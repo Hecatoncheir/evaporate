@@ -27,12 +27,14 @@ class EngineStatus extends Equatable {
   @override
   List<Object?> get props => [state, message, binaryPath];
 
+  /// Для журналов. Пользователю состояние показывают словами через
+  /// `engineStateLabel` в слое интерфейса — здесь языка нет.
   String get label => switch (state) {
-    EngineState.stopped => 'Остановлен',
-    EngineState.starting => 'Запускается…',
-    EngineState.ready => 'Готов',
-    EngineState.missingBinary => 'aria2c не найден',
-    EngineState.failed => 'Ошибка',
+    EngineState.stopped => 'stopped',
+    EngineState.starting => 'starting',
+    EngineState.ready => 'ready',
+    EngineState.missingBinary => 'missing',
+    EngineState.failed => 'failed',
   };
 }
 

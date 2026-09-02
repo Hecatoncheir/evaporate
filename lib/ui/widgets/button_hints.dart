@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../input/gamepad_binding.dart';
 import '../../input/nav_action.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -74,7 +75,7 @@ class ButtonHints extends StatelessWidget {
     NavAction.primaryAction => l.hintPlay,
     NavAction.search => l.hintSearch,
     NavAction.nextSection => l.hintSections,
-    _ => action.label,
+    _ => navActionLabel(l, action),
   };
 }
 

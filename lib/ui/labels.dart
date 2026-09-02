@@ -1,6 +1,10 @@
+import '../input/gamepad_service.dart';
 import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
+import '../core/format.dart';
 import '../models/download_task.dart';
+import '../models/save_snapshot.dart';
+import '../services/download/download_engine.dart';
 
 /// Переводимые подписи для того, что живёт в моделях и во вводе.
 ///
@@ -53,3 +57,33 @@ String formatEtaLabel(L l, int? seconds) {
   if (duration.inDays > 0) return l.etaMoreThanDays(duration.inDays);
   return formatDurationLabel(l, duration);
 }
+
+/// Состояние геймпада словами.
+String gamepadStatusLabel(L l, GamepadStatus status) {
+  final message = status.message;
+  if (message != null) return message;
+  if (!status.available) return l.gamepadNotInitialised;
+  if (status.devices.isEmpty) return l.gamepadNone;
+  return status.soleDevice ?? l.gamepadDevices(status.devices.length);
+}
+
+/// Состояние движка загрузок словами.
+String engineStateLabel(L l, EngineState state) => switch (state) {
+  EngineState.stopped => l.engineStopped2,
+  EngineState.starting => l.engineStarting,
+  EngineState.ready => l.engineReady,
+  EngineState.missingBinary => l.engineMissingBinary,
+  EngineState.failed => l.statusError,
+};
+
+/// Скорость: «1,2 МБ» плюс единица времени, которая тоже переводится.
+String speedLabel(L l, num bytesPerSecond) =>
+    l.speedPerSecond(formatBytes(bytesPerSecond));
+
+/// Откуда взялся снимок сохранений.
+String snapshotOriginLabel(L l, SnapshotOrigin origin) => switch (origin) {
+  SnapshotOrigin.manual => l.originManual,
+  SnapshotOrigin.autoOnExit => l.originAutoOnExit,
+  SnapshotOrigin.imported => l.originImported,
+  SnapshotOrigin.preRestore => l.originPreRestore,
+};

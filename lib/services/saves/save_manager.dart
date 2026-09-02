@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 import '../../core/format.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
@@ -65,9 +67,19 @@ class SavePackageInfo {
 ///   `manifest.json`     — метаданные и правила путей;
 ///   `data/<ruleId>/...` — файлы сейвов, разложенные по правилам.
 class SaveManager {
-  SaveManager({AppPaths? paths}) : _paths = paths ?? AppPaths.instance;
+  SaveManager({AppPaths? paths, L Function()? localizations})
+    : _paths = paths ?? AppPaths.instance,
+      _localizations = localizations ?? _defaultLocalizations;
 
   final AppPaths _paths;
+
+  /// Откуда брать переводы: сообщения об ошибках доходят до пользователя
+  /// уведомлениями, а `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
   static const _uuid = Uuid();
 
   /// Системный мусор не должен попадать в сейвы.
@@ -84,7 +96,10 @@ class SaveManager {
     final rules = game.saveProfile.rulesForCurrentPlatform;
     if (rules.isEmpty) {
       throw SaveException(
-        'Для «${game.title}» не заданы папки сохранений на ${platformLabel(currentPlatformKey())}.',
+        _l.saveNoPathsForPlatform(
+          game.title,
+          platformLabel(currentPlatformKey()),
+        ),
       );
     }
 
@@ -105,16 +120,10 @@ class SaveManager {
     }
 
     if (entries.isEmpty) {
-      throw SaveException(
-        'Ничего не найдено по заданным путям. Проверьте настройки сохранений — '
-        'возможно, игра ещё не создала папку.',
-      );
+      throw SaveException(_l.saveNothingFound);
     }
     if (totalBytes > _maxSnapshotBytes) {
-      throw SaveException(
-        'Суммарный размер ${formatBytes(totalBytes)} слишком велик для снимка '
-        'сохранений. Похоже, в правилах указана папка игры, а не сейвов.',
-      );
+      throw SaveException(_l.saveTooLarge(formatBytes(totalBytes)));
     }
 
     final id = _uuid.v4();
@@ -292,10 +301,7 @@ class SaveManager {
     }
 
     if (targetByRuleId.isEmpty) {
-      throw SaveException(
-        'Не удалось сопоставить ни одного пути сохранений с этим устройством. '
-        'Задайте папку сохранений в карточке игры и повторите.',
-      );
+      throw SaveException(_l.saveNoTargets);
     }
 
     SaveSnapshot? backup;
@@ -304,8 +310,7 @@ class SaveManager {
         backup = await createSnapshot(
           game,
           origin: SnapshotOrigin.preRestore,
-          note:
-              'Автобэкап перед откатом на ${formatDateTime(snapshot.createdAt)}',
+          note: _l.saveAutoBackupNote(formatDateTime(snapshot.createdAt)),
         );
       } on SaveException {
         // Бэкапить нечего (первый запуск на этом устройстве) — это нормально.
@@ -333,9 +338,7 @@ class SaveManager {
       final destination = p.normalize(p.join(targetDir, parsed.relativePath));
       // Защита от zip-slip: пакет мог приехать откуда угодно.
       if (!p.isWithin(targetDir, destination)) {
-        throw SaveException(
-          'Пакет содержит путь за пределами папки сохранений: ${file.name}',
-        );
+        throw SaveException(_l.savePathEscapes(file.name));
       }
 
       final outFile = File(destination);
@@ -380,7 +383,7 @@ class SaveManager {
   ) async {
     final source = File(snapshot.archivePath);
     if (!await source.exists()) {
-      throw SaveException('Архив снимка не найден: ${snapshot.archivePath}');
+      throw SaveException(_l.saveArchiveMissing(snapshot.archivePath));
     }
     final destination = File(destinationPath);
     await destination.parent.create(recursive: true);
@@ -393,12 +396,10 @@ class SaveManager {
     final manifest = _readManifest(archive);
     await archive.clear();
     if (manifest == null) {
-      throw SaveException('Это не пакет сохранений Evaporate.');
+      throw SaveException(_l.saveNotEvaporatePackage);
     }
     if (manifest['format'] != SaveSnapshot.manifestFormat) {
-      throw SaveException(
-        'Неподдерживаемая версия пакета: ${manifest['format']}',
-      );
+      throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
     }
 
     final rules = (manifest['rules'] as List<dynamic>? ?? [])
@@ -408,11 +409,11 @@ class SaveManager {
     final snapshot = SaveSnapshot(
       id: manifest['id'] as String? ?? _uuid.v4(),
       gameId: manifest['gameId'] as String? ?? '',
-      gameTitle: manifest['gameTitle'] as String? ?? 'Без названия',
+      gameTitle: manifest['gameTitle'] as String? ?? _l.untitled,
       createdAt:
           DateTime.tryParse(manifest['createdAt'] as String? ?? '') ??
           DateTime.now(),
-      deviceName: manifest['deviceName'] as String? ?? 'неизвестно',
+      deviceName: manifest['deviceName'] as String? ?? _l.saveUnknownDevice,
       platform: manifest['platform'] as String? ?? '',
       sizeBytes: manifest['sizeBytes'] as int? ?? 0,
       archivePath: path,
@@ -488,12 +489,12 @@ class SaveManager {
   Future<Archive> _openArchive(String path) async {
     final file = File(path);
     if (!await file.exists()) {
-      throw SaveException('Файл не найден: $path');
+      throw SaveException(_l.fileNotFound(path));
     }
     try {
       return ZipDecoder().decodeStream(InputFileStream(path));
     } on Object catch (error) {
-      throw SaveException('Не удалось прочитать архив: $error');
+      throw SaveException(_l.saveArchiveReadFailed('$error'));
     }
   }
 

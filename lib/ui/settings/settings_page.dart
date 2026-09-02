@@ -7,6 +7,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../../models/window_start_mode.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'about_card.dart';
@@ -132,7 +133,10 @@ class SettingsPage extends StatelessWidget {
                 label: L.of(context).engineState,
                 value:
                     downloads.state.engine.message ??
-                    downloads.state.engine.label,
+                    engineStateLabel(
+                      L.of(context),
+                      downloads.state.engine.state,
+                    ),
                 valueColor: downloads.state.engine.isReady
                     ? context.colors.accent
                     : context.colors.warning,

@@ -5,6 +5,7 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/services/download/download_engine.dart';
 import 'package:evaporate/services/download/dtorrent_engine.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -355,7 +356,7 @@ void main() {
 
       expect(report.isValid, isTrue);
       expect(report.checkedFiles, 2);
-      expect(report.describe(), contains('2'));
+      expect(report.describe(LRu()), contains('2'));
     });
 
     test('пропавший файл обнаруживается', () async {
@@ -371,7 +372,7 @@ void main() {
 
       expect(report.isValid, isFalse);
       expect(report.missing, ['missing.bin']);
-      expect(report.describe(), contains('нет файлов'));
+      expect(report.describe(LRu()), contains('нет файлов'));
     });
 
     // Хеши кусков сверяются при скачивании, а вот обрезанный файл
@@ -386,7 +387,7 @@ void main() {
 
       expect(report.isValid, isFalse);
       expect(report.truncated, ['game.bin']);
-      expect(report.describe(), contains('недокачано'));
+      expect(report.describe(LRu()), contains('недокачано'));
     });
 
     test('файл больше заявленного не считается ошибкой', () async {

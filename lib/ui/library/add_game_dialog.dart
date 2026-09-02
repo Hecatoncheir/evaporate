@@ -10,6 +10,7 @@ import '../../models/game.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -109,7 +110,12 @@ class _AddGameDialogState extends State<_AddGameDialog> {
                       : Text(
                           L
                               .of(context)
-                              .engineUnavailable(downloads.engine.label),
+                              .engineUnavailable(
+                                engineStateLabel(
+                                  L.of(context),
+                                  downloads.engine.state,
+                                ),
+                              ),
                           style: TextStyle(
                             fontSize: 12,
                             color: context.colors.warning,

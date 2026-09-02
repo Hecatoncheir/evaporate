@@ -12,6 +12,7 @@ class GameSource {
   /// magnet-ссылка, путь к .torrent, либо путь к уже готовой папке.
   final String value;
 
+  /// Для журналов. В интерфейсе источник называют переводимыми ключами.
   String get label => switch (kind) {
     GameSourceKind.magnet => 'Magnet-ссылка',
     GameSourceKind.torrentFile => 'Torrent-файл',

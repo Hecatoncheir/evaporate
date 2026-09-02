@@ -9,6 +9,7 @@ import '../../services/saves/save_manager.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../models/bulk_report.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
@@ -373,7 +374,7 @@ class _SnapshotRow extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   '${formatDateTime(snapshot.createdAt)} · '
-                  '${snapshot.origin.label} · '
+                  '${snapshotOriginLabel(L.of(context), snapshot.origin)} · '
                   '${snapshot.deviceName} · '
                   '${formatBytes(snapshot.sizeBytes)}',
                   style: TextStyle(

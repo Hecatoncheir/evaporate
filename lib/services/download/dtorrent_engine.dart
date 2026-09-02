@@ -7,6 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/json_store.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 import '../../models/download_task.dart';
 import '../../models/speed_limits.dart';
 import '../../models/proxy_settings.dart';
@@ -35,12 +37,12 @@ class IntegrityReport {
 
   bool get isValid => missing.isEmpty && truncated.isEmpty;
 
-  String describe() {
-    if (skipped) return 'Проверять нечего: метаданные не получены';
-    if (isValid) return 'Файлы на месте: $checkedFiles';
+  String describe(L l) {
+    if (skipped) return l.nothingToVerify;
+    if (isValid) return l.filesInPlace(checkedFiles);
     final parts = <String>[
-      if (missing.isNotEmpty) 'нет файлов: ${missing.length}',
-      if (truncated.isNotEmpty) 'недокачано: ${truncated.length}',
+      if (missing.isNotEmpty) l.filesMissing(missing.length),
+      if (truncated.isNotEmpty) l.filesTruncated(truncated.length),
     ];
     return parts.join(', ');
   }
@@ -58,9 +60,19 @@ class DtorrentEngine implements DownloadEngine {
     ProxySettings proxy = const ProxySettings(),
     this.maxConcurrent = 3,
     this.autoStart = true,
-  }) : _store = JsonStore(stateFile) {
+    L Function()? localizations,
+  }) : _localizations = localizations ?? _defaultLocalizations,
+       _store = JsonStore(stateFile) {
     _proxy = proxy;
   }
+
+  /// Откуда брать переводы: сообщения движка доходят до пользователя
+  /// уведомлениями, а `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   String downloadDir;
 
@@ -119,7 +131,7 @@ class DtorrentEngine implements DownloadEngine {
     } on Object catch (error) {
       _status.value = EngineStatus(
         EngineState.failed,
-        message: 'Не удалось запустить движок: $error',
+        message: _l.engineStartFailed('$error'),
       );
     }
   }
@@ -152,17 +164,17 @@ class DtorrentEngine implements DownloadEngine {
   Future<String> addMagnet(String uri, {required String dir}) async {
     final trimmed = uri.trim();
     if (!trimmed.startsWith('magnet:')) {
-      throw DownloadEngineException('Это не magnet-ссылка');
+      throw DownloadEngineException(_l.notAMagnetLink);
     }
 
     final dt.MagnetLink? link;
     try {
       link = dt.MagnetParser.parse(trimmed);
     } on Object catch (error) {
-      throw DownloadEngineException('Не удалось разобрать ссылку: $error');
+      throw DownloadEngineException(_l.magnetParseFailed('$error'));
     }
     if (link == null) {
-      throw DownloadEngineException('В ссылке нет корректного infohash');
+      throw DownloadEngineException(_l.noInfohash);
     }
 
     final infoHash = _hex(link.infoHash);
@@ -171,7 +183,7 @@ class DtorrentEngine implements DownloadEngine {
     final managed = _ManagedDownload(
       infoHash: infoHash,
       savePath: dir,
-      name: link.displayName ?? 'Раздача $infoHash',
+      name: link.displayName ?? _l.torrentNamed(infoHash),
       magnet: trimmed,
       engine: this,
     );
@@ -185,14 +197,14 @@ class DtorrentEngine implements DownloadEngine {
   Future<String> addTorrentFile(String path, {required String dir}) async {
     final file = File(path);
     if (!await file.exists()) {
-      throw DownloadEngineException('Файл не найден: $path');
+      throw DownloadEngineException(_l.fileNotFound(path));
     }
 
     final dt.TorrentModel model;
     try {
       model = await dt.TorrentParser.parse(path);
     } on Object catch (error) {
-      throw DownloadEngineException('Не удалось прочитать торрент: $error');
+      throw DownloadEngineException(_l.torrentReadFailed('$error'));
     }
 
     final infoHash = model.infoHash.toLowerCase();
@@ -642,7 +654,7 @@ class _ManagedDownload {
   ) => _ManagedDownload(
     infoHash: json['infoHash'] as String,
     savePath: json['savePath'] as String,
-    name: json['name'] as String? ?? 'Раздача',
+    name: json['name'] as String? ?? 'Torrent',
     magnet: json['magnet'] as String?,
     torrentPath: json['torrentPath'] as String?,
     engine: engine,

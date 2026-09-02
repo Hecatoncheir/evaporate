@@ -115,6 +115,7 @@ class SaveSnapshot {
 enum SnapshotOrigin { manual, autoOnExit, imported, preRestore }
 
 extension SnapshotOriginLabel on SnapshotOrigin {
+  /// Для журналов. В интерфейсе — `snapshotOriginLabel`.
   String get label => switch (this) {
     SnapshotOrigin.manual => 'Вручную',
     SnapshotOrigin.autoOnExit => 'Авто после игры',
