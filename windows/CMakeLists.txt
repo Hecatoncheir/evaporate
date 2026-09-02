@@ -75,19 +75,6 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
-# Встроенная копия Ludusavi: приложение берёт у неё пути сохранений, и
-# ставить её отдельно не нужно. Файла может не быть — тогда сборка просто
-# идёт без него, а приложение работает по встроенной базе путей.
-set(LUDUSAVI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/ludusavi/windows")
-if(EXISTS "${LUDUSAVI_DIR}/ludusavi.exe")
-  install(PROGRAMS "${LUDUSAVI_DIR}/ludusavi.exe"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
-  # Лицензия MIT обязывает приложить текст и копирайт.
-  install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/ludusavi/legal/"
-    DESTINATION "${CMAKE_INSTALL_PREFIX}/ludusavi-legal" COMPONENT Runtime)
-endif()
-
-
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)
 

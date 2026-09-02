@@ -28,16 +28,28 @@ void main() {
       );
     });
 
-    // Такие пути зависят от учётной записи в магазине или папки установки:
+    // Папку игры мы знаем сами — она становится нашим плейсхолдером.
+    test('<base> становится папкой игры', () {
+      expect(LudusaviManifest.toTemplate('<base>/saves'), '{GAME}/saves');
+    });
+
+    // Такие пути зависят от учётной записи в магазине или корня магазина:
     // подставить их вслепую нельзя.
     test('неизвестные плейсхолдеры отбрасываются', () {
-      expect(LudusaviManifest.toTemplate('<base>/saves'), isNull);
       expect(LudusaviManifest.toTemplate('<root>/userdata'), isNull);
       expect(LudusaviManifest.toTemplate('<home>/<storeUserId>/saves'), isNull);
     });
 
-    test('пути с масками отбрасываются', () {
-      expect(LudusaviManifest.toTemplate('<home>/*/saves'), isNull);
+    // Маску раскрывает файловая система, а не разбор базы: на какой машине
+    // какие профили заведены, здесь знать неоткуда.
+    test('маска доживает до шаблона', () {
+      expect(LudusaviManifest.toTemplate('<home>/*/saves'), '{HOME}/*/saves');
+    });
+
+    // А вот «на любую глубину» мы не берём: обход всего дерева ради
+    // сомнительной догадки дороже пользы.
+    test('маска на любую глубину отбрасывается', () {
+      expect(LudusaviManifest.toTemplate('<home>/**/saves'), isNull);
     });
 
     test('путь без единого плейсхолдера отбрасывается', () {
@@ -80,7 +92,7 @@ void main() {
       when: []
 Непереносимая:
   files:
-    <base>/saves:
+    <root>/userdata/<storeUserId>/saves:
       tags:
         - save
 ''';
@@ -137,6 +149,45 @@ void main() {
 
       expect(restored.entries.length, manifest.entries.length);
       expect(restored.entries.first, manifest.entries.first);
+    });
+  });
+
+  group('ветки реестра', () {
+    const sample = '''
+Пример Игры:
+  files:
+    <home>/Saves:
+      tags:
+        - save
+  registry:
+    HKEY_CURRENT_USER/Software/Studio/Game:
+      tags:
+        - save
+    HKEY_CURRENT_USER/Software/Studio/Settings:
+      tags:
+        - config
+''';
+
+    // Реестр мы не переносим, но и умолчать о нём нельзя: снимок вышел бы
+    // неполным, а человек решил бы, что забрал сейв целиком.
+    test('берутся только ветки с сохранениями', () {
+      final manifest = LudusaviManifest.parse(sample, platform: 'windows');
+      final entry = manifest.entries.single;
+
+      expect(entry.registryKeys, ['HKEY_CURRENT_USER/Software/Studio/Game']);
+    });
+
+    test('на других системах реестра нет', () {
+      final manifest = LudusaviManifest.parse(sample, platform: 'macos');
+
+      expect(manifest.entries.single.registryKeys, isEmpty);
+    });
+
+    test('ветки переживают сохранение и чтение', () {
+      final manifest = LudusaviManifest.parse(sample, platform: 'windows');
+      final restored = LudusaviManifest.fromJson(manifest.toJson());
+
+      expect(restored.entries.single.registryKeys, hasLength(1));
     });
   });
 }

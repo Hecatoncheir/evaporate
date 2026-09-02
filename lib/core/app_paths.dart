@@ -70,10 +70,6 @@ class AppPaths {
   /// пользователя, а состояние, которое меняется само.
   String get windowStateFile => p.join(dataDir, 'window.json');
 
-  /// Настройки встроенной копии Ludusavi. Отдельная папка нужна, чтобы
-  /// не переписать конфигурацию тому, у кого Ludusavi уже стоит своим.
-  String get ludusaviConfigDir => p.join(dataDir, 'ludusavi');
-
   /// Список загрузок движка: он переживает перезапуск приложения.
   String get engineStateFile => p.join(dataDir, 'downloads.json');
 

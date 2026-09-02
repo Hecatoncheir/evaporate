@@ -9,28 +9,18 @@ Evaporate распространяется под лицензией MIT (см. 
 
 ## Что входит в сборку
 
-### Ludusavi
-
-Открытый инструмент резервного копирования игровых сохранений, у которого
-приложение спрашивает пути. Кладётся рядом с исполняемым файлом при сборке.
-
-- Лицензия: MIT
-- Автор: mtkennerly
-- Исходники: https://github.com/mtkennerly/ludusavi
-- Тексты лицензий самого Ludusavi и всех его зависимостей кладутся в сборку
-  рядом с бинарником (папка `ludusavi-legal`).
-
-Бинарник в репозитории не хранится: он скачивается по закреплённой версии и
-сверяется по контрольной сумме (`tool/fetch_ludusavi.py`).
-
 ### Манифест путей сохранений
 
-База известных расположений сохранений — запасной источник, когда Ludusavi
-недоступен. В репозиторий не входит: скачивается приложением по требованию и
+База известных расположений сохранений — единственный источник, по которому
+приложение находит папки сейвов. Сама собрана из [PCGamingWiki][pcgw]. В
+репозиторий и в сборку не входит: скачивается приложением по требованию и
 хранится в кэше.
 
 - Лицензия: MIT
+- Автор: mtkennerly
 - Исходники: https://github.com/mtkennerly/ludusavi-manifest
+
+[pcgw]: https://www.pcgamingwiki.com/wiki/Home
 
 ### Шрифты
 
@@ -63,28 +53,18 @@ must honour them.
 
 ## Bundled with the builds
 
-### Ludusavi
+### Save-path manifest
 
-The open save-file backup tool the app asks for save locations. Placed next to
-the executable at build time.
+The database of known save locations — the only source the app uses to find
+save folders. Compiled from [PCGamingWiki][pcgw] itself. Part of neither the
+repository nor the builds: the app downloads it on demand and keeps it in its
+cache.
 
 - License: MIT
 - Author: mtkennerly
-- Source: https://github.com/mtkennerly/ludusavi
-- The license texts of Ludusavi and all of its dependencies are placed in the
-  build next to the binary (the `ludusavi-legal` folder).
-
-The binary is not stored in this repository: it is downloaded at a pinned
-version and verified against a checksum (`tool/fetch_ludusavi.py`).
-
-### Save-path manifest
-
-The database of known save locations — the fallback when Ludusavi is
-unavailable. Not part of the repository: the app downloads it on demand and
-keeps it in its cache.
-
-- License: MIT
 - Source: https://github.com/mtkennerly/ludusavi-manifest
+
+[pcgw]: https://www.pcgamingwiki.com/wiki/Home
 
 ### Fonts
 

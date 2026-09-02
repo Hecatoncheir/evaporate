@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/core/save_path_template.dart';
+import 'package:evaporate/models/save_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -77,6 +78,85 @@ void main() {
       };
 
       expect(results, hasLength(1));
+    });
+  });
+
+  group('папка игры', () {
+    test('{GAME} разворачивается в папку установки', () {
+      expect(
+        SavePathTemplate.expand('{GAME}/saves', gameDir: '/opt/hk'),
+        p.join('/opt/hk', 'saves'),
+      );
+    });
+
+    // Пустить такой путь дальше значило бы искать папку с фигурными
+    // скобками в имени — она не нашлась бы никогда, и молча.
+    test('без папки установки плейсхолдер остаётся на месте', () {
+      expect(SavePathTemplate.expand('{GAME}/saves'), contains('{GAME}'));
+      expect(SavePathTemplate.needsGameDir('{GAME}/saves'), isTrue);
+      expect(SavePathTemplate.needsGameDir('{HOME}/saves'), isFalse);
+    });
+
+    test('путь внутри игры сворачивается в {GAME}', () {
+      final dir = p.join('/opt', 'hk');
+      expect(
+        SavePathTemplate.collapse(p.join(dir, 'saves'), gameDir: dir),
+        '{GAME}/saves',
+      );
+      expect(SavePathTemplate.collapse(dir, gameDir: dir), '{GAME}');
+    });
+
+    // Игра может стоять внутри домашней папки. Свернись такой путь в
+    // {HOME}, на другом устройстве с другой папкой игры он не нашёлся бы.
+    test('папка игры важнее домашней', () {
+      final home = SavePathTemplate.expand(SavePathTemplate.home);
+      final dir = p.join(home, 'Games', 'HK');
+
+      expect(
+        SavePathTemplate.collapse(p.join(dir, 'saves'), gameDir: dir),
+        '{GAME}/saves',
+      );
+    });
+
+    test('{GAME} считается переносимым', () {
+      expect(SavePathTemplate.isPortable('{GAME}/saves'), isTrue);
+    });
+  });
+
+  group('метки для набора путей', () {
+    test('единственному пути — метка по умолчанию', () {
+      expect(SavePathRule.labelsFor(['{HOME}/saves']), [
+        SavePathRule.defaultLabel,
+      ]);
+    });
+
+    test('разные имена папок становятся метками', () {
+      expect(
+        SavePathRule.labelsFor(['{HOME}/game/saves', '{HOME}/game/config']),
+        ['saves', 'config'],
+      );
+    });
+
+    // Одинаковые метки склеили бы разные сейвы при переносе на другое
+    // устройство: сопоставление идёт именно по метке.
+    test('совпавшие имена разводятся родительской папкой', () {
+      expect(
+        SavePathRule.labelsFor([
+          '{GAME}/profiles/alice/save',
+          '{GAME}/profiles/bob/save',
+        ]),
+        ['alice/save', 'bob/save'],
+      );
+    });
+
+    test('метки всегда различны', () {
+      final labels = SavePathRule.labelsFor([
+        '{HOME}/a/save',
+        '{HOME}/b/save',
+        '{HOME}/a/b/save',
+      ]);
+
+      expect(labels.toSet(), hasLength(3));
     });
   });
 }

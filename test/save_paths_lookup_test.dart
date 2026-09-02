@@ -5,8 +5,8 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/core/save_path_template.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/saves/ludusavi_catalog.dart';
-import 'package:evaporate/services/saves/ludusavi_cli.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -16,18 +16,6 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   final opened = <LibraryBloc>[];
-
-  /// Манифест с той же игрой, что знает и Ludusavi: так видно, кто из двух
-  /// источников выиграл.
-  const manifestYaml = '''
-Hollow Knight:
-  files:
-    <home>/ИзМанифеста:
-      tags:
-        - save
-''';
-
-  const findBody = '{"games": {"Hollow Knight": {"score": 1.0}}}';
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_paths_');
@@ -53,11 +41,10 @@ Hollow Knight:
     }
   });
 
-  LibraryBloc blocWith({required ProcessRun run}) {
+  LibraryBloc blocWith(String manifestYaml) {
     final bloc = LibraryBloc(
       paths: paths,
       settings: settings,
-      ludusavi: LudusaviCli(run: run),
       savePaths: LudusaviCatalog(
         cacheFile: p.join(tmp.path, 'paths.json'),
         fetch: (uri) async => manifestYaml,
@@ -65,21 +52,6 @@ Hollow Knight:
     );
     opened.add(bloc);
     return bloc;
-  }
-
-  /// Ludusavi установлен и знает игру.
-  ProcessRun answering({required String preview}) {
-    return (exe, args) async {
-      if (args.contains('--version')) {
-        return ProcessResult(0, 0, 'ludusavi 0.29.1', '');
-      }
-      if (args.contains('find')) return ProcessResult(0, 0, findBody, '');
-      return ProcessResult(0, 0, preview, '');
-    };
-  }
-
-  Future<ProcessResult> notInstalled(String exe, List<String> args) async {
-    throw ProcessException(exe, args, 'нет файла', 2);
   }
 
   Future<LibraryState> waitFor(
@@ -92,9 +64,13 @@ Hollow Knight:
         .timeout(const Duration(seconds: 10));
   }
 
-  Future<Game> addGame(LibraryBloc bloc, String title) async {
+  Future<Game> addGame(
+    LibraryBloc bloc,
+    String title, {
+    String? installDir,
+  }) async {
     final id = const Uuid().v4();
-    bloc.add(GameAdded(id: id, title: title));
+    bloc.add(GameAdded(id: id, title: title, installDir: installDir));
     final state = await waitFor(bloc, (s) => s.gameById(id) != null);
     return state.gameById(id)!;
   }
@@ -112,25 +88,14 @@ Hollow Knight:
     );
   }
 
-  test('пути берутся у Ludusavi, а не из манифеста', () async {
-    final dir = p.join(SavePathTemplate.expand('{APPSUPPORT}'), 'HK');
-    final preview =
-        '{"games": {"Hollow Knight": {"files": {'
-        '"${p.join(dir, 'user1.dat').replaceAll(r'\', r'\\')}": '
-        '{"ignored": false, "failed": false}}}}}';
-    final bloc = blocWith(run: answering(preview: preview));
-
-    final game = await addGame(bloc, 'Hollow Knight');
-    final state = await lookup(bloc, game);
-
-    final rules = state.gameById(game.id)!.saveProfile.rules;
-    expect(rules, hasLength(1));
-    expect(SavePathTemplate.expand(rules.single.template), dir);
-    expect(state.notice!.message, contains('из Ludusavi'));
-  });
-
-  test('без установленного Ludusavi работает манифест', () async {
-    final bloc = blocWith(run: notInstalled);
+  test('путь из базы становится правилом', () async {
+    final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <home>/ИзМанифеста:
+      tags:
+        - save
+''');
 
     final game = await addGame(bloc, 'Hollow Knight');
     final state = await lookup(bloc, game);
@@ -141,27 +106,80 @@ Hollow Knight:
     expect(state.notice!.message, contains('из базы'));
   });
 
-  // Установленный, но сломанный Ludusavi не должен отбирать у нас манифест.
-  test('сбой Ludusavi не отменяет запасной источник', () async {
-    final bloc = blocWith(
-      run: (exe, args) async {
-        if (args.contains('--version')) {
-          return ProcessResult(0, 0, 'ludusavi 0.29.1', '');
-        }
-        return ProcessResult(0, 0, 'паника: манифест повреждён', '');
-      },
-    );
+  // Ради этого и получилось отказаться от бинарника Ludusavi: `<base>` —
+  // самый частый плейсхолдер базы, а папку установки лончер знает сам.
+  test('<base> разворачивается в папку игры', () async {
+    final installDir = p.join(tmp.path, 'games', 'HK');
+    await Directory(p.join(installDir, 'saves')).create(recursive: true);
 
-    final game = await addGame(bloc, 'Hollow Knight');
+    final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <base>/saves:
+      tags:
+        - save
+''');
+
+    final game = await addGame(bloc, 'Hollow Knight', installDir: installDir);
     final state = await lookup(bloc, game);
 
-    expect(state.gameById(game.id)!.saveProfile.rules, hasLength(1));
-    expect(state.notice!.message, contains('из базы'));
-    expect(state.notice!.isError, isFalse);
+    final rule = state.gameById(game.id)!.saveProfile.rules.single;
+    expect(rule.template, '{GAME}/saves');
+    expect(rule.resolve(gameDir: installDir), p.join(installDir, 'saves'));
+    // Шаблон переносимый: на другом устройстве игра стоит в другом месте,
+    // и правило разворачивается туда.
+    expect(rule.isPortable, isTrue);
+  });
+
+  test('маска раскрывается по тому, что лежит на диске', () async {
+    final installDir = p.join(tmp.path, 'games', 'HK');
+    await Directory(p.join(installDir, 'profiles', 'alice', 'save'))
+        .create(recursive: true);
+    await Directory(p.join(installDir, 'profiles', 'bob', 'save'))
+        .create(recursive: true);
+
+    final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <base>/profiles/*/save:
+      tags:
+        - save
+''');
+
+    final game = await addGame(bloc, 'Hollow Knight', installDir: installDir);
+    final state = await lookup(bloc, game);
+
+    final rules = state.gameById(game.id)!.saveProfile.rules;
+    expect(rules, hasLength(2));
+    expect(rules.map((r) => r.template).toSet(), {
+      '{GAME}/profiles/alice/save',
+      '{GAME}/profiles/bob/save',
+    });
+    // Одинаковые метки склеили бы разные сейвы при переносе.
+    expect(rules.map((r) => r.label).toSet(), {'alice/save', 'bob/save'});
+  });
+
+  test('маска без совпадений правил не создаёт', () async {
+    final installDir = p.join(tmp.path, 'games', 'HK');
+    await Directory(installDir).create(recursive: true);
+
+    final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <base>/profiles/*/save:
+      tags:
+        - save
+''');
+
+    final game = await addGame(bloc, 'Hollow Knight', installDir: installDir);
+    final state = await lookup(bloc, game);
+
+    expect(state.gameById(game.id)!.saveProfile.rules, isEmpty);
+    expect(state.notice!.message, contains('ничего не нашлось'));
   });
 
   test('игра, которой нет нигде, честно об этом сообщает', () async {
-    final bloc = blocWith(run: notInstalled);
+    final bloc = blocWith('Hollow Knight:\n  files:\n');
 
     final game = await addGame(bloc, 'Своя Игра Без Базы');
     final state = await lookup(bloc, game);
@@ -171,28 +189,39 @@ Hollow Knight:
   });
 
   // Реестр мы не переносим: промолчать значило бы обмануть.
-  test('о ветках реестра сообщается отдельно', () async {
-    final dir = p.join(SavePathTemplate.expand('{APPSUPPORT}'), 'HK');
-    final preview =
-        '{"games": {"Hollow Knight": {"files": {'
-        '"${p.join(dir, 'user1.dat').replaceAll(r'\', r'\\')}": '
-        '{"ignored": false, "failed": false}}, '
-        '"registry": {"HKEY_CURRENT_USER/Software/HK": {"failed": false}}}}}';
-    final bloc = blocWith(run: answering(preview: preview));
+  test(
+    'о ветках реестра сообщается отдельно',
+    () async {
+      final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <home>/ИзМанифеста:
+      tags:
+        - save
+  registry:
+    HKEY_CURRENT_USER/Software/HK:
+      tags:
+        - save
+''');
 
-    final game = await addGame(bloc, 'Hollow Knight');
-    final state = await lookup(bloc, game);
+      final game = await addGame(bloc, 'Hollow Knight');
+      final state = await lookup(bloc, game);
 
-    expect(state.notice!.message, contains('в реестре осталось веток: 1'));
-  });
+      expect(state.notice!.message, contains('в реестре осталось веток: 1'));
+    },
+    // Ветки реестра попадают в указатель только на Windows: на других
+    // системах они не значат ничего.
+    skip: !Platform.isWindows,
+  );
 
   test('повторный запрос не плодит одинаковые правила', () async {
-    final dir = p.join(SavePathTemplate.expand('{APPSUPPORT}'), 'HK');
-    final preview =
-        '{"games": {"Hollow Knight": {"files": {'
-        '"${p.join(dir, 'user1.dat').replaceAll(r'\', r'\\')}": '
-        '{"ignored": false, "failed": false}}}}}';
-    final bloc = blocWith(run: answering(preview: preview));
+    final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <home>/ИзМанифеста:
+      tags:
+        - save
+''');
 
     final game = await addGame(bloc, 'Hollow Knight');
     await lookup(bloc, game);
@@ -201,5 +230,17 @@ Hollow Knight:
 
     expect(state.gameById(game.id)!.saveProfile.rules, hasLength(1));
     expect(state.notice!.message, contains('уже заданы'));
+  });
+
+  test('шаблон без папки игры не разворачивается в мусор', () {
+    final rule = SavePathRule(
+      id: 'r1',
+      label: SavePathRule.defaultLabel,
+      template: '{GAME}/saves',
+    );
+
+    expect(rule.resolve(), isNull);
+    expect(rule.resolve(gameDir: '/opt/hk'), p.join('/opt/hk', 'saves'));
+    expect(SavePathTemplate.needsGameDir(rule.template), isTrue);
   });
 }

@@ -9,22 +9,31 @@ class LudusaviEntry extends Equatable {
   const LudusaviEntry({
     required this.title,
     required this.templates,
+    this.registryKeys = const [],
     this.steamId,
   });
 
   final String title;
 
   /// Пути в наших шаблонах — уже отфильтрованные по текущей платформе.
+  /// Могут содержать маски: раскрывать их можно только на живой файловой
+  /// системе, а база о ней ничего не знает.
   final List<String> templates;
+
+  /// Ветки реестра Windows, где игра держит сохранения. Переносить их мы не
+  /// умеем, но молчать нельзя: иначе снимок выйдет неполным, а человек
+  /// решит, что забрал сейв целиком.
+  final List<String> registryKeys;
 
   /// Идентификатор в Steam, если он известен базе.
   final int? steamId;
 
-  bool get isEmpty => templates.isEmpty;
+  bool get isEmpty => templates.isEmpty && registryKeys.isEmpty;
 
   Map<String, dynamic> toJson() => {
     'title': title,
     'templates': templates,
+    if (registryKeys.isNotEmpty) 'registry': registryKeys,
     if (steamId != null) 'steamId': steamId,
   };
 
@@ -33,11 +42,14 @@ class LudusaviEntry extends Equatable {
     templates: (json['templates'] as List<dynamic>)
         .map((e) => e.toString())
         .toList(),
+    registryKeys: (json['registry'] as List<dynamic>? ?? const [])
+        .map((e) => e.toString())
+        .toList(),
     steamId: json['steamId'] as int?,
   );
 
   @override
-  List<Object?> get props => [title, templates, steamId];
+  List<Object?> get props => [title, templates, registryKeys, steamId];
 }
 
 /// Разбор манифеста Ludusavi — открытой базы расположения сохранений.
@@ -56,6 +68,11 @@ class LudusaviManifest {
   /// Плейсхолдеры базы в наши. То, чего в списке нет, мы развернуть не
   /// умеем — такие пути отбрасываются, чтобы не подсунуть мусор.
   static const _placeholders = {
+    // `<base>` — папка, куда поставлена игра. Самый частый плейсхолдер базы
+    // и единственная причина, по которой рядом когда-то стоял Ludusavi: он
+    // вычислял её обходом папок Steam и GOG. Лончер, который сам поставил
+    // игру, знает её точно, поэтому здесь она просто переносится в шаблон.
+    '<base>': SavePathTemplate.game,
     '<home>': SavePathTemplate.home,
     '<winAppData>': SavePathTemplate.appData,
     '<winLocalAppData>': SavePathTemplate.localAppData,
@@ -67,7 +84,6 @@ class LudusaviManifest {
   /// Плейсхолдеры, которые зависят от учётной записи в магазине или от
   /// папки установки: подставить их вслепую нельзя.
   static const _unsupported = {
-    '<base>',
     '<root>',
     '<game>',
     '<storeUserId>',
@@ -95,9 +111,9 @@ class LudusaviManifest {
     }
     if (!replaced) return null;
 
-    // Маски вида `*` база использует для «любой профиль»; развернуть их
-    // мы не умеем, а частичный путь только запутает.
-    if (path.contains('*')) return null;
+    // Маска `**` означает «на любую глубину». Спускаться по всему дереву
+    // ради неё мы не станем: сейвы так не ищут, а обход чужих папок дорог.
+    if (path.contains('**')) return null;
 
     return path.replaceAll(RegExp(r'/{2,}'), '/');
   }
@@ -116,11 +132,21 @@ class LudusaviManifest {
       if (game is! YamlMap) continue;
 
       final templates = _templatesFor(game['files'], os);
+      // Реестр есть только на Windows; на других системах эти ветки не
+      // значат ничего и в указатель не попадают.
+      final registry = os == 'windows'
+          ? _registryFor(game['registry'])
+          : const <String>[];
       final steamId = _steamId(game['steam']);
-      if (templates.isEmpty && steamId == null) continue;
+      if (templates.isEmpty && registry.isEmpty && steamId == null) continue;
 
       entries.add(
-        LudusaviEntry(title: title, templates: templates, steamId: steamId),
+        LudusaviEntry(
+          title: title,
+          templates: templates,
+          registryKeys: registry,
+          steamId: steamId,
+        ),
       );
     }
     return LudusaviManifest(entries);
@@ -145,6 +171,21 @@ class LudusaviManifest {
       }
     }
     return templates;
+  }
+
+  static List<String> _registryFor(Object? registry) {
+    if (registry is! YamlMap) return const [];
+
+    final keys = <String>[];
+    for (final item in registry.entries) {
+      final meta = item.value;
+      if (meta is! YamlMap) continue;
+      final tags = meta['tags'];
+      if (tags is! YamlList || !tags.contains('save')) continue;
+      final key = item.key.toString().trim();
+      if (key.isNotEmpty && !keys.contains(key)) keys.add(key);
+    }
+    return keys;
   }
 
   /// Пустое условие означает «на всех системах».

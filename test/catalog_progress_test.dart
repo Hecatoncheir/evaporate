@@ -5,7 +5,6 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/catalog_progress.dart';
 import 'package:evaporate/services/saves/ludusavi_catalog.dart';
-import 'package:evaporate/services/saves/ludusavi_cli.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -102,10 +101,6 @@ void main() {
         savePaths: LudusaviCatalog(
           cacheFile: p.join(tmp.path, 'paths.json'),
           fetch: (uri) async => 'Игра:\n  files:\n',
-        ),
-        ludusavi: LudusaviCli(
-          run: (exe, args) async =>
-              throw ProcessException(exe, args, 'нет файла', 2),
         ),
       );
     });

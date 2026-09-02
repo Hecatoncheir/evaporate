@@ -109,7 +109,10 @@ class SaveManager {
     var totalBytes = 0;
 
     for (final rule in rules) {
-      final resolved = rule.resolve();
+      final resolved = rule.resolve(gameDir: game.installDir);
+      // Игра не установлена, а правило указывает внутрь её папки — брать
+      // нечего, и это не ошибка.
+      if (resolved == null) continue;
       final collected = await _collect(rule, resolved);
       if (collected.isEmpty) continue;
       usedRules.add(rule);
@@ -181,7 +184,8 @@ class SaveManager {
     DateTime? newest;
 
     for (final rule in game.saveProfile.rulesForCurrentPlatform) {
-      final resolved = rule.resolve();
+      final resolved = rule.resolve(gameDir: game.installDir);
+      if (resolved == null) continue;
 
       final file = File(resolved);
       if (await file.exists()) {
@@ -295,7 +299,11 @@ class SaveManager {
         unresolved.add(rule.label);
         continue;
       }
-      final resolved = local.resolve();
+      final resolved = local.resolve(gameDir: game.installDir);
+      if (resolved == null) {
+        unresolved.add(rule.label);
+        continue;
+      }
       targetByRuleId[rule.id] = resolved;
       targets[local.label] = resolved;
     }

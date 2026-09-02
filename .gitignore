@@ -47,8 +47,9 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Ludusavi скачивается сборкой по закреплённой версии, а не хранится тут.
-/third_party/ludusavi/
 
 # Строки интерфейса генерируются из lib/l10n/*.arb при pub get.
 lib/l10n/app_localizations*.dart
+
+# Собранное и скачанное сюда не коммитится.
+/third_party/

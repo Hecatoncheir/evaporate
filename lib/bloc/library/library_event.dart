@@ -183,7 +183,7 @@ final class SteamLookupRequested extends LibraryEvent {
   List<Object?> get props => [game.id, query];
 }
 
-/// Подобрать папки сохранений по открытой базе Ludusavi.
+/// Подобрать папки сохранений по открытой базе путей.
 final class SavePathsLookupRequested extends LibraryEvent {
   const SavePathsLookupRequested(this.game, {this.refresh = false});
 

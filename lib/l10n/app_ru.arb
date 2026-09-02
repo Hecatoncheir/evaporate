@@ -244,13 +244,6 @@
       }
     }
   },
-  "@ludusaviLaunchFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
   "@magnetParseFailed": {
     "placeholders": {
       "error": {
@@ -807,11 +800,6 @@
   "limitUploadNote": "Раздача — плата за скачанное, совсем перекрывать не стоит",
   "limitWhilePlaying": "Приём, пока идёт игра",
   "localFolderNote": "Игра уже на диске: скачивать ничего не нужно, приложение только запомнит её и попробует найти исполняемый файл.",
-  "ludusaviBadJson": "Ludusavi ответил не в формате JSON",
-  "ludusaviFindOurselves": "искать самим",
-  "ludusaviLaunchFailed": "Не удалось запустить Ludusavi: {error}",
-  "ludusaviNote": "Пути сохранений берутся у Ludusavi — он идёт в комплекте, ставить отдельно ничего не нужно. Здесь можно указать свою копию: её настройки могут знать про нестандартные папки с играми. Если Ludusavi недоступен, работает встроенная база путей — она покрывает меньше случаев, но не требует ничего.",
-  "ludusaviOptional": "Ludusavi (необязательно)",
   "magnetParseFailed": "Не удалось разобрать ссылку: {error}",
   "menuEntryAdd": "Добавить в меню",
   "menuEntryAdded": "Приложение есть в меню",
@@ -987,7 +975,6 @@
   "source": "Источник",
   "sourceDatabase": "базы",
   "sourceFolder": "Папка",
-  "sourceLudusavi": "Ludusavi",
   "sourceMagnet": "Magnet-ссылка",
   "sourceTorrent": "Torrent-файл",
   "speedPerSecond": "{value}/с",

@@ -23,8 +23,8 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 - **Saves** — `.evsave` snapshots, an automatic snapshot after you quit a game,
   restore with a safety backup, export and import, a sync folder, and moving
   the whole library's saves in one action.
-- **Save locations** — found automatically through the bundled Ludusavi and a
-  built-in path database, so you rarely have to type a path by hand.
+- **Save locations** — found automatically from an open database of known
+  paths, so you rarely have to type a path by hand.
 
 ## Controls: mouse, keyboard, gamepad
 
@@ -140,22 +140,32 @@ dialog lets you override the check deliberately.
 
 Typing save paths by hand for every game is the tedium this feature removes.
 
-**Ludusavi ships with the app**, so there is nothing extra to install. It knows
-where games are installed and which store accounts exist, so it resolves paths
-that a manifest alone cannot. If it is missing or cannot run, the app falls
-back to the built-in path database, which covers fewer cases but needs nothing.
+The source is the [Ludusavi manifest](https://github.com/mtkennerly/ludusavi-manifest):
+an open database compiled from [PCGamingWiki](https://www.pcgamingwiki.com/wiki/Home).
+Fifty-three thousand games, MIT licensed. It is downloaded on demand and kept
+in the cache; nothing ships in the repository or in the builds.
 
-The bundled copy gets its own configuration directory, so it never rewrites the
-settings of a Ludusavi you installed yourself. A copy you point at explicitly
-keeps its own configuration, which may know about non-standard game folders.
+The database writes paths with placeholders rather than ready-made. Two of them
+are resolved on the spot:
 
-The binary is not stored in this repository: it is downloaded at a pinned
-version and verified against a checksum, and the build refuses to proceed
-without one. License texts ship alongside it, as the MIT license requires.
+- `<base>` — the game's own folder, **the most common placeholder in the
+  database**. The launcher knows it exactly: it installed the game. It becomes
+  `{GAME}` in the rule and expands to the local folder on any other machine.
+- the "any profile" wildcard (`*`) is expanded against what is actually on
+  disk, so the rule ends up holding concrete paths.
 
-One limitation worth stating: the macOS release of Ludusavi is **arm64 only**,
-so on Intel Macs the bundled copy will not run and the built-in database takes
-over. The app handles that quietly — a copy that cannot run is simply skipped.
+What stays unresolvable are the paths that go through a store account
+(`<storeUserId>`) or another launcher's root (`<root>`). That is Steam cloud;
+the games Evaporate installs do not have it.
+
+The database knows the Windows registry keys too. The app cannot transfer them,
+but it does not keep quiet either: when a game keeps its saves in the registry,
+it says so — otherwise the snapshot would come out incomplete without a word.
+
+**Ludusavi** itself used to ship alongside — the binary that resolved `<base>`
+by walking Steam and GOG folders. A launcher that installs the games has
+nothing to guess, so the binary is gone, and with it the pinned checksums, the
+subprocess, and the fact that the macOS release of Ludusavi is arm64 only.
 
 ## System integration
 
@@ -197,12 +207,6 @@ Tests:
 flutter test
 ```
 
-Fetch the bundled Ludusavi before building a release:
-
-```bash
-python3 tool/fetch_ludusavi.py
-```
-
 Redraw the application icon:
 
 ```bash
@@ -216,7 +220,7 @@ python3 tool/make_icon.py
 | Job | Runner | What it does |
 |-----|--------|--------------|
 | Analyse and test | ubuntu | `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` |
-| Build macOS | macos | the `.app`, with Ludusavi nested and re-signed, packed with `ditto` |
+| Build macOS | macos | the `.app`, packed with `ditto` |
 | Build Linux | ubuntu | a bundle with every dependency, packed as `.tar.gz` |
 | Build Windows | windows | the Release directory, packed as `.zip` |
 | Attach to release | ubuntu | uploads the archives to the release for a `v*` tag |
@@ -233,10 +237,9 @@ tests to pass (`needs: analyze`).
 
 Most tests need neither Xcode, nor the network, nor a gamepad: the engine is
 created with `autoStart: false` and the queue is exercised without a single
-connection, while controller events are fed straight past the plugin. Two
-checks are the exception and run only where they can: the registry side of
-launch-at-login runs on the Windows job, and the parsing of Ludusavi's real
-output runs wherever the bundled binary matches the architecture.
+connection, while controller events are fed straight past the plugin. One
+check is the exception: the registry side of launch-at-login runs on the
+Windows job and is skipped everywhere else.
 
 The Flutter version is pinned in `env.FLUTTER_VERSION`. To always take the
 latest stable, drop `flutter-version` and keep `channel: stable`.
@@ -255,12 +258,12 @@ lib/
   models/        Game, AppSettings, SaveProfile, SaveSnapshot, DownloadTask
   services/
     download/    DownloadEngine (abstraction) + dtorrent: queue and proxy
-    saves/       snapshot packing, Ludusavi manifest and CLI, path discovery
+    saves/       snapshot packing, the path database, path discovery
     launch/      running games, finding executables
     metadata/    release-name cleanup, Steam catalogue lookup
     system/      autostart, window geometry, update check
   ui/            shell, library, downloads, saves, settings
-tool/            icon generation, fetching and bundling Ludusavi
+tool/            icon generation and helper scripts
 ```
 
 ## State: Bloc with events, plus provider
@@ -338,7 +341,7 @@ Bug reports, translation fixes and notes about clumsy wording are welcome —
 ## License
 
 Evaporate is distributed under the [MIT license](LICENSE). It ships with work
-by others under their own terms — Ludusavi under MIT and three fonts under the
+by others under their own terms — the path database under MIT and three fonts under the
 OFL; they are all listed in [NOTICE.md](NOTICE.md).
 
 ## Platform notes

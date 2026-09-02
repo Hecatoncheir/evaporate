@@ -199,30 +199,6 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              _PathSetting(
-                label: L.of(context).ludusaviOptional,
-                value:
-                    settings.ludusaviPath ??
-                    L.of(context).ludusaviFindOurselves,
-                onPick: () async {
-                  final file = await openFile();
-                  if (file == null) return;
-                  update(settings.copyWith(ludusaviPath: file.path));
-                },
-                onClear: settings.ludusaviPath == null
-                    ? null
-                    : () => update(settings.copyWith(ludusaviPath: null)),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                L.of(context).ludusaviNote,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: context.colors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 6),
               _LanguagePicker(
                 value: settings.locale,
                 onChanged: (code) => update(settings.copyWith(locale: code)),

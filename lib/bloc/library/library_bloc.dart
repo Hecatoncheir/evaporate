@@ -20,7 +20,7 @@ import '../../services/launch/game_launcher.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../services/saves/ludusavi_catalog.dart';
-import '../../services/saves/ludusavi_cli.dart';
+import '../../services/saves/save_path_globs.dart';
 import '../../services/saves/save_manager.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -41,7 +41,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     NotificationService? notifications,
     SteamCatalog? steam,
     LudusaviCatalog? savePaths,
-    LudusaviCli? ludusavi,
     L Function()? localizations,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        savePaths =
@@ -49,12 +48,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
            LudusaviCatalog(
              cacheFile: paths.savePathsCacheFile,
              proxy: () => settings.state.proxy,
-           ),
-       ludusavi =
-           ludusavi ??
-           LudusaviCli(
-             configuredPath: () => settings.state.ludusaviPath,
-             configDir: paths.ludusaviConfigDir,
            ),
        _localizations = localizations ?? _defaultLocalizations,
        notifications = notifications ?? const NoopNotificationService(),
@@ -110,9 +103,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// пришлось бы делать руками для каждой игры.
   final LudusaviCatalog savePaths;
 
-  /// Установленный Ludusavi, если он есть. Он знает, где стоят игры,
-  /// и разворачивает пути, неразрешимые по одному манифесту.
-  final LudusaviCli ludusavi;
   final JsonStore _store;
   final SaveManager _saves;
   final GameLauncher _launcher;
@@ -600,43 +590,40 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Подбирает папки сохранений по базе. Уже заданные правила не трогаем:
   /// пользователь мог поправить путь под себя.
-  /// Откуда брать пути: сначала установленный Ludusavi, затем манифест.
-  ///
-  /// Ludusavi точнее: он знает папки установки и учётные записи магазинов,
-  /// поэтому отдаёт и те пути, которые в манифесте записаны через
-  /// неразрешимые плейсхолдеры. Но требовать его установки нельзя, и
-  /// манифест остаётся рабочим запасным вариантом.
   void _onSavePathsProgress(
     SavePathsProgressChanged event,
     Emitter<LibraryState> emit,
   ) => emit(state.copyWith(savePathsProgress: event.progress));
 
+  /// Ищет пути в базе и доводит их до состояния, пригодного для правила.
+  ///
+  /// База пишет пути с масками («любой профиль») и плейсхолдером `<base>` —
+  /// папкой самой игры. Первое раскрывается по тому, что лежит на диске,
+  /// второе мы знаем сами: игру ставил этот же лончер.
   Future<_FoundPaths?> _lookupPaths(SavePathsLookupRequested event) async {
-    try {
-      final scan = await ludusavi.lookup(
-        title: event.game.title,
-        steamAppId: event.game.steamAppId,
-      );
-      if (scan != null && !scan.isEmpty) {
-        return _FoundPaths(
-          title: scan.title,
-          templates: scan.templates,
-          registryKeys: scan.registryKeys,
-          fromCli: true,
-        );
-      }
-    } on LudusaviCliException {
-      // Ludusavi установлен, но ответить не смог. Это не повод отказываться
-      // от манифеста: он покрывает большинство игр и ничего не требует.
-    }
-
     await savePaths.ensureLoaded(refresh: event.refresh);
     final entry = savePaths.find(
       title: event.game.title,
       steamAppId: event.game.steamAppId,
     );
     if (entry == null) return null;
-    return _FoundPaths(title: entry.title, templates: entry.templates);
+
+    final gameDir = event.game.installDir;
+    final templates = <String>[];
+    for (final template in entry.templates) {
+      for (final resolved in await SavePathGlobs.expand(
+        template,
+        gameDir: gameDir,
+      )) {
+        if (!templates.contains(resolved)) templates.add(resolved);
+      }
+    }
+
+    return _FoundPaths(
+      title: entry.title,
+      templates: SavePathRule.withoutNested(templates),
+      registryKeys: entry.registryKeys,
+    );
   }
 
   Future<void> _onSavePathsLookup(
@@ -1011,28 +998,24 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
 /// Найденные пути и то, откуда они взялись.
 class _FoundPaths {
-  const _FoundPaths({
+  _FoundPaths({
     required this.title,
     required this.templates,
     this.registryKeys = const [],
-    this.fromCli = false,
   });
 
   final String title;
   final List<String> templates;
   final List<String> registryKeys;
-  final bool fromCli;
 
   bool get isEmpty => templates.isEmpty;
 
-  /// У Ludusavi имя папки осмысленное, и по нему сейвы сопоставляются
-  /// между устройствами. У манифеста путь один на игру — метка не нужна.
-  String labelFor(String template) =>
-      fromCli ? LudusaviCli.labelFor(template) : SavePathRule.defaultLabel;
+  late final List<String> _labels = SavePathRule.labelsFor(templates);
+
+  String labelFor(String template) => _labels[templates.indexOf(template)];
 
   String describe(L l, int added) {
-    final source = fromCli ? l.sourceLudusavi : l.sourceDatabase;
-    final message = l.noticePathsAdded(source, added, title);
+    final message = l.noticePathsAdded(l.sourceDatabase, added, title);
     if (registryKeys.isEmpty) return message;
     // Реестр мы не переносим, но умолчать о нём нельзя: иначе пользователь
     // решит, что забрал сейв целиком.

@@ -13,15 +13,8 @@ flutter test
 ```
 
 Тестам не нужны ни сеть, ни геймпад, ни собранное приложение. Часть
-пропускается там, где проверять нечем: работа с реестром — вне Windows,
-разбор настоящего вывода Ludusavi — если бинарника нет или он не той
-архитектуры. Это нормально, красным они не горят.
-
-Перед сборкой релиза бинарник Ludusavi кладётся отдельной командой:
-
-```bash
-python3 tool/fetch_ludusavi.py
-```
+пропускается там, где проверять нечем: работа с реестром и ветки реестра из
+базы путей — вне Windows. Это нормально, красным они не горят.
 
 Для сборки под Linux нужен `libayatana-appindicator3-dev` — без него не
 соберётся значок в трее. Для сборки под macOS — полный Xcode, не только
@@ -94,15 +87,9 @@ flutter test
 ```
 
 The tests need neither the network, nor a gamepad, nor a built app. Some are
-skipped where there is nothing to check against: the registry work outside
-Windows, the parsing of Ludusavi's real output when the binary is missing or
-of the wrong architecture. That is expected, not a failure.
-
-Before building a release, the Ludusavi binary is fetched separately:
-
-```bash
-python3 tool/fetch_ludusavi.py
-```
+skipped where there is nothing to check against: the registry work, and the
+registry keys from the path database, outside Windows. That is expected, not a
+failure.
 
 Building for Linux needs `libayatana-appindicator3-dev` — the tray icon will
 not compile without it. Building for macOS needs full Xcode, not just the

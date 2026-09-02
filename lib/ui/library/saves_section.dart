@@ -111,6 +111,7 @@ class SavePathsSection extends StatelessWidget {
                 for (final rule in rules)
                   _RuleTile(
                     rule: rule,
+                    gameDir: game.installDir,
                     onRemove: () => _removeRule(context, rule),
                   ),
                 const SizedBox(height: 10),
@@ -123,7 +124,10 @@ class SavePathsSection extends StatelessWidget {
   Future<void> _addRule(BuildContext context) async {
     final dir = await getDirectoryPath(confirmButtonText: L.of(context).choose);
     if (dir == null || !context.mounted) return;
-    await _saveRule(context, template: SavePathTemplate.collapse(dir));
+    await _saveRule(
+      context,
+      template: SavePathTemplate.collapse(dir, gameDir: game.installDir),
+    );
   }
 
   Future<void> _saveRule(
@@ -139,6 +143,7 @@ class SavePathsSection extends StatelessWidget {
       builder: (_) => _RuleDialog(
         template: template,
         label: label ?? SavePathRule.defaultLabel,
+        gameDir: game.installDir,
       ),
     );
     if (result == null) return;
@@ -197,16 +202,22 @@ class SavePathsSection extends StatelessWidget {
 }
 
 class _RuleTile extends StatelessWidget {
-  const _RuleTile({required this.rule, required this.onRemove});
+  const _RuleTile({
+    required this.rule,
+    required this.gameDir,
+    required this.onRemove,
+  });
 
   final SavePathRule rule;
+  final String? gameDir;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    final resolved = rule.resolve();
+    final resolved = rule.resolve(gameDir: gameDir);
     final exists =
-        Directory(resolved).existsSync() || File(resolved).existsSync();
+        resolved != null &&
+        (Directory(resolved).existsSync() || File(resolved).existsSync());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -592,10 +603,18 @@ class _RuleDraft {
 }
 
 class _RuleDialog extends StatefulWidget {
-  const _RuleDialog({required this.template, required this.label});
+  const _RuleDialog({
+    required this.template,
+    required this.label,
+    required this.gameDir,
+  });
 
   final String template;
   final String label;
+
+  /// Папка игры для `{GAME}` — без неё предпросмотр показал бы шаблон
+  /// вместо пути.
+  final String? gameDir;
 
   @override
   State<_RuleDialog> createState() => _RuleDialogState();
@@ -647,7 +666,11 @@ class _RuleDialogState extends State<_RuleDialog> {
             ),
             const SizedBox(height: 8),
             Text(
-              L.of(context).expandsTo(SavePathTemplate.expand(template)),
+              L
+                  .of(context)
+                  .expandsTo(
+                    SavePathTemplate.expand(template, gameDir: widget.gameDir),
+                  ),
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -931,7 +954,9 @@ class _RestoreDialogState extends State<_RestoreDialog> {
           )
           .firstOrNull;
       if (match == null && rule.appliesToCurrentPlatform()) match = rule;
-      if (match != null) targets[match.label] = match.resolve();
+      if (match == null) continue;
+      final resolved = match.resolve(gameDir: widget.game.installDir);
+      if (resolved != null) targets[match.label] = resolved;
     }
     return targets;
   }

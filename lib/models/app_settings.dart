@@ -19,7 +19,6 @@ class AppSettings extends Equatable {
     this.checkUpdates = true,
     this.themeMode = ThemeMode.system,
     this.locale,
-    this.ludusaviPath,
     this.proxy = const ProxySettings(),
     this.limits = SpeedLimits.unlimited,
     this.gamepad = const GamepadBinding(),
@@ -65,9 +64,7 @@ class AppSettings extends Equatable {
   /// строка, и лишний тип только добавил бы преобразований.
   final String? locale;
 
-  /// Путь к Ludusavi, если он установлен не там, где мы его ищем.
   /// Пустое значение означает «искать самим».
-  final String? ludusaviPath;
 
   /// Ограничения скорости, в том числе на время игры.
   final SpeedLimits limits;
@@ -90,7 +87,6 @@ class AppSettings extends Equatable {
     bool? checkUpdates,
     ThemeMode? themeMode,
     Object? locale = _u,
-    Object? ludusaviPath = _u,
     ProxySettings? proxy,
     SpeedLimits? limits,
     GamepadBinding? gamepad,
@@ -107,9 +103,6 @@ class AppSettings extends Equatable {
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
       locale: locale == _u ? this.locale : locale as String?,
-      ludusaviPath: ludusaviPath == _u
-          ? this.ludusaviPath
-          : ludusaviPath as String?,
       proxy: proxy ?? this.proxy,
       limits: limits ?? this.limits,
       gamepad: gamepad ?? this.gamepad,
@@ -128,7 +121,6 @@ class AppSettings extends Equatable {
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
     if (locale != null) 'locale': locale,
-    if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
     'limits': limits.toJson(),
     'gamepad': gamepad.toJson(),
@@ -147,7 +139,6 @@ class AppSettings extends Equatable {
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
         locale: _localeFromJson(json['locale']),
-        ludusaviPath: json['ludusaviPath'] as String?,
         limits: json['limits'] == null
             ? SpeedLimits.unlimited
             : SpeedLimits.fromJson(json['limits'] as Map<String, dynamic>),
@@ -172,7 +163,6 @@ class AppSettings extends Equatable {
     checkUpdates,
     themeMode,
     locale,
-    ludusaviPath,
     proxy,
     limits,
     gamepad,

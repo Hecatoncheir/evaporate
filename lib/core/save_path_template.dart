@@ -16,6 +16,18 @@ class SavePathTemplate {
   static const appSupport = '{APPSUPPORT}';
   static const savedGames = '{SAVEDGAMES}';
 
+  /// Папка, в которую поставлена сама игра.
+  ///
+  /// Отличается от остальных: системные корни одинаковы для всех игр, а этот
+  /// у каждой свой, и подставить его может только тот, кто знает, о какой
+  /// игре речь. Переносимости это не мешает, а помогает — на другом
+  /// устройстве игра лежит в другом месте, и шаблон разворачивается туда.
+  ///
+  /// Ради него и получилось отказаться от Ludusavi: в базе путей это
+  /// `<base>`, самый частый плейсхолдер, и Ludusavi вычислял его, обходя
+  /// папки Steam и GOG. Лончер, который сам поставил игру, знает его точно.
+  static const game = '{GAME}';
+
   /// Порядок предпочтения при сворачивании, когда несколько
   /// плейсхолдеров указывают в одну и ту же папку. На macOS и Linux
   /// так и есть, а на Windows это уже разные папки: свернув путь в
@@ -71,9 +83,18 @@ class SavePathTemplate {
     };
   }
 
+  /// Нужна ли для разворачивания папка игры.
+  static bool needsGameDir(String template) => template.contains(game);
+
   /// `{APPSUPPORT}/MyGame/Saves` -> `/Users/me/Library/Application Support/MyGame/Saves`
-  static String expand(String template) {
+  ///
+  /// [gameDir] — папка установки игры для `{GAME}`. Без неё такой шаблон
+  /// останется неразвёрнутым; спрашивать [needsGameDir] нужно заранее.
+  static String expand(String template, {String? gameDir}) {
     var result = template;
+    if (gameDir != null) {
+      result = result.replaceAll(game, gameDir.replaceAll(r'\', '/'));
+    }
     placeholders.forEach((token, value) {
       result = result.replaceAll(token, value);
     });
@@ -88,8 +109,21 @@ class SavePathTemplate {
   ///
   /// Если путь не лежит ни под одним из известных корней, возвращается как есть:
   /// такой сейв просто не будет переносимым, и UI об этом предупредит.
-  static String collapse(String absolutePath) {
+  ///
+  /// [gameDir] проверяется первым: путь внутри папки игры сворачивается в
+  /// `{GAME}`, даже если та лежит в домашней папке. Иначе сейв рядом с игрой
+  /// уехал бы в `{HOME}/...` и на другом устройстве, где игра стоит в другом
+  /// месте, не нашёлся бы.
+  static String collapse(String absolutePath, {String? gameDir}) {
     final normalized = p.normalize(absolutePath);
+    if (gameDir != null) {
+      final root = p.normalize(gameDir);
+      if (p.equals(root, normalized)) return game;
+      if (p.isWithin(root, normalized)) {
+        final rest = p.relative(normalized, from: root);
+        return '$game/${rest.replaceAll(r'\', '/')}';
+      }
+    }
     final entries = placeholders.entries.toList()
       ..sort((a, b) {
         // Сначала самый специфичный корень, затем — предпочтение.
@@ -109,7 +143,7 @@ class SavePathTemplate {
   }
 
   static bool isPortable(String template) =>
-      placeholders.keys.any(template.contains);
+      template.contains(game) || placeholders.keys.any(template.contains);
 
   static String get _home {
     final env = Platform.environment;
