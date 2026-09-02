@@ -179,6 +179,20 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               SwitchListTile(
+                value: settings.launchAtStartup,
+                onChanged: (value) =>
+                    update(settings.copyWith(launchAtStartup: value)),
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Запускать вместе с системой',
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  'Загрузки продолжатся сразу после входа',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+              SwitchListTile(
                 value: settings.autoSnapshotOnExit,
                 onChanged: (value) =>
                     update(settings.copyWith(autoSnapshotOnExit: value)),

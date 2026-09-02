@@ -151,6 +151,11 @@ jobs:
       - name: Встроить Ludusavi
         run: python tool/fetch_ludusavi.py
 
+      # Единственное место, где можно проверить работу с реестром: на
+      # остальных системах этот тест пропускается.
+      - name: Проверить автозапуск
+        run: flutter test test/autostart_test.dart
+
       - name: Сборка
         run: flutter build windows --release
 

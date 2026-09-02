@@ -11,6 +11,7 @@ class AppSettings extends Equatable {
     this.autoExportToSync = true,
     this.autoSnapshotOnExit = true,
     this.systemNotifications = true,
+    this.launchAtStartup = false,
     this.ludusaviPath,
     this.proxy = const ProxySettings(),
     this.gamepad = const GamepadBinding(),
@@ -33,6 +34,12 @@ class AppSettings extends Equatable {
   /// неудавшийся автоснимок сохранений.
   final bool systemNotifications;
 
+  /// Запускать приложение вместе с системой.
+  ///
+  /// Значение зеркалит состояние самой системы: её и спрашиваем при
+  /// загрузке настроек, потому что автозапуск могли отключить снаружи.
+  final bool launchAtStartup;
+
   /// Путь к Ludusavi, если он установлен не там, где мы его ищем.
   /// Пустое значение означает «искать самим».
   final String? ludusaviPath;
@@ -50,6 +57,7 @@ class AppSettings extends Equatable {
     bool? autoExportToSync,
     bool? autoSnapshotOnExit,
     bool? systemNotifications,
+    bool? launchAtStartup,
     Object? ludusaviPath = _u,
     ProxySettings? proxy,
     GamepadBinding? gamepad,
@@ -61,6 +69,7 @@ class AppSettings extends Equatable {
       autoExportToSync: autoExportToSync ?? this.autoExportToSync,
       autoSnapshotOnExit: autoSnapshotOnExit ?? this.autoSnapshotOnExit,
       systemNotifications: systemNotifications ?? this.systemNotifications,
+      launchAtStartup: launchAtStartup ?? this.launchAtStartup,
       ludusaviPath: ludusaviPath == _u
           ? this.ludusaviPath
           : ludusaviPath as String?,
@@ -76,6 +85,7 @@ class AppSettings extends Equatable {
     'autoExportToSync': autoExportToSync,
     'autoSnapshotOnExit': autoSnapshotOnExit,
     'systemNotifications': systemNotifications,
+    'launchAtStartup': launchAtStartup,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
     'gamepad': gamepad.toJson(),
@@ -89,6 +99,7 @@ class AppSettings extends Equatable {
         autoExportToSync: json['autoExportToSync'] as bool? ?? true,
         autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
         systemNotifications: json['systemNotifications'] as bool? ?? true,
+        launchAtStartup: json['launchAtStartup'] as bool? ?? false,
         ludusaviPath: json['ludusaviPath'] as String?,
         proxy: json['proxy'] == null
             ? const ProxySettings()
@@ -106,6 +117,7 @@ class AppSettings extends Equatable {
     autoExportToSync,
     autoSnapshotOnExit,
     systemNotifications,
+    launchAtStartup,
     ludusaviPath,
     proxy,
     gamepad,
