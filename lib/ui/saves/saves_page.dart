@@ -11,6 +11,7 @@ import '../../models/bulk_report.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Общий экран переноса сохранений: папка синхронизации, пакеты с других
 /// устройств и все снимки библиотеки в одном списке.
@@ -38,15 +39,13 @@ class _SavesPageState extends State<SavesPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
       children: [
-        const Text(
-          'Сохранения',
+        Text(
+          L.of(context).saves,
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         Text(
-          'Снимок сохранений — это один файл .evsave: положите его в облачную '
-          'папку или на флешку, откройте на другом устройстве и продолжите '
-          'с того же места.',
+          L.of(context).savesIntro,
           style: TextStyle(
             color: context.colors.textSecondary,
             height: 1.5,
@@ -65,7 +64,7 @@ class _SavesPageState extends State<SavesPage> {
           onApply: _apply,
         ),
         SectionCard(
-          title: 'Все снимки',
+          title: L.of(context).allSnapshots,
           icon: Icons.history,
           trailing: Text(
             '${entries.length}',
@@ -73,8 +72,7 @@ class _SavesPageState extends State<SavesPage> {
           ),
           child: entries.isEmpty
               ? Text(
-                  'Снимков пока нет. Откройте игру в библиотеке, задайте папку '
-                  'сохранений и нажмите «Снять».',
+                  L.of(context).noSnapshotsYet,
                   style: TextStyle(
                     color: context.colors.textSecondary,
                     fontSize: 13,
@@ -100,14 +98,16 @@ class _SavesPageState extends State<SavesPage> {
 
     final ok = await confirm(
       context,
-      title: 'Применить сохранения?',
-      message:
-          'Снимок «${info.snapshot.gameTitle}» от '
-          '${formatDateTime(info.snapshot.createdAt)} '
-          '(устройство ${info.snapshot.deviceName}) будет распакован в папки '
-          'сохранений игры «${game.title}».\n\n'
-          'Текущие сохранения сначала попадут в резервный снимок.',
-      confirmLabel: 'Применить',
+      title: L.of(context).applySaves,
+      message: L
+          .of(context)
+          .applyNote(
+            info.snapshot.gameTitle,
+            formatDateTime(info.snapshot.createdAt),
+            info.snapshot.deviceName,
+            game.title,
+          ),
+      confirmLabel: L.of(context).apply,
     );
     if (!ok || !mounted) return;
 
@@ -118,7 +118,7 @@ class _SavesPageState extends State<SavesPage> {
   Future<Game?> _pickGame(SavePackageInfo info) async {
     final games = context.read<LibraryBloc>().state.games;
     if (games.isEmpty) {
-      showError(context, 'Сначала добавьте игру в библиотеку.');
+      showError(context, L.of(context).addGameFirst);
       return null;
     }
 
@@ -134,7 +134,7 @@ class _SavesPageState extends State<SavesPage> {
     return showDialog<Game>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('В какую игру применить?'),
+        title: Text(L.of(context).whichGameToApply),
         content: SizedBox(
           width: 460,
           child: ListView.builder(
@@ -157,7 +157,7 @@ class _SavesPageState extends State<SavesPage> {
                 subtitle: game.saveProfile.isConfigured
                     ? null
                     : Text(
-                        'Пути сохранений не заданы',
+                        L.of(context).noSavePaths,
                         style: TextStyle(
                           fontSize: 11.5,
                           color: context.colors.warning,
@@ -171,7 +171,7 @@ class _SavesPageState extends State<SavesPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: Text(L.of(context).cancel),
           ),
         ],
       ),
@@ -201,7 +201,7 @@ class _SyncFolderCard extends StatelessWidget {
     final settingsStore = context.read<SettingsBloc>();
 
     return SectionCard(
-      title: 'Папка синхронизации',
+      title: L.of(context).syncFolder,
       icon: Icons.sync,
       trailing: folder == null
           ? null
@@ -214,16 +214,14 @@ class _SyncFolderCard extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.refresh, size: 16),
-              label: const Text('Проверить'),
+              label: Text(L.of(context).check),
             ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (folder == null) ...[
             Text(
-              'Укажите папку, которая синхронизируется между устройствами — '
-              'Dropbox, iCloud, Syncthing. Новые снимки будут попадать туда '
-              'автоматически, а на другом устройстве появятся в этом списке.',
+              L.of(context).syncFolderNote,
               style: TextStyle(
                 color: context.colors.textSecondary,
                 fontSize: 13,
@@ -242,7 +240,7 @@ class _SyncFolderCard extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.folder_outlined, size: 16),
-              label: const Text('Выбрать папку'),
+              label: Text(L.of(context).chooseFolder),
             ),
           ] else ...[
             SelectableText(
@@ -256,7 +254,9 @@ class _SyncFolderCard extends StatelessWidget {
             const SizedBox(height: 14),
             if (packages.isEmpty)
               Text(
-                scannedOnce ? 'Пакетов .evsave в папке не найдено.' : 'Нажмите «Проверить», чтобы посмотреть, что лежит в папке.',
+                scannedOnce
+                    ? L.of(context).noPackagesFound
+                    : L.of(context).checkFolderHint,
                 style: TextStyle(
                   color: context.colors.textSecondary,
                   fontSize: 13,
@@ -307,7 +307,7 @@ class _PackageRow extends StatelessWidget {
                   '${formatDateTime(snapshot.createdAt)} · '
                   '${snapshot.deviceName} · '
                   '${platformLabel(snapshot.platform)} · '
-                  '${snapshot.fileCount} файлов',
+                  '${L.of(context).filesCount(snapshot.fileCount)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: context.colors.textSecondary,
@@ -318,9 +318,7 @@ class _PackageRow extends StatelessWidget {
           ),
           if (!package.isCompatible)
             Tooltip(
-              message:
-                  'В пакете нет путей для этой платформы — '
-                  'понадобится правило с той же меткой',
+              message: L.of(context).noPathsForPlatform,
               child: Icon(
                 Icons.warning_amber_rounded,
                 size: 17,
@@ -333,7 +331,7 @@ class _PackageRow extends StatelessWidget {
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
-            child: const Text('Применить'),
+            child: Text(L.of(context).apply),
           ),
         ],
       ),
@@ -387,7 +385,7 @@ class _SnapshotRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Экспортировать файл',
+            tooltip: L.of(context).exportFile,
             visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.ios_share, size: 17),
             onPressed: () async {
@@ -421,12 +419,13 @@ class _BulkReportView extends StatelessWidget {
 
   final BulkReport report;
 
-  static const _titles = {
-    BulkOutcome.applied: 'Перенесено',
-    BulkOutcome.conflicted: 'Пропущено: здесь новее',
-    BulkOutcome.unmatched: 'Без пары в библиотеке',
-    BulkOutcome.skipped: 'Пропущено',
-    BulkOutcome.failed: 'С ошибкой',
+  /// Константой быть не может: подписи зависят от языка.
+  static String _title(L l, BulkOutcome outcome) => switch (outcome) {
+    BulkOutcome.applied => l.outcomeApplied,
+    BulkOutcome.conflicted => l.outcomeConflicted,
+    BulkOutcome.unmatched => l.outcomeUnmatched,
+    BulkOutcome.skipped => l.outcomeSkipped,
+    BulkOutcome.failed => l.outcomeFailed,
   };
 
   @override
@@ -455,7 +454,9 @@ class _BulkReportView extends StatelessWidget {
         // предупреждение — почти то же самое, что его отсутствие.
         initiallyExpanded: report.hasProblems,
         title: Text(
-          report.isExport ? 'Что выгрузилось' : 'Что загрузилось',
+          report.isExport
+              ? L.of(context).reportExported
+              : L.of(context).reportImported,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
         children: [
@@ -465,7 +466,7 @@ class _BulkReportView extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 6, bottom: 2),
                 child: Text(
-                  '${_titles[outcome]} — ${report.count(outcome)}',
+                  '${_title(L.of(context), outcome)} — ${report.count(outcome)}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -518,7 +519,7 @@ class _BulkTransferCard extends StatelessWidget {
     );
 
     return SectionCard(
-      title: 'Перенос всей библиотеки',
+      title: L.of(context).bulkTransfer,
       icon: Icons.swap_horiz,
       trailing: busy
           ? const SizedBox(
@@ -527,7 +528,7 @@ class _BulkTransferCard extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : Text(
-              'игр с путями: $configured',
+              L.of(context).gamesWithPaths(configured),
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -537,10 +538,7 @@ class _BulkTransferCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Выгрузка снимет свежие снимки всех игр, у которых заданы папки '
-            'сохранений, и сложит их в одну папку. На другом устройстве '
-            'загрузка разберёт её обратно, сопоставляя пакеты с играми по '
-            'названию.',
+            L.of(context).bulkTransferNote,
             style: TextStyle(
               fontSize: 13,
               color: context.colors.textSecondary,
@@ -553,13 +551,13 @@ class _BulkTransferCard extends StatelessWidget {
               FilledButton.icon(
                 onPressed: busy ? null : () => _export(context),
                 icon: const Icon(Icons.upload_outlined, size: 16),
-                label: const Text('Выгрузить все'),
+                label: Text(L.of(context).exportAll),
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: busy ? null : () => _import(context),
                 icon: const Icon(Icons.download_outlined, size: 16),
-                label: const Text('Загрузить все'),
+                label: Text(L.of(context).importAll),
               ),
             ],
           ),
@@ -572,7 +570,7 @@ class _BulkTransferCard extends StatelessWidget {
 
   Future<void> _export(BuildContext context) async {
     final library = context.read<LibraryBloc>();
-    final dir = await getDirectoryPath(confirmButtonText: 'Выгрузить');
+    final dir = await getDirectoryPath(confirmButtonText: L.of(context).export);
     if (dir == null) return;
     library.add(BulkExportRequested(dir));
   }
@@ -586,27 +584,20 @@ class _BulkTransferCard extends StatelessWidget {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Загрузить все сохранения?'),
-        content: const Text(
-          'Пакеты из папки будут разложены по играм с такими же названиями. '
-          'Текущие сохранения каждой игры сначала попадут в резервный снимок.'
-          '\n\n'
-          'Если на этом устройстве сохранения новее, чем в пакете, игра будет '
-          'пропущена: пакет может оказаться старым, а прогресс — уже не '
-          'вернуть.',
-        ),
+        title: Text(L.of(context).importAllQuestion),
+        content: Text(L.of(context).importAllNote),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            child: Text(L.of(context).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Загрузить всё, даже поверх новых'),
+            child: Text(L.of(context).importOverwriteNewer),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Пропустить новые'),
+            child: Text(L.of(context).importSkipNewer),
           ),
         ],
       ),
@@ -615,7 +606,7 @@ class _BulkTransferCard extends StatelessWidget {
 
   Future<void> _import(BuildContext context) async {
     final library = context.read<LibraryBloc>();
-    final dir = await getDirectoryPath(confirmButtonText: 'Загрузить');
+    final dir = await getDirectoryPath(confirmButtonText: L.of(context).import);
     if (dir == null || !context.mounted) return;
 
     final overwrite = await _askAboutNewer(context);

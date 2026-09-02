@@ -11,10 +11,12 @@ import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../services/launch/executable_finder.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'saves_section.dart';
 import '../widgets/animated_progress.dart';
+import '../../l10n/app_localizations.dart';
 
 class GameDetail extends StatelessWidget {
   const GameDetail({super.key, required this.game});
@@ -45,7 +47,7 @@ class GameDetail extends StatelessWidget {
             onPressed: () => _remove(context),
             style: TextButton.styleFrom(foregroundColor: context.colors.danger),
             icon: const Icon(Icons.delete_outline, size: 17),
-            label: const Text('Удалить из библиотеки'),
+            label: Text(L.of(context).removeFromLibrary),
           ),
         ),
       ],
@@ -60,18 +62,18 @@ class GameDetail extends StatelessWidget {
     final choice = await showDialog<_RemoveChoice>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Удалить «${game.title}»?'),
+        title: Text(L.of(context).removeQuestion(game.title)),
         content: Text(
           hasFiles
-              ? 'Снимки сохранений этой игры тоже будут удалены.\n\n'
-                    'Файлы игры лежат в:\n${game.installDir}'
-              : 'Снимки сохранений этой игры тоже будут удалены.',
+              ? '${L.of(context).removeSnapshotsNote}\n\n'
+                    '${L.of(context).removeFilesNote(game.installDir!)}'
+              : L.of(context).removeSnapshotsNote,
           style: const TextStyle(height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: Text(L.of(context).cancel),
           ),
           if (hasFiles)
             TextButton(
@@ -79,11 +81,11 @@ class GameDetail extends StatelessWidget {
               style: TextButton.styleFrom(
                 foregroundColor: context.colors.danger,
               ),
-              child: const Text('Удалить вместе с файлами'),
+              child: Text(L.of(context).removeWithFiles),
             ),
           FilledButton(
             onPressed: () => Navigator.pop(context, _RemoveChoice.libraryOnly),
-            child: const Text('Удалить из библиотеки'),
+            child: Text(L.of(context).removeFromLibrary),
           ),
         ],
       ),
@@ -166,9 +168,9 @@ class _CoverProgress extends StatelessWidget {
     // У метаданных и у задачи в очереди процента ещё нет — показываем статус.
     final indeterminate = task.isMetadata || task.totalBytes == 0;
     final label = switch (task) {
-      _ when task.isQueued => 'в очереди',
-      _ when task.isMetadata => 'метаданные',
-      _ when task.state == DownloadState.paused => 'пауза',
+      _ when task.isQueued => L.of(context).inQueue,
+      _ when task.isMetadata => L.of(context).metadataShort,
+      _ when task.state == DownloadState.paused => L.of(context).pausedShort,
       _ when indeterminate => '…',
       _ => '${(task.progress * 100).toStringAsFixed(0)}%',
     };
@@ -249,7 +251,11 @@ class _Header extends StatelessWidget {
                   const SizedBox(width: 10),
                   if (game.playtime.inMinutes > 0)
                     Text(
-                      'Наиграно ${formatDuration(game.playtime)}',
+                      L
+                          .of(context)
+                          .playtime(
+                            formatDurationLabel(L.of(context), game.playtime),
+                          ),
                       style: TextStyle(
                         fontSize: 12.5,
                         color: context.colors.textSecondary,
@@ -331,11 +337,11 @@ class _ActionPanel extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: () => library.add(GameStopRequested(game)),
           icon: const Icon(Icons.stop_circle_outlined, size: 18),
-          label: const Text('Остановить'),
+          label: Text(L.of(context).stop),
         ),
         const SizedBox(width: 14),
         Text(
-          'Игра запущена',
+          L.of(context).gameRunning,
           style: TextStyle(color: context.colors.accent, fontSize: 13),
         ),
       ];
@@ -352,13 +358,13 @@ class _ActionPanel extends StatelessWidget {
                 : DownloadPauseRequested(game),
           ),
           icon: Icon(paused ? Icons.play_arrow : Icons.pause, size: 18),
-          label: Text(paused ? 'Продолжить' : 'Пауза'),
+          label: Text(paused ? L.of(context).resume : L.of(context).pause),
         ),
         const SizedBox(width: 10),
         OutlinedButton.icon(
           onPressed: () => _cancelDownload(context),
           icon: const Icon(Icons.close, size: 17),
-          label: const Text('Отменить'),
+          label: Text(L.of(context).cancelDownload),
         ),
       ];
     }
@@ -370,13 +376,13 @@ class _ActionPanel extends StatelessWidget {
               ? () => library.add(GameLaunchRequested(game))
               : null,
           icon: const Icon(Icons.play_arrow_rounded, size: 20),
-          label: const Text('Играть'),
+          label: Text(L.of(context).play),
         ),
         const SizedBox(width: 10),
         if (!game.canLaunch)
           Expanded(
             child: Text(
-              'Укажите исполняемый файл ниже, чтобы запускать игру отсюда.',
+              L.of(context).pickExecutableNote,
               style: TextStyle(
                 fontSize: 12.5,
                 color: context.colors.textSecondary,
@@ -387,7 +393,7 @@ class _ActionPanel extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => _openInstallDir(context),
             icon: const Icon(Icons.folder_open, size: 17),
-            label: const Text('Папка игры'),
+            label: Text(L.of(context).gameFolder2),
           ),
       ];
     }
@@ -402,13 +408,13 @@ class _ActionPanel extends StatelessWidget {
             ? () => downloads.add(DownloadRequested(game: game, source: source))
             : null,
         icon: const Icon(Icons.download_rounded, size: 18),
-        label: const Text('Скачать'),
+        label: Text(L.of(context).download),
       ),
       const SizedBox(width: 10),
       OutlinedButton.icon(
         onPressed: () => _pickInstallDir(context),
         icon: const Icon(Icons.folder_outlined, size: 17),
-        label: const Text('Указать папку'),
+        label: Text(L.of(context).setFolder),
       ),
     ];
   }
@@ -417,9 +423,9 @@ class _ActionPanel extends StatelessWidget {
     final downloads = context.read<DownloadsBloc>();
     final ok = await confirm(
       context,
-      title: 'Отменить загрузку?',
-      message: 'Задача будет снята. Уже скачанные файлы останутся на диске.',
-      confirmLabel: 'Отменить загрузку',
+      title: L.of(context).cancelDownloadQuestion,
+      message: L.of(context).cancelDownloadNote,
+      confirmLabel: L.of(context).cancelDownload,
       destructive: true,
     );
     if (!ok) return;
@@ -483,19 +489,18 @@ class _ProgressBlock extends StatelessWidget {
             children: [
               Text(
                 task.isMetadata
-                    ? 'Получаем метаданные торрента…'
+                    ? L.of(context).fetchingTorrentMetadata
                     : '${(task.progress * 100).toStringAsFixed(1)}% · '
-                          '${formatBytes(task.completedBytes)} из '
-                          '${formatBytes(task.totalBytes)}',
+                          '${L.of(context).ofAmount(formatBytes(task.completedBytes), formatBytes(task.totalBytes))}',
               ),
               const Spacer(),
               if (!task.isMetadata) ...[
                 Text(
                   '${formatSpeed(task.downloadSpeed)} · '
-                  'осталось ${formatEta(task.etaSeconds)}',
+                  '${L.of(context).etaLeft(formatEtaLabel(L.of(context), task.etaSeconds))}',
                 ),
                 const SizedBox(width: 12),
-                Text('пиров: ${task.connections}'),
+                Text(L.of(context).peersCount(task.connections)),
               ],
             ],
           ),
@@ -513,21 +518,21 @@ class _FilesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SectionCard(
-      title: 'Файлы игры',
+      title: L.of(context).gameFiles,
       icon: Icons.folder_outlined,
       child: Column(
         children: [
           InfoRow(
-            label: 'Папка установки',
-            value: game.installDir ?? 'не задана',
+            label: L.of(context).installFolder,
+            value: game.installDir ?? L.of(context).notSet,
             monospace: game.installDir != null,
             valueColor: game.installDir == null
                 ? context.colors.textSecondary
                 : null,
           ),
           InfoRow(
-            label: 'Что запускать',
-            value: game.executablePath ?? 'не выбрано',
+            label: L.of(context).whatToRun,
+            value: game.executablePath ?? L.of(context).notChosen,
             monospace: game.executablePath != null,
             valueColor: game.executablePath == null
                 ? context.colors.textSecondary
@@ -539,7 +544,7 @@ class _FilesSection extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () => _pickExecutable(context),
                 icon: const Icon(Icons.description_outlined, size: 16),
-                label: const Text('Выбрать файл'),
+                label: Text(L.of(context).chooseFile),
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
@@ -547,7 +552,7 @@ class _FilesSection extends StatelessWidget {
                     ? null
                     : () => _autoDetect(context),
                 icon: const Icon(Icons.auto_awesome, size: 16),
-                label: const Text('Найти автоматически'),
+                label: Text(L.of(context).findAutomatically),
               ),
             ],
           ),
@@ -571,14 +576,14 @@ class _FilesSection extends StatelessWidget {
     final candidates = await ExecutableFinder.scan(dir);
     if (!context.mounted) return;
     if (candidates.isEmpty) {
-      showError(context, 'Исполняемых файлов в папке не нашлось.');
+      showError(context, L.of(context).noExecutablesFound);
       return;
     }
 
     final chosen = await showDialog<ExecutableCandidate>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Что запускать?'),
+        title: Text(L.of(context).whatToRunQuestion),
         content: SizedBox(
           width: 560,
           child: ListView.builder(
@@ -607,7 +612,7 @@ class _FilesSection extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: Text(L.of(context).cancel),
           ),
         ],
       ),
@@ -626,25 +631,31 @@ class _InfoSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final source = game.source;
     return SectionCard(
-      title: 'Сведения',
+      title: L.of(context).details,
       icon: Icons.info_outline,
       child: Column(
         children: [
           InfoRow(
-            label: 'Наиграно',
+            label: L.of(context).playtimeLabel,
             value: game.playtime.inMinutes > 0
                 ? formatDuration(game.playtime)
-                : 'ещё не играли',
+                : L.of(context).neverPlayed,
           ),
           InfoRow(
-            label: 'Последний запуск',
+            label: L.of(context).lastLaunch,
             value: game.lastPlayed == null
                 ? '—'
                 : formatDateTime(game.lastPlayed!),
           ),
-          InfoRow(label: 'Добавлена', value: formatDateTime(game.addedAt)),
+          InfoRow(
+            label: L.of(context).added,
+            value: formatDateTime(game.addedAt),
+          ),
           if (game.sizeBytes > 0)
-            InfoRow(label: 'Размер', value: formatBytes(game.sizeBytes)),
+            InfoRow(
+              label: L.of(context).sizeLabel,
+              value: formatBytes(game.sizeBytes),
+            ),
           if (game.steamAppId != null)
             InfoRow(label: 'Steam', value: 'appid ${game.steamAppId}'),
           const SizedBox(height: 10),
@@ -670,8 +681,8 @@ class _InfoSection extends StatelessWidget {
                       : const Icon(Icons.travel_explore, size: 16),
                   label: Text(
                     game.steamAppId == null
-                        ? 'Найти в Steam'
-                        : 'Обновить из Steam',
+                        ? L.of(context).findInSteam
+                        : L.of(context).refreshFromSteam,
                   ),
                 );
               },
@@ -679,7 +690,7 @@ class _InfoSection extends StatelessWidget {
           ),
           if (source != null)
             InfoRow(
-              label: 'Источник',
+              label: L.of(context).source,
               value: source.kind == GameSourceKind.magnet
                   ? '${source.label}: ${_shorten(source.value)}'
                   : '${source.label}: ${source.value}',

@@ -1,5 +1,21 @@
 {
   "@@locale": "ru",
+  "@applyNote": {
+    "placeholders": {
+      "game": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "@buttonFor": {
     "placeholders": {
       "action": {
@@ -38,9 +54,47 @@
       }
     }
   },
+  "@etaLeft": {
+    "placeholders": {
+      "eta": {
+        "type": "String"
+      }
+    }
+  },
   "@etaMoreThanDays": {
     "placeholders": {
       "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@filesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@gamesWithPaths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@ofAmount": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "@peersCount": {
+    "placeholders": {
+      "count": {
         "type": "int"
       }
     }
@@ -49,6 +103,27 @@
     "placeholders": {
       "duration": {
         "type": "String"
+      }
+    }
+  },
+  "@removeFilesNote": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeQuestion": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "@seedsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },
@@ -62,18 +137,32 @@
   "about": "О программе",
   "add": "Добавить",
   "addGame": "Добавить игру",
+  "addGameFirst": "Сначала добавьте игру в библиотеку.",
+  "added": "Добавлена",
   "allGamesQueued": "Все игры с источником уже в очереди или установлены.",
+  "allSnapshots": "Все снимки",
   "appearance": "Оформление",
+  "apply": "Применить",
+  "applyNote": "Снимок «{game}» от {when} (устройство {device}) будет распакован в папки сохранений игры «{target}».\n\nТекущие сохранения сначала попадут в резервный снимок.",
+  "applySaves": "Применить сохранения?",
   "assign": "Назначить",
   "availableToDownload": "Можно скачать",
   "badMagnet": "Введите корректную magnet-ссылку.",
   "bindings": "Назначение кнопок",
+  "bulkTransfer": "Перенос всей библиотеки",
+  "bulkTransferNote": "Выгрузка снимет свежие снимки всех игр, у которых заданы папки сохранений, и сложит их в одну папку. На другом устройстве загрузка разберёт её обратно, сопоставляя пакеты с играми по названию.",
   "buttonFor": "Кнопка для «{action}»",
   "cancel": "Отмена",
   "cancelDownload": "Отменить",
+  "cancelDownloadNote": "Задача будет снята. Уже скачанные файлы останутся на диске.",
+  "cancelDownloadQuestion": "Отменить загрузку?",
   "change": "Изменить",
+  "check": "Проверить",
+  "checkFolderHint": "Нажмите «Проверить», чтобы посмотреть, что лежит в папке.",
   "checkForUpdates": "Проверить обновления",
   "checkUpdatesOnStart": "Проверять обновления при запуске",
+  "chooseFile": "Выбрать файл",
+  "chooseFolder": "Выбрать папку",
   "clear": "Очистить",
   "concurrentDownloads": "Одновременных загрузок",
   "confirm": "Продолжить",
@@ -82,6 +171,8 @@
   "deadZone": "Зона нечувствительности",
   "defaultBinding": "Стандартная раскладка",
   "defaultForNewGames": "Значение по умолчанию для новых игр",
+  "details": "Сведения",
+  "download": "Скачать",
   "downloadEngine": "Движок загрузок",
   "downloadPaused": "Загрузка на паузе",
   "downloads": "Загрузки",
@@ -95,27 +186,48 @@
   "engineState": "Состояние",
   "engineStopped": "Движок загрузок остановлен",
   "engineUnavailable": "Движок загрузок недоступен: {state}. Игру можно добавить и запустить загрузку позже.",
+  "etaLeft": "осталось {eta}",
   "etaMoreThanDays": "> {days} дн",
+  "export": "Выгрузить",
+  "exportAll": "Выгрузить все",
+  "exportFile": "Экспортировать файл",
   "fetchingMetadata": "Получаем метаданные…",
+  "fetchingTorrentMetadata": "Получаем метаданные торрента…",
+  "filesCount": "{count} файлов",
+  "findAutomatically": "Найти автоматически",
   "findGamesInFolder": "Найти игры в папке",
+  "findInSteam": "Найти в Steam",
   "folderMissing": "Папка не найдена.",
+  "gameFiles": "Файлы игры",
   "gameFolder": "Папка с игрой",
+  "gameFolder2": "Папка игры",
+  "gameRunning": "Игра запущена",
   "gamepad": "Геймпад",
   "gamepadControls": "Управление геймпадом",
   "gamepadNavigationNote": "Навигация — D-pad или левый стик, прокрутка — правый стик",
   "gamepadNotFound": "Геймпад не обнаружен — подключите его и попробуйте снова",
   "gamesFolder": "Папка для игр",
+  "gamesWithPaths": "игр с путями: {count}",
   "hintBack": "Назад",
   "hintNavigate": "Навигация",
   "hintPlay": "Играть",
   "hintSearch": "Поиск",
   "hintSections": "Разделы",
   "hintSelect": "Выбрать",
+  "import": "Загрузить",
+  "importAll": "Загрузить все",
+  "importAllNote": "Пакеты из папки будут разложены по играм с такими же названиями. Текущие сохранения каждой игры сначала попадут в резервный снимок.\n\nЕсли на этом устройстве сохранения новее, чем в пакете, игра будет пропущена: пакет может оказаться старым, а прогресс — уже не вернуть.",
+  "importAllQuestion": "Загрузить все сохранения?",
+  "importOverwriteNewer": "Загрузить всё, даже поверх новых",
+  "importSkipNewer": "Пропустить новые",
+  "inQueue": "в очереди",
+  "installFolder": "Папка установки",
   "kilobytesPerSecond": "КБ/с",
   "language": "Язык",
   "languageEnglish": "English",
   "languageRussian": "Русский",
   "languageSystem": "Как в системе",
+  "lastLaunch": "Последний запуск",
   "launchAtStartup": "Запускать вместе с системой",
   "launchAtStartupNote": "Загрузки продолжатся сразу после входа",
   "library": "Библиотека",
@@ -134,6 +246,7 @@
   "menuEntryAdded": "Приложение есть в меню",
   "menuEntryMissing": "Приложения нет в меню системы",
   "menuEntryRemove": "Убрать из меню",
+  "metadataShort": "метаданные",
   "navDown": "Вниз",
   "navLeft": "Влево",
   "navNextSection": "Следующий раздел",
@@ -143,8 +256,15 @@
   "navScrollDown": "Прокрутка вниз",
   "navScrollUp": "Прокрутка вверх",
   "navUp": "Вверх",
+  "neverPlayed": "ещё не играли",
   "newGame": "Новая игра",
   "nextInQueue": "Дальше в очереди",
+  "noExecutablesFound": "Исполняемых файлов в папке не нашлось.",
+  "noPackagesFound": "Пакетов .evsave в папке не найдено.",
+  "noPathsForPlatform": "В пакете нет путей для этой платформы — понадобится правило с той же меткой",
+  "noSavePaths": "Пути сохранений не заданы",
+  "noSnapshotsYet": "Снимков пока нет. Откройте игру в библиотеке, задайте папку сохранений и нажмите «Снять».",
+  "notChosen": "не выбрано",
   "notSet": "не задана",
   "nothingDownloading": "Ничего не качается.",
   "nothingFound": "Ничего не найдено",
@@ -153,14 +273,25 @@
   "notificationsUnavailable": "Служба уведомлений недоступна",
   "notificationsUnavailableNote": "Служба уведомлений недоступна — приложение работает, но сообщать о фоновых событиях не сможет.",
   "nowDownloading": "Сейчас скачивается",
+  "ofAmount": "{done} из {total}",
+  "outcomeApplied": "Перенесено",
+  "outcomeConflicted": "Пропущено: здесь новее",
+  "outcomeFailed": "С ошибкой",
+  "outcomeSkipped": "Пропущено",
+  "outcomeUnmatched": "Без пары в библиотеке",
   "pause": "Пауза",
+  "pausedShort": "пауза",
+  "peersCount": "пиров: {count}",
   "permissionDenied": "Система не дала разрешение. Проверьте настройки уведомлений macOS.",
   "permissionGranted": "Разрешение получено",
   "permissionNote": "macOS спрашивает разрешение один раз. Если вы его отклонили, включить уведомления можно только в системных настройках.",
+  "pickExecutableNote": "Укажите исполняемый файл ниже, чтобы запускать игру отсюда.",
   "pickFolder": "Выберите папку с игрой.",
   "pickGameOnTheLeft": "Выберите игру слева",
   "pickTorrent": "Выберите .torrent файл.",
+  "play": "Играть",
   "playtime": "Наиграно {duration}",
+  "playtimeLabel": "Наиграно",
   "pressAnyButton": "Нажмите нужную кнопку на геймпаде.",
   "proxy": "Прокси",
   "proxyApplied": "Настройки прокси применены",
@@ -179,16 +310,29 @@
   "proxyUser": "Логин (если нужен)",
   "queueEmptyNote": "Очередь пуста. Перетащите сюда игру из списка слева — она начнёт качаться, когда освободится место.",
   "refresh": "Обновить",
+  "refreshFromSteam": "Обновить из Steam",
+  "removeFilesNote": "Файлы игры лежат в:\n{dir}",
+  "removeFromLibrary": "Удалить из библиотеки",
   "removeFromQueue": "Убрать из очереди",
+  "removeQuestion": "Удалить «{title}»?",
+  "removeSnapshotsNote": "Снимки сохранений этой игры тоже будут удалены.",
+  "removeWithFiles": "Удалить вместе с файлами",
+  "reportExported": "Что выгрузилось",
+  "reportImported": "Что загрузилось",
   "requestPermission": "Запросить разрешение",
   "restart": "Перезапустить",
   "restartEngine": "Перезапустить движок",
   "resume": "Продолжить",
   "saves": "Сохранения",
+  "savesIntro": "Снимок сохранений — это один файл .evsave: положите его в облачную папку или на флешку, откройте на другом устройстве и продолжите с того же места.",
   "scan": "Сканировать",
   "searchHint": "Поиск  ( / )",
+  "seedsCount": "сидов: {count}",
+  "setFolder": "Указать папку",
   "settings": "Настройки",
+  "sizeLabel": "Размер",
   "snapshotOnExit": "Снимать сохранения после выхода из игры",
+  "source": "Источник",
   "sourceFolder": "Папка",
   "sourceMagnet": "Magnet-ссылка",
   "sourceTorrent": "Torrent-файл",
@@ -204,7 +348,9 @@
   "statusNotInstalled": "Не установлена",
   "statusPaused": "Пауза",
   "statusRunning": "Запущена",
+  "stop": "Остановить",
   "syncFolder": "Папка синхронизации",
+  "syncFolderNote": "Укажите папку, которая синхронизируется между устройствами — Dropbox, iCloud, Syncthing. Новые снимки будут попадать туда автоматически, а на другом устройстве появятся в этом списке.",
   "systemNotifications": "Системные уведомления",
   "systemNotificationsNote": "О том, что закончилось, пока окно свёрнуто: загрузка завершена или сорвалась, автоснимок сохранений не удался",
   "tapToChoose": "Нажмите, чтобы выбрать",
@@ -223,6 +369,9 @@
   "updateNoteLine2": "скачивать и ставить ничего само не будет",
   "version": "Версия",
   "waitingInQueue": "ждёт очереди",
+  "whatToRun": "Что запускать",
+  "whatToRunQuestion": "Что запускать?",
+  "whichGameToApply": "В какую игру применить?",
   "windowMaximized": "Развёрнутым",
   "windowMinimized": "В трей",
   "windowOnStart": "Окно при запуске",
