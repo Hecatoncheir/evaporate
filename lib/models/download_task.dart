@@ -13,6 +13,7 @@ class DownloadTask extends Equatable {
     this.completedBytes = 0,
     this.downloadSpeed = 0,
     this.uploadSpeed = 0,
+    this.uploadedBytes = 0,
     this.connections = 0,
     this.seeders = 0,
     this.dir,
@@ -31,6 +32,10 @@ class DownloadTask extends Equatable {
   final int completedBytes;
   final int downloadSpeed;
   final int uploadSpeed;
+
+  /// Сколько отдано другим за всё время. Раздача — плата за скачанное, и
+  /// пользователь вправе видеть, сколько он её внёс.
+  final int uploadedBytes;
   final int connections;
   final int seeders;
   final String? dir;
@@ -76,6 +81,7 @@ class DownloadTask extends Equatable {
     completedBytes,
     downloadSpeed,
     uploadSpeed,
+    uploadedBytes,
     connections,
     seeders,
     dir,

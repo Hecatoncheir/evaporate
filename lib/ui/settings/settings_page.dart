@@ -105,6 +105,17 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
               _SpeedField(
+                label: L.of(context).seedRatio,
+                value: settings.limits.seedRatio,
+                unit: L.of(context).seedRatioUnit,
+                hint: L.of(context).seedRatioNote,
+                onChanged: (value) => update(
+                  settings.copyWith(
+                    limits: settings.limits.copyWith(seedRatio: value),
+                  ),
+                ),
+              ),
+              _SpeedField(
                 label: L.of(context).limitWhilePlaying,
                 value: settings.limits.whilePlaying,
                 hint: L.of(context).limitPlayingNote,
@@ -278,11 +289,17 @@ class _SpeedField extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.hint,
+    this.unit,
   });
 
   final String label;
   final int value;
   final String? hint;
+
+  /// Единица измерения. По умолчанию килобайты в секунду —
+  /// поле задумывалось для скорости, но порог раздачи считается
+  /// в сотых долях.
+  final String? unit;
   final ValueChanged<int> onChanged;
 
   @override
@@ -327,7 +344,7 @@ class _SpeedFieldState extends State<_SpeedField> {
               decoration: InputDecoration(
                 isDense: true,
                 hintText: L.of(context).unlimitedShort,
-                suffixText: L.of(context).kilobytesPerSecond,
+                suffixText: widget.unit ?? L.of(context).kilobytesPerSecond,
               ),
               onSubmitted: _submit,
               onTapOutside: (_) => _submit(_controller.text),

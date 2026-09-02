@@ -590,6 +590,27 @@ class _TaskCard extends StatelessWidget {
                     Text(L.of(context).seedsCount(task.seeders)),
                     const SizedBox(width: 12),
                   ],
+                  // Отданное показываем всегда, когда оно есть: раздача —
+                  // плата за скачанное, и знать свой вклад пользователь вправе.
+                  if (task.uploadedBytes > 0) ...[
+                    Text(
+                      L
+                          .of(context)
+                          .uploadedTotal(formatBytes(task.uploadedBytes)),
+                    ),
+                    if (task.completedBytes > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        L
+                            .of(context)
+                            .ratioValue(
+                              (task.uploadedBytes / task.completedBytes)
+                                  .toStringAsFixed(2),
+                            ),
+                      ),
+                    ],
+                    const SizedBox(width: 12),
+                  ],
                   Text(L.of(context).peersCount(task.connections)),
                   if (!task.isMetadata && task.etaSeconds > 0) ...[
                     const SizedBox(width: 12),

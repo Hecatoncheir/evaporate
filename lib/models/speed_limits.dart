@@ -11,6 +11,7 @@ class SpeedLimits extends Equatable {
     this.download = 0,
     this.upload = 0,
     this.whilePlaying = 0,
+    this.seedRatio = 0,
   });
 
   /// Предел на приём.
@@ -23,9 +24,24 @@ class SpeedLimits extends Equatable {
   /// Предел на приём, пока запущена игра. Ноль — не ограничивать особо.
   final int whilePlaying;
 
+  /// До какого рейтинга раздавать, в сотых долях: 150 — это 1,5.
+  ///
+  /// Ноль означает «раздавать без предела». Целое число, а не дробь, чтобы
+  /// значение переживало запись в файл настроек без сюрпризов округления.
+  final int seedRatio;
+
   static const unlimited = SpeedLimits();
 
   bool get isUnlimited => download == 0 && upload == 0 && whilePlaying == 0;
+
+  /// Пора ли останавливать раздачу.
+  ///
+  /// Нечего сравнивать, пока ничего не скачано: рейтинг от нуля
+  /// не считается, а раздачу это остановило бы сразу.
+  bool seedingDone({required int uploaded, required int downloaded}) {
+    if (seedRatio <= 0 || downloaded <= 0) return false;
+    return uploaded * 100 >= downloaded * seedRatio;
+  }
 
   /// Сколько байт в секунду разрешено, или null, если без ограничения.
   static int? _bytes(int kilobytes) => kilobytes <= 0 ? null : kilobytes * 1024;
@@ -42,11 +58,17 @@ class SpeedLimits extends Equatable {
     return _bytes(download < whilePlaying ? download : whilePlaying);
   }
 
-  SpeedLimits copyWith({int? download, int? upload, int? whilePlaying}) {
+  SpeedLimits copyWith({
+    int? download,
+    int? upload,
+    int? whilePlaying,
+    int? seedRatio,
+  }) {
     return SpeedLimits(
       download: download ?? this.download,
       upload: upload ?? this.upload,
       whilePlaying: whilePlaying ?? this.whilePlaying,
+      seedRatio: seedRatio ?? this.seedRatio,
     );
   }
 
@@ -54,6 +76,7 @@ class SpeedLimits extends Equatable {
     'download': download,
     'upload': upload,
     'whilePlaying': whilePlaying,
+    'seedRatio': seedRatio,
   };
 
   factory SpeedLimits.fromJson(Map<String, dynamic> json) => SpeedLimits(
@@ -62,6 +85,7 @@ class SpeedLimits extends Equatable {
     download: _positive(json['download']),
     upload: _positive(json['upload']),
     whilePlaying: _positive(json['whilePlaying']),
+    seedRatio: _positive(json['seedRatio']),
   );
 
   static int _positive(Object? value) {
@@ -70,5 +94,5 @@ class SpeedLimits extends Equatable {
   }
 
   @override
-  List<Object?> get props => [download, upload, whilePlaying];
+  List<Object?> get props => [download, upload, whilePlaying, seedRatio];
 }

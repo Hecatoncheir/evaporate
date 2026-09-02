@@ -107,4 +107,47 @@ void main() {
       expect(limits.upload, 0);
     });
   });
+
+  // Раздача — плата за скачанное. Порог даёт её ограничить, не отключая
+  // совсем: клиент, который только берёт, ломает обмен для всех.
+  group('порог раздачи', () {
+    test('без порога раздача не останавливается', () {
+      const limits = SpeedLimits();
+
+      expect(
+        limits.seedingDone(uploaded: 10000, downloaded: 100),
+        isFalse,
+        reason: 'ноль означает «раздавать без предела»',
+      );
+    });
+
+    test('порог срабатывает по достижении', () {
+      const limits = SpeedLimits(seedRatio: 150);
+
+      expect(limits.seedingDone(uploaded: 149, downloaded: 100), isFalse);
+      expect(limits.seedingDone(uploaded: 150, downloaded: 100), isTrue);
+      expect(limits.seedingDone(uploaded: 300, downloaded: 100), isTrue);
+    });
+
+    // Иначе раздача останавливалась бы сразу после добавления задачи:
+    // ноль отданного из нуля скачанного формально «достигает» любого порога.
+    test('пока ничего не скачано, сравнивать нечего', () {
+      const limits = SpeedLimits(seedRatio: 100);
+
+      expect(limits.seedingDone(uploaded: 0, downloaded: 0), isFalse);
+    });
+
+    test('порог переживает запись и чтение', () {
+      const limits = SpeedLimits(seedRatio: 250);
+
+      expect(SpeedLimits.fromJson(limits.toJson()).seedRatio, 250);
+    });
+
+    test('отрицательный порог читается как отсутствие предела', () {
+      final limits = SpeedLimits.fromJson({'seedRatio': -5});
+
+      expect(limits.seedRatio, 0);
+      expect(limits.seedingDone(uploaded: 999, downloaded: 1), isFalse);
+    });
+  });
 }

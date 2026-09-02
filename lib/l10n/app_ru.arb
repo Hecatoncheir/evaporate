@@ -490,6 +490,13 @@
       }
     }
   },
+  "@ratioValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "@removeFilesNote": {
     "placeholders": {
       "dir": {
@@ -625,6 +632,13 @@
     "placeholders": {
       "status": {
         "type": "int"
+      }
+    }
+  },
+  "@uploadedTotal": {
+    "placeholders": {
+      "size": {
+        "type": "String"
       }
     }
   },
@@ -911,6 +925,7 @@
   "proxySocksNote": "SOCKS5 применяется и к обмену с пирами, а не только к трекерам.",
   "proxyUser": "Логин (если нужен)",
   "queueEmptyNote": "Очередь пуста. Перетащите сюда игру из списка слева — она начнёт качаться, когда освободится место.",
+  "ratioValue": "рейтинг {value}",
   "refresh": "Обновить",
   "refreshFromSteam": "Обновить из Steam",
   "removeFilesNote": "Файлы игры лежат в:\n{dir}",
@@ -948,6 +963,9 @@
   "scan": "Сканировать",
   "scanNothingFound": "Ничего не нашлось. Игрой считается подпапка, в которой есть исполняемый файл; уже добавленные пропускаются.",
   "searchHint": "Поиск  ( / )",
+  "seedRatio": "Раздавать до рейтинга",
+  "seedRatioNote": "В сотых долях: 150 — это 1,5. Ноль — раздавать без предела",
+  "seedRatioUnit": "×100",
   "seedsCount": "сидов: {count}",
   "setFolder": "Указать папку",
   "settings": "Настройки",
@@ -1007,6 +1025,7 @@
   "updateNoteLine1": "Приложение только сообщает о новой версии и даёт ссылку — ",
   "updateNoteLine2": "скачивать и ставить ничего само не будет",
   "updateUnavailable": "Список версий недоступен: {status}",
+  "uploadedTotal": "отдано {size}",
   "version": "Версия",
   "waitingInQueue": "ждёт очереди",
   "whatToRun": "Что запускать",

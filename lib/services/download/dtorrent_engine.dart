@@ -311,6 +311,24 @@ class DtorrentEngine implements DownloadEngine {
     }
   }
 
+  /// Останавливает раздачу, когда заданный рейтинг достигнут.
+  ///
+  /// Проверяем при каждом опросе, а не по событию: движок о рейтинге ничего
+  /// не знает, а отданное растёт постепенно. Остановленную задачу очередь
+  /// больше не поднимает — для неё это выглядит как пауза от пользователя.
+  void _stopSeedingIfDone(_ManagedDownload managed, DownloadTask task) {
+    if (managed.pausedByUser || task.state != DownloadState.complete) return;
+    if (!_limits.seedingDone(
+      uploaded: task.uploadedBytes,
+      downloaded: task.completedBytes,
+    )) {
+      return;
+    }
+    managed.pausedByUser = true;
+    // pause() у движка синхронный, оборачивать его не во что.
+    managed.task?.pause();
+  }
+
   /// Действующие ограничения и то, идёт ли игра.
   SpeedLimits _limits = SpeedLimits.unlimited;
   bool _playing = false;
@@ -438,6 +456,7 @@ class DtorrentEngine implements DownloadEngine {
       download += task.downloadSpeed;
       upload += task.uploadSpeed;
       if (task.isRunning) active++;
+      _stopSeedingIfDone(managed, task);
     }
 
     _tasks.value = snapshot;
@@ -607,6 +626,9 @@ class _ManagedDownload {
       completedBytes: completed,
       downloadSpeed: (current?.currentDownloadSpeed ?? 0).round(),
       uploadSpeed: (current?.uploadSpeed ?? 0).round(),
+      // Движок ведёт счёт отданного в файле состояния — он переживает
+      // перезапуск, в отличие от накопленного в памяти.
+      uploadedBytes: current?.stateFile?.uploaded ?? 0,
       connections: current?.connectedPeersNumber ?? 0,
       seeders: current?.seederNumber ?? 0,
       dir: savePath,
