@@ -51,12 +51,18 @@ macOS и Windows с `fail-fast: false`. Покрытие снимается од
 и уходит в сводку прогона и в артефакт `coverage-<sha>`. Локально то же:
 `flutter test --coverage` кладёт `coverage/lcov.info`.
 
+Описание релиза не пишется отдельно: задача выпуска достаёт раздел версии из
+`CHANGELOG.md` через `tool/changelog_notes.dart` и кладёт его в релиз. Релиз
+заводится черновиком, публикуется после выкладки архивов и остаётся черновиком,
+если раздела для версии нет. Тест в `changelog_notes_test.dart` проверяет, что
+у версии из `pubspec.yaml` такой раздел есть, — узнать об этом лучше до тега.
+
 Версия Flutter зафиксирована в `env.FLUTTER_VERSION` (3.47.2, Dart 3.13.2).
 Сборки трёх платформ идут только на теге `v*` либо ручным `workflow_dispatch`;
 на теге же архивы прикладываются к релизу и берут артефакты по маске
 `evaporate-*` — иначе к релизу уехал бы и отчёт о покрытии. Выпуск версии —
-правка `version:` в `pubspec.yaml`, запись в `CHANGELOG.md` (Keep a Changelog,
-semver) и тег.
+правка `version:` в `pubspec.yaml`, `AppVersion.current` в `update_check.dart`
+(их сверяет тест), запись в `CHANGELOG.md` (Keep a Changelog, semver) и тег.
 
 ## Язык
 
