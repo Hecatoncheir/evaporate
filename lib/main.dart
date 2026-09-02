@@ -15,6 +15,7 @@ import 'input/gamepad_service.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
 import 'services/system/managed_window.dart';
+import 'services/system/update_check.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
@@ -80,6 +81,13 @@ Future<void> main() async {
   // Отсутствие геймпада не должно мешать запуску — сервис это переживает сам.
   unawaited(gamepad.start());
 
+  // В фоне и без ожидания: сеть может не ответить, а приложение должно
+  // открыться сразу. Молчим и при ошибке — недоступный GitHub не повод
+  // встречать пользователя сообщением.
+  if (settings.state.checkUpdates) {
+    unawaited(_announceUpdate(notifications, settings));
+  }
+
   runApp(
     EvaporateApp(
       settings: settings,
@@ -131,5 +139,27 @@ class EvaporateApp extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Сообщает о вышедшей версии, если она есть.
+Future<void> _announceUpdate(
+  NotificationService notifications,
+  SettingsBloc settings,
+) async {
+  try {
+    final release = await UpdateCheck().latest();
+    if (release == null) return;
+    if (!settings.state.systemNotifications) return;
+    await notifications.show(
+      AppNotification(
+        title: 'Вышла версия ${release.version}',
+        body: 'Скачать можно на странице релизов на GitHub.',
+        kind: NotificationKind.test,
+      ),
+    );
+  } on Object {
+    // Проверка обновлений — удобство, а не обязанность: недоступная сеть
+    // не должна ничем оборачиваться для пользователя.
   }
 }

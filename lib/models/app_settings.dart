@@ -14,6 +14,7 @@ class AppSettings extends Equatable {
     this.launchAtStartup = false,
     this.rememberWindowSize = true,
     this.startMaximized = false,
+    this.checkUpdates = true,
     this.ludusaviPath,
     this.proxy = const ProxySettings(),
     this.gamepad = const GamepadBinding(),
@@ -48,6 +49,11 @@ class AppSettings extends Equatable {
   /// Всегда открываться развёрнутым, что бы ни было запомнено.
   final bool startMaximized;
 
+  /// Спрашивать при запуске, не вышла ли версия новее.
+  ///
+  /// Приложение ничего не скачивает и не ставит само — только сообщает.
+  final bool checkUpdates;
+
   /// Путь к Ludusavi, если он установлен не там, где мы его ищем.
   /// Пустое значение означает «искать самим».
   final String? ludusaviPath;
@@ -68,6 +74,7 @@ class AppSettings extends Equatable {
     bool? launchAtStartup,
     bool? rememberWindowSize,
     bool? startMaximized,
+    bool? checkUpdates,
     Object? ludusaviPath = _u,
     ProxySettings? proxy,
     GamepadBinding? gamepad,
@@ -82,6 +89,7 @@ class AppSettings extends Equatable {
       launchAtStartup: launchAtStartup ?? this.launchAtStartup,
       rememberWindowSize: rememberWindowSize ?? this.rememberWindowSize,
       startMaximized: startMaximized ?? this.startMaximized,
+      checkUpdates: checkUpdates ?? this.checkUpdates,
       ludusaviPath: ludusaviPath == _u
           ? this.ludusaviPath
           : ludusaviPath as String?,
@@ -100,6 +108,7 @@ class AppSettings extends Equatable {
     'launchAtStartup': launchAtStartup,
     'rememberWindowSize': rememberWindowSize,
     'startMaximized': startMaximized,
+    'checkUpdates': checkUpdates,
     if (ludusaviPath != null) 'ludusaviPath': ludusaviPath,
     'proxy': proxy.toJson(),
     'gamepad': gamepad.toJson(),
@@ -116,6 +125,7 @@ class AppSettings extends Equatable {
         launchAtStartup: json['launchAtStartup'] as bool? ?? false,
         rememberWindowSize: json['rememberWindowSize'] as bool? ?? true,
         startMaximized: json['startMaximized'] as bool? ?? false,
+        checkUpdates: json['checkUpdates'] as bool? ?? true,
         ludusaviPath: json['ludusaviPath'] as String?,
         proxy: json['proxy'] == null
             ? const ProxySettings()
@@ -136,6 +146,7 @@ class AppSettings extends Equatable {
     launchAtStartup,
     rememberWindowSize,
     startMaximized,
+    checkUpdates,
     ludusaviPath,
     proxy,
     gamepad,

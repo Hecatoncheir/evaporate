@@ -7,6 +7,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'about_card.dart';
 import 'gamepad_settings.dart';
 import 'notification_settings.dart';
 import 'proxy_settings_card.dart';
@@ -233,6 +234,7 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+        const AboutCard(),
       ],
     );
   }
