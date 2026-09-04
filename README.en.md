@@ -360,7 +360,8 @@ rather than the app background, so white text stays white in either theme.
 Three fonts, all bundled rather than fetched at runtime: Nunito Sans for the
 interface, Nunito for headings, JetBrains Mono for paths and sizes. They are
 variable fonts, one file per family. The new imagegen-created icon uses cream
-and midnight indigo, with three vapor ribbons forming the Evaporate mark.
+and midnight indigo with three vivid multicolor vapor ribbons forming the
+Evaporate mark, offset-color outlines, and a textured print finish.
 The artwork and prompts live in `docs/branding/`; `tool/make_icon.py` exports
 macOS sizes, the Linux PNG, and multi-size Windows and tray ICO files.
 

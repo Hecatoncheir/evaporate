@@ -6,7 +6,10 @@ publisher marks were not reused. The final icon is opaque, full-bleed ivory.
 
 Source: [evaporate-icon-v2.png](evaporate-icon-v2.png).
 Runtime master: `assets/branding/app_icon.png`.
-Export platform sizes on macOS: `python3 tool/make_icon.py`.
+This monochrome version is preserved for reference. The active colorful icon
+and its prompt are documented in [icon-v3-prompt.md](icon-v3-prompt.md).
+To re-export this older variant explicitly on macOS:
+`python3 tool/make_icon.py --source docs/branding/evaporate-icon-v2.png`.
 
 ## Initial generation prompt
 
