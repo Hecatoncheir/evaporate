@@ -196,21 +196,59 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     LibraryLoadRequested event,
     Emitter<LibraryState> emit,
   ) async {
-    final json = await _store.read();
+    final json = await _store.readAs((json) {
+      if ((json['version'] ?? 1) != 1 ||
+          (json['games'] != null && json['games'] is! List) ||
+          (json['snapshots'] != null && json['snapshots'] is! Map)) {
+        throw const FormatException('Invalid library schema');
+      }
+      return json;
+    });
     if (json == null) {
-      emit(state.copyWith(loaded: true));
+      emit(state.copyWith(loaded: true, notice: _storageRecoveryNotice()));
       return;
     }
-    final games = (json['games'] as List<dynamic>? ?? [])
-        .map((e) => Game.fromJson(e as Map<String, dynamic>))
-        .toList();
+    var damaged = false;
+    final games = <Game>[];
+    for (final entry in json['games'] as List<dynamic>? ?? []) {
+      try {
+        games.add(Game.fromJson(entry as Map<String, dynamic>));
+      } on Object {
+        damaged = true;
+      }
+    }
     final snapshots = <String, List<SaveSnapshot>>{};
     (json['snapshots'] as Map<String, dynamic>? ?? {}).forEach((gameId, value) {
-      snapshots[gameId] = (value as List<dynamic>)
-          .map((e) => SaveSnapshot.fromJson(e as Map<String, dynamic>))
-          .toList();
+      if (value is! List) {
+        damaged = true;
+        return;
+      }
+      final recovered = <SaveSnapshot>[];
+      for (final entry in value) {
+        try {
+          recovered.add(SaveSnapshot.fromJson(entry as Map<String, dynamic>));
+        } on Object {
+          damaged = true;
+        }
+      }
+      snapshots[gameId] = recovered;
     });
-    emit(state.copyWith(games: games, snapshots: snapshots, loaded: true));
+    if (damaged) await _store.quarantine();
+    emit(
+      state.copyWith(
+        games: games,
+        snapshots: snapshots,
+        loaded: true,
+        notice: _storageRecoveryNotice(),
+      ),
+    );
+  }
+
+  Notice? _storageRecoveryNotice() {
+    final path = _store.recoveryPath;
+    return path == null
+        ? state.notice
+        : _notice(_l.noticeStorageRecovered(path), isError: true);
   }
 
   void _onGameAdded(GameAdded event, Emitter<LibraryState> emit) {

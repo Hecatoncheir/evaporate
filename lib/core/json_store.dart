@@ -7,6 +7,7 @@ class JsonStore {
   JsonStore(this.path);
 
   final String path;
+  String? recoveryPath;
 
   /// Записи выстраиваются в очередь: два одновременных `write` работали бы
   /// с одним и тем же временным файлом, и второй падал бы на переименовании
@@ -14,6 +15,7 @@ class JsonStore {
   Future<void> _queue = Future<void>.value();
 
   Future<Map<String, dynamic>?> read() async {
+    recoveryPath = null;
     final file = File(path);
     if (!await file.exists()) return null;
     try {
@@ -21,14 +23,34 @@ class JsonStore {
       if (content.trim().isEmpty) return null;
       final decoded = jsonDecode(content);
       if (decoded is Map<String, dynamic>) return decoded;
-      return null;
+      throw const FormatException('Expected a JSON object');
     } on FormatException {
-      // Битый файл не должен блокировать запуск: уводим в сторону и стартуем с нуля.
-      await file.rename(
-        '$path.corrupt-${DateTime.now().millisecondsSinceEpoch}',
-      );
+      await quarantine();
       return null;
     }
+  }
+
+  /// Читает и сразу проверяет схему. JSON может быть синтаксически верным,
+  /// но содержать строку вместо числа или массив вместо ожидаемой карты —
+  /// такой файл тоже сохраняем рядом для восстановления, а не роняем запуск.
+  Future<T?> readAs<T>(T Function(Map<String, dynamic>) decode) async {
+    final json = await read();
+    if (json == null) return null;
+    try {
+      return decode(json);
+    } on Object {
+      await quarantine();
+      return null;
+    }
+  }
+
+  /// Сохраняет исходные данные отдельно перед восстановлением части записей.
+  Future<void> quarantine() async {
+    final file = File(path);
+    if (!await file.exists()) return;
+    final target = '$path.corrupt-${DateTime.now().microsecondsSinceEpoch}';
+    await file.rename(target);
+    recoveryPath = target;
   }
 
   Future<void> write(Map<String, dynamic> data) {

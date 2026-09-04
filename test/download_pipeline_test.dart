@@ -6,6 +6,8 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/proxy_settings.dart';
+import 'package:evaporate/models/speed_limits.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -127,6 +129,32 @@ void main() {
           .firstWhere(condition)
           .timeout(const Duration(seconds: 5));
     }
+
+    test('сохранённые настройки автоматически доходят до движка', () async {
+      final next = settings.state.copyWith(
+        installDir: p.join(tmp.path, 'new-games'),
+        maxConcurrent: 5,
+        proxy: const ProxySettings(
+          enabled: true,
+          host: '127.0.0.1',
+          port: 1080,
+        ),
+        limits: const SpeedLimits(download: 400, upload: 50),
+      );
+      settings.add(SettingsChanged(next));
+      for (
+        var i = 0;
+        i < 100 && downloads.engine.appliedLimits != next.limits;
+        i++
+      ) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      expect(downloads.engine.downloadDir, next.installDir);
+      expect(downloads.engine.maxConcurrent, next.maxConcurrent);
+      expect(downloads.engine.proxy, next.proxy);
+      expect(downloads.engine.appliedLimits, next.limits);
+    });
 
     /// Игра, которую движок «качает»: статус и идентификатор задачи
     /// выставлены вручную, поэтому настоящий движок для теста не нужен.

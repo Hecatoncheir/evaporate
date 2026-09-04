@@ -63,6 +63,7 @@ class SavePathRule {
     required this.label,
     required this.template,
     this.platform,
+    this.kind,
   });
 
   final String id;
@@ -73,6 +74,12 @@ class SavePathRule {
   /// Позволяет одной игре иметь разные пути сейвов на разных ОС и всё равно
   /// синхронизироваться между ними: сопоставление идёт по [label].
   final String? platform;
+
+  /// Тип исходного пути в момент создания снимка. Старые настройки и
+  /// пакеты этого поля не имеют, поэтому `null` означает прежнее поведение
+  /// с каталогом. В самих настройках поле обычно не задано; SaveManager
+  /// добавляет его в правило, записываемое в манифест.
+  final SavePathKind? kind;
 
   bool get isPortable => SavePathTemplate.isPortable(template);
 
@@ -95,12 +102,14 @@ class SavePathRule {
     String? label,
     String? template,
     Object? platform = _u,
+    Object? kind = _u,
   }) {
     return SavePathRule(
       id: id,
       label: label ?? this.label,
       template: template ?? this.template,
       platform: platform == _u ? this.platform : platform as String?,
+      kind: kind == _u ? this.kind : kind as SavePathKind?,
     );
   }
 
@@ -109,6 +118,7 @@ class SavePathRule {
     'label': label,
     'template': template,
     if (platform != null) 'platform': platform,
+    if (kind != null) 'kind': kind!.name,
   };
 
   factory SavePathRule.fromJson(Map<String, dynamic> json) => SavePathRule(
@@ -116,10 +126,16 @@ class SavePathRule {
     label: json['label'] as String? ?? defaultLabel,
     template: json['template'] as String,
     platform: json['platform'] as String?,
+    kind: SavePathKind.values.cast<SavePathKind?>().firstWhere(
+      (kind) => kind?.name == json['kind'],
+      orElse: () => null,
+    ),
   );
 
   static const _u = Object();
 }
+
+enum SavePathKind { file, directory }
 
 class SaveProfile {
   const SaveProfile({

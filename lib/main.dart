@@ -33,10 +33,12 @@ Future<void> main() async {
   settings.add(const SettingsLoadRequested());
   // Настройки нужны блокам загрузок и библиотеки уже в конструкторе,
   // поэтому дожидаемся первого состояния из хранилища.
-  await settings.stream.first.timeout(
-    const Duration(seconds: 2),
-    onTimeout: () => settings.state,
-  );
+  await settings.loaded;
+
+  L localizations() {
+    final code = settings.state.locale;
+    return lookupL(code == null ? _systemLocale() : Locale(code));
+  }
 
   // Окно ставим до того, как оно появится на экране: иначе пользователь
   // увидит, как оно прыгает из одного положения в другое.
@@ -54,22 +56,22 @@ Future<void> main() async {
   );
   // Значок в трее ставим всегда: без него свёрнутое при запуске окно
   // было бы ничем не открыть, а режим запуска можно поменять на ходу.
-  unawaited(AppTray().install());
+  final tray = AppTray(localizations: localizations);
+  try {
+    await tray.install();
+  } on Object {
+    // Отказ трея не должен оставлять стартовавшее свёрнутым приложение
+    // без способа открыть окно.
+    await windowManager.show();
+  }
   // Пишем всегда, даже когда восстановление выключено: включив его позже,
   // пользователь получит осмысленные значения, а не размер по умолчанию.
   WindowStateSaver(window).attach();
 
   // Разрешение у системы не спрашиваем на старте: это делает пользователь
   // кнопкой в настройках, чтобы диалог не выскакивал при первом запуске.
-  final notifications = SystemNotificationService();
+  final notifications = SystemNotificationService(localizations: localizations);
   await notifications.initialize();
-
-  // Блоки берут язык у настроек: у них нет BuildContext, а уведомления они
-  // формируют сами. Пусто — значит язык системы.
-  L localizations() {
-    final code = settings.state.locale;
-    return lookupL(code == null ? _systemLocale() : Locale(code));
-  }
 
   final library = LibraryBloc(
     paths: paths,
@@ -108,11 +110,12 @@ Future<void> main() async {
       downloads: downloads,
       gamepad: gamepad,
       notifications: notifications,
+      tray: tray,
     ),
   );
 }
 
-class EvaporateApp extends StatelessWidget {
+class EvaporateApp extends StatefulWidget {
   const EvaporateApp({
     super.key,
     required this.settings,
@@ -120,6 +123,7 @@ class EvaporateApp extends StatelessWidget {
     required this.downloads,
     required this.gamepad,
     required this.notifications,
+    this.tray,
   });
 
   final SettingsBloc settings;
@@ -127,9 +131,26 @@ class EvaporateApp extends StatelessWidget {
   final DownloadsBloc downloads;
   final GamepadService gamepad;
   final NotificationService notifications;
+  final AppTray? tray;
+
+  @override
+  State<EvaporateApp> createState() => _EvaporateAppState();
+}
+
+class _EvaporateAppState extends State<EvaporateApp> {
+  @override
+  void dispose() {
+    unawaited(widget.tray?.dispose().catchError((Object _) {}));
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final settings = widget.settings;
+    final library = widget.library;
+    final downloads = widget.downloads;
+    final gamepad = widget.gamepad;
+    final notifications = widget.notifications;
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: settings),
@@ -144,7 +165,14 @@ class EvaporateApp extends StatelessWidget {
           Provider.value(value: gamepad),
           Provider<NotificationService>.value(value: notifications),
         ],
-        child: BlocBuilder<SettingsBloc, AppSettings>(
+        child: BlocConsumer<SettingsBloc, AppSettings>(
+          listenWhen: (before, after) => before.locale != after.locale,
+          listener: (context, settings) {
+            unawaited(widget.tray?.updateMenu().catchError((Object _) {}));
+            if (notifications is SystemNotificationService) {
+              unawaited(notifications.initialize());
+            }
+          },
           buildWhen: (before, after) =>
               before.themeMode != after.themeMode ||
               before.locale != after.locale,

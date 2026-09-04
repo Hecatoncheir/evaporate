@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -116,6 +117,58 @@ void main() {
 
     expect(json['downloadTaskId'], 'task-7');
     expect(json.containsKey('downloadGid'), isFalse);
+  });
+
+  test('метаданные Steam переживают запись и чтение', () async {
+    final game = Game(
+      id: 'steam-game',
+      title: 'Игра',
+      addedAt: DateTime.now(),
+      coverUrl: 'https://cdn.example/cover.jpg',
+      description: 'Описание из Steam',
+      steamAppId: 620,
+    );
+
+    final restored = Game.fromJson(game.toJson());
+
+    expect(restored.coverUrl, game.coverUrl);
+    expect(restored.description, game.description);
+    expect(restored.steamAppId, game.steamAppId);
+  });
+
+  test('загрузка настроек завершается и без изменения значений', () async {
+    settings.add(const SettingsLoadRequested());
+    await settings.loaded.timeout(const Duration(seconds: 1));
+    expect(settings.state.installDir, paths.defaultInstallDir);
+  });
+
+  test('повреждённая запись не скрывает исправные игры', () async {
+    await Directory(paths.dataDir).create(recursive: true);
+    await File(paths.libraryFile).writeAsString(
+      jsonEncode({
+        'version': 1,
+        'games': [
+          Game(
+            id: 'valid',
+            title: 'Исправная',
+            addedAt: DateTime.now(),
+          ).toJson(),
+          {'id': 123, 'title': 'Повреждённая'},
+        ],
+      }),
+    );
+
+    library.add(const LibraryLoadRequested());
+    await waitFor((state) => state.loaded);
+
+    expect(library.state.games.map((game) => game.id), ['valid']);
+    expect(library.state.notice?.isError, isTrue);
+    expect(
+      Directory(paths.dataDir)
+          .listSync()
+          .where((file) => file.path.contains('.corrupt-')),
+      hasLength(1),
+    );
   });
 
   // Снимки пишутся в library.json вместе с играми, но обратно их до сих пор

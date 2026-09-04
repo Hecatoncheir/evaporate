@@ -24,9 +24,8 @@ class SettingsPage extends StatelessWidget {
     final downloads = context.watch<DownloadsBloc>();
     final settings = store.state;
 
-    void update(AppSettings next, {bool restartEngine = false}) {
+    void update(AppSettings next) {
       store.add(SettingsChanged(next));
-      if (restartEngine) downloads.add(const DownloadSettingsApplied());
     }
 
     return ListView(
@@ -51,10 +50,7 @@ class SettingsPage extends StatelessWidget {
                 onPick: () async {
                   final dir = await getDirectoryPath();
                   if (dir == null) return;
-                  update(
-                    settings.copyWith(installDir: dir),
-                    restartEngine: true,
-                  );
+                  update(settings.copyWith(installDir: dir));
                 },
               ),
               const SizedBox(height: 16),
@@ -76,10 +72,7 @@ class SettingsPage extends StatelessWidget {
                     ],
                     onChanged: (value) {
                       if (value == null) return;
-                      update(
-                        settings.copyWith(maxConcurrent: value),
-                        restartEngine: true,
-                      );
+                      update(settings.copyWith(maxConcurrent: value));
                     },
                   ),
                 ],

@@ -1,5 +1,7 @@
 {
   "@@locale": "en",
+  "noticeStorageRecovered": "Some library records could not be read. Valid records were recovered; the original data was preserved at: {path}",
+  "@noticeStorageRecovered": {"placeholders": {"path": {"type": "String"}}},
   "@noticeSaveHints": {
     "placeholders": {
       "count": {

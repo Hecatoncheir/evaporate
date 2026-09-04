@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/window_start_mode.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/l10n/app_localizations_en.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:evaporate/services/system/app_tray.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -72,6 +75,31 @@ void main() {
   });
 
   group('значок в трее', () {
+    testWidgets('смена локали обновляет установленное меню', (tester) async {
+      final calls = <MethodCall>[];
+      const channel = MethodChannel('tray_manager');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return null;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null),
+      );
+      L language = LRu();
+      final tray = AppTray(localizations: () => language);
+      await tray.install();
+      language = LEn();
+      await tray.updateMenu();
+      final menus = calls
+          .where((call) => call.method == 'setContextMenu')
+          .toList();
+      expect(menus, hasLength(2));
+      expect(menus.last.arguments.toString(), contains('Open Evaporate'));
+      await tray.dispose();
+      expect(calls.last.method, 'destroy');
+    });
     // Windows принимает в трее только .ico — PNG там просто не появится.
     test('формат значка выбирается под систему', () {
       expect(AppTray.iconPath, endsWith(Platform.isWindows ? '.ico' : '.png'));
@@ -87,6 +115,11 @@ void main() {
 
       expect(keys, contains('show'));
       expect(keys, contains('quit'));
+    });
+
+    test('текст меню берётся из выбранного языка', () {
+      expect(AppTray.buildMenu(LEn()).items!.first.label, 'Open Evaporate');
+      expect(AppTray.buildMenu(LRu()).items!.first.label, 'Открыть Evaporate');
     });
   });
 }

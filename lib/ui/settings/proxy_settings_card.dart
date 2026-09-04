@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/proxy_settings.dart';
 import '../theme.dart';
@@ -53,7 +52,6 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
       password: _password.text,
     );
     store.add(SettingsChanged(store.state.copyWith(proxy: next)));
-    context.read<DownloadsBloc>().add(const DownloadSettingsApplied());
     showInfo(context, L.of(context).proxyApplied);
   }
 
@@ -64,7 +62,6 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
 
     void update(ProxySettings next) {
       store.add(SettingsChanged(store.state.copyWith(proxy: next)));
-      context.read<DownloadsBloc>().add(const DownloadSettingsApplied());
     }
 
     return SectionCard(

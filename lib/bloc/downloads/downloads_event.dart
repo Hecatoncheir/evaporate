@@ -17,7 +17,12 @@ final class DownloadEngineRestartRequested extends DownloadsEvent {
 
 /// Применить настройки к демону (папка загрузок, лимиты) с перезапуском.
 final class DownloadSettingsApplied extends DownloadsEvent {
-  const DownloadSettingsApplied();
+  const DownloadSettingsApplied(this.settings);
+
+  final AppSettings settings;
+
+  @override
+  List<Object?> get props => [settings];
 }
 
 /// Пересчитать ограничения: сменились настройки или запустилась игра.

@@ -77,18 +77,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: flutter test --reporter compact --coverage
 
-      - name: Покрытие числом
+      - name: Порог покрытия без сгенерированного кода
         if: matrix.os == 'ubuntu-latest'
-        run: |
-          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
-          import re, pathlib
-          text = pathlib.Path('coverage/lcov.info').read_text()
-          found = sum(int(m) for m in re.findall(r'^LF:(\d+)$', text, re.M))
-          hit = sum(int(m) for m in re.findall(r'^LH:(\d+)$', text, re.M))
-          share = 100 * hit / found if found else 0
-          print('## Покрытие\n')
-          print('Строк покрыто: **%d из %d — %.1f%%**\n' % (hit, found, share))
-          PY
+        run: dart tool/check_coverage.dart >> "$GITHUB_STEP_SUMMARY"
 
       - name: Приложить отчёт о покрытии
         if: matrix.os == 'ubuntu-latest'

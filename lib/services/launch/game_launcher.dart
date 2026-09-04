@@ -49,6 +49,7 @@ class GameLauncher {
 
   final Map<String, RunningGame> _running = {};
   final _runningIds = ValueNotifier<Set<String>>({});
+  bool _disposed = false;
 
   ValueListenable<Set<String>> get runningIds => _runningIds;
 
@@ -83,21 +84,18 @@ class GameLauncher {
       if (!Platform.isWindows) await _ensureExecutable(exePath);
     }
 
-    final workingDir =
-        game.installDir ?? (isMacApp ? p.dirname(exePath) : p.dirname(exePath));
+    final workingDir = game.installDir ?? p.dirname(exePath);
 
     late final Process process;
     try {
       if (isMacApp) {
-        // -W ждём выхода, -n новый экземпляр; аргументы игре — после --args.
-        process = await Process.start('open', [
-          '-W',
-          '-n',
-          '-a',
-          exePath,
-          if (game.launchArgs.isNotEmpty) '--args',
-          ...game.launchArgs,
-        ], workingDirectory: workingDir);
+        // Запускаем бинарник бандла напрямую: `open -W` даёт PID обёртки,
+        // поэтому кнопка Stop завершала `open`, а игра оставалась.
+        process = await Process.start(
+          await _macAppExecutable(exePath),
+          game.launchArgs,
+          workingDirectory: workingDir,
+        );
       } else {
         process = await Process.start(
           exePath,
@@ -108,6 +106,11 @@ class GameLauncher {
     } on ProcessException catch (error) {
       throw LaunchException(_l.launchFailed(error.message));
     }
+
+    // Необработанные pipe заполняются после нескольких десятков килобайт,
+    // и тогда игра блокируется на очередной записи в stdout/stderr.
+    unawaited(process.stdout.drain<void>().catchError((_) {}));
+    unawaited(process.stderr.drain<void>().catchError((_) {}));
 
     final running = RunningGame(
       gameId: game.id,
@@ -121,6 +124,7 @@ class GameLauncher {
       process.exitCode.then((code) {
         final played = running.elapsed;
         _running.remove(game.id);
+        if (_disposed) return;
         _publish();
         onExit(game, played, code);
       }),
@@ -143,11 +147,41 @@ class GameLauncher {
     }
   }
 
+  Future<String> _macAppExecutable(String appPath) async {
+    final contents = p.join(appPath, 'Contents');
+    final plist = p.join(contents, 'Info.plist');
+    try {
+      final result = await Process.run('/usr/libexec/PlistBuddy', [
+        '-c',
+        'Print :CFBundleExecutable',
+        plist,
+      ]);
+      if (result.exitCode == 0) {
+        final name = '${result.stdout}'.trim();
+        if (name.isNotEmpty) {
+          final executable = p.join(contents, 'MacOS', name);
+          if (await File(executable).exists()) return executable;
+        }
+      }
+    } on Object {
+      // Ниже остаётся стандартное имя бандла.
+    }
+
+    final fallback = p.join(
+      contents,
+      'MacOS',
+      p.basenameWithoutExtension(appPath),
+    );
+    if (await File(fallback).exists()) return fallback;
+    throw LaunchException(_l.launchFileMissing(fallback));
+  }
+
   void _publish() {
     _runningIds.value = _running.keys.toSet();
   }
 
   void dispose() {
+    _disposed = true;
     _runningIds.dispose();
   }
 }

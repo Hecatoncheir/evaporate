@@ -236,6 +236,34 @@ void main() {
       expect(engine.startedIds, hasLength(2));
       engine.dispose();
     });
+
+    test('смена прокси не обходит паузу и ограничение очереди', () async {
+      final engine = buildEngine(maxConcurrent: 1);
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await engine.addMagnet(magnet(hashC), dir: tmp.path);
+      await engine.pause(hashA);
+
+      await engine.setProxy(
+        const ProxySettings(enabled: true, host: '127.0.0.1', port: 1080),
+      );
+
+      expect(engine.startedIds, {hashB});
+      expect(engine.taskById(hashA)?.state, DownloadState.paused);
+      engine.dispose();
+    });
+
+    test('возобновление не отбирает уже занятый слот', () async {
+      final engine = buildEngine(maxConcurrent: 1);
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await engine.pause(hashA);
+      await engine.resume(hashA);
+
+      expect(engine.startedIds, {hashB});
+      expect(engine.taskById(hashA)?.isQueued, isTrue);
+      engine.dispose();
+    });
   });
 
   group('добавление задач', () {
@@ -331,6 +359,22 @@ void main() {
       await second.refresh();
 
       expect(second.tasks.value.map((t) => t.id), [hashB]);
+      second.dispose();
+    });
+
+    test('пользовательская пауза переживает перезапуск', () async {
+      final first = buildEngine(maxConcurrent: 1);
+      await first.addMagnet(magnet(hashA), dir: tmp.path);
+      await first.addMagnet(magnet(hashB), dir: tmp.path);
+      await first.pause(hashA);
+      first.dispose();
+
+      final second = buildEngine(maxConcurrent: 1);
+      await second.start();
+      await second.refresh();
+
+      expect(second.taskById(hashA)?.state, DownloadState.paused);
+      expect(second.startedIds, {hashB});
       second.dispose();
     });
   });

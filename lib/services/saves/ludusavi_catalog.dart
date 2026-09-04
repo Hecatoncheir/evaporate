@@ -65,9 +65,9 @@ class LudusaviCatalog {
     if (_manifest != null && !refresh) return true;
 
     if (!refresh) {
-      final cached = await _store.read();
+      final cached = await _store.readAs(LudusaviManifest.fromJson);
       if (cached != null) {
-        _manifest = LudusaviManifest.fromJson(cached);
+        _manifest = cached;
         return true;
       }
     }

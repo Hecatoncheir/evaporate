@@ -16,15 +16,19 @@ class Autostart {
     String? homeDir,
     Map<String, String>? environment,
     Future<ProcessResult> Function(String, List<String>)? run,
+    String? operatingSystem,
   }) : _executable = executablePath ?? Platform.resolvedExecutable,
        _environment = environment ?? Platform.environment,
+       _operatingSystem = operatingSystem ?? Platform.operatingSystem,
        _run = run ?? Process.run {
-    _home =
-        homeDir ?? _environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'];
+    _home = homeDir ?? _environment[_isWindows ? 'USERPROFILE' : 'HOME'];
   }
 
   final String _executable;
   final Map<String, String> _environment;
+  final String _operatingSystem;
+  bool get _isWindows => _operatingSystem == 'windows';
+  bool get _isMacOS => _operatingSystem == 'macos';
   final Future<ProcessResult> Function(String, List<String>) _run;
   late final String? _home;
 
@@ -40,7 +44,7 @@ class Autostart {
   /// бандл: иначе приложение стартует без значка в доке и без прав, которые
   /// система выдаёт по бандлу.
   String get target {
-    if (!Platform.isMacOS) return _executable;
+    if (!_isMacOS) return _executable;
     final marker = '.app${p.separator}Contents${p.separator}MacOS';
     final index = _executable.indexOf(marker);
     if (index < 0) return _executable;
@@ -50,8 +54,8 @@ class Autostart {
   /// Файл, которым автозапуск описан. На Windows записи в файле нет.
   String? get entryFile {
     final home = _home;
-    if (home == null || Platform.isWindows) return null;
-    if (Platform.isMacOS) {
+    if (home == null || _isWindows) return null;
+    if (_isMacOS) {
       return p.join(home, 'Library', 'LaunchAgents', '$_bundleId.plist');
     }
     final config = _environment['XDG_CONFIG_HOME'] ?? p.join(home, '.config');
@@ -85,7 +89,7 @@ class Autostart {
   ];
 
   Future<bool> isEnabled() async {
-    if (Platform.isWindows) {
+    if (_isWindows) {
       final result = await _run('reg', queryArgs());
       return result.exitCode == 0;
     }
@@ -97,28 +101,36 @@ class Autostart {
   Future<void> setEnabled(bool value) => value ? _enable() : _disable();
 
   Future<void> _enable() async {
-    if (Platform.isWindows) {
-      await _run('reg', addArgs(target));
+    if (_isWindows) {
+      await _runRegistry(addArgs(target));
       return;
     }
 
     final file = entryFile;
     if (file == null) return;
     await Directory(p.dirname(file)).create(recursive: true);
-    await File(
-      file,
-    ).writeAsString(Platform.isMacOS ? macPlist(target) : desktopEntry(target));
+    await File(file)
+        .writeAsString(_isMacOS ? macPlist(target) : desktopEntry(target));
   }
 
   Future<void> _disable() async {
-    if (Platform.isWindows) {
-      await _run('reg', removeArgs());
+    if (_isWindows) {
+      // Удалять уже отсутствующую запись не нужно: reg delete считает
+      // это ошибкой, а повторное выключение должно быть безопасным.
+      if (await isEnabled()) await _runRegistry(removeArgs());
       return;
     }
     final file = entryFile;
     if (file == null) return;
     final handle = File(file);
     if (await handle.exists()) await handle.delete();
+  }
+
+  Future<void> _runRegistry(List<String> args) async {
+    final result = await _run('reg', args);
+    if (result.exitCode != 0) {
+      throw ProcessException('reg', args, '${result.stderr}', result.exitCode);
+    }
   }
 
   /// Задание launchd. `RunAtLoad` и есть «запускать при входе».

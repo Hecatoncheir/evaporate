@@ -74,6 +74,21 @@ void main() {
     expect(await store.read(), {'a': 9});
   });
 
+  test('неверная схема сохраняется отдельно и не роняет чтение', () async {
+    final store = JsonStore(path);
+    await store.write({'count': 'not an integer'});
+
+    final result = await store.readAs((json) => json['count'] as int);
+
+    expect(result, isNull);
+    expect(store.recoveryPath, isNotNull);
+    expect(
+      await File(store.recoveryPath!).readAsString(),
+      contains('not an integer'),
+    );
+    expect(File(path).existsSync(), isFalse);
+  });
+
   // Регрессия: раньше обе записи брали один временный файл, и вторая
   // падала на переименовании уже переименованного.
   test('одновременные записи не мешают друг другу', () async {

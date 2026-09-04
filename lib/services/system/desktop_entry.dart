@@ -72,7 +72,8 @@ class DesktopEntry {
 Type=Application
 Name=Evaporate
 GenericName=Game launcher
-Comment=Лончер игр с переносимыми сохранениями
+Comment=Game launcher with portable saves
+Comment[ru]=Лончер игр с переносимыми сохранениями
 Exec="$executable" %U
 Icon=$icon
 Terminal=false

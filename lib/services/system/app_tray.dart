@@ -45,12 +45,17 @@ class AppTray with TrayListener {
 
   Future<void> install() async {
     if (_installed) return;
-    _tray.addListener(this);
     await _tray.setIcon(iconPath);
     // Подсказка нужна: значок мелкий, и по нему одному приложение не узнать.
     await _tray.setToolTip('Evaporate');
     await _tray.setContextMenu(buildMenu(_localizations()));
+    _tray.addListener(this);
     _installed = true;
+  }
+
+  Future<void> updateMenu() async {
+    if (!_installed) return;
+    await _tray.setContextMenu(buildMenu(_localizations()));
   }
 
   Future<void> dispose() async {

@@ -13,6 +13,8 @@ import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 
+part 'restore_transaction.dart';
+
 class SaveException implements Exception {
   SaveException(this.message);
 
@@ -20,6 +22,10 @@ class SaveException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class SaveNothingFoundException extends SaveException {
+  SaveNothingFoundException(super.message);
 }
 
 /// Что получилось при восстановлении: UI показывает это пользователю,
@@ -67,11 +73,22 @@ class SavePackageInfo {
 ///   `manifest.json`     — метаданные и правила путей;
 ///   `data/<ruleId>/...` — файлы сейвов, разложенные по правилам.
 class SaveManager {
-  SaveManager({AppPaths? paths, L Function()? localizations})
-    : _paths = paths ?? AppPaths.instance,
-      _localizations = localizations ?? _defaultLocalizations;
+  SaveManager({
+    AppPaths? paths,
+    L Function()? localizations,
+    Future<FileSystemEntity> Function(FileSystemEntity, String)?
+    renameForRestore,
+  }) : _paths = paths ?? AppPaths.instance,
+       _renameForRestore = renameForRestore ?? _rename,
+       _localizations = localizations ?? _defaultLocalizations;
 
   final AppPaths _paths;
+  // Подмена файловой операции позволяет проверять откат при сбое на
+  // второй цели без ненадёжных тестов прав доступа на разных ОС.
+  final Future<FileSystemEntity> Function(FileSystemEntity, String)
+  _renameForRestore;
+  static Future<FileSystemEntity> _rename(FileSystemEntity source, String to) =>
+      source.rename(to);
 
   /// Откуда брать переводы: сообщения об ошибках доходят до пользователя
   /// уведомлениями, а `BuildContext` здесь взять неоткуда.
@@ -113,9 +130,14 @@ class SaveManager {
       // Игра не установлена, а правило указывает внутрь её папки — брать
       // нечего, и это не ошибка.
       if (resolved == null) continue;
+      final isFile = await File(resolved).exists();
       final collected = await _collect(rule, resolved);
       if (collected.isEmpty) continue;
-      usedRules.add(rule);
+      usedRules.add(
+        rule.copyWith(
+          kind: isFile ? SavePathKind.file : SavePathKind.directory,
+        ),
+      );
       entries.addAll(collected);
       for (final entry in collected) {
         totalBytes += entry.size;
@@ -123,7 +145,7 @@ class SaveManager {
     }
 
     if (entries.isEmpty) {
-      throw SaveException(_l.saveNothingFound);
+      throw SaveNothingFoundException(_l.saveNothingFound);
     }
     if (totalBytes > _maxSnapshotBytes) {
       throw SaveException(_l.saveTooLarge(formatBytes(totalBytes)));
@@ -284,13 +306,18 @@ class SaveManager {
     required bool backupCurrent,
     required bool wipeTarget,
   }) async {
-    final manifest = _readManifest(archive) ?? snapshot.toManifest();
-    final manifestRules = (manifest['rules'] as List<dynamic>? ?? [])
-        .map((e) => SavePathRule.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final manifest = _readManifest(archive);
+    if (manifest == null) {
+      throw SaveException(_l.saveNotEvaporatePackage);
+    }
+    if (!SaveSnapshot.readableFormats.contains(manifest['format'])) {
+      throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
+    }
+
+    final manifestRules = _readRules(manifest);
 
     final targets = <String, String>{};
-    final targetByRuleId = <String, String>{};
+    final targetByRuleId = <String, _RestoreTarget>{};
     final unresolved = <String>[];
 
     for (final rule in manifestRules) {
@@ -304,13 +331,22 @@ class SaveManager {
         unresolved.add(rule.label);
         continue;
       }
-      targetByRuleId[rule.id] = resolved;
+      final isFile =
+          local.kind == SavePathKind.file ||
+          rule.kind == SavePathKind.file ||
+          await File(resolved).exists();
+      targetByRuleId[rule.id] = _RestoreTarget(
+        path: p.normalize(p.absolute(resolved)),
+        isFile: isFile,
+      );
       targets[local.label] = resolved;
     }
 
     if (targetByRuleId.isEmpty) {
       throw SaveException(_l.saveNoTargets);
     }
+
+    final plan = _buildRestorePlan(archive, targetByRuleId);
 
     SaveSnapshot? backup;
     if (backupCurrent) {
@@ -320,68 +356,53 @@ class SaveManager {
           origin: SnapshotOrigin.preRestore,
           note: _l.saveAutoBackupNote(formatDateTime(snapshot.createdAt)),
         );
-      } on SaveException {
-        // Бэкапить нечего (первый запуск на этом устройстве) — это нормально.
+      } on SaveNothingFoundException {
+        // Первый запуск на этом устройстве: резервировать пока нечего.
       }
     }
 
-    if (wipeTarget) {
-      for (final dirPath in targetByRuleId.values.toSet()) {
-        final dir = Directory(dirPath);
-        if (await dir.exists()) await dir.delete(recursive: true);
-      }
-    }
-
-    var filesWritten = 0;
-    var bytesWritten = 0;
-
-    for (final file in archive.files) {
-      if (!file.isFile) continue;
-      if (file.name == SaveSnapshot.manifestEntry) continue;
-      final parsed = _parseEntryName(file.name);
-      if (parsed == null) continue;
-      final targetDir = targetByRuleId[parsed.ruleId];
-      if (targetDir == null) continue;
-
-      final destination = p.normalize(p.join(targetDir, parsed.relativePath));
-      // Защита от zip-slip: пакет мог приехать откуда угодно.
-      if (!p.isWithin(targetDir, destination)) {
-        throw SaveException(_l.savePathEscapes(file.name));
-      }
-
-      final outFile = File(destination);
-      await outFile.parent.create(recursive: true);
-      final output = OutputFileStream(destination);
-      try {
-        file.writeContent(output);
-      } finally {
-        await output.close();
-      }
-      filesWritten++;
-      bytesWritten += file.size;
-    }
+    await _commitRestore(plan, wipeTarget: wipeTarget);
 
     return RestoreReport(
-      filesWritten: filesWritten,
-      bytesWritten: bytesWritten,
+      filesWritten: plan.entries.length,
+      bytesWritten: plan.bytes,
       targets: targets,
       unresolved: unresolved,
       backup: backup,
     );
   }
 
-  /// id -> метка -> «правило само подходит этой платформе».
+  /// Путь из внешнего манифеста никогда не становится локальной целью.
+  /// Сопоставляем только с явно настроенными у игры путями: id -> метка.
   SavePathRule? _matchLocalRule(Game game, SavePathRule incoming) {
     final local = game.saveProfile.rulesForCurrentPlatform;
     for (final rule in local) {
       if (rule.id == incoming.id) return rule;
     }
     final wanted = incoming.label.trim().toLowerCase();
-    for (final rule in local) {
-      if (rule.label.trim().toLowerCase() == wanted) return rule;
+    final matches = local
+        .where((rule) => rule.label.trim().toLowerCase() == wanted)
+        .toList();
+    return matches.length == 1 ? matches.single : null;
+  }
+
+  List<SavePathRule> _readRules(Map<String, dynamic> manifest) {
+    try {
+      final rules = (manifest['rules'] as List<dynamic>? ?? [])
+          .map((e) => SavePathRule.fromJson(e as Map<String, dynamic>))
+          .toList();
+      final ids = <String>{};
+      for (final rule in rules) {
+        if (rule.id.isEmpty ||
+            rule.id.contains(RegExp(r'[/\\]')) ||
+            !ids.add(rule.id)) {
+          throw const FormatException('Invalid or duplicate rule ID');
+        }
+      }
+      return rules;
+    } on Object catch (error) {
+      throw SaveException(_l.saveArchiveReadFailed('$error'));
     }
-    if (incoming.appliesToCurrentPlatform()) return incoming;
-    return null;
   }
 
   /// Копирует пакет наружу — на флешку, в облачную папку, куда угодно.
@@ -410,9 +431,7 @@ class SaveManager {
       throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
     }
 
-    final rules = (manifest['rules'] as List<dynamic>? ?? [])
-        .map((e) => SavePathRule.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final rules = _readRules(manifest);
 
     final snapshot = SaveSnapshot(
       id: manifest['id'] as String? ?? _uuid.v4(),
@@ -443,18 +462,19 @@ class SaveManager {
   /// Забирает пакет в хранилище приложения и привязывает к игре.
   Future<SaveSnapshot> importPackage(String path, {required Game game}) async {
     final info = await inspectPackage(path);
+    final id = _uuid.v4();
     final dir = Directory(_paths.snapshotDirFor(game.id));
     await dir.create(recursive: true);
     final target = p.join(
       dir.path,
       '${_timestampSlug(info.snapshot.createdAt)}-imported-'
-      '${info.snapshot.id.substring(0, info.snapshot.id.length.clamp(0, 8))}'
+      '$id'
       '${SaveSnapshot.fileExtension}',
     );
     await File(path).copy(target);
 
     return SaveSnapshot(
-      id: _uuid.v4(),
+      id: id,
       gameId: game.id,
       gameTitle: info.snapshot.gameTitle,
       createdAt: info.snapshot.createdAt,

@@ -245,6 +245,52 @@ void main() {
       expect(seen, ['Раз', 'Два']);
     });
 
+    test('одинаковые безопасные имена не перезаписывают пакеты', () async {
+      final games = [await plainGame('A/B'), await plainGame('A:B')];
+      final target = await emptyDir('коллизии имён');
+
+      final result = await bulk.exportAll(
+        games: games,
+        destinationDir: target.path,
+        onSnapshot: (_) {},
+      );
+
+      final packages = target.listSync().whereType<File>().where(
+        (file) => file.path.endsWith(SaveSnapshot.fileExtension),
+      );
+      expect(packages, hasLength(2));
+      expect(result.report.count(BulkOutcome.applied), 2);
+    });
+
+    test('старый пакет той же игры не откатывает более свежий', () async {
+      final game = await plainGame('Свежая');
+      final target = await emptyDir('несколько версий');
+      await bulk.exportAll(
+        games: [game],
+        destinationDir: target.path,
+        onSnapshot: (_) {},
+      );
+      final slot = File(
+        p.join(game.saveProfile.rules.single.template, 'slot.sav'),
+      );
+      await slot.writeAsString('свежий прогресс');
+      final saves = SaveManager(paths: paths);
+      final fresh = await saves.createSnapshot(game);
+      await saves.exportSnapshot(fresh, p.join(target.path, 'fresh.evsave'));
+      await slot.writeAsString('изменённый прогресс');
+
+      final result = await bulk.importAll(
+        games: [game],
+        sourceDir: target.path,
+        overwriteNewer: true,
+        onSnapshot: (_) {},
+      );
+
+      expect(await slot.readAsString(), 'свежий прогресс');
+      expect(result.report.count(BulkOutcome.applied), 1);
+      expect(result.report.count(BulkOutcome.skipped), 1);
+    });
+
     // Папка синхронизации живёт в Dropbox или на флешке и вполне может
     // не оказаться на месте. Это не авария: переносить просто нечего.
     test('пропавшая папка даёт пустой отчёт, а не ошибку', () async {
@@ -274,6 +320,15 @@ void main() {
         expect(BulkTransfer.matchGame(games, 'Другая'), isNull);
       },
     );
+
+    test('одинаковые названия считаются неоднозначными', () {
+      final games = [
+        Game(id: 'one', title: 'Game', addedAt: DateTime.now()),
+        Game(id: 'two', title: ' game ', addedAt: DateTime.now()),
+      ];
+
+      expect(BulkTransfer.matchGame(games, 'GAME'), isNull);
+    });
   });
 
   test('занятость снимается после массовой операции', () async {

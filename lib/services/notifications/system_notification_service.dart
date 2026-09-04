@@ -3,14 +3,19 @@ import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'notification_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 
 /// Реализация поверх `flutter_local_notifications` для macOS, Windows и Linux.
 class SystemNotificationService implements NotificationService {
-  SystemNotificationService({FlutterLocalNotificationsPlugin? plugin})
-    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+  SystemNotificationService({
+    FlutterLocalNotificationsPlugin? plugin,
+    L Function()? localizations,
+  }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
+       _localizations = localizations ?? LRu.new;
 
   final FlutterLocalNotificationsPlugin _plugin;
+  final L Function() _localizations;
 
   bool _available = false;
   int _nextId = 0;
@@ -34,7 +39,7 @@ class SystemNotificationService implements NotificationService {
           requestSoundPermission: false,
         ),
         linux: LinuxInitializationSettings(
-          defaultActionName: LRu().notificationOpen,
+          defaultActionName: _localizations().notificationOpen,
         ),
         windows: const WindowsInitializationSettings(
           appName: 'Evaporate',

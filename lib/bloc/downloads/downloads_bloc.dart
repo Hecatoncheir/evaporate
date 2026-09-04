@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/app_paths.dart';
 import '../../models/download_task.dart';
+import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../../services/download/dtorrent_engine.dart';
@@ -44,12 +45,18 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
          maxConcurrent: settings.state.maxConcurrent,
        ),
        super(const DownloadsState()) {
-    on<DownloadEngineStartRequested>((event, emit) => engine.start());
+    on<DownloadEngineStartRequested>((event, emit) async {
+      await applyLimits();
+      await engine.start();
+    });
     on<DownloadEngineRestartRequested>((event, emit) async {
       await engine.stop();
       await engine.start();
     });
-    on<DownloadSettingsApplied>(_onSettingsApplied);
+    on<DownloadSettingsApplied>(
+      _onSettingsApplied,
+      transformer: (events, mapper) => events.asyncExpand(mapper),
+    );
     on<DownloadLimitsRefreshed>(_onLimitsRefreshed);
     library.launcher.runningIds.addListener(_onRunningChanged);
     on<DownloadRequested>(_onDownloadRequested);
@@ -70,6 +77,9 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     engine.tasks.addListener(_pushTasks);
     engine.status.addListener(_pushStatus);
     engine.stats.addListener(_pushStats);
+    _settingsSubscription = settings.stream.listen(
+      (value) => add(DownloadSettingsApplied(value)),
+    );
   }
 
   final AppPaths paths;
@@ -84,6 +94,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   L get _l => _localizations();
   final SettingsBloc settings;
   final DtorrentEngine engine;
+  late final StreamSubscription<AppSettings> _settingsSubscription;
 
   /// Загрузка идёт долго, и окно к её концу обычно свёрнуто — о финале
   /// сообщает система, а не SnackBar в невидимом окне.
@@ -114,12 +125,16 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     DownloadSettingsApplied event,
     Emitter<DownloadsState> emit,
   ) async {
+    final settings = event.settings;
     engine
-      ..downloadDir = settings.state.installDir
-      ..maxConcurrent = settings.state.maxConcurrent
+      ..downloadDir = settings.installDir
+      ..maxConcurrent = settings.maxConcurrent
       ..pumpQueue();
-    await engine.setProxy(settings.state.proxy);
-    await applyLimits();
+    await engine.setProxy(settings.proxy);
+    await engine.applyLimits(
+      settings.limits,
+      playing: library.launcher.runningIds.value.isNotEmpty,
+    );
   }
 
   /// Передаёт движку ограничения скорости с учётом того, играют ли сейчас.
@@ -447,11 +462,12 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   }
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
     engine.tasks.removeListener(_pushTasks);
     engine.status.removeListener(_pushStatus);
     engine.stats.removeListener(_pushStats);
     library.launcher.runningIds.removeListener(_onRunningChanged);
+    await _settingsSubscription.cancel();
     engine.dispose();
     return super.close();
   }

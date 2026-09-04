@@ -114,9 +114,7 @@ class WindowState {
   final WindowController _controller;
 
   Future<WindowGeometry?> read() async {
-    final json = await _store.read();
-    if (json == null) return null;
-    return WindowGeometry.fromJson(json);
+    return _store.readAs(WindowGeometry.fromJson);
   }
 
   /// Ставит окно так, как договорились настройки.

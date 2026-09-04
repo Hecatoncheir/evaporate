@@ -136,6 +136,34 @@ void main() {
   });
 
   group('команды реестра', () {
+    test('ненулевой exitCode reg add не считается успехом', () async {
+      final auto = Autostart(
+        operatingSystem: 'windows',
+        executablePath: r'C:\Evaporate.exe',
+        run: (exe, args) async => ProcessResult(0, 1, '', 'Access denied'),
+      );
+      await expectLater(
+        auto.setEnabled(true),
+        throwsA(isA<ProcessException>()),
+      );
+    });
+
+    test('ненулевой exitCode reg delete не считается успехом', () async {
+      final auto = Autostart(
+        operatingSystem: 'windows',
+        executablePath: r'C:\Evaporate.exe',
+        run: (exe, args) async => ProcessResult(
+          0,
+          args.first == 'query' ? 0 : 1,
+          '',
+          'Access denied',
+        ),
+      );
+      await expectLater(
+        auto.setEnabled(false),
+        throwsA(isA<ProcessException>()),
+      );
+    });
     // Сами команды собираются одинаково на любой системе, поэтому
     // проверить их можно и не на Windows.
     test('запись идёт в ветку текущего пользователя', () {

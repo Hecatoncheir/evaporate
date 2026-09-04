@@ -154,8 +154,9 @@ class DtorrentEngine implements DownloadEngine {
     final snapshot = _downloads.values.toList();
     for (final managed in snapshot) {
       await managed.dispose();
-      unawaited(_launch(managed));
     }
+    pumpQueue();
+    await refresh();
   }
 
   // ------------------------------------------------------------ добавление
@@ -239,7 +240,13 @@ class DtorrentEngine implements DownloadEngine {
         continue;
       }
       managed.started = true;
-      if (autoStart) unawaited(_launch(managed));
+      if (autoStart) {
+        if (managed.task != null) {
+          managed.task!.resume();
+        } else {
+          unawaited(_launch(managed));
+        }
+      }
     }
   }
 
@@ -279,6 +286,7 @@ class DtorrentEngine implements DownloadEngine {
 
   /// Поднимает задачу: для magnet сначала качаются метаданные.
   Future<void> _launch(_ManagedDownload managed) async {
+    final generation = managed.generation;
     try {
       managed.error = null;
       var model = managed.model;
@@ -287,7 +295,12 @@ class DtorrentEngine implements DownloadEngine {
         model = await dt.TorrentParser.parse(managed.torrentPath!);
       }
       model ??= await managed.fetchMetadata();
-      if (model == null) return;
+      if (model == null ||
+          generation != managed.generation ||
+          managed.pausedByUser ||
+          !managed.started) {
+        return;
+      }
 
       managed.model = model;
       managed.name = model.name;
@@ -307,7 +320,9 @@ class DtorrentEngine implements DownloadEngine {
       // нужно догнать текущими настройками.
       _limitTask(task);
     } on Object catch (error) {
-      managed.error = error.toString();
+      if (generation == managed.generation) {
+        managed.error = error.toString();
+      }
     }
   }
 
@@ -325,13 +340,18 @@ class DtorrentEngine implements DownloadEngine {
       return;
     }
     managed.pausedByUser = true;
+    managed.started = false;
     // pause() у движка синхронный, оборачивать его не во что.
     managed.task?.pause();
+    unawaited(_persist());
   }
 
   /// Действующие ограничения и то, идёт ли игра.
   SpeedLimits _limits = SpeedLimits.unlimited;
   bool _playing = false;
+
+  @visibleForTesting
+  SpeedLimits get appliedLimits => _limits;
 
   @override
   Future<void> applyLimits(SpeedLimits limits, {required bool playing}) async {
@@ -405,7 +425,13 @@ class DtorrentEngine implements DownloadEngine {
     final managed = _downloads[id];
     if (managed == null) return;
     managed.pausedByUser = true;
-    managed.task?.pause();
+    if (managed.task == null) {
+      await managed.dispose();
+    } else {
+      managed.task!.pause();
+      managed.started = false;
+    }
+    await _persist();
     // Освободившийся слот отдаём тому, кто ждёт очереди.
     pumpQueue();
     await refresh();
@@ -416,12 +442,9 @@ class DtorrentEngine implements DownloadEngine {
     final managed = _downloads[id];
     if (managed == null) return;
     managed.pausedByUser = false;
-    if (managed.task != null) {
-      managed.task!.resume();
-    } else {
-      managed.started = false;
-      pumpQueue();
-    }
+    managed.started = false;
+    pumpQueue();
+    await _persist();
     await refresh();
   }
 
@@ -525,11 +548,16 @@ class DtorrentEngine implements DownloadEngine {
   /// Список загрузок переживает перезапуск приложения: своего файла сессии
   /// у библиотеки нет, поэтому ведём его сами.
   Future<void> _restoreState() async {
-    final json = await _store.read();
-    final entries = json?['downloads'] as List<dynamic>? ?? const [];
-    for (final entry in entries) {
-      final map = entry as Map<String, dynamic>;
-      final managed = _ManagedDownload.fromJson(map, this);
+    final restored = await _store.readAs((json) {
+      final entries = json['downloads'] as List<dynamic>? ?? const [];
+      return entries
+          .map(
+            (entry) =>
+                _ManagedDownload.fromJson(entry as Map<String, dynamic>, this),
+          )
+          .toList();
+    });
+    for (final managed in restored ?? <_ManagedDownload>[]) {
       _register(managed);
     }
     pumpQueue();
@@ -573,6 +601,8 @@ class _ManagedDownload {
 
   /// Пауза именно от пользователя — такую задачу очередь не трогает.
   bool pausedByUser = false;
+  int generation = 0;
+  Completer<dt.TorrentModel?>? _metadataResult;
   dt.TorrentModel? model;
   dt.TorrentTask? task;
   dt.MetadataDownloader? metadata;
@@ -594,6 +624,7 @@ class _ManagedDownload {
     metadata = downloader;
 
     final completer = Completer<dt.TorrentModel?>();
+    _metadataResult = completer;
     downloader.events.listen((event) {
       if (completer.isCompleted) return;
       if (event is dt.MetaDataDownloadComplete) {
@@ -668,22 +699,32 @@ class _ManagedDownload {
     'name': name,
     if (magnet != null) 'magnet': magnet,
     if (torrentPath != null) 'torrentPath': torrentPath,
+    if (pausedByUser) 'pausedByUser': true,
   };
 
   factory _ManagedDownload.fromJson(
     Map<String, dynamic> json,
     DtorrentEngine engine,
-  ) => _ManagedDownload(
-    infoHash: json['infoHash'] as String,
-    savePath: json['savePath'] as String,
-    name: json['name'] as String? ?? 'Torrent',
-    magnet: json['magnet'] as String?,
-    torrentPath: json['torrentPath'] as String?,
-    engine: engine,
-  );
+  ) {
+    final managed = _ManagedDownload(
+      infoHash: json['infoHash'] as String,
+      savePath: json['savePath'] as String,
+      name: json['name'] as String? ?? 'Torrent',
+      magnet: json['magnet'] as String?,
+      torrentPath: json['torrentPath'] as String?,
+      engine: engine,
+    );
+    managed.pausedByUser = json['pausedByUser'] as bool? ?? false;
+    return managed;
+  }
 
   Future<void> dispose() async {
+    generation++;
+    final result = _metadataResult;
+    if (result != null && !result.isCompleted) result.complete(null);
+    _metadataResult = null;
     try {
+      await metadata?.stop();
       await task?.stop();
       await task?.dispose();
     } on Object {

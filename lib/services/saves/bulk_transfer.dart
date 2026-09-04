@@ -71,7 +71,7 @@ class BulkTransfer {
     final failed = <String>[];
 
     for (final game in games) {
-      if (!game.saveProfile.isConfigured) {
+      if (game.saveProfile.rulesForCurrentPlatform.isEmpty) {
         skipped++;
         entries.add(
           BulkEntry(
@@ -90,12 +90,13 @@ class BulkTransfer {
           snapshot,
           p.join(
             destinationDir,
-            '${safeFileName(game.title)}${SaveSnapshot.fileExtension}',
+            '${safeFileName(game.title)}-${safeFileName(game.id)}'
+            '${SaveSnapshot.fileExtension}',
           ),
         );
         exported++;
         entries.add(BulkEntry(title: game.title, outcome: BulkOutcome.applied));
-      } on SaveException {
+      } on SaveNothingFoundException {
         // Пути заданы, но файлов ещё нет — это не ошибка переноса.
         skipped++;
         entries.add(
@@ -143,6 +144,7 @@ class BulkTransfer {
     final unmatched = <String>[];
     final failed = <String>[];
     final conflicted = <String>[];
+    final seenGames = <String>{};
 
     final packages = await saves.scanSyncFolder(sourceDir);
     for (final package in packages) {
@@ -154,6 +156,18 @@ class BulkTransfer {
             title: package.snapshot.gameTitle,
             outcome: BulkOutcome.unmatched,
             detail: _l.detailNoMatchingGame,
+          ),
+        );
+        continue;
+      }
+      // scanSyncFolder сортирует пакеты от новых к старым. Для одной игры
+      // применяем только самый свежий, иначе следующий пакет откатит его.
+      if (!seenGames.add(game.id)) {
+        entries.add(
+          BulkEntry(
+            title: game.title,
+            outcome: BulkOutcome.skipped,
+            detail: _l.detailNewerHere,
           ),
         );
         continue;
@@ -230,9 +244,12 @@ class BulkTransfer {
   /// пакеты сопоставляются по названию.
   static Game? matchGame(List<Game> games, String title) {
     final wanted = title.trim().toLowerCase();
+    Game? match;
     for (final game in games) {
-      if (game.title.trim().toLowerCase() == wanted) return game;
+      if (game.title.trim().toLowerCase() != wanted) continue;
+      if (match != null) return null;
+      match = game;
     }
-    return null;
+    return match;
   }
 }

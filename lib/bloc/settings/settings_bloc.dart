@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -17,29 +19,42 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
       _store = JsonStore(paths.settingsFile),
       super(AppSettings(installDir: paths.defaultInstallDir)) {
     on<SettingsLoadRequested>(_onLoadRequested);
-    on<SettingsChanged>(_onChanged);
+    on<SettingsChanged>(
+      _onChanged,
+      transformer: (events, mapper) => events.asyncExpand(mapper),
+    );
   }
 
   final AppPaths _paths;
   final Autostart _autostart;
   final JsonStore _store;
+  final Completer<void> _loaded = Completer<void>();
+
+  /// Завершается после первой попытки чтения, даже если состояние совпало с
+  /// настройками по умолчанию и Bloc поэтому не отправил событие в stream.
+  Future<void> get loaded => _loaded.future;
 
   Future<void> _onLoadRequested(
     SettingsLoadRequested event,
     Emitter<AppSettings> emit,
   ) async {
-    final json = await _store.read();
-    var settings = json == null
-        ? state
-        : AppSettings.fromJson(json, _paths.defaultInstallDir);
+    try {
+      var settings =
+          await _store.readAs(
+            (json) => AppSettings.fromJson(json, _paths.defaultInstallDir),
+          ) ??
+          state;
 
-    // Про автозапуск спрашиваем саму систему: его могли отключить её
-    // средствами, и записанная настройка не должна это переспорить.
-    final actual = await _autostart.isEnabled();
-    if (actual != settings.launchAtStartup) {
-      settings = settings.copyWith(launchAtStartup: actual);
+      // Про автозапуск спрашиваем саму систему: его могли отключить её
+      // средствами, и записанная настройка не должна это переспорить.
+      final actual = await _autostart.isEnabled();
+      if (actual != settings.launchAtStartup) {
+        settings = settings.copyWith(launchAtStartup: actual);
+      }
+      emit(settings);
+    } finally {
+      if (!_loaded.isCompleted) _loaded.complete();
     }
-    emit(settings);
   }
 
   Future<void> _onChanged(

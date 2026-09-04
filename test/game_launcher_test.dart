@@ -78,6 +78,21 @@ void main() {
     expect(await exited.future.timeout(const Duration(seconds: 10)), 3);
   }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
 
+  test('большой stdout и stderr не блокируют завершение', () async {
+    final path = await makeScript(
+      'i=0; while [ \$i -lt 20000 ]; do '
+      'echo "строка \$i"; echo "ошибка \$i" >&2; i=\$((i+1)); done',
+    );
+    final exited = Completer<int>();
+
+    await launcher.launch(
+      gameWith(path),
+      onExit: (_, _, code) => exited.complete(code),
+    );
+
+    expect(await exited.future.timeout(const Duration(seconds: 10)), 0);
+  }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
+
   test('пока игра идёт, она числится запущенной', () async {
     final path = await makeScript('sleep 5');
     final exited = Completer<void>();
@@ -130,4 +145,33 @@ void main() {
 
     expect(await exited.future.timeout(const Duration(seconds: 10)), 0);
   }, skip: Platform.isWindows ? 'права доступа устроены иначе' : null);
+
+  test('macOS bundle запускает и останавливает настоящий бинарник', () async {
+    final app = Directory(p.join(tmp.path, 'TestGame.app'));
+    final executable = File(
+      p.join(app.path, 'Contents', 'MacOS', 'CustomExecutable'),
+    );
+    await executable.parent.create(recursive: true);
+    await executable.writeAsString('#!/bin/sh\nsleep 30\n');
+    await Process.run('chmod', ['+x', executable.path]);
+    await File(p.join(app.path, 'Contents', 'Info.plist')).writeAsString('''
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>CustomExecutable</string>
+</dict></plist>
+''');
+    final exited = Completer<void>();
+
+    await launcher.launch(
+      gameWith(app.path),
+      onExit: (_, _, _) => exited.complete(),
+    );
+    expect(launcher.isRunning('game-1'), isTrue);
+
+    await launcher.terminate('game-1');
+    await exited.future.timeout(const Duration(seconds: 10));
+
+    expect(launcher.isRunning('game-1'), isFalse);
+  }, skip: Platform.isMacOS ? null : 'проверка формата macOS .app');
 }

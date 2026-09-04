@@ -12,16 +12,16 @@ import 'package:path/path.dart' as p;
 
 void main() {
   late Directory tmp;
+  late AppPaths paths;
   late SaveManager manager;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_test_');
-    manager = SaveManager(
-      paths: AppPaths.custom(
-        dataDir: p.join(tmp.path, 'data'),
-        defaultInstallDir: p.join(tmp.path, 'games'),
-      ),
+    paths = AppPaths.custom(
+      dataDir: p.join(tmp.path, 'data'),
+      defaultInstallDir: p.join(tmp.path, 'games'),
     );
+    manager = SaveManager(paths: paths);
   });
 
   tearDown(() async {
@@ -136,7 +136,7 @@ void main() {
   });
 
   test(
-    'несопоставленные правила попадают в отчёт, а не теряются молча',
+    'несопоставленные правила не используют путь из внешнего пакета',
     () async {
       final saves = await writeSaves('saves2', {'a.sav': 'x'});
       final gameA = gameWith(
@@ -167,18 +167,46 @@ void main() {
         ],
       );
 
-      final report = await manager.restoreSnapshot(
-        game: gameB,
-        snapshot: snapshot,
-        backupCurrent: false,
+      await expectLater(
+        manager.restoreSnapshot(
+          game: gameB,
+          snapshot: snapshot,
+          backupCurrent: false,
+        ),
+        throwsA(isA<SaveException>()),
       );
-
-      // Локальное правило не для этой платформы, но сами правила снимка —
-      // платформонезависимые, поэтому раскладываются по исходным путям.
-      expect(report.unresolved, isEmpty);
-      expect(report.filesWritten, 2);
+      expect(target.existsSync(), isFalse);
+      expect(await File(p.join(saves.path, 'a.sav')).readAsString(), 'x');
     },
   );
+
+  test('правило для одного файла восстанавливает сам файл', () async {
+    final saveFile = File(p.join(tmp.path, 'single', 'profile.sav'));
+    await saveFile.parent.create(recursive: true);
+    await saveFile.writeAsString('исходное');
+    final game = gameWith(
+      id: 'single-file',
+      title: 'Один файл',
+      rules: [
+        SavePathRule(
+          id: 'single-rule',
+          label: 'Сохранения',
+          template: saveFile.path,
+        ),
+      ],
+    );
+
+    final snapshot = await manager.createSnapshot(game);
+    await saveFile.writeAsString('изменённое');
+    await manager.restoreSnapshot(
+      game: game,
+      snapshot: snapshot,
+      backupCurrent: false,
+    );
+
+    expect(await saveFile.readAsString(), 'исходное');
+    expect(Directory(saveFile.path).existsSync(), isFalse);
+  });
 
   /// Кладёт рядом пакет с подписью [format] и больше ничем.
   Future<String> packageWithFormat(String format) async {
@@ -286,6 +314,71 @@ void main() {
     expect(File(p.join(tmp.path, 'pwned.txt')).existsSync(), isFalse);
   });
 
+  test('ошибка в конце пакета не стирает цель при wipeTarget', () async {
+    final saves = await writeSaves('atomic-target', {'current.sav': 'живой'});
+    final game = gameWith(
+      id: 'atomic',
+      title: 'Атомарная',
+      rules: [
+        SavePathRule(
+          id: 'atomic-rule',
+          label: 'Сохранения',
+          template: saves.path,
+        ),
+      ],
+    );
+    final archivePath = p.join(tmp.path, 'invalid-late.evsave');
+    final encoder = ZipFileEncoder();
+    encoder.create(archivePath);
+    encoder.addArchiveFile(
+      ArchiveFile.string(
+        SaveSnapshot.manifestEntry,
+        jsonEncode({
+          'format': SaveSnapshot.manifestFormat,
+          'id': 'invalid-late',
+          'gameId': game.id,
+          'gameTitle': game.title,
+          'createdAt': DateTime.now().toIso8601String(),
+          'rules': [game.saveProfile.rules.single.toJson()],
+        }),
+      ),
+    );
+    encoder.addArchiveFile(
+      ArchiveFile.string('data/atomic-rule/new.sav', 'новый'),
+    );
+    encoder.addArchiveFile(
+      ArchiveFile.string('data/atomic-rule/../escape.sav', 'опасный'),
+    );
+    await encoder.close();
+    final snapshot = SaveSnapshot(
+      id: 'invalid-late',
+      gameId: game.id,
+      gameTitle: game.title,
+      createdAt: DateTime.now(),
+      deviceName: 'device',
+      platform: 'linux',
+      sizeBytes: 0,
+      archivePath: archivePath,
+      rules: game.saveProfile.rules,
+    );
+
+    await expectLater(
+      manager.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+        backupCurrent: false,
+        wipeTarget: true,
+      ),
+      throwsA(isA<SaveException>()),
+    );
+
+    expect(
+      await File(p.join(saves.path, 'current.sav')).readAsString(),
+      'живой',
+    );
+    expect(File(p.join(saves.path, 'new.sav')).existsSync(), isFalse);
+  });
+
   test('пустые пути дают внятную ошибку, а не пустой архив', () async {
     final game = gameWith(
       id: 'game-empty',
@@ -302,6 +395,116 @@ void main() {
     await expectLater(
       manager.createSnapshot(game),
       throwsA(isA<SaveException>()),
+    );
+  });
+
+  test('сбой замены второй цели откатывает обе цели', () async {
+    final first = await writeSaves('rollback-first', {'slot': 'old-a'});
+    final second = await writeSaves('rollback-second', {'slot': 'old-b'});
+    final game = gameWith(
+      id: 'rollback',
+      title: 'Rollback',
+      rules: [
+        SavePathRule(id: 'a', label: 'A', template: first.path),
+        SavePathRule(id: 'b', label: 'B', template: second.path),
+      ],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    await File(p.join(first.path, 'slot')).writeAsString('current-a');
+    await File(p.join(second.path, 'slot')).writeAsString('current-b');
+    final failing = SaveManager(
+      paths: paths,
+      renameForRestore: (source, destination) async {
+        if (source.path.contains('.evaporate-new-') &&
+            destination == second.path) {
+          throw FileSystemException('Simulated rename failure', destination);
+        }
+        return source.rename(destination);
+      },
+    );
+
+    await expectLater(
+      failing.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+        backupCurrent: false,
+        wipeTarget: true,
+      ),
+      throwsA(isA<SaveException>()),
+    );
+
+    expect(await File(p.join(first.path, 'slot')).readAsString(), 'current-a');
+    expect(await File(p.join(second.path, 'slot')).readAsString(), 'current-b');
+    expect(
+      tmp.listSync().where((entity) => entity.path.contains('.evaporate-')),
+      isEmpty,
+    );
+  });
+
+  test('ошибка создания бэкапа отменяет восстановление', () async {
+    final saves = await writeSaves('backup-failure', {'slot': 'old'});
+    final game = gameWith(
+      id: 'backup',
+      title: 'Backup',
+      rules: [SavePathRule(id: 'a', label: 'A', template: saves.path)],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    await File(p.join(saves.path, 'slot')).writeAsString('current');
+
+    await expectLater(
+      _FailingBackupManager(paths: paths)
+          .restoreSnapshot(game: game, snapshot: snapshot, wipeTarget: true),
+      throwsA(isA<SaveException>()),
+    );
+    expect(await File(p.join(saves.path, 'slot')).readAsString(), 'current');
+  });
+
+  test('неверная CRC отклоняется до замены существующих сейвов', () async {
+    final saves = await writeSaves('crc', {'slot': 'current'});
+    final game = gameWith(
+      id: 'crc',
+      title: 'CRC',
+      rules: [SavePathRule(id: 'a', label: 'A', template: saves.path)],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    final archive = Archive()
+      ..add(
+        ArchiveFile.string(
+          SaveSnapshot.manifestEntry,
+          jsonEncode(snapshot.toManifest()),
+        ),
+      )
+      ..add(ArchiveFile.noCompress('data/a/slot', 4, [1, 2, 3, 4]));
+    final bytes = ZipEncoder().encode(archive);
+    final offset = bytes.indexOf(1);
+    // Ищем уникальную последовательность payload, не заголовок ZIP.
+    var payload = -1;
+    for (var i = offset; i + 3 < bytes.length; i++) {
+      if (bytes[i] == 1 &&
+          bytes[i + 1] == 2 &&
+          bytes[i + 2] == 3 &&
+          bytes[i + 3] == 4) {
+        payload = i;
+        break;
+      }
+    }
+    expect(payload, greaterThanOrEqualTo(0));
+    bytes[payload] = 9;
+    await File(snapshot.archivePath).writeAsBytes(bytes);
+
+    await expectLater(
+      manager.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+        backupCurrent: false,
+        wipeTarget: true,
+      ),
+      throwsA(isA<SaveException>()),
+    );
+    expect(await File(p.join(saves.path, 'slot')).readAsString(), 'current');
+    expect(
+      tmp.listSync().where((entity) => entity.path.contains('.evaporate-new-')),
+      isEmpty,
     );
   });
 
@@ -325,4 +528,16 @@ void main() {
       expect(info.isCompatible, isTrue);
     },
   );
+}
+
+class _FailingBackupManager extends SaveManager {
+  _FailingBackupManager({required super.paths});
+  @override
+  Future<SaveSnapshot> createSnapshot(
+    Game game, {
+    SnapshotOrigin origin = SnapshotOrigin.manual,
+    String? note,
+  }) async {
+    throw SaveException('Simulated backup failure');
+  }
 }
