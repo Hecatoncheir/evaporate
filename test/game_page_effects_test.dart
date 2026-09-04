@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bokeh_lava_gradient/bokeh_lava_gradient.dart';
 
 import 'support/test_app.dart';
 
@@ -35,7 +34,6 @@ void main() {
             body: Center(
               child: PlayButton(
                 label: 'Играть',
-                effects: true,
                 onPressed: enabled ? () => taps++ : null,
               ),
             ),
@@ -44,12 +42,9 @@ void main() {
       );
       await show();
       await frames(tester, 30);
-      final motion = tester.state<DecorativeMotionState>(
-        find.byType(DecorativeMotion),
-      );
-      expect(motion.isAnimating, isTrue);
-      expect(find.byType(BokehLavaGradient), findsOneWidget);
       final button = find.byType(FilledButton);
+      expect(tester.widget<FilledButton>(button).style, isNull);
+      expect(find.byType(DecorativeMotion), findsNothing);
       Focus.of(tester.element(find.text('Играть'))).requestFocus();
       await tester.pump();
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -58,8 +53,6 @@ void main() {
       enabled = false;
       await show();
       await tester.pumpAndSettle();
-      expect(motion.isAnimating, isFalse);
-      expect(find.byType(BokehLavaGradient), findsNothing);
       expect(tester.widget<FilledButton>(button).onPressed, isNull);
       await tester.tap(button);
       await tester.pump();
@@ -169,15 +162,14 @@ void main() {
     final motions = tester
         .stateList<DecorativeMotionState>(find.byType(DecorativeMotion))
         .toList();
-    expect(motions.length, 2);
+    expect(motions.length, 1);
     expect(motions.every((s) => s.isAnimating), isTrue);
-    expect(find.byType(BokehLavaGradient), findsOneWidget);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await frames(tester, 2);
-    expect(find.byType(BokehLavaGradient), findsNothing);
+    expect(motions.every((s) => !s.isAnimating), isTrue);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await frames(tester, 2);
-    expect(find.byType(BokehLavaGradient), findsOneWidget);
+    expect(motions.every((s) => s.isAnimating), isTrue);
     if (preview != null) {
       await tester.runAsync(() async {
         final image =
@@ -195,17 +187,14 @@ void main() {
     harness.nav.add(const SectionSelected(3));
     await frames(tester, 20);
     expect(motions.every((s) => !s.isAnimating), isTrue);
-    expect(find.byType(BokehLavaGradient, skipOffstage: false), findsNothing);
     harness.nav.add(const SectionSelected(0));
     await frames(tester, 20);
     expect(motions.every((s) => s.isAnimating), isTrue);
-    expect(find.byType(BokehLavaGradient), findsOneWidget);
     harness.settings.add(
       SettingsChanged(harness.settings.state.copyWith(libraryEffects: false)),
     );
     await tester.pumpAndSettle();
     expect(motions.every((s) => !s.isAnimating), isTrue);
-    expect(find.byType(BokehLavaGradient), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

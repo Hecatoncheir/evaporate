@@ -140,7 +140,6 @@ class ParticleField {
       final proximity = target == null
           ? 0.0
           : (1 - distance / 180).clamp(0.0, 1.0);
-      final compression = proximity * proximity * proximity;
       final direction = distance < 0.1 ? Offset.zero : delta / distance;
       p.glow = proximity * proximity;
       if (proximity > 0.7) near++;
@@ -170,25 +169,13 @@ class ParticleField {
           math.sin(time * (4 + proximity * 17) + p.phase * 9),
           math.cos(time * (5 + proximity * 19) + p.phase * 7),
         );
-        final normalNoise =
-            direction * (noise.dx * direction.dx + noise.dy * direction.dy);
-        // A progressively tighter spring packs points into a narrow perimeter
-        // band (or a compact cursor cloud). Keep rapid tangential turbulence,
-        // but reduce the outward jitter that would scatter that dense cluster.
         acceleration +=
-            (direction *
-                    ((distance * 3.8).clamp(0, 230) * proximity +
-                        distance * 120 * compression) +
+            (direction * (distance * 3.8).clamp(0, 230) * proximity +
                 tangent * (proximity * 130) +
-                (noise - normalNoise * (0.92 * compression)) * chaos) *
+                noise * chaos) *
             boost;
       }
       p.velocity = (p.velocity + acceleration * dt) * math.exp(-2.2 * dt);
-      // Damp only motion across the target boundary; orbiting remains fast.
-      final normalVelocity =
-          direction *
-          (p.velocity.dx * direction.dx + p.velocity.dy * direction.dy);
-      p.velocity -= normalVelocity * (1 - math.exp(-8 * compression * dt));
       final speed = p.velocity.distance;
       final limit = 180 + (maxSpeed - 180) * proximity * proximity;
       if (speed > limit) p.velocity = p.velocity / speed * limit;

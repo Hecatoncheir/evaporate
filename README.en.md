@@ -376,14 +376,12 @@ The independent 85–125% interface scale enlarges text, icons, controls and
 dialogs together, leaving the window controls unchanged. Both preferences
 persist; clicking a percentage resets that scale to 100%.
 
-Closer to the target, a stronger spring and radial damping pack particles
-into a tight cursor cloud or perimeter band. Fast tangential turbulence
-remains, with a speed limit of 360 pixels/s; point size and distant motion are unchanged.
+Particles move freely around their target without compression into a tight band.
+Accelerated motion near the target remains, with a speed limit of 360 pixels/s;
+point size and distant motion are unchanged.
 The library and game pages share the same 26-line wave background based on
 the [#wave reference](https://hecatoncheir.github.io/).
-The gold/magenta Play button uses
-[bokeh_lava_gradient](https://pub.dev/packages/bokeh_lava_gradient):
-10 soft coloured blobs at 30 fps, with a contrast scrim under the label.
+Play is a standard themed button without an animated background.
 The lines bend smoothly near the pointer. Everything renders locally in
 Flutter, without loading the website or rebuilding page content each frame.
 Disabling Living library or enabling reduced motion leaves static artwork;

@@ -180,7 +180,7 @@ void main() {
   group('particle simulation', () {
     for (final cursor in [false, true]) {
       test(
-        'particles pack tighter toward ${cursor ? 'cursor' : 'card perimeter'}',
+        'particles remain spread around ${cursor ? 'cursor' : 'card perimeter'}',
         () {
           final field = ParticleField()..resize(const Size(1000, 700));
           const rect = Rect.fromLTWH(320, 180, 240, 300);
@@ -201,10 +201,10 @@ void main() {
           final outer = field.particles
               .where((p) => distance(p) >= 12 && distance(p) < 36)
               .length;
-          expect(tight, greaterThan(300));
-          // Even before correcting for the larger outer area, the inner band
-          // contains more dots: their spacing shrinks toward the target.
-          expect(tight, greaterThan(outer * 2));
+          expect(tight, greaterThan(0));
+          // Restore the loose cloud instead of compressing most nearby dots
+          // into the innermost band. Keep the increased particle budget.
+          expect(outer, greaterThan(tight));
           expect(
             field.particles.where((p) => distance(p) > 180).length,
             greaterThan(60),
@@ -237,6 +237,7 @@ void main() {
         far.step(1 / 60);
         ambient.step(1 / 60);
         expect(near.particles.first.velocity.distance, greaterThan(6));
+        expect(ParticleField.maxSpeed, 360);
         expect(far.particles.first.velocity, ambient.particles.first.velocity);
         expect(InkParticle.radius, 1.25);
       },

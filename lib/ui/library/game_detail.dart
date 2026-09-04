@@ -393,10 +393,6 @@ class _ActionPanel extends StatelessWidget {
     if (game.isInstalled) {
       return [
         PlayButton(
-          effects: context.select<SettingsBloc, bool>(
-            (b) => b.state.libraryEffects,
-          ),
-          busy: busy,
           onPressed: game.canLaunch && !busy
               ? () => library.add(GameLaunchRequested(game))
               : null,
