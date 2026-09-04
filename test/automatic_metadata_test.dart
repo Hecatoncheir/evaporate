@@ -74,6 +74,21 @@ class _Paths extends LudusaviCatalog {
   }
 }
 
+/// Ждёт, пока условие исполнится, — не дольше пяти секунд.
+///
+/// Отмеренная пауза здесь не годится. Старую обложку убирают и библиотеку
+/// пишут на диск уже после того, как состояние обновилось, а на загруженной
+/// машине сборки эта запись не укладывается ни в тридцать миллисекунд, ни в
+/// пятьдесят: те же тесты на том же коде проходили в одном прогоне Windows
+/// и падали в соседнем. Ожидание по условию от скорости диска не зависит, а
+/// не дождавшись — тест всё равно упадёт на своей проверке.
+Future<void> _settle(Future<bool> Function() done) async {
+  for (var i = 0; i < 250; i++) {
+    if (await done()) return;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
+}
+
 Future<void> _wait(
   LibraryBloc bloc,
   bool Function(LibraryState) predicate,
@@ -229,7 +244,7 @@ void main() {
         library,
         (s) => s.gameById('game')?.description == 'Updated description',
       );
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await _settle(() async => !await File(original.coverPath!).exists());
       final updated = library.state.gameById('game')!;
       expect(updated.coverPath, isNot(original.coverPath));
       expect(await File(updated.coverPath!).exists(), isTrue);
@@ -328,7 +343,7 @@ void main() {
       final game = await complete();
       library.add(GameRemoved(stale));
       await _wait(library, (s) => s.games.isEmpty);
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await _settle(() async => !await File(game.coverPath!).exists());
       expect(await File(game.coverPath!).exists(), isFalse);
       await add();
       await complete();
@@ -487,7 +502,10 @@ Example:
       final game = await add();
       library.add(SteamLookupRequested(game, automatic: true));
       library.add(GameUpdated(game));
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      // Отметку занятости первый запрос ставит до записи на диск, а повтор
+      // отскакивает от неё сразу — значит, к моменту первого обращения к
+      // каталогу повтор уже отработал и второго обращения не будет.
+      await _settle(() async => steam.calls > 0);
       expect(steam.calls, 1);
       steam.pending!.complete(steam.result);
       await complete();
