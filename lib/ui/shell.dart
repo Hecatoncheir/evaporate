@@ -298,6 +298,7 @@ class _StatusBar extends StatelessWidget {
               ),
             ),
           ),
+          Spacer(),
           const SizedBox(width: 12),
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),

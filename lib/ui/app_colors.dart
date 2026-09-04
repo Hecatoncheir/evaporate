@@ -197,16 +197,16 @@ abstract final class AppColors {
 }
 
 const _darkWaveColors = [
-  Color(0xFF00E9F0),
-  Color(0xFF4D7CFF),
-  Color(0xFFA855F7),
-  Color(0xFFFF2E93),
+  Color(0xFFF2685A),
+  Color(0xFFDFAE4E),
+  Color(0xFF05BDC9),
+  Color(0xFFCCC5B9),
 ];
 const _lightWaveColors = [
-  Color(0xFF00878B),
-  Color(0xFF4664C0),
-  Color(0xFF8041AC),
-  Color(0xFFB6196A),
+  Color(0xFFAD175E),
+  Color(0xFFF2685A),
+  Color(0xFF05BDC9),
+  Color(0xFFB62D38),
 ];
 
 List<Color> waveColors(bool isDark) =>
