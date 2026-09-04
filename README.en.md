@@ -360,8 +360,8 @@ Particles follow the cursor and orbit card edges: proximity increases their
 density, brightness and turbulence, never their radius. Distant dots wander
 in `#2f0346` on light backgrounds or `#e6dbc7` on dark backgrounds, without glow.
 Close to a target both themes use the same saturated ink palette.
-The 600 ambient dots remain visible when motion is disabled. The simulation
-is capped at 1600 particles, painting independently of the grid.
+The 1200 ambient dots remain visible when motion is disabled. The simulation
+is capped at 3200 particles, painting independently of the grid.
 Grid gaps are 36 pixels horizontally and 40 vertically.
 Reduced motion leaves static foil without tilt; disabling effects removes
 the foil entirely. Animations pause on hidden tabs or when the app is inactive.
@@ -376,8 +376,14 @@ The independent 85–125% interface scale enlarges text, icons, controls and
 dialogs together, leaving the window controls unchanged. Both preferences
 persist; clicking a percentage resets that scale to 100%.
 
-Game pages feature an animated gold/magenta Play button and a 26-line wave
-background based on the [#wave reference](https://hecatoncheir.github.io/).
+Closer to the target, a stronger spring and radial damping pack particles
+into a tight cursor cloud or perimeter band. Fast tangential turbulence
+remains, with a speed limit of 360 pixels/s; point size and distant motion are unchanged.
+The library and game pages share the same 26-line wave background based on
+the [#wave reference](https://hecatoncheir.github.io/).
+The gold/magenta Play button uses
+[bokeh_lava_gradient](https://pub.dev/packages/bokeh_lava_gradient):
+10 soft coloured blobs at 30 fps, with a contrast scrim under the label.
 The lines bend smoothly near the pointer. Everything renders locally in
 Flutter, without loading the website or rebuilding page content each frame.
 Disabling Living library or enabling reduced motion leaves static artwork;

@@ -23,6 +23,7 @@ import 'add_game_dialog.dart';
 import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
+import 'game_wave.dart';
 import 'library_atmosphere.dart';
 import 'foil_card.dart';
 import '../../l10n/app_localizations.dart';
@@ -156,39 +157,45 @@ class _LibraryPageState extends State<LibraryPage> {
               setState(() => _dragging = false);
               _handleDrop(context, [for (final f in details.files) f.path]);
             },
-            child: LibraryAtmosphere(
+            child: GameWave(
+              key: const ValueKey('library-wave'),
               enabled: effects,
-              targetKey: () => _tileKeys[_hoveredId ?? navState.selectedGameId],
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: games.isEmpty
-                        ? _empty(context, library.games.isEmpty)
-                        : LayoutBuilder(
-                            builder: (context, constraints) {
-                              final extent = 215 * scale;
-                              _columns =
-                                  ((constraints.maxWidth - 64) / (extent + 36))
-                                      .ceil()
-                                      .clamp(1, 1000);
-                              final tileWidth =
-                                  (constraints.maxWidth -
-                                      64 -
-                                      36 * (_columns - 1)) /
-                                  _columns;
-                              _rowStride = tileWidth * 1.5 + 40;
-                              return _grid(
-                                games,
-                                navState.selectedGameId,
-                                nav,
-                                effects,
-                                extent,
-                              );
-                            },
-                          ),
-                  ),
-                  if (_dragging) const Positioned.fill(child: _DropOverlay()),
-                ],
+              child: LibraryAtmosphere(
+                enabled: effects,
+                targetKey: () =>
+                    _tileKeys[_hoveredId ?? navState.selectedGameId],
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: games.isEmpty
+                          ? _empty(context, library.games.isEmpty)
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                final extent = 215 * scale;
+                                _columns =
+                                    ((constraints.maxWidth - 64) /
+                                            (extent + 36))
+                                        .ceil()
+                                        .clamp(1, 1000);
+                                final tileWidth =
+                                    (constraints.maxWidth -
+                                        64 -
+                                        36 * (_columns - 1)) /
+                                    _columns;
+                                _rowStride = tileWidth * 1.5 + 40;
+                                return _grid(
+                                  games,
+                                  navState.selectedGameId,
+                                  nav,
+                                  effects,
+                                  extent,
+                                );
+                              },
+                            ),
+                    ),
+                    if (_dragging) const Positioned.fill(child: _DropOverlay()),
+                  ],
+                ),
               ),
             ),
           ),

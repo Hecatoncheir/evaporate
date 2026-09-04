@@ -17,9 +17,10 @@ class InkParticle {
 class ParticleField {
   ParticleField({int seed = 42}) : _random = math.Random(seed);
 
-  static const densityMultiplier = 2.5;
-  static const ambientCount = 600;
-  static const maxCount = 1600;
+  static const densityMultiplier = 5.0;
+  static const ambientCount = 1200;
+  static const maxCount = 3200;
+  static const maxSpeed = 360.0;
   final math.Random _random;
   final List<InkParticle> particles = [];
   Size size = Size.zero;
@@ -134,7 +135,13 @@ class ParticleField {
     var near = 0;
     for (final p in particles) {
       final target = _target(p.position);
-      final proximity = this.proximity(p.position);
+      final delta = target == null ? Offset.zero : target - p.position;
+      final distance = delta.distance;
+      final proximity = target == null
+          ? 0.0
+          : (1 - distance / 180).clamp(0.0, 1.0);
+      final compression = proximity * proximity * proximity;
+      final direction = distance < 0.1 ? Offset.zero : delta / distance;
       p.glow = proximity * proximity;
       if (proximity > 0.7) near++;
       var acceleration = Offset(
@@ -146,9 +153,6 @@ class ParticleField {
       // Attraction has a finite range: distant dots keep wandering instead
       // of the entire background eventually being vacuumed into one card.
       if (target != null && proximity > 0) {
-        final delta = target - p.position;
-        final distance = delta.distance;
-        final direction = distance < 0.1 ? Offset.zero : delta / distance;
         var tangent = Offset(-direction.dy, direction.dx);
         final rect = card;
         if (rect != null && edgePoint(rect, p.position) == target) {
@@ -161,18 +165,33 @@ class ParticleField {
               : const Offset(0, -1);
         }
         final chaos = 12 + 210 * proximity * proximity;
+        final boost = 1 + 1.5 * proximity * proximity;
+        final noise = Offset(
+          math.sin(time * (4 + proximity * 17) + p.phase * 9),
+          math.cos(time * (5 + proximity * 19) + p.phase * 7),
+        );
+        final normalNoise =
+            direction * (noise.dx * direction.dx + noise.dy * direction.dy);
+        // A progressively tighter spring packs points into a narrow perimeter
+        // band (or a compact cursor cloud). Keep rapid tangential turbulence,
+        // but reduce the outward jitter that would scatter that dense cluster.
         acceleration +=
-            direction * (distance * 3.8).clamp(0, 230) * proximity +
-            tangent * (proximity * 130) +
-            Offset(
-                  math.sin(time * (4 + proximity * 17) + p.phase * 9),
-                  math.cos(time * (5 + proximity * 19) + p.phase * 7),
-                ) *
-                chaos;
+            (direction *
+                    ((distance * 3.8).clamp(0, 230) * proximity +
+                        distance * 120 * compression) +
+                tangent * (proximity * 130) +
+                (noise - normalNoise * (0.92 * compression)) * chaos) *
+            boost;
       }
       p.velocity = (p.velocity + acceleration * dt) * math.exp(-2.2 * dt);
+      // Damp only motion across the target boundary; orbiting remains fast.
+      final normalVelocity =
+          direction *
+          (p.velocity.dx * direction.dx + p.velocity.dy * direction.dy);
+      p.velocity -= normalVelocity * (1 - math.exp(-8 * compression * dt));
       final speed = p.velocity.distance;
-      if (speed > 180) p.velocity = p.velocity / speed * 180;
+      final limit = 180 + (maxSpeed - 180) * proximity * proximity;
+      if (speed > limit) p.velocity = p.velocity / speed * limit;
       p.position += p.velocity * dt;
       p.position = Offset(
         (p.position.dx + size.width) % size.width,

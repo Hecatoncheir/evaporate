@@ -8,6 +8,8 @@ import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/library/library_atmosphere.dart';
 import 'package:evaporate/ui/library/foil_card.dart';
 import 'package:evaporate/ui/library/particle_field.dart';
+import 'package:evaporate/ui/library/game_wave.dart';
+import 'package:evaporate/ui/widgets/decorative_motion.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -169,13 +171,76 @@ void main() {
         expect(light, libraryInkColors[i]);
         expect(dark, light);
       }
-      expect(ParticleField.ambientCount, 600);
-      expect(ParticleField.maxCount, 1600);
-      expect(ParticleField.densityMultiplier, 2.5);
+      expect(ParticleField.ambientCount, 1200);
+      expect(ParticleField.maxCount, 3200);
+      expect(ParticleField.densityMultiplier, 5);
     },
   );
 
   group('particle simulation', () {
+    for (final cursor in [false, true]) {
+      test(
+        'particles pack tighter toward ${cursor ? 'cursor' : 'card perimeter'}',
+        () {
+          final field = ParticleField()..resize(const Size(1000, 700));
+          const rect = Rect.fromLTWH(320, 180, 240, 300);
+          const point = Offset(440, 330);
+          if (cursor) {
+            field.pointer = point;
+          } else {
+            field.card = rect;
+          }
+          for (var i = 0; i < 600; i++) {
+            field.step(1 / 60);
+          }
+          double distance(InkParticle p) => cursor
+              ? (p.position - point).distance
+              : (p.position - ParticleField.edgePoint(rect, p.position))
+                    .distance;
+          final tight = field.particles.where((p) => distance(p) < 12).length;
+          final outer = field.particles
+              .where((p) => distance(p) >= 12 && distance(p) < 36)
+              .length;
+          expect(tight, greaterThan(300));
+          // Even before correcting for the larger outer area, the inner band
+          // contains more dots: their spacing shrinks toward the target.
+          expect(tight, greaterThan(outer * 2));
+          expect(
+            field.particles.where((p) => distance(p) > 180).length,
+            greaterThan(60),
+          );
+          expect(
+            field.particles.length,
+            lessThanOrEqualTo(ParticleField.maxCount),
+          );
+          expect(InkParticle.radius, 1.25);
+        },
+      );
+    }
+    test(
+      'near-target acceleration is stronger while distant motion is unchanged',
+      () {
+        final near = ParticleField()..resize(const Size(1000, 700));
+        final far = ParticleField()..resize(const Size(1000, 700));
+        final ambient = ParticleField()..resize(const Size(1000, 700));
+        near.card = far.card = const Rect.fromLTWH(300, 200, 200, 300);
+        near.particles
+          ..clear()
+          ..add(InkParticle(const Offset(400, 200), Offset.zero, 0, -1));
+        far.particles
+          ..clear()
+          ..add(InkParticle(const Offset(900, 650), Offset.zero, 0, -1));
+        ambient.particles
+          ..clear()
+          ..add(InkParticle(const Offset(900, 650), Offset.zero, 0, -1));
+        near.step(1 / 60);
+        far.step(1 / 60);
+        ambient.step(1 / 60);
+        expect(near.particles.first.velocity.distance, greaterThan(6));
+        expect(far.particles.first.velocity, ambient.particles.first.velocity);
+        expect(InkParticle.radius, 1.25);
+      },
+    );
     test('density grows near attraction without changing particle size', () {
       final field = ParticleField()..resize(const Size(1000, 700));
       expect(field.particles.length, ParticleField.ambientCount);
@@ -263,7 +328,10 @@ void main() {
         for (final particle in field.particles) {
           expect(particle.position.dx.isFinite, isTrue);
           expect(particle.position.dy.isFinite, isTrue);
-          expect(particle.velocity.distance, lessThanOrEqualTo(180.001));
+          expect(
+            particle.velocity.distance,
+            lessThanOrEqualTo(ParticleField.maxSpeed + 0.001),
+          );
         }
       },
     );
@@ -363,6 +431,8 @@ void main() {
       'hover, keyboard focus, resize, and scroll track visible card bounds',
       (tester) async {
         final harness = await app(tester);
+        expect(find.byKey(const ValueKey('library-wave')), findsOneWidget);
+        expect(find.byType(GameWave), findsOneWidget);
         final state = tester.state<LibraryAtmosphereState>(
           find.byType(LibraryAtmosphere),
         );
@@ -419,6 +489,14 @@ void main() {
         harness.nav.add(const SectionCycled(1));
         await frames(tester, 12);
         expect(state.isAnimating, isFalse);
+        expect(
+          tester
+              .stateList<DecorativeMotionState>(
+                find.byType(DecorativeMotion, skipOffstage: false),
+              )
+              .any((s) => s.isAnimating),
+          isFalse,
+        );
         expect(
           tester
               .stateList<FoilCardState>(

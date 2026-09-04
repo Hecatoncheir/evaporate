@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.2.1"
+  bokeh_lava_gradient:
+    dependency: "direct main"
+    description:
+      name: bokeh_lava_gradient
+      sha256: cfba13d4c708200cf64b433675e07acd06f47df3c4757473bb95e2ec56d79a37
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.9"
   boolean_selector:
     dependency: transitive
     description:
