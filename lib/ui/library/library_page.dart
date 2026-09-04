@@ -455,10 +455,10 @@ class _Toolbar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          IconButton(
+          OutlinedButton.icon(
             onPressed: onScan,
             icon: const Icon(Icons.folder_open_outlined, size: 19),
-            tooltip: l.findGamesInFolder,
+            label: Text(l.findInstalledGames),
           ),
           IconButton.filled(
             onPressed: onAdd,

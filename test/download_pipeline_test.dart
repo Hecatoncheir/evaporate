@@ -96,6 +96,7 @@ void main() {
       notifications = RecordingNotificationService();
       settings = SettingsBloc(paths);
       library = LibraryBloc(
+        automaticMetadata: false,
         paths: paths,
         settings: settings,
         notifications: notifications,

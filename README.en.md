@@ -12,8 +12,11 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 ## What it does
 
 - **Library** — a grid of portrait covers, the way Steam does it: the All,
-  Installed and Not installed shelves, cover art pulled from Steam by the
-  game's id, states, time played, last launch date.
+  Installed and Not installed shelves, locally cached Steam cover art,
+  states, time played, last launch date.
+- **Find installed games** — choose a parent folder such as `Games` or
+  `steamapps/common`, then select the discovered games to add. Folders
+  already in the library are excluded.
 - **Downloads** — magnet links and `.torrent` files through a pure-Dart client
   (`dtorrent_task_v2`): DHT, a reorderable queue, pause and resume, and
   **SOCKS5 all the way down to peer connections**. The queue survives a restart.
@@ -142,6 +145,18 @@ dialog lets you override the check deliberately.
 ## Finding save locations
 
 Typing save paths by hand for every game is the tedium this feature removes.
+
+Adding an installed game or completing a download starts a one-time Steam
+lookup for its ID, description and cover file, followed by a Ludusavi lookup
+using that ID. Results and attempt markers remain until the game is removed
+from the library. Failed requests and missing matches are not retried on
+restart. Use the Steam and database buttons in the game details to retry
+manually; the database button refreshes the manifest explicitly.
+
+Path patterns are retained even before the first launch. Wildcards are
+expanded locally before snapshots and bulk exports, without network access.
+Cover art is displayed from disk. When a Steam ID is known, Ludusavi does not
+fall back to another game's similar title.
 
 The source is the [Ludusavi manifest](https://github.com/mtkennerly/ludusavi-manifest):
 an open database compiled from [PCGamingWiki](https://www.pcgamingwiki.com/wiki/Home).

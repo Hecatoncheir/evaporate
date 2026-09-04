@@ -63,7 +63,7 @@ class SavePathsSection extends StatelessWidget {
                 onPressed: busy
                     ? null
                     : () => context.read<LibraryBloc>().add(
-                        SavePathsLookupRequested(game),
+                        SavePathsLookupRequested(game, refresh: true),
                       ),
                 icon: busy
                     ? SizedBox(
@@ -97,6 +97,15 @@ class SavePathsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (game.ludusaviTemplates.isNotEmpty)
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text(L.of(context).savedManifestPaths),
+              children: [
+                for (final template in game.ludusaviTemplates)
+                  ListTile(dense: true, title: SelectableText(template)),
+              ],
+            ),
           if (rules.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -116,6 +125,8 @@ class SavePathsSection extends StatelessWidget {
                 gameDir: game.installDir,
                 onRemove: () => _removeRule(context, rule),
               ),
+          ],
+          if (rules.isNotEmpty || game.ludusaviTemplates.isNotEmpty) ...[
             const SizedBox(height: 10),
             _AutoSnapshotToggle(game: game),
           ],
@@ -362,7 +373,10 @@ class SnapshotsSection extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           FilledButton.icon(
-            onPressed: busy || !game.saveProfile.isConfigured
+            onPressed:
+                busy ||
+                    (!game.saveProfile.isConfigured &&
+                        game.ludusaviTemplates.isEmpty)
                 ? null
                 : () =>
                       context.read<LibraryBloc>().add(SnapshotRequested(game)),

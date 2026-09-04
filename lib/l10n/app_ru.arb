@@ -1,4 +1,6 @@
 {
+  "savedManifestPaths": "Запомненные пути Ludusavi",
+  "findInstalledGames": "Найти установленные игры",
   "@@locale": "ru",
   "noticeStorageRecovered": "Часть библиотеки не удалось прочитать. Исправные записи восстановлены, исходные данные сохранены: {path}",
   "@noticeStorageRecovered": {"placeholders": {"path": {"type": "String"}}},

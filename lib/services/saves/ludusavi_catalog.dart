@@ -53,6 +53,7 @@ class LudusaviCatalog {
   late final Future<String> Function(Uri uri)? _fetch;
 
   LudusaviManifest? _manifest;
+  Future<bool>? _loading;
 
   static ProxySettings _noProxy() => const ProxySettings();
 
@@ -61,9 +62,13 @@ class LudusaviCatalog {
   int get entryCount => _manifest?.entries.length ?? 0;
 
   /// Читает базу из кэша; при [refresh] или пустом кэше — скачивает заново.
-  Future<bool> ensureLoaded({bool refresh = false}) async {
-    if (_manifest != null && !refresh) return true;
+  Future<bool> ensureLoaded({bool refresh = false}) {
+    if (_manifest != null && !refresh) return Future.value(true);
+    return _loading ??= _load(refresh: refresh)
+        .whenComplete(() => _loading = null);
+  }
 
+  Future<bool> _load({required bool refresh}) async {
     if (!refresh) {
       final cached = await _store.readAs(LudusaviManifest.fromJson);
       if (cached != null) {
@@ -80,8 +85,8 @@ class LudusaviCatalog {
     return true;
   }
 
-  /// Ищет запись: сначала по идентификатору Steam — он точнее любого
-  /// сравнения названий, — затем по имени.
+  /// При известном Steam ID ищет только по нему: совпадение названия
+  /// другой игры не должно подставлять чужие сохранения.
   LudusaviEntry? find({required String title, int? steamAppId}) {
     final manifest = _manifest;
     if (manifest == null) return null;
@@ -90,6 +95,7 @@ class LudusaviCatalog {
       for (final entry in manifest.entries) {
         if (entry.steamId == steamAppId && !entry.isEmpty) return entry;
       }
+      return null;
     }
 
     final needle = ReleaseName.clean(title);

@@ -26,6 +26,7 @@ void main() {
     );
     settings = SettingsBloc(paths);
     library = LibraryBloc(
+      automaticMetadata: false,
       paths: paths,
       settings: settings,
       savePaths: LudusaviCatalog(

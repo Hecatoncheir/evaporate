@@ -33,6 +33,10 @@ void main() {
     await withGames(tester);
 
     expect(find.byType(GameCoverTile), findsNWidgets(3));
+    expect(
+      find.widgetWithText(OutlinedButton, 'Найти установленные игры'),
+      findsOneWidget,
+    );
     // Обложек у этих игр нет, и плитка обязана назваться сама — иначе в
     // сетке остались бы три неразличимых прямоугольника.
     expect(find.text('Альфа'), findsOneWidget);

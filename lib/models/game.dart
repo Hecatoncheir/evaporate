@@ -45,6 +45,10 @@ class Game {
     this.coverUrl,
     this.description,
     this.steamAppId,
+    this.steamLookupAttempted = false,
+    this.savePathsLookupAttempted = false,
+    this.ludusaviTemplates = const [],
+    this.ludusaviResolvedPaths = const [],
     this.notes,
     this.saveProfile = const SaveProfile(),
     this.playtime = Duration.zero,
@@ -69,13 +73,24 @@ class Game {
   final List<String> launchArgs;
   final String? coverPath;
 
-  /// Обложка из каталога Steam: показывается прямо по ссылке, локально
-  /// ничего не скачиваем.
+  /// Исходная ссылка Steam. UI использует сохранённый файл [coverPath].
   final String? coverUrl;
   final String? description;
 
   /// Идентификатор в Steam — чтобы не искать игру повторно.
   final int? steamAppId;
+
+  /// Попытки, а не только успехи: автоматический запрос не повторяется
+  /// после ошибки сети, отсутствия результата или перезапуска приложения.
+  final bool steamLookupAttempted;
+  final bool savePathsLookupAttempted;
+
+  /// Исходные шаблоны базы, в том числе ещё не существующие профили с `*`.
+  /// Раскрывать их локально можно многократно без обращения к каталогу.
+  final List<String> ludusaviTemplates;
+
+  /// Уже добавленные пути: удалённое вручную правило не создаём заново.
+  final List<String> ludusaviResolvedPaths;
   final String? notes;
   final SaveProfile saveProfile;
   final Duration playtime;
@@ -106,6 +121,10 @@ class Game {
     Object? coverUrl = _u,
     Object? description = _u,
     Object? steamAppId = _u,
+    bool? steamLookupAttempted,
+    bool? savePathsLookupAttempted,
+    List<String>? ludusaviTemplates,
+    List<String>? ludusaviResolvedPaths,
     Object? notes = _u,
     SaveProfile? saveProfile,
     Duration? playtime,
@@ -132,6 +151,12 @@ class Game {
           ? this.description
           : description as String?,
       steamAppId: steamAppId == _u ? this.steamAppId : steamAppId as int?,
+      steamLookupAttempted: steamLookupAttempted ?? this.steamLookupAttempted,
+      savePathsLookupAttempted:
+          savePathsLookupAttempted ?? this.savePathsLookupAttempted,
+      ludusaviTemplates: ludusaviTemplates ?? this.ludusaviTemplates,
+      ludusaviResolvedPaths:
+          ludusaviResolvedPaths ?? this.ludusaviResolvedPaths,
       notes: notes == _u ? this.notes : notes as String?,
       saveProfile: saveProfile ?? this.saveProfile,
       playtime: playtime ?? this.playtime,
@@ -158,6 +183,10 @@ class Game {
     if (coverUrl != null) 'coverUrl': coverUrl,
     if (description != null) 'description': description,
     if (steamAppId != null) 'steamAppId': steamAppId,
+    'steamLookupAttempted': steamLookupAttempted,
+    'savePathsLookupAttempted': savePathsLookupAttempted,
+    'ludusaviTemplates': ludusaviTemplates,
+    'ludusaviResolvedPaths': ludusaviResolvedPaths,
     if (notes != null) 'notes': notes,
     'saveProfile': saveProfile.toJson(),
     'playtimeSeconds': playtime.inSeconds,
@@ -195,6 +224,15 @@ class Game {
       coverUrl: json['coverUrl'] as String?,
       description: json['description'] as String?,
       steamAppId: json['steamAppId'] as int?,
+      steamLookupAttempted:
+          json['steamLookupAttempted'] as bool? ?? json['steamAppId'] != null,
+      savePathsLookupAttempted:
+          json['savePathsLookupAttempted'] as bool? ?? false,
+      ludusaviTemplates: (json['ludusaviTemplates'] as List<dynamic>? ?? [])
+          .cast<String>(),
+      ludusaviResolvedPaths:
+          (json['ludusaviResolvedPaths'] as List<dynamic>? ?? [])
+              .cast<String>(),
       notes: json['notes'] as String?,
       saveProfile: json['saveProfile'] == null
           ? const SaveProfile()

@@ -30,6 +30,17 @@ void main() {
     expect(await JsonStore(path).read(), isNull);
   });
 
+  test('flush waits for queued writes without creating another file', () async {
+    final store = JsonStore(path);
+    await store.flush();
+    expect(await File(path).exists(), isFalse);
+    final first = store.write({'value': 1});
+    final second = store.write({'value': 2});
+    await store.flush();
+    expect(await store.read(), {'value': 2});
+    await Future.wait([first, second]);
+  });
+
   test('пустой файл читается как отсутствие данных', () async {
     final file = File(path);
     await file.parent.create(recursive: true);

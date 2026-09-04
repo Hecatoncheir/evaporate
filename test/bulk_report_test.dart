@@ -56,7 +56,11 @@ void main() {
         defaultInstallDir: p.join(tmp.path, 'games'),
       );
       settings = SettingsBloc(paths);
-      library = LibraryBloc(paths: paths, settings: settings);
+      library = LibraryBloc(
+        automaticMetadata: false,
+        paths: paths,
+        settings: settings,
+      );
     });
 
     tearDown(() async {

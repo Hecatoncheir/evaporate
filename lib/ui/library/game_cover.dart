@@ -1,10 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
-import '../../services/metadata/steam_catalog.dart';
 import '../theme.dart';
 import '../widgets/nav_tile.dart';
 import '../../l10n/app_localizations.dart';
@@ -83,11 +84,7 @@ class GameCoverTile extends StatelessWidget {
   }
 }
 
-/// Картинка обложки с двумя запасными вариантами.
-///
-/// Сначала вертикальная из библиотеки Steam, потом горизонтальная из карточки
-/// магазина, а если нет и её — название на цветной подложке. Сеть тут может
-/// молчать сколько угодно: плитка под картинкой уже нарисована и без неё.
+/// Обложка читается только с диска: открытие библиотеки не обращается к Steam.
 class _Art extends StatelessWidget {
   const _Art({required this.game, required this.underStrip});
 
@@ -98,12 +95,11 @@ class _Art extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appId = game.steamAppId;
-    final header = game.coverUrl;
+    final path = game.coverPath;
 
-    Widget image(String url, {required Widget Function() onError}) {
-      return Image.network(
-        url,
+    Widget image(String path, {required Widget Function() onError}) {
+      return Image.file(
+        File(path),
         fit: BoxFit.cover,
         errorBuilder: (context, error, stack) => onError(),
         // Проявление вместо рывка: обложки приходят вразнобой, и сетка
@@ -117,7 +113,7 @@ class _Art extends StatelessWidget {
     }
 
     final fallback = _TitlePlate(game: game, underStrip: underStrip);
-    if (appId == null && header == null) return fallback;
+    if (path == null) return fallback;
 
     return Stack(
       fit: StackFit.expand,
@@ -125,15 +121,7 @@ class _Art extends StatelessWidget {
         // Подложка лежит под картинкой всегда: пока обложка грузится, плитка
         // не должна быть пустой дырой.
         fallback,
-        if (appId != null)
-          image(
-            SteamCatalog.portraitUrl(appId),
-            onError: () => header == null
-                ? const SizedBox.shrink()
-                : image(header, onError: () => const SizedBox.shrink()),
-          )
-        else
-          image(header!, onError: () => const SizedBox.shrink()),
+        image(path, onError: () => const SizedBox.shrink()),
       ],
     );
   }

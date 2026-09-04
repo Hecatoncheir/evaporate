@@ -94,6 +94,7 @@ void main() {
       );
       settings = SettingsBloc(paths);
       library = LibraryBloc(
+        automaticMetadata: false,
         paths: paths,
         settings: settings,
         // Без подделок этот тест ушёл бы в сеть за настоящим манифестом на

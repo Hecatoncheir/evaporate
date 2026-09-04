@@ -24,6 +24,7 @@ void main() {
     );
     settings = SettingsBloc(paths);
     library = LibraryBloc(
+      automaticMetadata: false,
       paths: paths,
       settings: settings,
       // Выход из игры запускает обход папок в поисках следов её работы.
@@ -73,7 +74,11 @@ void main() {
       expect(library.state.gameById(id)?.title, 'Игра');
 
       await library.persist();
-      final reopened = LibraryBloc(paths: paths, settings: settings);
+      final reopened = LibraryBloc(
+        automaticMetadata: false,
+        paths: paths,
+        settings: settings,
+      );
       reopened.add(const LibraryLoadRequested());
       await reopened.stream.firstWhere((s) => s.loaded);
 
@@ -208,7 +213,11 @@ void main() {
     final before = withSnapshot.snapshotsFor(id).single;
 
     await library.persist();
-    final reopened = LibraryBloc(paths: paths, settings: settings);
+    final reopened = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+    );
     addTearDown(reopened.close);
     reopened.add(const LibraryLoadRequested());
     await reopened.stream.firstWhere((s) => s.loaded);
@@ -342,7 +351,11 @@ void main() {
 
     await library.close();
 
-    final reopened = LibraryBloc(paths: paths, settings: settings);
+    final reopened = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+    );
     reopened.add(const LibraryLoadRequested());
     await reopened.stream
         .firstWhere((s) => s.gameById(id) != null)

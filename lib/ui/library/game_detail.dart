@@ -122,14 +122,14 @@ class _Cover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final url = game.coverUrl;
+    final path = game.coverPath;
     final task = context.select<DownloadsBloc, DownloadTask?>(
       (bloc) => bloc.state.taskForGame(game),
     );
     final showProgress = task != null && task.state != DownloadState.complete;
 
     return Container(
-      width: url == null ? 64 : 132,
+      width: path == null ? 64 : 132,
       height: 64,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -140,7 +140,7 @@ class _Cover extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (url == null)
+          if (path == null)
             Center(
               child: Text(
                 game.title.characters.take(1).toString().toUpperCase(),
@@ -152,8 +152,8 @@ class _Cover extends StatelessWidget {
               ),
             )
           else
-            Image.network(
-              url,
+            Image.file(
+              File(path),
               fit: BoxFit.cover,
               // Обложка — украшение: не грузится, значит её просто нет.
               errorBuilder: (context, error, stack) => Icon(

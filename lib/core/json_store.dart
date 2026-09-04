@@ -12,7 +12,10 @@ class JsonStore {
   /// Записи выстраиваются в очередь: два одновременных `write` работали бы
   /// с одним и тем же временным файлом, и второй падал бы на переименовании
   /// уже переименованного файла.
-  Future<void> _queue = Future<void>.value();
+  Future<void>? _queue;
+
+  /// Дождаться уже поставленных записей без новой записи на диск.
+  Future<void> flush() => _queue ?? Future<void>.value();
 
   Future<Map<String, dynamic>?> read() async {
     recoveryPath = null;
@@ -54,7 +57,7 @@ class JsonStore {
   }
 
   Future<void> write(Map<String, dynamic> data) {
-    final next = _queue.then((_) => _write(data));
+    final next = (_queue ?? Future<void>.value()).then((_) => _write(data));
     // Ошибка одной записи не должна рвать очередь для следующих.
     _queue = next.catchError((Object _) {});
     return next;

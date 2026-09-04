@@ -39,6 +39,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   LibraryBloc({
     required AppPaths paths,
     required this.settings,
+    JsonStore? store,
     SaveManager? saveManager,
     GameLauncher? launcher,
     NotificationService? notifications,
@@ -46,6 +47,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     LudusaviCatalog? savePaths,
     L Function()? localizations,
     List<SaveRoot> Function()? saveRoots,
+    this.automaticMetadata = true,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        savePaths =
            savePaths ??
@@ -55,7 +57,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
            ),
        _localizations = localizations ?? _defaultLocalizations,
        notifications = notifications ?? const NoopNotificationService(),
-       _store = JsonStore(paths.libraryFile),
+       _store = store ?? JsonStore(paths.libraryFile),
+       _coversDir = paths.coversDir,
        _saves = saveManager ?? SaveManager(paths: paths),
        _launcher = launcher ?? GameLauncher(),
        _saveRoots = saveRoots ?? SavePathFinder.roots,
@@ -83,7 +86,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SaveHintsAccepted>(_onSaveHintsAccepted);
     on<SaveHintsDismissed>(_onSaveHintsDismissed);
     // this нужен явно: без него имя разрешается в параметр конструктора.
-    this.savePaths.onProgress = (value) => add(SavePathsProgressChanged(value));
+    this.savePaths.onProgress = (value) {
+      if (!_closing) add(SavePathsProgressChanged(value));
+    };
     on<BulkExportRequested>(_onBulkExport);
     on<BulkImportRequested>(_onBulkImport);
     on<SyncFolderScanRequested>(_onSyncScanRequested);
@@ -93,6 +98,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   }
 
   final SettingsBloc settings;
+
+  /// Отключается в изолированных тестах без сетевых сервисов.
+  final bool automaticMetadata;
+  final String _coversDir;
 
   /// Откуда брать переводы для уведомлений.
   ///
@@ -127,6 +136,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   final GameLauncher _launcher;
 
   Timer? _persistTimer;
+  bool _closing = false;
   int _noticeSeq = 0;
 
   /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
@@ -242,6 +252,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         notice: _storageRecoveryNotice(),
       ),
     );
+    for (final game in games) {
+      _queueMetadata(game);
+    }
   }
 
   Notice? _storageRecoveryNotice() {
@@ -267,22 +280,82 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     );
     emit(state.copyWith(games: [...state.games, game]));
     _schedulePersist();
+    _queueMetadata(game);
   }
 
   void _onGameUpdated(GameUpdated event, Emitter<LibraryState> emit) {
     final index = state.games.indexWhere((g) => g.id == event.game.id);
     if (index == -1) return;
+    final previous = state.games[index];
+    // Событие загрузки/редактора могло захватить игру до ответа каталога.
+    final updated = event.game.copyWith(
+      steamLookupAttempted:
+          previous.steamLookupAttempted || event.game.steamLookupAttempted,
+      savePathsLookupAttempted:
+          previous.savePathsLookupAttempted ||
+          event.game.savePathsLookupAttempted,
+      steamAppId: event.game.steamAppId ?? previous.steamAppId,
+      coverUrl: event.game.coverUrl ?? previous.coverUrl,
+      coverPath: event.game.coverPath ?? previous.coverPath,
+      description: event.game.description ?? previous.description,
+      ludusaviTemplates: event.game.ludusaviTemplates.isEmpty
+          ? previous.ludusaviTemplates
+          : event.game.ludusaviTemplates,
+      ludusaviResolvedPaths: {
+        ...previous.ludusaviResolvedPaths,
+        ...event.game.ludusaviResolvedPaths,
+      }.toList(),
+      saveProfile:
+          previous.savePathsLookupAttempted &&
+              !event.game.savePathsLookupAttempted
+          ? event.game.saveProfile.copyWith(
+              rules: [
+                ...event.game.saveProfile.rules,
+                for (final rule in previous.saveProfile.rules)
+                  if (previous.ludusaviResolvedPaths.contains(rule.template) &&
+                      !event.game.saveProfile.rules.any(
+                        (r) => r.template == rule.template,
+                      ))
+                    rule,
+              ],
+            )
+          : event.game.saveProfile,
+    );
     final games = [...state.games];
-    games[index] = event.game;
+    games[index] = updated;
     emit(state.copyWith(games: games));
     _schedulePersist();
+    _queueMetadata(updated, query: event.metadataQuery);
+  }
+
+  void _queueMetadata(Game game, {String? query}) {
+    if (_closing ||
+        !automaticMetadata ||
+        !game.isInstalled ||
+        game.installDir == null) {
+      return;
+    }
+    if (game.steamAppId == null && !game.steamLookupAttempted) {
+      add(SteamLookupRequested(game, query: query, automatic: true));
+    } else if (game.steamAppId != null && !game.savePathsLookupAttempted) {
+      add(SavePathsLookupRequested(game, automatic: true));
+    }
+  }
+
+  void _replaceGame(Game game, Emitter<LibraryState> emit) {
+    final index = state.games.indexWhere((item) => item.id == game.id);
+    if (index == -1) return;
+    final games = [...state.games];
+    games[index] = game;
+    emit(state.copyWith(games: games));
   }
 
   Future<void> _onGameRemoved(
     GameRemoved event,
     Emitter<LibraryState> emit,
   ) async {
-    final game = event.game;
+    final game = state.gameById(event.game.id);
+    if (game == null) return;
     final snapshots = Map<String, List<SaveSnapshot>>.from(state.snapshots);
     final removed = snapshots.remove(game.id) ?? const <SaveSnapshot>[];
     emit(
@@ -293,6 +366,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     );
     await persist();
 
+    final cover = game.coverPath;
+    if (cover != null && p.isWithin(_coversDir, cover)) {
+      final file = File(cover);
+      if (await file.exists()) await file.delete();
+    }
     for (final snapshot in removed) {
       try {
         await _saves.deleteSnapshot(snapshot);
@@ -372,7 +450,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     _schedulePersist();
 
     if (updated.saveProfile.autoSnapshotOnExit &&
-        updated.saveProfile.isConfigured) {
+        (updated.saveProfile.isConfigured ||
+            updated.ludusaviTemplates.isNotEmpty)) {
       add(SnapshotRequested(updated, origin: SnapshotOrigin.autoOnExit));
     }
 
@@ -400,16 +479,72 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   // -------------------------------------------------------------- сейвы
 
+  /// Маски раскрываются локально: папка профиля могла появиться только
+  /// после первого запуска. Сохранённый манифест повторно не запрашиваем.
+  Future<Game?> _resolveStoredPaths(
+    Game game,
+    Emitter<LibraryState> emit,
+  ) async {
+    final expanded = <String>{};
+    for (final template in game.ludusaviTemplates) {
+      expanded.addAll(
+        await SavePathGlobs.expand(template, gameDir: game.installDir),
+      );
+    }
+    final current = state.gameById(game.id);
+    if (current == null || current.addedAt != game.addedAt) return null;
+    final existing = current.saveProfile.rules
+        .map((rule) => rule.template)
+        .toSet();
+    final added = SavePathRule.withoutNested(expanded.toList())
+        .where(
+          (path) =>
+              !existing.contains(path) &&
+              !current.ludusaviResolvedPaths.contains(path),
+        )
+        .toList();
+    if (added.isEmpty) return current;
+    final labels = SavePathRule.labelsFor([...existing, ...added]);
+    final updated = current.copyWith(
+      ludusaviResolvedPaths: {
+        ...current.ludusaviResolvedPaths,
+        ...expanded,
+      }.toList(),
+      saveProfile: current.saveProfile.copyWith(
+        rules: [
+          ...current.saveProfile.rules,
+          for (var i = 0; i < added.length; i++)
+            SavePathRule(
+              id: const Uuid().v4(),
+              label: labels[existing.length + i],
+              template: added[i],
+            ),
+        ],
+      ),
+    );
+    _replaceGame(updated, emit);
+    await persist();
+    return updated;
+  }
+
   Future<void> _onSnapshotRequested(
     SnapshotRequested event,
     Emitter<LibraryState> emit,
   ) async {
-    final game = event.game;
+    final initial = state.gameById(event.game.id);
+    if (initial == null) return;
+    var game = initial;
     final silent = event.origin == SnapshotOrigin.autoOnExit;
     final key = snapshotKey(game.id);
     emit(state.copyWith(busy: _withBusy(key, true)));
 
     try {
+      final resolved = await _resolveStoredPaths(game, emit);
+      if (resolved == null) {
+        emit(state.copyWith(busy: _withBusy(key, false)));
+        return;
+      }
+      game = resolved;
       final snapshot = await _saves.createSnapshot(
         game,
         origin: event.origin,
@@ -615,40 +750,99 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     Emitter<LibraryState> emit,
   ) async {
     final key = steamKey(event.game.id);
+    final game = state.gameById(event.game.id);
+    if (game == null ||
+        state.isBusy(key) ||
+        (event.automatic &&
+            (game.steamLookupAttempted || game.steamAppId != null))) {
+      return;
+    }
     emit(state.copyWith(busy: _withBusy(key, true)));
     try {
-      final match = await steam.bestMatch(event.query ?? event.game.title);
+      _replaceGame(game.copyWith(steamLookupAttempted: true), emit);
+      // Маркер записан до сети: даже аварийный выход не вызывает повтор.
+      await persist();
+      final match = await steam.bestMatch(event.query ?? game.title);
+      if (_closing) return;
       if (match == null) {
         emit(
           state.copyWith(
             busy: _withBusy(key, false),
-            notice: _notice(_l.noticeSteamNothingFound),
+            notice: event.automatic
+                ? state.notice
+                : _notice(_l.noticeSteamNothingFound),
           ),
         );
         return;
       }
 
-      final current = state.gameById(event.game.id);
-      if (current == null) {
+      final coverBytes = await steam.coverBytes(match);
+      if (_closing) return;
+      var current = state.gameById(game.id);
+      if (current == null || current.addedAt != game.addedAt) {
         emit(state.copyWith(busy: _withBusy(key, false)));
         return;
       }
 
-      final index = state.games.indexWhere((g) => g.id == current.id);
+      var coverPath = current.coverPath;
+      final previousCover = coverPath;
+      if (coverBytes != null &&
+          (coverPath == null || p.isWithin(_coversDir, coverPath))) {
+        final file = File(
+          p.join(
+            _coversDir,
+            '${safeFileName(game.id)}-${DateTime.now().microsecondsSinceEpoch}-steam.jpg',
+          ),
+        );
+        try {
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(coverBytes, flush: true);
+          coverPath = file.path;
+        } on FileSystemException {
+          // Ошибка кэша обложки не отменяет ID, описание и поиск сейвов.
+        }
+        current = state.gameById(game.id);
+        if (current == null || current.addedAt != game.addedAt) {
+          if (await file.exists()) await file.delete();
+          emit(state.copyWith(busy: _withBusy(key, false)));
+          return;
+        }
+      }
+
+      final index = state.games.indexWhere((g) => g.id == game.id);
       final games = [...state.games];
       games[index] = current.copyWith(
         steamAppId: match.appId,
         coverUrl: match.headerImage,
         description: match.description,
+        coverPath: coverPath,
       );
       emit(
         state.copyWith(
           games: games,
           busy: _withBusy(key, false),
-          notice: _notice(_l.noticeSteamFound(match.name)),
+          notice: event.automatic
+              ? state.notice
+              : _notice(_l.noticeSteamFound(match.name)),
         ),
       );
-      _schedulePersist();
+      await persist();
+      if (previousCover != null &&
+          previousCover != coverPath &&
+          p.isWithin(_coversDir, previousCover)) {
+        try {
+          final old = File(previousCover);
+          if (await old.exists()) await old.delete();
+        } on FileSystemException {
+          // Неудачная уборка старой обложки не отменяет новые метаданные.
+        }
+      }
+      final updated = state.gameById(game.id);
+      if (!_closing &&
+          updated != null &&
+          (!event.automatic || !updated.savePathsLookupAttempted)) {
+        add(SavePathsLookupRequested(updated, automatic: event.automatic));
+      }
     } on Object catch (error) {
       emit(
         state.copyWith(
@@ -801,6 +995,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     return _FoundPaths(
       title: entry.title,
       templates: SavePathRule.withoutNested(templates),
+      sourceTemplates: entry.templates,
       registryKeys: entry.registryKeys,
     );
   }
@@ -810,18 +1005,35 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     Emitter<LibraryState> emit,
   ) async {
     final key = savePathsKey(event.game.id);
+    final game = state.gameById(event.game.id);
+    if (game == null ||
+        state.isBusy(key) ||
+        (event.automatic &&
+            (game.steamAppId == null || game.savePathsLookupAttempted))) {
+      return;
+    }
     emit(state.copyWith(busy: _withBusy(key, true)));
     // Указатель хода гасим в любом случае: оставшись висеть, он врал бы
     // о продолжающейся работе.
-    void done() => add(const SavePathsProgressChanged(null));
-    try {
-      final entry = await _lookupPaths(event);
+    void done() {
+      if (!_closing) add(const SavePathsProgressChanged(null));
+    }
 
-      if (entry == null || entry.isEmpty) {
+    try {
+      _replaceGame(game.copyWith(savePathsLookupAttempted: true), emit);
+      await persist();
+      final entry = await _lookupPaths(
+        SavePathsLookupRequested(game, refresh: event.refresh),
+      );
+      if (_closing) return;
+
+      if (entry == null) {
         emit(
           state.copyWith(
             busy: _withBusy(key, false),
-            notice: _notice(_l.noticePathsNothingFound),
+            notice: event.automatic
+                ? state.notice
+                : _notice(_l.noticePathsNothingFound),
           ),
         );
         done();
@@ -829,7 +1041,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       }
 
       final current = state.gameById(event.game.id);
-      if (current == null) {
+      if (current == null || current.addedAt != game.addedAt) {
         emit(state.copyWith(busy: _withBusy(key, false)));
         done();
         return;
@@ -846,19 +1058,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
             ),
       ];
 
-      if (added.isEmpty) {
-        emit(
-          state.copyWith(
-            busy: _withBusy(key, false),
-            notice: _notice(_l.noticePathsAlreadySet),
-          ),
-        );
-        done();
-        return;
-      }
-
       final games = [...state.games];
       games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
+        ludusaviTemplates: entry.sourceTemplates,
+        ludusaviResolvedPaths: {
+          ...current.ludusaviResolvedPaths,
+          ...entry.templates,
+        }.toList(),
         saveProfile: current.saveProfile.copyWith(
           rules: [...current.saveProfile.rules, ...added],
         ),
@@ -867,10 +1073,18 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         state.copyWith(
           games: games,
           busy: _withBusy(key, false),
-          notice: _notice(entry.describe(_l, added.length)),
+          notice: event.automatic
+              ? state.notice
+              : _notice(
+                  entry.isEmpty
+                      ? _l.noticePathsNothingFound
+                      : added.isEmpty
+                      ? _l.noticePathsAlreadySet
+                      : entry.describe(_l, added.length),
+                ),
         ),
       );
-      _schedulePersist();
+      await persist();
       done();
     } on Object catch (error) {
       done();
@@ -891,6 +1105,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     Emitter<LibraryState> emit,
   ) async {
     emit(state.copyWith(busy: _withBusy(bulkKey, true)));
+
+    for (final game in state.games) {
+      await _resolveStoredPaths(game, emit);
+    }
 
     final result = await _bulk.exportAll(
       games: state.games,
@@ -1025,11 +1243,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   @override
   Future<void> close() async {
+    _closing = true;
     // Отложенную запись именно дожидаемся: запущенная и брошенная, она не
     // успевает лечь на диск, и последнее изменение теряется при выходе.
     final pending = _persistTimer?.isActive ?? false;
     _persistTimer?.cancel();
     if (pending) await persist();
+    await _store.flush();
     _launcher.runningIds.removeListener(_pushRunningGames);
     _launcher.dispose();
     return super.close();
@@ -1041,11 +1261,13 @@ class _FoundPaths {
   _FoundPaths({
     required this.title,
     required this.templates,
+    this.sourceTemplates = const [],
     this.registryKeys = const [],
   });
 
   final String title;
   final List<String> templates;
+  final List<String> sourceTemplates;
   final List<String> registryKeys;
 
   bool get isEmpty => templates.isEmpty;

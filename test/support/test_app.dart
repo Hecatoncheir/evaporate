@@ -7,6 +7,7 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/input/gamepad_service.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
@@ -21,6 +22,21 @@ import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 
 import 'recording_notifications.dart';
+
+/// Файловый I/O проверяется отдельными тестами. В fake-async виджетов
+/// он не завершается, а закрытие библиотеки теперь дожидается всех записей.
+class _WidgetLibraryStore extends JsonStore {
+  _WidgetLibraryStore() : super('unused');
+  Map<String, dynamic>? data;
+
+  @override
+  Future<Map<String, dynamic>?> read() async => data;
+
+  @override
+  Future<void> write(Map<String, dynamic> value) async {
+    data = value;
+  }
+}
 
 /// Собранное приложение со всеми блоками и подменённым потоком геймпада —
 /// так события контроллера можно эмулировать без железа.
@@ -40,6 +56,8 @@ class TestHarness {
       gamepadEvents = StreamController<NormalizedGamepadEvent>.broadcast() {
     settings = SettingsBloc(paths);
     library = LibraryBloc(
+      store: _WidgetLibraryStore(),
+      automaticMetadata: false,
       paths: paths,
       settings: settings,
       notifications: notifications,

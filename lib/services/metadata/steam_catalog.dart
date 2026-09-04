@@ -95,6 +95,39 @@ class SteamCatalog {
 
   static const _searchLimit = 8;
 
+  /// Обложку загружаем только вместе с явным поиском метаданных; UI читает
+  /// сохранённый файл и никогда не обращается к Steam при перерисовке.
+  Future<List<int>?> coverBytes(SteamGame game) async {
+    for (final url in [
+      portraitUrl(game.appId),
+      if (game.headerImage != null) game.headerImage!,
+    ]) {
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 10);
+      configureClient(client);
+      try {
+        final bytes = await (() async {
+          final response = await (await client.getUrl(Uri.parse(url))).close();
+          if (response.statusCode != 200) return null;
+          final bytes = <int>[];
+          await for (final chunk in response) {
+            bytes.addAll(chunk);
+            if (bytes.length > 10 * 1024 * 1024) {
+              throw const FormatException('Cover is too large');
+            }
+          }
+          return bytes.isEmpty ? null : bytes;
+        })().timeout(const Duration(seconds: 20));
+        if (bytes != null) return bytes;
+      } on Object {
+        // Отсутствующая обложка не отменяет найденные ID и описание.
+      } finally {
+        client.close(force: true);
+      }
+    }
+    return null;
+  }
+
   /// Ищет кандидатов по имени раздачи, предварительно очистив его.
   Future<List<SteamGame>> searchByRelease(String releaseName) {
     final query = ReleaseName.clean(releaseName);

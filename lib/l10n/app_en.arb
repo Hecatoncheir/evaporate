@@ -1,4 +1,6 @@
 {
+  "savedManifestPaths": "Saved Ludusavi paths",
+  "findInstalledGames": "Find installed games",
   "@@locale": "en",
   "noticeStorageRecovered": "Some library records could not be read. Valid records were recovered; the original data was preserved at: {path}",
   "@noticeStorageRecovered": {"placeholders": {"path": {"type": "String"}}},

@@ -42,12 +42,18 @@ final class GameAdded extends LibraryEvent {
 }
 
 final class GameUpdated extends LibraryEvent {
-  const GameUpdated(this.game);
+  const GameUpdated(this.game, {this.metadataQuery});
 
   final Game game;
+  final String? metadataQuery;
 
   @override
-  List<Object?> get props => [game.id, game.status, game.saveProfile.rules];
+  List<Object?> get props => [
+    game.id,
+    game.status,
+    game.saveProfile.rules,
+    metadataQuery,
+  ];
 }
 
 final class GameRemoved extends LibraryEvent {
@@ -172,15 +178,16 @@ final class SnapshotDeleted extends LibraryEvent {
 
 /// Подтянуть описание и обложку из каталога Steam по имени раздачи.
 final class SteamLookupRequested extends LibraryEvent {
-  const SteamLookupRequested(this.game, {this.query});
+  const SteamLookupRequested(this.game, {this.query, this.automatic = false});
 
   final Game game;
 
   /// Имя раздачи, если оно отличается от названия игры в библиотеке.
   final String? query;
+  final bool automatic;
 
   @override
-  List<Object?> get props => [game.id, query];
+  List<Object?> get props => [game.id, query, automatic];
 }
 
 /// Посмотреть, что изменилось, пока игра работала.
@@ -222,15 +229,20 @@ final class SaveHintsDismissed extends LibraryEvent {
 
 /// Подобрать папки сохранений по открытой базе путей.
 final class SavePathsLookupRequested extends LibraryEvent {
-  const SavePathsLookupRequested(this.game, {this.refresh = false});
+  const SavePathsLookupRequested(
+    this.game, {
+    this.refresh = false,
+    this.automatic = false,
+  });
 
   final Game game;
 
   /// Перекачать базу, а не брать из кэша.
   final bool refresh;
+  final bool automatic;
 
   @override
-  List<Object?> get props => [game.id, refresh];
+  List<Object?> get props => [game.id, refresh, automatic];
 }
 
 /// Каталог путей сообщил, как продвигается загрузка или разбор.

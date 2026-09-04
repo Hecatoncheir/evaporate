@@ -43,6 +43,7 @@ void main() {
 
   LibraryBloc blocWith(String manifestYaml) {
     final bloc = LibraryBloc(
+      automaticMetadata: false,
       paths: paths,
       settings: settings,
       savePaths: LudusaviCatalog(
