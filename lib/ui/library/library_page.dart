@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
+import '../../bloc/settings/settings_bloc.dart';
 import '../../services/launch/drop_import.dart';
 import '../../models/game.dart';
 import '../theme.dart';
@@ -18,6 +19,8 @@ import 'add_game_dialog.dart';
 import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
+import 'library_atmosphere.dart';
+import 'liquid_card.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Вкладки поверх сетки. Раскладывают библиотеку без остатка: игра ровно в
@@ -39,6 +42,8 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   String _query = '';
   _Shelf _shelf = _Shelf.all;
+  final Map<String, GlobalKey> _tileKeys = {};
+  String? _hoveredId;
 
   /// Над окном что-то держат. Пока это так, показываем, что сюда можно.
   bool _dragging = false;
@@ -52,9 +57,17 @@ class _LibraryPageState extends State<LibraryPage> {
     final library = context.watch<LibraryBloc>().state;
     final nav = context.read<NavigationBloc>();
     final navState = context.watch<NavigationBloc>().state;
+    final effects = context.select<SettingsBloc, bool>(
+      (b) => b.state.libraryEffects,
+    );
+    final libraryIds = library.games.map((g) => g.id).toSet();
+    _tileKeys.removeWhere((id, _) => !libraryIds.contains(id));
 
     final found = _search(library.games);
     final games = _onShelf(found, _shelf);
+    if (_hoveredId != null && !games.any((g) => g.id == _hoveredId)) {
+      _hoveredId = null;
+    }
     final opened = library.gameById(navState.openedGameId);
 
     // Открытую игру могли удалить, а выбранную — отфильтровать. И то и
@@ -85,15 +98,19 @@ class _LibraryPageState extends State<LibraryPage> {
               setState(() => _dragging = false);
               _handleDrop(context, [for (final f in details.files) f.path]);
             },
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: games.isEmpty
-                      ? _empty(context, library.games.isEmpty)
-                      : _grid(games, navState.selectedGameId, nav),
-                ),
-                if (_dragging) const Positioned.fill(child: _DropOverlay()),
-              ],
+            child: LibraryAtmosphere(
+              enabled: effects,
+              targetKey: () => _tileKeys[_hoveredId ?? navState.selectedGameId],
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: games.isEmpty
+                        ? _empty(context, library.games.isEmpty)
+                        : _grid(games, navState.selectedGameId, nav, effects),
+                  ),
+                  if (_dragging) const Positioned.fill(child: _DropOverlay()),
+                ],
+              ),
             ),
           ),
         ),
@@ -191,8 +208,16 @@ class _LibraryPageState extends State<LibraryPage> {
     return true;
   }
 
-  Widget _grid(List<Game> games, String? selectedId, NavigationBloc nav) {
+  Widget _grid(
+    List<Game> games,
+    String? selectedId,
+    NavigationBloc nav,
+    bool effects,
+  ) {
+    final indices = {for (var i = 0; i < games.length; i++) games[i].id: i};
     return GridView.builder(
+      findChildIndexCallback: (key) =>
+          key is ValueKey<String> ? indices[key.value] : null,
       padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         // По ширине, а не по числу столбцов: обложка должна остаться
@@ -205,14 +230,33 @@ class _LibraryPageState extends State<LibraryPage> {
       itemCount: games.length,
       itemBuilder: (context, index) {
         final game = games[index];
-        return GameCoverTile(
+        return MouseRegion(
           key: ValueKey(game.id),
-          game: game,
-          selected: game.id == selectedId,
-          onOpen: () => nav.add(GameOpened(game.id)),
-          // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
-          // работать по той игре, на которую смотришь, не заходя внутрь.
-          onFocused: () => nav.add(GameSelected(game.id)),
+          onEnter: (_) => setState(() => _hoveredId = game.id),
+          onExit: (_) {
+            if (mounted && _hoveredId == game.id) {
+              setState(() => _hoveredId = null);
+            }
+          },
+          child: KeyedSubtree(
+            key: _tileKeys.putIfAbsent(
+              game.id,
+              () => GlobalKey(debugLabel: game.id),
+            ),
+            child: LiquidCard(
+              active: (_hoveredId ?? selectedId) == game.id,
+              enabled: effects,
+              child: GameCoverTile(
+                key: ValueKey(game.id),
+                game: game,
+                selected: game.id == selectedId,
+                onOpen: () => nav.add(GameOpened(game.id)),
+                // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
+                // работать по той игре, на которую смотришь, не заходя внутрь.
+                onFocused: () => nav.add(GameSelected(game.id)),
+              ),
+            ),
+          ),
         );
       },
     );

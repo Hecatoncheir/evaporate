@@ -70,31 +70,24 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     railIndicator: Color(0x33ED6C3B),
   );
 
-  /// Светлая схема на палитре 264653 / 2A9D8F / E9C46A / F4A261 / E76F51.
-  ///
-  /// Тёмно-бирюзовый взят как есть — он отлично читается как текст. А вот
-  /// светлого фона в палитре нет вовсе, поэтому подложки выведены как очень
-  /// светлые оттенки того же тона.
-  ///
-  /// Три тёплых цвета затемнены, и заметно. В исходном виде это цвета для
-  /// заливок, а не для подписей: песочный E9C46A даёт на светлом фоне 1.5 при
-  /// нужных 4.5 — втрое меньше нормы. Тон и насыщенность сохранены, так что
-  /// палитра узнаётся, но подписи ими теперь можно набирать.
+  /// Бумажный кремовый фон и чернильный индиго из иконки. Яркие краски
+  /// используются в декоративном слое; их текстовые варианты затемнены
+  /// до контраста WCAG, чтобы переливы не мешали чтению.
   static const light = EvaporatePalette(
     brightness: Brightness.light,
-    background: Color(0xFFF2F6F7),
-    surface: Color(0xFFFFFFFF),
-    surfaceHigh: Color(0xFFE3EDEE),
-    outline: Color(0xFFC2D2D6),
-    primary: Color(0xFF217D72),
+    background: Color(0xFFF7EFDD),
+    surface: Color(0xFFFFFAEF),
+    surfaceHigh: Color(0xFFF0E4D3),
+    outline: Color(0xFFCABBD0),
+    primary: Color(0xFFAD175E),
     onPrimary: Color(0xFFFFFFFF),
-    accent: Color(0xFFB2560C),
-    danger: Color(0xFFC44020),
-    warning: Color(0xFF8E6B15),
-    textPrimary: Color(0xFF264653),
-    textSecondary: Color(0xFF4F6B75),
-    railBackground: Color(0xFFE7EFF0),
-    railIndicator: Color(0x33217D72),
+    accent: Color(0xFF006E78),
+    danger: Color(0xFFB62D38),
+    warning: Color(0xFF805600),
+    textPrimary: Color(0xFF19162F),
+    textSecondary: Color(0xFF62566D),
+    railBackground: Color(0xFFF1E5D3),
+    railIndicator: Color(0x22D82A7C),
   );
 
   @override
@@ -277,7 +270,11 @@ class EvaporateTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -296,11 +293,13 @@ class EvaporateTheme {
         selectedIconTheme: IconThemeData(color: p.primary),
         unselectedIconTheme: IconThemeData(color: p.textSecondary),
         selectedLabelTextStyle: TextStyle(
+          fontFamily: fontFamily,
           color: p.primary,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
         unselectedLabelTextStyle: TextStyle(
+          fontFamily: fontFamily,
           color: p.textSecondary,
           fontSize: 12,
         ),

@@ -54,7 +54,7 @@ class TestHarness {
         defaultInstallDir: p.join(tmp.path, 'games'),
       ),
       gamepadEvents = StreamController<NormalizedGamepadEvent>.broadcast() {
-    settings = SettingsBloc(paths);
+    settings = SettingsBloc(paths, store: _WidgetLibraryStore());
     library = LibraryBloc(
       store: _WidgetLibraryStore(),
       automaticMetadata: false,
@@ -132,6 +132,7 @@ class TestHarness {
     ThemeData? theme,
     Locale? locale,
     TransitionBuilder? builder,
+    bool motion = false,
   }) {
     return MultiBlocProvider(
       providers: [
@@ -146,7 +147,12 @@ class TestHarness {
           Provider<NotificationService>.value(value: notifications),
         ],
         child: MaterialApp(
-          builder: builder,
+          // Ordinary interaction tests do not advance an infinite decorative
+          // ticker. Effect tests explicitly opt in and pump bounded frames.
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
+            child: builder?.call(context, child) ?? child!,
+          ),
           theme: theme ?? EvaporateTheme.dark(),
           localizationsDelegates: L.localizationsDelegates,
           supportedLocales: L.supportedLocales,

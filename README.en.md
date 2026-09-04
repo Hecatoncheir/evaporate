@@ -340,17 +340,26 @@ default. The dark one is unchanged from where the app started: it lives in a
 full-screen window next to games.
 
 The dark theme is built on the palette `FFFCF2 / CCC5B9 / 403D39 / 252422 /
-EB5E28`, the light one on `264653 / 2A9D8F / E9C46A / F4A261 / E76F51`.
+EB5E28`. The light theme uses the icon's ivory paper and midnight indigo,
+with flowing magenta, gold, turquoise and violet accents.
 
 Contrast was not eyeballed: a test measures the ratio for every colour against
 every surface and demands WCAG levels — 4.5 for captions and accents, 7 for
 body text. That test is also what forced the departures from the source values
-where text would otherwise be unreadable. The light palette contains no light
-background at all, and three of its colours are fills rather than type: sandy
-`E9C46A` scores 1.5 against a light background where 4.5 is required, a third
-of the mark, so those three are darkened with their hue preserved. In the dark
-theme the orange is lightened by four percent, because a status label is set in
-it, not just a border. Everything else is used as given.
+where text would otherwise be unreadable. Saturated icon colours belong to
+the decorative layer; their text variants are darker. The dark theme uses a
+lighter orange because it labels status as well as outlining focus.
+
+The "Living library" setting enables magnetic particles and liquid focus.
+Particles follow the cursor and orbit card edges: proximity increases their
+density, brightness and turbulence, never their radius. The simulation is
+capped at 640 particles, painting independently of the retained grid.
+Cards use [Dough](https://github.com/josiahsrc/dough); a shared wavy focus shape
+merges through a pinching liquid bridge. This is geometric distortion, without
+full-screen image readback or a platform-specific shader. Effects respect
+reduced motion and pause on hidden tabs or when the app is inactive. Select
+the light theme in Settings if your system is dark; existing preferences are
+not changed automatically.
 
 Colours come from a theme extension (`context.colors.textSecondary`) rather
 than constants, because two schemes cannot both be constants. There is one

@@ -137,6 +137,8 @@ void main() {
 
     expect(find.text('42%'), findsWidgets);
     expect(find.byType(LinearProgressIndicator), findsWidgets);
+    // Reduced-motion tests can settle before the persistence debounce.
+    await tester.pump(const Duration(milliseconds: 500));
   });
 
   testWidgets('поиск фильтрует список игр', (tester) async {

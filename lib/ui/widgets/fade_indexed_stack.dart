@@ -54,7 +54,13 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-      child: IndexedStack(index: widget.index, children: widget.children),
+      child: IndexedStack(
+        index: widget.index,
+        children: [
+          for (var i = 0; i < widget.children.length; i++)
+            TickerMode(enabled: i == widget.index, child: widget.children[i]),
+        ],
+      ),
     );
   }
 }

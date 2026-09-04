@@ -18,6 +18,7 @@ class AppSettings extends Equatable {
     this.windowStart = WindowStartMode.remembered,
     this.checkUpdates = true,
     this.themeMode = ThemeMode.system,
+    this.libraryEffects = true,
     this.locale,
     this.proxy = const ProxySettings(),
     this.limits = SpeedLimits.unlimited,
@@ -58,6 +59,9 @@ class AppSettings extends Equatable {
   /// Светлая, тёмная или как в системе.
   final ThemeMode themeMode;
 
+  /// Частицы, переливы и жидкий переход фокуса в библиотеке.
+  final bool libraryEffects;
+
   /// Код языка интерфейса или null — брать язык системы.
   ///
   /// Хранится строкой, а не Locale: в файле настроек это всё равно
@@ -86,6 +90,7 @@ class AppSettings extends Equatable {
     WindowStartMode? windowStart,
     bool? checkUpdates,
     ThemeMode? themeMode,
+    bool? libraryEffects,
     Object? locale = _u,
     ProxySettings? proxy,
     SpeedLimits? limits,
@@ -102,6 +107,7 @@ class AppSettings extends Equatable {
       windowStart: windowStart ?? this.windowStart,
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
+      libraryEffects: libraryEffects ?? this.libraryEffects,
       locale: locale == _u ? this.locale : locale as String?,
       proxy: proxy ?? this.proxy,
       limits: limits ?? this.limits,
@@ -120,6 +126,7 @@ class AppSettings extends Equatable {
     'windowStart': windowStart.name,
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
+    'libraryEffects': libraryEffects,
     if (locale != null) 'locale': locale,
     'proxy': proxy.toJson(),
     'limits': limits.toJson(),
@@ -138,6 +145,7 @@ class AppSettings extends Equatable {
         windowStart: _windowStartFromJson(json),
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
+        libraryEffects: json['libraryEffects'] as bool? ?? true,
         locale: _localeFromJson(json['locale']),
         limits: json['limits'] == null
             ? SpeedLimits.unlimited
@@ -162,6 +170,7 @@ class AppSettings extends Equatable {
     windowStart,
     checkUpdates,
     themeMode,
+    libraryEffects,
     locale,
     proxy,
     limits,

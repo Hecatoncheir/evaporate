@@ -13,10 +13,10 @@ part 'settings_event.dart';
 /// Настройки приложения. Состояние — сам [AppSettings]: отдельная обёртка
 /// ничего бы не добавила, объект и так иммутабельный.
 class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
-  SettingsBloc(AppPaths paths, {Autostart? autostart})
+  SettingsBloc(AppPaths paths, {Autostart? autostart, JsonStore? store})
     : _paths = paths,
       _autostart = autostart ?? Autostart(),
-      _store = JsonStore(paths.settingsFile),
+      _store = store ?? JsonStore(paths.settingsFile),
       super(AppSettings(installDir: paths.defaultInstallDir)) {
     on<SettingsLoadRequested>(_onLoadRequested);
     on<SettingsChanged>(
