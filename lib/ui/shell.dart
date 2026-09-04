@@ -18,6 +18,7 @@ import 'settings/settings_page.dart';
 import 'labels.dart';
 import 'theme.dart';
 import 'widgets/button_hints.dart';
+import 'widgets/app_mark.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
 import '../l10n/app_localizations.dart';
@@ -150,11 +151,7 @@ class _Rail extends StatelessWidget {
           padding: EdgeInsets.only(top: 16, bottom: 8),
           child: Column(
             children: [
-              Icon(
-                Icons.water_drop_outlined,
-                color: context.colors.primary,
-                size: 26,
-              ),
+              const AppMark(size: 32),
               SizedBox(height: 6),
               Text(
                 'Evaporate',
@@ -234,25 +231,34 @@ class _StatusBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [
-          ValueListenableBuilder<GamepadStatus>(
-            valueListenable: gamepad.status,
-            builder: (context, gamepadStatus, _) => ButtonHints(
-              binding: settings.gamepad,
-              gamepadConnected:
-                  settings.gamepad.enabled && gamepadStatus.hasDevice,
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ValueListenableBuilder<GamepadStatus>(
+                valueListenable: gamepad.status,
+                builder: (context, gamepadStatus, _) => ButtonHints(
+                  binding: settings.gamepad,
+                  gamepadConnected:
+                      settings.gamepad.enabled && gamepadStatus.hasDevice,
+                ),
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 12),
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
-          Text(
-            status.message ??
-                L
-                    .of(context)
-                    .engineStatus(
-                      engineStateLabel(L.of(context), status.state),
-                    ),
-            style: TextStyle(fontSize: 12, color: color),
+          Flexible(
+            child: Text(
+              status.message ??
+                  L
+                      .of(context)
+                      .engineStatus(
+                        engineStateLabel(L.of(context), status.state),
+                      ),
+              style: TextStyle(fontSize: 12, color: color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           if (stats.activeCount > 0) ...[
             const SizedBox(width: 16),

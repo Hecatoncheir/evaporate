@@ -1,4 +1,8 @@
 {
+  "minimizeWindow": "Свернуть окно",
+  "maximizeWindow": "Развернуть окно",
+  "restoreWindow": "Восстановить размер окна",
+  "closeWindow": "Закрыть окно",
   "savedManifestPaths": "Запомненные пути Ludusavi",
   "findInstalledGames": "Найти установленные игры",
   "@@locale": "ru",

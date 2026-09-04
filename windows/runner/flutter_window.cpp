@@ -1,6 +1,7 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <dwmapi.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -25,6 +26,14 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  // Windows 11: retain compositor rounding without a native title bar.
+  // Numeric constants also compile with the Windows 10 SDK; older DWM
+  // versions simply reject these optional preferences.
+  const DWORD corner_preference = 2;  // DWMWCP_ROUND
+  DwmSetWindowAttribute(GetHandle(), 33, &corner_preference,
+                       sizeof(corner_preference));
+  const COLORREF no_border = 0xFFFFFFFE;  // DWMWA_COLOR_NONE
+  DwmSetWindowAttribute(GetHandle(), 34, &no_border, sizeof(no_border));
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {

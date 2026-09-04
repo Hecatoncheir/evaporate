@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ import 'services/system/update_check.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
+import 'ui/widgets/window_frame.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,11 +50,21 @@ Future<void> main() async {
     controller: const ManagedWindowController(),
   );
   await windowManager.waitUntilReadyToShow(
-    const WindowOptions(
+    WindowOptions(
       title: 'Evaporate',
-      minimumSize: Size(WindowGeometry.minWidth, WindowGeometry.minHeight),
+      minimumSize: const Size(
+        WindowGeometry.minWidth,
+        WindowGeometry.minHeight,
+      ),
+      titleBarStyle: TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+      backgroundColor: Platform.isWindows ? null : Colors.transparent,
     ),
-    () => window.restore(settings.state.windowStart),
+    () async {
+      // macOS сохраняет нативные тень/скругление NSWindow, но без кнопок.
+      if (!Platform.isMacOS) await windowManager.setAsFrameless();
+      await window.restore(settings.state.windowStart);
+    },
   );
   // Значок в трее ставим всегда: без него свёрнутое при запуске окно
   // было бы ничем не открыть, а режим запуска можно поменять на ходу.
@@ -184,6 +196,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
             themeMode: settings.themeMode,
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
+            builder: (context, child) => AppWindowFrame(child: child!),
             // null означает «взять язык системы»: MaterialApp сам
             // подберёт ближайший из поддерживаемых.
             locale: settings.locale == null ? null : Locale(settings.locale!),

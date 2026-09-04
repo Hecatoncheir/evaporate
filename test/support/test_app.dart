@@ -128,7 +128,11 @@ class TestHarness {
     return id;
   }
 
-  Widget buildApp({ThemeData? theme, Locale? locale}) {
+  Widget buildApp({
+    ThemeData? theme,
+    Locale? locale,
+    TransitionBuilder? builder,
+  }) {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: settings),
@@ -142,6 +146,7 @@ class TestHarness {
           Provider<NotificationService>.value(value: notifications),
         ],
         child: MaterialApp(
+          builder: builder,
           theme: theme ?? EvaporateTheme.dark(),
           localizationsDelegates: L.localizationsDelegates,
           supportedLocales: L.supportedLocales,
