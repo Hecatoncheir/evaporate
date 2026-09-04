@@ -208,17 +208,20 @@ void main() {
   });
 
   group('домашняя папка неизвестна', () {
-    test('без HOME включение не падает', () async {
-      final auto = Autostart(
-        executablePath: '/opt/evaporate/evaporate',
-        homeDir: null,
-        environment: const {},
-        run: (exe, args) async => ProcessResult(0, 1, '', ''),
-      );
+    for (final platform in ['linux', 'macos']) {
+      test('$platform: без HOME включение не падает', () async {
+        final auto = Autostart(
+          operatingSystem: platform,
+          executablePath: '/opt/evaporate/evaporate',
+          homeDir: null,
+          environment: const {},
+          run: (exe, args) async => ProcessResult(0, 1, '', ''),
+        );
 
-      // Ничего не сделаем, но и не уроним приложение.
-      await auto.setEnabled(true);
-      expect(await auto.isEnabled(), isFalse);
-    });
+        // Ничего не сделаем, но и не уроним приложение.
+        await auto.setEnabled(true);
+        expect(await auto.isEnabled(), isFalse);
+      });
+    }
   });
 }

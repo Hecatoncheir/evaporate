@@ -194,14 +194,17 @@ void main() {
 
     /// Игра с настоящей папкой сохранений — без участия блока.
     Future<Game> plainGame(String title, {bool withFiles = true}) async {
-      final savesDir = Directory(p.join(tmp.path, 'прямые', title));
+      final id = const Uuid().v4();
+      // Название игры может содержать недопустимые в Windows символы.
+      // Физическая папка фикстуры не должна зависеть от этого названия.
+      final savesDir = Directory(p.join(tmp.path, 'прямые', id));
       await savesDir.create(recursive: true);
       if (withFiles) {
         await File(p.join(savesDir.path, 'slot.sav'))
             .writeAsString('прогресс $title');
       }
       return Game(
-        id: const Uuid().v4(),
+        id: id,
         title: title,
         addedAt: DateTime.now(),
         saveProfile: SaveProfile(
