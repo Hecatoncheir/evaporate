@@ -56,7 +56,6 @@ dependencies:
     sdk: flutter
   url_launcher: ^6.3.2
   desktop_drop: ^0.8.4
-  dough: ^2.0.0
 
 dev_dependencies:
   flutter_test:

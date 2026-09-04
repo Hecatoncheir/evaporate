@@ -6,8 +6,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/library/library_atmosphere.dart';
-import 'package:evaporate/ui/library/liquid_focus.dart';
-import 'package:evaporate/ui/library/liquid_card.dart';
+import 'package:evaporate/ui/library/foil_card.dart';
 import 'package:evaporate/ui/library/particle_field.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -20,19 +19,161 @@ import 'support/test_app.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets(
+    'foil tilts rigidly, retains artwork and settles on deselection',
+    (tester) async {
+      var active = true;
+      var enabled = true;
+      var reduced = false;
+      var visible = true;
+      var builds = 0;
+      final key = GlobalKey<FoilCardState>();
+      final artwork = Builder(
+        builder: (_) {
+          builds++;
+          return const FoilSurface(child: SizedBox(width: 180, height: 270));
+        },
+      );
+      Future<void> show() => tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(disableAnimations: reduced),
+            child: TickerMode(
+              enabled: visible,
+              child: Center(
+                child: FoilCard(
+                  key: key,
+                  active: active,
+                  enabled: enabled,
+                  child: artwork,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      Future<void> frames(int count) async {
+        for (var i = 0; i < count; i++) {
+          await tester.pump(const Duration(milliseconds: 17));
+        }
+      }
+
+      await show();
+      await frames(60);
+      expect(key.currentState!.isAnimating, isTrue);
+      final first = key.currentState!.perspective;
+      expect(first, isNot(Matrix4.identity()));
+      await frames(60);
+      expect(key.currentState!.perspective, isNot(first));
+      expect(builds, 1);
+
+      visible = false;
+      await show();
+      expect(key.currentState!.isAnimating, isFalse);
+      final paused = key.currentState!.perspective;
+      await frames(30);
+      expect(key.currentState!.perspective, paused);
+      visible = true;
+      await show();
+      expect(key.currentState!.isAnimating, isTrue);
+
+      active = false;
+      await show();
+      await tester.pumpAndSettle();
+      expect(key.currentState!.perspective, Matrix4.identity());
+      expect(key.currentState!.isAnimating, isFalse);
+
+      active = true;
+      await show();
+      await frames(25);
+      enabled = false;
+      await show();
+      await tester.pumpAndSettle();
+      expect(key.currentState!.perspective, Matrix4.identity());
+      expect(key.currentState!.isAnimating, isFalse);
+
+      enabled = true;
+      reduced = true;
+      await show();
+      await tester.pumpAndSettle();
+      expect(key.currentState!.perspective, Matrix4.identity());
+      expect(key.currentState!.isAnimating, isFalse);
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   test('ambient points use the exact requested colors', () {
     expect(ambientParticleColor(false), const Color(0xFF2F0346));
     expect(ambientParticleColor(true), const Color(0xFFE6DBC7));
   });
 
-  test('selection changes the actual card silhouette', () {
-    const size = Size(200, 300);
-    final normal = const LiquidCardClipper(0).getClip(size);
-    final selected = const LiquidCardClipper(1).getClip(size);
-    expect(normal.contains(const Offset(10, 10)), isTrue);
-    expect(selected.contains(const Offset(10, 10)), isFalse);
-    expect(selected.contains(size.center(Offset.zero)), isTrue);
+  testWidgets('particle painter has a sharp core and no glow outside it', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: EvaporateTheme.dark(),
+        home: LibraryAtmosphere(
+          enabled: true,
+          targetKey: () => null,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    final state = tester.state<LibraryAtmosphereState>(
+      find.byType(LibraryAtmosphere),
+    );
+    state.field.particles
+      ..clear()
+      ..add(InkParticle(const Offset(16, 16), Offset.zero, 0, -1)..glow = 1);
+    final painter = tester
+        .widget<CustomPaint>(
+          find.byKey(const ValueKey('library-atmosphere-paint')),
+        )
+        .painter!;
+    final recorder = ui.PictureRecorder();
+    painter.paint(Canvas(recorder), const Size(32, 32));
+    final picture = recorder.endRecording();
+    await tester.runAsync(() async {
+      final image = await picture.toImage(32, 32);
+      try {
+        final pixels = (await image.toByteData())!.buffer.asUint8List();
+        expect(pixels.sublist((16 * 32 + 16) * 4, (16 * 32 + 16) * 4 + 4), [
+          closeTo(239, 1),
+          closeTo(20, 1),
+          closeTo(124, 1),
+          closeTo(255, 1),
+        ]);
+        for (final x in [12, 13, 19, 20]) {
+          expect(
+            pixels[(16 * 32 + x) * 4 + 3],
+            0,
+            reason: 'no halo beyond the point radius',
+          );
+        }
+      } finally {
+        image.dispose();
+        picture.dispose();
+      }
+    });
+    await tester.pumpWidget(const SizedBox());
   });
+
+  test(
+    'attracted particles have identical saturated colors in both themes',
+    () {
+      for (var i = 0; i < 5; i++) {
+        final light = particleColor(isDark: false, phase: i / 10, glow: 1);
+        final dark = particleColor(isDark: true, phase: i / 10, glow: 1);
+        expect(light, libraryInkColors[i]);
+        expect(dark, light);
+      }
+      expect(ParticleField.ambientCount, 600);
+      expect(ParticleField.maxCount, 1600);
+      expect(ParticleField.densityMultiplier, 2.5);
+    },
+  );
 
   group('particle simulation', () {
     test('density grows near attraction without changing particle size', () {
@@ -128,35 +269,6 @@ void main() {
     );
   });
 
-  test('liquid focus retargets continuously, tracks scrolling and clears', () {
-    final focus = LiquidFocus();
-    const a = Rect.fromLTWH(20, 20, 180, 270);
-    const b = Rect.fromLTWH(230, 20, 180, 270);
-    focus.update(a, 'a');
-    expect(focus.progress, 1);
-    focus.update(b, 'b');
-    expect(focus.progress, 0);
-    for (var i = 0; i < 12; i++) {
-      focus.step(1 / 60);
-    }
-    expect(focus.current!.width.isFinite, isTrue);
-    final intermediate = focus.current;
-    focus.update(a, 'a');
-    expect(focus.from, intermediate);
-    focus.step(1 / 60);
-    final progress = focus.progress;
-    focus.update(a.translate(0, -15), 'a');
-    expect(focus.progress, progress);
-    for (var i = 0; i < 60; i++) {
-      focus.step(1 / 60);
-    }
-    expect(focus.progress, 1);
-    expect(focus.current, a.translate(0, -15));
-    focus.update(null, null);
-    expect(focus.current, isNull);
-    expect(focus.target, isNull);
-  });
-
   test(
     'effects preference defaults on, round-trips and participates in equality',
     () {
@@ -185,6 +297,7 @@ void main() {
     Future<TestHarness> app(
       WidgetTester tester, {
       TransitionBuilder? builder,
+      ThemeData? theme,
     }) async {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);
@@ -209,7 +322,7 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(
         harness.buildApp(
-          theme: EvaporateTheme.light(),
+          theme: theme ?? EvaporateTheme.light(),
           motion: true,
           builder: builder,
         ),
@@ -254,16 +367,29 @@ void main() {
           find.byType(LibraryAtmosphere),
         );
         expect(state.isAnimating, isTrue);
-        expect(state.focus.target, isNotNull);
-        final before = state.focus.identity;
+        expect(state.targetRect, isNotNull);
+        expect(
+          tester
+              .stateList<FoilCardState>(find.byType(FoilCard))
+              .where((s) => s.isAnimating)
+              .length,
+          1,
+        );
+        final before = state.targetIdentity;
         final mouse = await tester.createGesture(
           kind: ui.PointerDeviceKind.mouse,
         );
         await mouse.addPointer(location: const Offset(1250, 850));
         await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(2)));
         await frames(tester, 4);
-        expect(state.focus.identity, isNot(before));
-        expect(state.focus.progress, lessThan(1));
+        expect(state.targetIdentity, isNot(before));
+        expect(
+          tester
+              .widgetList<FoilCard>(find.byType(FoilCard))
+              .where((c) => c.active)
+              .length,
+          1,
+        );
         await mouse.removePointer();
         await frames(tester, 40);
         Focus.of(tester.element(find.text('ABZU'))).requestFocus();
@@ -272,10 +398,10 @@ void main() {
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
         await frames(tester, 40);
         expect(harness.nav.state.selectedGameId, isNot(previousSelection));
-        final rect = state.focus.target!;
+        final rect = state.targetRect!;
         await tester.drag(find.byType(GridView), const Offset(0, -120));
         await frames(tester, 30);
-        expect(state.focus.target?.top, isNot(rect.top));
+        expect(state.targetRect?.top, isNot(rect.top));
         tester.view.physicalSize = const Size(1100, 760);
         await frames(tester, 10);
         expect(state.field.size.width, lessThan(1100));
@@ -293,6 +419,14 @@ void main() {
         harness.nav.add(const SectionCycled(1));
         await frames(tester, 12);
         expect(state.isAnimating, isFalse);
+        expect(
+          tester
+              .stateList<FoilCardState>(
+                find.byType(FoilCard, skipOffstage: false),
+              )
+              .any((s) => s.isAnimating),
+          isFalse,
+        );
         final pausedTime = state.field.time;
         await frames(tester, 12);
         expect(state.field.time, pausedTime);
@@ -304,6 +438,12 @@ void main() {
         );
         await frames(tester, 2);
         expect(state.isAnimating, isFalse);
+        expect(
+          tester
+              .stateList<FoilCardState>(find.byType(FoilCard))
+              .any((s) => s.isAnimating),
+          isFalse,
+        );
         tester.binding.handleAppLifecycleStateChanged(
           AppLifecycleState.resumed,
         );
@@ -335,55 +475,55 @@ void main() {
       },
     );
 
-    testWidgets(
-      'light theme visual preview with live particles and liquid transfer',
-      (tester) async {
-        final preview = Platform.environment['LIQUID_PREVIEW'];
-        if (preview != null) {
-          for (final entry in {
-            'Ahem': 'assets/fonts/NunitoSans.ttf',
-            'Nunito': 'assets/fonts/Nunito.ttf',
-            'Nunito Sans': 'assets/fonts/NunitoSans.ttf',
-            'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
-            'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-          }.entries) {
-            await (FontLoader(
-              entry.key,
-            )..addFont(rootBundle.load(entry.value))).load();
+    testWidgets('visual preview with live particles and foil perspective', (
+      tester,
+    ) async {
+      final preview = Platform.environment['LIQUID_PREVIEW'];
+      if (preview != null) {
+        for (final entry in {
+          'Ahem': 'assets/fonts/NunitoSans.ttf',
+          'Nunito': 'assets/fonts/Nunito.ttf',
+          'Nunito Sans': 'assets/fonts/NunitoSans.ttf',
+          'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
+          'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
+        }.entries) {
+          await (FontLoader(
+            entry.key,
+          )..addFont(rootBundle.load(entry.value))).load();
+        }
+      }
+      final boundary = GlobalKey();
+      await app(
+        tester,
+        theme: Platform.environment['LIQUID_PREVIEW_DARK'] == '1'
+            ? EvaporateTheme.dark()
+            : EvaporateTheme.light(),
+        builder: (_, child) => RepaintBoundary(key: boundary, child: child),
+      );
+      await frames(tester, 180);
+      final mouse = await tester.createGesture(
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await mouse.addPointer(location: const Offset(1250, 850));
+      await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(1)));
+      await frames(tester, 90);
+      if (preview != null) {
+        await tester.runAsync(() async {
+          final image =
+              await (boundary.currentContext!.findRenderObject()
+                      as RenderRepaintBoundary)
+                  .toImage();
+          try {
+            final data = await image.toByteData(format: ui.ImageByteFormat.png);
+            await File(preview).writeAsBytes(data!.buffer.asUint8List());
+          } finally {
+            image.dispose();
           }
-        }
-        final boundary = GlobalKey();
-        await app(
-          tester,
-          builder: (_, child) => RepaintBoundary(key: boundary, child: child),
-        );
-        await frames(tester, 180);
-        final mouse = await tester.createGesture(
-          kind: ui.PointerDeviceKind.mouse,
-        );
-        await mouse.addPointer(location: const Offset(1250, 850));
-        await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(1)));
-        await frames(tester, 12);
-        if (preview != null) {
-          await tester.runAsync(() async {
-            final image =
-                await (boundary.currentContext!.findRenderObject()
-                        as RenderRepaintBoundary)
-                    .toImage();
-            try {
-              final data = await image.toByteData(
-                format: ui.ImageByteFormat.png,
-              );
-              await File(preview).writeAsBytes(data!.buffer.asUint8List());
-            } finally {
-              image.dispose();
-            }
-          });
-        }
-        await mouse.removePointer();
-        await tester.pumpWidget(const SizedBox());
-        expect(tester.takeException(), isNull);
-      },
-    );
+        });
+      }
+      await mouse.removePointer();
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    });
   });
 }

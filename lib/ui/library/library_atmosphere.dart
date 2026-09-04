@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
-import 'liquid_focus.dart';
 import 'particle_field.dart';
 
 /// One bounded simulation + one repaint layer. The grid is a retained child;
@@ -28,7 +27,8 @@ class LibraryAtmosphere extends StatefulWidget {
 class LibraryAtmosphereState extends State<LibraryAtmosphere>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final field = ParticleField();
-  final focus = LiquidFocus();
+  Rect? targetRect;
+  Object? targetIdentity;
   final _repaint = _PaintSignal();
   final _viewport = GlobalKey();
   late final Ticker _ticker = createTicker(_tick);
@@ -93,14 +93,14 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
       final candidate = offset & tile.size;
       if (candidate.overlaps(Offset.zero & box.size)) rect = candidate;
     }
-    focus.update(rect, key);
+    targetRect = rect;
+    targetIdentity = rect == null ? null : key;
     final dt = _previous == null
         ? 1 / 60
         : (elapsed - _previous!).inMicroseconds /
               Duration.microsecondsPerSecond;
     _previous = elapsed;
-    focus.step(dt);
-    field.card = focus.current?.inflate(8);
+    field.card = rect?.inflate(8);
     field.step(dt);
     _repaint.repaint();
   }
@@ -163,7 +163,7 @@ class _PaintSignal extends ChangeNotifier {
 }
 
 /// Saturated ink is decorative; text uses the contrast-tested theme colors.
-const liquidInkColors = [
+const libraryInkColors = [
   Color(0xFFEF147C),
   Color(0xFFFF713F),
   Color(0xFFFFC52E),
@@ -174,6 +174,16 @@ const liquidInkColors = [
 
 Color ambientParticleColor(bool isDark) =>
     isDark ? const Color(0xFFE6DBC7) : const Color(0xFF2F0346);
+
+Color particleColor({
+  required bool isDark,
+  required double phase,
+  required double glow,
+}) => Color.lerp(
+  ambientParticleColor(isDark),
+  libraryInkColors[(phase * 10).floor() % 5],
+  glow,
+)!;
 
 class _AtmospherePainter extends CustomPainter {
   _AtmospherePainter({
@@ -202,31 +212,25 @@ class _AtmospherePainter extends CustomPainter {
         final paint = Paint()
           ..shader = RadialGradient(
             colors: [
-              liquidInkColors[i].withValues(alpha: 0.075),
-              liquidInkColors[i].withValues(alpha: 0),
+              libraryInkColors[i].withValues(alpha: 0.075),
+              libraryInkColors[i].withValues(alpha: 0),
             ],
           ).createShader(Rect.fromCircle(center: center, radius: radius));
         canvas.drawRect(bounds, paint);
       }
     }
     final dot = Paint();
-    final ambient = ambientParticleColor(colors.isDark);
     for (final particle in field.particles) {
       if (!animated && particle.life >= 0) continue;
-      final ink = liquidInkColors[(particle.phase * 10).floor() % 5];
-      final highlight = colors.isDark
-          ? Color.lerp(ink, Colors.white, 0.85)!
-          : ink;
-      final color = Color.lerp(
-        ambient,
-        highlight,
-        animated ? particle.glow : 0,
-      )!;
+      final color = particleColor(
+        isDark: colors.isDark,
+        phase: particle.phase,
+        glow: animated ? particle.glow : 0,
+      );
       final fade = particle.life < 0
           ? 1.0
           : (particle.life / 0.35).clamp(0.0, 1.0);
-      // Opaque ambient dots retain the exact theme color, without bubbles,
-      // blurred halos or a selection outline behind them.
+      // Crisp, fixed-size points without a blur or glow layer.
       dot.color = color.withValues(alpha: fade);
       canvas.drawCircle(particle.position, InkParticle.radius, dot);
     }

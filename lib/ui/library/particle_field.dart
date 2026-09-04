@@ -17,8 +17,9 @@ class InkParticle {
 class ParticleField {
   ParticleField({int seed = 42}) : _random = math.Random(seed);
 
-  static const ambientCount = 240;
-  static const maxCount = 640;
+  static const densityMultiplier = 2.5;
+  static const ambientCount = 600;
+  static const maxCount = 1600;
   final math.Random _random;
   final List<InkParticle> particles = [];
   Size size = Size.zero;
@@ -183,7 +184,10 @@ class ParticleField {
     if (card != null || pointer != null) {
       // More particles near a target -> more short-lived particles emitted.
       // A hard budget prevents exponential growth during long sessions.
-      _spawnBudget += dt * (42 + math.min(near, 160) * 0.8);
+      _spawnBudget +=
+          dt *
+          densityMultiplier *
+          (42 + math.min(near / densityMultiplier, 160) * 0.8);
       while (_spawnBudget >= 1 && particles.length < maxCount) {
         particles.add(_newParticle(_emissionPoint(), _rand(1.6, 3.2)));
         _spawnBudget--;

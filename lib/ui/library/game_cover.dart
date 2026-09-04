@@ -8,6 +8,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
 import '../widgets/nav_tile.dart';
+import 'foil_card.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Плитка библиотеки: вертикальная обложка 2:3, как в Steam.
@@ -50,8 +51,8 @@ class GameCoverTile extends StatelessWidget {
       padding: EdgeInsets.zero,
       margin: EdgeInsets.zero,
       borderRadius: 10,
-      showFocusBorder: false,
-      focusedScale: 1,
+      borderWidth: 2.5,
+      focusedScale: 1.06,
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(7.5),
@@ -72,7 +73,9 @@ class GameCoverTile extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _Art(game: game, underStrip: running),
+                FoilSurface(
+                  child: _Art(game: game, underStrip: running),
+                ),
                 if (running) _ProgressStrip(task: task),
                 if (!running) _StatusBadge(game: game),
               ],

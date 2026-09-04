@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/widgets/nav_tile.dart';
-import 'package:evaporate/ui/library/liquid_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -151,9 +150,7 @@ void main() {
     });
   });
 
-  testWidgets('выбранная карточка меняет форму без рамки фокуса', (
-    tester,
-  ) async {
+  testWidgets('плитка показывает рамку фокуса', (tester) async {
     await withGames(tester);
 
     final tileText = find.descendant(
@@ -172,13 +169,10 @@ void main() {
           .first,
     );
     final border = (container.decoration as BoxDecoration?)?.border;
-    expect(border, isNull);
-    final clips = tester.widgetList<ClipPath>(find.byType(ClipPath));
     expect(
-      clips
-          .where((c) => c.clipper is LiquidCardClipper)
-          .any((c) => (c.clipper! as LiquidCardClipper).amount == 1),
-      isTrue,
+      border?.top.color,
+      isNot(Colors.transparent),
+      reason: 'сфокусированная плитка должна быть видна',
     );
   });
 }

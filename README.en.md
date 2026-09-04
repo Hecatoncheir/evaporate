@@ -350,19 +350,23 @@ where text would otherwise be unreadable. Saturated icon colours belong to
 the decorative layer; their text variants are darker. The dark theme uses a
 lighter orange because it labels status as well as outlining focus.
 
-The "Living library" setting enables magnetic particles and liquid focus.
+The "Living library" setting enables magnetic particles and holographic foil
+on the active card. A gentle perspective tilt repeats every 7 seconds,
+synchronized with the rainbow reflection and specular streak.
+The normal focus border stays; liquid distortion and the flowing backdrop
+are removed. Gradients and Matrix4 implement the effect directly in Flutter,
+without Dough, sensors, or additional foil/xl dependencies.
 Particles follow the cursor and orbit card edges: proximity increases their
 density, brightness and turbulence, never their radius. Distant dots wander
-in `#2f0346` on light backgrounds or `#e6dbc7` on dark backgrounds, without
-halos. The 240 ambient dots remain visible when motion is disabled. The
-simulation is capped at 640 particles, painting independently of the grid.
-Cards use [Dough](https://github.com/josiahsrc/dough); the selected card keeps
-an asymmetric liquid silhouette without a continuous focus border. Grid gaps
-are 36 pixels horizontally and 40 vertically. This is geometric distortion, without
-full-screen image readback or a platform-specific shader. Effects respect
-reduced motion and pause on hidden tabs or when the app is inactive. Select
-the light theme in Settings if your system is dark; existing preferences are
-not changed automatically.
+in `#2f0346` on light backgrounds or `#e6dbc7` on dark backgrounds, without glow.
+Close to a target both themes use the same saturated ink palette.
+The 600 ambient dots remain visible when motion is disabled. The simulation
+is capped at 1600 particles, painting independently of the grid.
+Grid gaps are 36 pixels horizontally and 40 vertically.
+Reduced motion leaves static foil without tilt; disabling effects removes
+the foil entirely. Animations pause on hidden tabs or when the app is inactive.
+Select the light theme in Settings if your system is dark; existing preferences
+are not changed automatically.
 
 Colours come from a theme extension (`context.colors.textSecondary`) rather
 than constants, because two schemes cannot both be constants. There is one

@@ -20,7 +20,7 @@ import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
 import 'library_atmosphere.dart';
-import 'liquid_card.dart';
+import 'foil_card.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Вкладки поверх сетки. Раскладывают библиотеку без остатка: игра ровно в
@@ -243,7 +243,7 @@ class _LibraryPageState extends State<LibraryPage> {
               game.id,
               () => GlobalKey(debugLabel: game.id),
             ),
-            child: LiquidCard(
+            child: FoilCard(
               active: (_hoveredId ?? selectedId) == game.id,
               enabled: effects,
               child: GameCoverTile(
