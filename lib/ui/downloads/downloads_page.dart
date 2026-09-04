@@ -419,14 +419,15 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             text,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
           if (trailing != null) ...[
-            const SizedBox(width: 8),
             Text(
               trailing!,
               style: TextStyle(

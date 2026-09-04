@@ -1,6 +1,7 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
@@ -10,6 +11,9 @@ import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../services/launch/drop_import.dart';
 import '../../models/game.dart';
+import '../../models/app_settings.dart';
+import '../../input/input_scope.dart';
+import '../widgets/scale_control.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -43,6 +47,10 @@ class _LibraryPageState extends State<LibraryPage> {
   String _query = '';
   _Shelf _shelf = _Shelf.all;
   final Map<String, GlobalKey> _tileKeys = {};
+  final Map<String, FocusNode> _tileFocus = {};
+  final _scroll = ScrollController();
+  int _columns = 1;
+  double _rowStride = 320;
   String? _hoveredId;
 
   /// Над окном что-то держат. Пока это так, показываем, что сюда можно.
@@ -53,6 +61,41 @@ class _LibraryPageState extends State<LibraryPage> {
   bool _importing = false;
 
   @override
+  void dispose() {
+    _scroll.dispose();
+    for (final node in _tileFocus.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _returnToGames(List<Game> games, NavigationBloc nav) {
+    if (games.isEmpty) {
+      nav.searchFocus.unfocus();
+      return;
+    }
+    final selected = games.indexWhere((g) => g.id == nav.state.selectedGameId);
+    final index = selected < 0 ? 0 : selected;
+    final id = games[index].id;
+    if (_tileFocus[id]?.context != null) {
+      _tileFocus[id]!.requestFocus();
+      return;
+    }
+    // A remembered card may be outside the lazy grid's built viewport.
+    if (_scroll.hasClients) {
+      _scroll.jumpTo(
+        (index ~/ _columns * _rowStride).clamp(
+          0.0,
+          _scroll.position.maxScrollExtent,
+        ),
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _tileFocus[id]?.requestFocus();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final library = context.watch<LibraryBloc>().state;
     final nav = context.read<NavigationBloc>();
@@ -61,7 +104,14 @@ class _LibraryPageState extends State<LibraryPage> {
       (b) => b.state.libraryEffects,
     );
     final libraryIds = library.games.map((g) => g.id).toSet();
+    final scale = context.select<SettingsBloc, double>(
+      (b) => b.state.libraryScale,
+    );
     _tileKeys.removeWhere((id, _) => !libraryIds.contains(id));
+    for (final id
+        in _tileFocus.keys.where((id) => !libraryIds.contains(id)).toList()) {
+      _tileFocus.remove(id)!.dispose();
+    }
 
     final found = _search(library.games);
     final games = _onShelf(found, _shelf);
@@ -86,6 +136,14 @@ class _LibraryPageState extends State<LibraryPage> {
           },
           onShelf: (value) => setState(() => _shelf = value),
           searchFocus: nav.searchFocus,
+          onReturnToGames: () => _returnToGames(games, nav),
+          scale: scale,
+          onScale: (value) {
+            final settings = context.read<SettingsBloc>();
+            settings.add(
+              SettingsChanged(settings.state.copyWith(libraryScale: value)),
+            );
+          },
           onQuery: (value) => setState(() => _query = value),
           onScan: () => _scanFolder(context),
           onAdd: () => _addGame(context),
@@ -106,7 +164,28 @@ class _LibraryPageState extends State<LibraryPage> {
                   Positioned.fill(
                     child: games.isEmpty
                         ? _empty(context, library.games.isEmpty)
-                        : _grid(games, navState.selectedGameId, nav, effects),
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final extent = 215 * scale;
+                              _columns =
+                                  ((constraints.maxWidth - 64) / (extent + 36))
+                                      .ceil()
+                                      .clamp(1, 1000);
+                              final tileWidth =
+                                  (constraints.maxWidth -
+                                      64 -
+                                      36 * (_columns - 1)) /
+                                  _columns;
+                              _rowStride = tileWidth * 1.5 + 40;
+                              return _grid(
+                                games,
+                                navState.selectedGameId,
+                                nav,
+                                effects,
+                                extent,
+                              );
+                            },
+                          ),
                   ),
                   if (_dragging) const Positioned.fill(child: _DropOverlay()),
                 ],
@@ -213,16 +292,18 @@ class _LibraryPageState extends State<LibraryPage> {
     String? selectedId,
     NavigationBloc nav,
     bool effects,
+    double extent,
   ) {
     final indices = {for (var i = 0; i < games.length; i++) games[i].id: i};
     return GridView.builder(
+      controller: _scroll,
       findChildIndexCallback: (key) =>
           key is ValueKey<String> ? indices[key.value] : null,
       padding: const EdgeInsets.fromLTRB(32, 30, 32, 34),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         // По ширине, а не по числу столбцов: обложка должна остаться
         // читаемой и в узком окне, и на весь экран телевизора.
-        maxCrossAxisExtent: 215,
+        maxCrossAxisExtent: extent,
         childAspectRatio: 2 / 3,
         crossAxisSpacing: 36,
         mainAxisSpacing: 40,
@@ -247,6 +328,10 @@ class _LibraryPageState extends State<LibraryPage> {
               active: (_hoveredId ?? selectedId) == game.id,
               enabled: effects,
               child: GameCoverTile(
+                focusNode: _tileFocus.putIfAbsent(
+                  game.id,
+                  () => FocusNode(debugLabel: 'game:${game.id}'),
+                ),
                 key: ValueKey(game.id),
                 game: game,
                 selected: game.id == selectedId,
@@ -445,6 +530,9 @@ class _Toolbar extends StatelessWidget {
     required this.onQuery,
     required this.onScan,
     required this.onAdd,
+    required this.onReturnToGames,
+    required this.scale,
+    required this.onScale,
   });
 
   final _Shelf shelf;
@@ -454,6 +542,9 @@ class _Toolbar extends StatelessWidget {
   final ValueChanged<String> onQuery;
   final VoidCallback onScan;
   final VoidCallback onAdd;
+  final VoidCallback onReturnToGames;
+  final double scale;
+  final ValueChanged<double> onScale;
 
   @override
   Widget build(BuildContext context) {
@@ -463,38 +554,57 @@ class _Toolbar extends StatelessWidget {
         border: Border(bottom: BorderSide(color: context.colors.outline)),
       ),
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-      child: Row(
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Flexible(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final value in _Shelf.values)
-                    _ShelfButton(
-                      label: _label(l, value),
-                      count: counts[value] ?? 0,
-                      active: value == shelf,
-                      onTap: () => onShelf(value),
-                    ),
-                ],
-              ),
-            ),
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (final value in _Shelf.values)
+                _ShelfButton(
+                  label: _label(l, value),
+                  count: counts[value] ?? 0,
+                  active: value == shelf,
+                  onTap: () => onShelf(value),
+                ),
+            ],
           ),
-          const SizedBox(width: 12),
           SizedBox(
             width: 210,
-            height: 36,
-            child: TextField(
-              focusNode: searchFocus,
-              onChanged: onQuery,
-              // Enter в поиске уводит фокус в сетку — удобно и с клавиатуры,
-              // и с геймпадной экранной клавиатуры.
-              onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-              decoration: InputDecoration(
-                hintText: l.searchHint,
-                prefixIcon: const Icon(Icons.search, size: 18),
-                isDense: true,
+            child: Actions(
+              actions: {
+                ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
+                  onInvoke: (_) {
+                    onReturnToGames();
+                    return null;
+                  },
+                ),
+              },
+              child: Shortcuts(
+                shortcuts: const {
+                  SingleActivator(LogicalKeyboardKey.arrowDown):
+                      ReturnToLibraryIntent(),
+                  SingleActivator(LogicalKeyboardKey.escape):
+                      ReturnToLibraryIntent(),
+                  SingleActivator(LogicalKeyboardKey.enter):
+                      ReturnToLibraryIntent(),
+                  SingleActivator(LogicalKeyboardKey.numpadEnter):
+                      ReturnToLibraryIntent(),
+                },
+                child: TextField(
+                  focusNode: searchFocus,
+                  onChanged: onQuery,
+                  // Enter в поиске уводит фокус в сетку — удобно и с клавиатуры,
+                  // и с геймпадной экранной клавиатуры.
+                  onSubmitted: (_) => onReturnToGames(),
+                  decoration: InputDecoration(
+                    hintText: l.searchHint,
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    isDense: true,
+                  ),
+                ),
               ),
             ),
           ),
@@ -508,6 +618,15 @@ class _Toolbar extends StatelessWidget {
             onPressed: onAdd,
             icon: const Icon(Icons.add, size: 20),
             tooltip: l.addGame,
+          ),
+          ScaleControl(
+            key: const ValueKey('library-scale'),
+            label: l.coverScale,
+            value: scale,
+            min: AppSettings.minLibraryScale,
+            max: AppSettings.maxLibraryScale,
+            step: 0.25,
+            onChanged: onScale,
           ),
         ],
       ),

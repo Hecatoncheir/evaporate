@@ -23,6 +23,7 @@ class GameCoverTile extends StatelessWidget {
     required this.selected,
     required this.onOpen,
     required this.onFocused,
+    this.focusNode,
   });
 
   final Game game;
@@ -31,6 +32,7 @@ class GameCoverTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onOpen;
   final VoidCallback onFocused;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +42,7 @@ class GameCoverTile extends StatelessWidget {
     final running = task != null && task.state != DownloadState.complete;
 
     return NavTile(
+      focusNode: focusNode,
       onTap: onOpen,
       // Фокус восстанавливается на той игре, с которой ушли на её страницу:
       // иначе после «назад» сетка теряла бы место, и искать пришлось бы

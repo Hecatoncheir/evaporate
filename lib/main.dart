@@ -25,6 +25,7 @@ import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
 import 'ui/widgets/window_frame.dart';
+import 'ui/widgets/interface_scale.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -196,7 +197,8 @@ class _EvaporateAppState extends State<EvaporateApp> {
             themeMode: settings.themeMode,
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
-            builder: (context, child) => AppWindowFrame(child: child!),
+            builder: (context, child) =>
+                AppWindowFrame(child: InterfaceScale(child: child!)),
             // null означает «взять язык системы»: MaterialApp сам
             // подберёт ближайший из поддерживаемых.
             locale: settings.locale == null ? null : Locale(settings.locale!),

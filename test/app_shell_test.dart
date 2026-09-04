@@ -46,7 +46,7 @@ void main() {
 
     await tester.tap(find.text('Настройки'));
     await tester.pumpAndSettle();
-    expect(find.text('Папка для игр'), findsOneWidget);
+    expect(find.text('Масштаб'), findsOneWidget);
     expect(find.text('Управление'), findsOneWidget);
 
     expect(tester.takeException(), isNull);

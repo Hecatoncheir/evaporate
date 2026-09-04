@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../../bloc/settings/settings_bloc.dart';
 import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
@@ -15,6 +16,8 @@ import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'saves_section.dart';
+import 'game_wave.dart';
+import 'play_button.dart';
 import '../widgets/animated_progress.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -31,11 +34,17 @@ class GameDetail extends StatelessWidget {
 
     // Страница занимает всё окно, а строка длиной в тысячу точек не
     // читается — колонка держится в разумной ширине и стоит по центру.
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 940),
-        child: _content(context, task),
+    final effects = context.select<SettingsBloc, bool>(
+      (b) => b.state.libraryEffects,
+    );
+    return GameWave(
+      enabled: effects,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 940),
+          child: _content(context, task),
+        ),
       ),
     );
   }
@@ -383,12 +392,15 @@ class _ActionPanel extends StatelessWidget {
 
     if (game.isInstalled) {
       return [
-        FilledButton.icon(
+        PlayButton(
+          effects: context.select<SettingsBloc, bool>(
+            (b) => b.state.libraryEffects,
+          ),
+          busy: busy,
           onPressed: game.canLaunch && !busy
               ? () => library.add(GameLaunchRequested(game))
               : null,
-          icon: const Icon(Icons.play_arrow_rounded, size: 20),
-          label: Text(L.of(context).play),
+          label: L.of(context).play,
         ),
         const SizedBox(width: 10),
         if (!game.canLaunch)

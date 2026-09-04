@@ -19,6 +19,8 @@ class AppSettings extends Equatable {
     this.checkUpdates = true,
     this.themeMode = ThemeMode.system,
     this.libraryEffects = true,
+    this.interfaceScale = 1,
+    this.libraryScale = 1,
     this.locale,
     this.proxy = const ProxySettings(),
     this.limits = SpeedLimits.unlimited,
@@ -59,8 +61,16 @@ class AppSettings extends Equatable {
   /// Светлая, тёмная или как в системе.
   final ThemeMode themeMode;
 
-  /// Частицы, переливы и жидкий переход фокуса в библиотеке.
+  /// Частицы, foil и декоративные анимации страниц игр.
   final bool libraryEffects;
+
+  /// Independent layout zoom and cover size; both persist across launches.
+  final double interfaceScale;
+  final double libraryScale;
+  static const minInterfaceScale = 0.85;
+  static const maxInterfaceScale = 1.25;
+  static const minLibraryScale = 0.75;
+  static const maxLibraryScale = 1.5;
 
   /// Код языка интерфейса или null — брать язык системы.
   ///
@@ -91,6 +101,8 @@ class AppSettings extends Equatable {
     bool? checkUpdates,
     ThemeMode? themeMode,
     bool? libraryEffects,
+    double? interfaceScale,
+    double? libraryScale,
     Object? locale = _u,
     ProxySettings? proxy,
     SpeedLimits? limits,
@@ -108,6 +120,8 @@ class AppSettings extends Equatable {
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
       libraryEffects: libraryEffects ?? this.libraryEffects,
+      interfaceScale: interfaceScale ?? this.interfaceScale,
+      libraryScale: libraryScale ?? this.libraryScale,
       locale: locale == _u ? this.locale : locale as String?,
       proxy: proxy ?? this.proxy,
       limits: limits ?? this.limits,
@@ -127,6 +141,8 @@ class AppSettings extends Equatable {
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
     'libraryEffects': libraryEffects,
+    'interfaceScale': interfaceScale,
+    'libraryScale': libraryScale,
     if (locale != null) 'locale': locale,
     'proxy': proxy.toJson(),
     'limits': limits.toJson(),
@@ -146,6 +162,16 @@ class AppSettings extends Equatable {
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
         libraryEffects: json['libraryEffects'] as bool? ?? true,
+        interfaceScale: _scale(
+          json['interfaceScale'],
+          minInterfaceScale,
+          maxInterfaceScale,
+        ),
+        libraryScale: _scale(
+          json['libraryScale'],
+          minLibraryScale,
+          maxLibraryScale,
+        ),
         locale: _localeFromJson(json['locale']),
         limits: json['limits'] == null
             ? SpeedLimits.unlimited
@@ -171,6 +197,8 @@ class AppSettings extends Equatable {
     checkUpdates,
     themeMode,
     libraryEffects,
+    interfaceScale,
+    libraryScale,
     locale,
     proxy,
     limits,
@@ -209,4 +237,7 @@ class AppSettings extends Equatable {
   };
 
   static const _u = Object();
+
+  static double _scale(Object? value, double min, double max) =>
+      value is num && value.isFinite ? value.toDouble().clamp(min, max) : 1;
 }

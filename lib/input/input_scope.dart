@@ -24,6 +24,11 @@ class NavBackIntent extends Intent {
   const NavBackIntent();
 }
 
+/// Offered only by the library search, not by general text editors.
+class ReturnToLibraryIntent extends Intent {
+  const ReturnToLibraryIntent();
+}
+
 /// Общий слой ввода: клавиатура и геймпад приводятся к одним и тем же
 /// действиям и дальше двигают фокус одинаково.
 ///
@@ -113,6 +118,7 @@ class _InputScopeState extends State<InputScope> {
   void _move(TraversalDirection direction) {
     final scope = FocusScope.of(context);
     final focused = primaryFocus;
+    if (direction == TraversalDirection.down && _returnFromSearch()) return;
     if (focused == null || !focused.hasFocus || focused == scope) {
       scope.nextFocus();
       return;
@@ -129,6 +135,7 @@ class _InputScopeState extends State<InputScope> {
   }
 
   void _activate() {
+    if (_returnFromSearch()) return;
     final target = primaryFocus?.context;
     if (target == null) return;
     Actions.maybeInvoke(target, const ActivateIntent());
@@ -142,6 +149,7 @@ class _InputScopeState extends State<InputScope> {
     }
     // Из текстового поля выходим раньше, чем закрываем страницу: Escape в
     // поиске должен отпускать поле, а не уводить с открытой игры.
+    if (_returnFromSearch()) return;
     final focused = primaryFocus;
     if (focused != null && focused.context?.widget is EditableText) {
       focused.unfocus();
@@ -149,6 +157,15 @@ class _InputScopeState extends State<InputScope> {
     }
     if (widget.onBack()) return;
     FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  bool _returnFromSearch() {
+    final target = primaryFocus?.context;
+    if (target == null) return false;
+    final action = Actions.maybeFind<ReturnToLibraryIntent>(target);
+    if (action == null) return false;
+    Actions.invoke(target, const ReturnToLibraryIntent());
+    return true;
   }
 
   void _scroll(double delta) {

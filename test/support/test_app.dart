@@ -14,6 +14,7 @@ import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:evaporate/ui/widgets/interface_scale.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamepads/gamepads.dart';
@@ -151,7 +152,9 @@ class TestHarness {
           // ticker. Effect tests explicitly opt in and pump bounded frames.
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
-            child: builder?.call(context, child) ?? child!,
+            child:
+                builder?.call(context, InterfaceScale(child: child!)) ??
+                InterfaceScale(child: child!),
           ),
           theme: theme ?? EvaporateTheme.dark(),
           localizationsDelegates: L.localizationsDelegates,

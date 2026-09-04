@@ -10,6 +10,7 @@ import '../../models/window_start_mode.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/scale_control.dart';
 import 'about_card.dart';
 import 'gamepad_settings.dart';
 import 'notification_settings.dart';
@@ -36,6 +37,51 @@ class SettingsPage extends StatelessWidget {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 20),
+        SectionCard(
+          title: L.of(context).displayScale,
+          icon: Icons.zoom_in,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 20,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(L.of(context).interfaceScale),
+                  ScaleControl(
+                    key: const ValueKey('interface-scale'),
+                    label: L.of(context).interfaceScale,
+                    value: settings.interfaceScale,
+                    min: AppSettings.minInterfaceScale,
+                    max: AppSettings.maxInterfaceScale,
+                    step: 0.05,
+                    onChanged: (value) =>
+                        update(settings.copyWith(interfaceScale: value)),
+                  ),
+                ],
+              ),
+              Text(L.of(context).interfaceScaleNote),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 20,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(L.of(context).coverScale),
+                  ScaleControl(
+                    key: const ValueKey('settings-library-scale'),
+                    label: L.of(context).coverScale,
+                    value: settings.libraryScale,
+                    min: AppSettings.minLibraryScale,
+                    max: AppSettings.maxLibraryScale,
+                    step: 0.25,
+                    onChanged: (value) =>
+                        update(settings.copyWith(libraryScale: value)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
         const GamepadSettingsCard(),
         const NotificationSettingsCard(),
         SectionCard(

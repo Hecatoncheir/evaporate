@@ -80,7 +80,9 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SizedBox(
                 width: 220,

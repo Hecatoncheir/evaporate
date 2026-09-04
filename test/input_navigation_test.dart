@@ -106,6 +106,64 @@ void main() {
   });
 
   group('клавиатура', () {
+    for (final key in [
+      LogicalKeyboardKey.arrowDown,
+      LogicalKeyboardKey.enter,
+      LogicalKeyboardKey.escape,
+    ]) {
+      testWidgets('${key.keyLabel} возвращает из поиска к выбранной игре', (
+        tester,
+      ) async {
+        final harness = await withGames(tester);
+        Focus.of(tester.element(find.text('Бета'))).requestFocus();
+        await tester.pumpAndSettle();
+        final selected = harness.nav.state.selectedGameId;
+        harness.nav.add(const SearchFocusRequested());
+        await tester.pumpAndSettle();
+        await tester.sendKeyEvent(key);
+        await tester.pumpAndSettle();
+        expect(harness.nav.searchFocus.hasFocus, isFalse);
+        expect(primaryFocus?.debugLabel, 'game:$selected');
+        expect(harness.nav.state.openedGameId, isNull);
+      });
+    }
+
+    testWidgets(
+      'поиск сохраняет горизонтальное редактирование и возвращает к результату',
+      (tester) async {
+        final harness = await withGames(tester);
+        await tester.enterText(find.byType(TextField), 'Бет');
+        await tester.pumpAndSettle();
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+        await tester.pumpAndSettle();
+        expect(harness.nav.searchFocus.hasFocus, isTrue);
+        final edit = tester.widget<EditableText>(find.byType(EditableText));
+        expect(edit.controller.selection.baseOffset, 2);
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+        expect(
+          primaryFocus?.debugLabel,
+          'game:${harness.nav.state.selectedGameId}',
+        );
+        expect(
+          harness.library.state
+              .gameById(harness.nav.state.selectedGameId)
+              ?.title,
+          'Бета',
+        );
+        expect(edit.controller.text, 'Бет');
+      },
+    );
+
+    testWidgets('пустой результат отпускает поиск без ошибки', (tester) async {
+      final harness = await withGames(tester);
+      await tester.enterText(find.byType(TextField), 'не найдено');
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(harness.nav.searchFocus.hasFocus, isFalse);
+      expect(tester.takeException(), isNull);
+    });
     testWidgets('Ctrl+Tab переключает разделы', (tester) async {
       final harness = attach();
       await harness.pump(tester);
@@ -150,6 +208,27 @@ void main() {
     });
   });
 
+  testWidgets('крестовина вниз и B возвращают из поиска к игре', (
+    tester,
+  ) async {
+    final harness = await withGames(tester);
+    for (final button in [
+      GamepadButton.dpadDown,
+      GamepadButton.b,
+      GamepadButton.a,
+    ]) {
+      harness.nav.add(const SearchFocusRequested());
+      await tester.pumpAndSettle();
+      await harness.tapButton(tester, button);
+      expect(harness.nav.searchFocus.hasFocus, isFalse);
+      expect(
+        primaryFocus?.debugLabel,
+        'game:${harness.nav.state.selectedGameId}',
+      );
+      expect(harness.nav.state.openedGameId, isNull);
+    }
+  });
+
   testWidgets('плитка показывает рамку фокуса', (tester) async {
     await withGames(tester);
 
@@ -174,5 +253,25 @@ void main() {
       isNot(Colors.transparent),
       reason: 'сфокусированная плитка должна быть видна',
     );
+  });
+
+  testWidgets('возврат из поиска прокручивает к выбранной игре вне экрана', (
+    tester,
+  ) async {
+    final harness = attach();
+    String? last;
+    for (var i = 0; i < 80; i++) {
+      last = harness.addGame(title: 'Game ${i.toString().padLeft(2, '0')}');
+    }
+    await harness.pump(tester);
+    harness.nav.add(GameSelected(last));
+    harness.nav.add(const SearchFocusRequested());
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    expect(primaryFocus?.debugLabel, 'game:$last');
+    expect(harness.nav.searchFocus.hasFocus, isFalse);
+    expect(find.text('Game 79'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

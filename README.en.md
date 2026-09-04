@@ -368,6 +368,21 @@ the foil entirely. Animations pause on hidden tabs or when the app is inactive.
 Select the light theme in Settings if your system is dark; existing preferences
 are not changed automatically.
 
+In search, Down, Enter and Escape return to the selected game (or the first
+filtered result); Left/Right still edit the query. Gamepad Down, A and B
+return to the grid too, without clearing the query.
+Cover size is adjustable from 75–150% using −/+ above the grid or in Settings.
+The independent 85–125% interface scale enlarges text, icons, controls and
+dialogs together, leaving the window controls unchanged. Both preferences
+persist; clicking a percentage resets that scale to 100%.
+
+Game pages feature an animated gold/magenta Play button and a 26-line wave
+background based on the [#wave reference](https://hecatoncheir.github.io/).
+The lines bend smoothly near the pointer. Everything renders locally in
+Flutter, without loading the website or rebuilding page content each frame.
+Disabling Living library or enabling reduced motion leaves static artwork;
+animations pause on hidden pages and while the window is inactive.
+
 Colours come from a theme extension (`context.colors.textSecondary`) rather
 than constants, because two schemes cannot both be constants. There is one
 exception: the scrim over a game's cover art, where the backdrop is a picture

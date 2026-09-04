@@ -547,14 +547,15 @@ class _BulkTransferCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          Row(
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
             children: [
               FilledButton.icon(
                 onPressed: busy ? null : () => _export(context),
                 icon: const Icon(Icons.upload_outlined, size: 16),
                 label: Text(L.of(context).exportAll),
               ),
-              const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: busy ? null : () => _import(context),
                 icon: const Icon(Icons.download_outlined, size: 16),

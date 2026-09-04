@@ -66,7 +66,10 @@ class NotificationSettingsCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (Platform.isMacOS)
                 OutlinedButton.icon(
@@ -76,7 +79,6 @@ class NotificationSettingsCard extends StatelessWidget {
                   icon: const Icon(Icons.lock_open_outlined, size: 16),
                   label: Text(L.of(context).requestPermission),
                 ),
-              if (Platform.isMacOS) const SizedBox(width: 10),
               OutlinedButton.icon(
                 onPressed: enabled
                     ? () => _sendTest(context, notifications)
