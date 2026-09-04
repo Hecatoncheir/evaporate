@@ -23,9 +23,9 @@ jobs:
     name: Формат и анализ
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -51,9 +51,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -83,7 +83,7 @@ jobs:
 
       - name: Приложить отчёт о покрытии
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: coverage-${{ github.sha }}
           path: coverage/lcov.info
@@ -100,9 +100,9 @@ jobs:
       startsWith(github.ref, 'refs/tags/v') ||
       github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -125,7 +125,7 @@ jobs:
           ditto -c -k --keepParent "$APP" \
             "evaporate-${GITHUB_REF_NAME#v}-macos.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: evaporate-macos-${{ github.sha }}
           path: evaporate-*-macos.zip
@@ -140,7 +140,7 @@ jobs:
       startsWith(github.ref, 'refs/tags/v') ||
       github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
       - name: Системные зависимости
         run: |
@@ -149,7 +149,7 @@ jobs:
             clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
             libayatana-appindicator3-dev
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -166,7 +166,7 @@ jobs:
           tar -czf "evaporate-${GITHUB_REF_NAME#v}-linux.tar.gz" \
             -C build/linux/x64/release/bundle .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: evaporate-linux-${{ github.sha }}
           path: evaporate-*-linux.tar.gz
@@ -181,9 +181,9 @@ jobs:
       startsWith(github.ref, 'refs/tags/v') ||
       github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -201,7 +201,7 @@ jobs:
           Compress-Archive -Path build/windows/x64/runner/Release/* `
             -DestinationPath "evaporate-$slug-windows.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: evaporate-windows-${{ github.sha }}
           path: evaporate-*-windows.zip
@@ -217,17 +217,17 @@ jobs:
       contents: write
     steps:
       # Ради CHANGELOG.md и tool/changelog_notes.dart.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
       # Скрипту хватает голого dart: пакетов он не подключает, поэтому
       # `flutter pub get` здесь не нужен.
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.1
         with:
           # Только сборки: отчёт о покрытии тоже артефакт прогона, и без
           # маски он уехал бы в релиз файлом, которого там никто не ждёт.
