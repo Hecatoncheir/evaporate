@@ -86,6 +86,43 @@ void main() {
     expect(playButton.onPressed, isNull);
   });
 
+  // Раздачу, которую человек принёс сам, он вправе унести обратно —
+  // а у игры из локальной папки уносить нечего.
+  testWidgets('кнопка выгрузки .torrent есть только у раздачи', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    harness.addGame(
+      title: 'Из папки',
+      source: const GameSource(
+        kind: GameSourceKind.localFolder,
+        value: '/tmp/game',
+      ),
+      installDir: '/tmp/game',
+      status: GameStatus.installed,
+    );
+    harness.addGame(
+      title: 'Из раздачи',
+      source: const GameSource(
+        kind: GameSourceKind.magnet,
+        value: 'magnet:?xt=urn:btih:0123',
+      ),
+      installDir: '/tmp/game',
+      status: GameStatus.installed,
+    );
+    await harness.pump(tester);
+
+    await tester.tap(find.text('Из папки'));
+    await tester.pumpAndSettle();
+    expect(find.text('Сохранить .torrent'), findsNothing);
+
+    await tester.tap(find.text('К библиотеке'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Из раздачи'));
+    await tester.pumpAndSettle();
+    expect(find.text('Сохранить .torrent'), findsOneWidget);
+  });
+
   testWidgets('строка состояния сообщает, что движок не запущен', (
     tester,
   ) async {

@@ -67,6 +67,17 @@ final class DownloadCancelRequested extends DownloadsEvent {
   List<Object?> get props => [game.id];
 }
 
+/// Сохранить `.torrent` игры туда, куда указал пользователь.
+final class TorrentExportRequested extends DownloadsEvent {
+  const TorrentExportRequested({required this.game, required this.destination});
+
+  final Game game;
+  final String destination;
+
+  @override
+  List<Object?> get props => [game.id, destination];
+}
+
 /// Пользователь перетащил задачу в очереди.
 final class DownloadReordered extends DownloadsEvent {
   const DownloadReordered({required this.id, required this.newIndex});

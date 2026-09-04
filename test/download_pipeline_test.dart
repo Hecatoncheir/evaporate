@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/notice.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/download_task.dart';
@@ -289,5 +290,40 @@ void main() {
         );
       },
     );
+
+    /// Ждёт сообщения пользователю: результат экспорта приходит только им.
+    Future<Notice> waitForNotice() => downloads.stream
+        .firstWhere((s) => s.notice != null)
+        .timeout(const Duration(seconds: 5))
+        .then((s) => s.notice!);
+
+    // Скачанная раздача остаётся раздачей: унести её в другой клиент или на
+    // другое устройство человек вправе, а magnet-ссылка этого не даёт.
+    test('экспорт кладёт файл раздачи туда, куда попросили', () async {
+      final game = await downloadingGame();
+      final stored = File(p.join(paths.torrentsDir, '${game.id}.torrent'));
+      await stored.parent.create(recursive: true);
+      await stored.writeAsString('d4:infod4:name4:gameee');
+      final target = p.join(tmp.path, 'вынесенное.torrent');
+
+      downloads.add(TorrentExportRequested(game: game, destination: target));
+      final notice = await waitForNotice();
+
+      expect(notice.isError, isFalse);
+      expect(await File(target).readAsString(), 'd4:infod4:name4:gameee');
+    });
+
+    // Молчаливый отказ здесь хуже ошибки: человек нажал кнопку, увидел
+    // диалог сохранения и вправе узнать, почему файла так и не появилось.
+    test('без файла раздачи экспорт объясняется, а не молчит', () async {
+      final game = await downloadingGame();
+      final target = p.join(tmp.path, 'ничего.torrent');
+
+      downloads.add(TorrentExportRequested(game: game, destination: target));
+      final notice = await waitForNotice();
+
+      expect(notice.isError, isTrue);
+      expect(await File(target).exists(), isFalse);
+    });
   });
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:dtorrent_task_v2/dtorrent_task_v2.dart' as dt;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
@@ -13,6 +14,7 @@ import '../../models/download_task.dart';
 import '../../models/speed_limits.dart';
 import '../../models/proxy_settings.dart';
 import 'download_engine.dart';
+import 'torrent_file.dart';
 
 /// Что нашла проверка файлов после загрузки.
 class IntegrityReport {
@@ -57,6 +59,7 @@ class DtorrentEngine implements DownloadEngine {
   DtorrentEngine({
     required this.downloadDir,
     required String stateFile,
+    required this.torrentsDir,
     ProxySettings proxy = const ProxySettings(),
     this.maxConcurrent = 3,
     this.autoStart = true,
@@ -75,6 +78,11 @@ class DtorrentEngine implements DownloadEngine {
   static L _defaultLocalizations() => LRu();
 
   String downloadDir;
+
+  /// Куда складывать `.torrent` раздач. Magnet-ссылка приносит метаданные
+  /// один раз и из сети; сохранённый файл избавляет от повторного их поиска
+  /// после перезапуска — и его же потом отдают на экспорт.
+  final String torrentsDir;
 
   /// Сколько задач качается одновременно; остальные ждут очереди.
   int maxConcurrent;
@@ -203,7 +211,7 @@ class DtorrentEngine implements DownloadEngine {
 
     final dt.TorrentModel model;
     try {
-      model = await dt.TorrentParser.parse(path);
+      model = await parseTorrent(path);
     } on Object catch (error) {
       throw DownloadEngineException(_l.torrentReadFailed('$error'));
     }
@@ -222,6 +230,47 @@ class DtorrentEngine implements DownloadEngine {
     await _persist();
     pumpQueue();
     return infoHash;
+  }
+
+  /// Читает `.torrent` с диска.
+  static Future<dt.TorrentModel> parseTorrent(String path) async =>
+      torrentFromBytes(await File(path).readAsBytes());
+
+  /// Разбирает `.torrent`, пересчитывая infohash по байтам info-словаря.
+  ///
+  /// Разборщик библиотеки свой infohash не считает, а угадывает: ищет в файле
+  /// байты `info` и закрывающую скобку, принимая за границы словаря первые
+  /// же `d` и `e` — а они сплошь и рядом попадаются внутри двоичных хешей
+  /// кусков. На настоящей раздаче он промахивается всегда, и с промахнувшимся
+  /// хешем раздачу не узнают ни трекер, ни пир. Заодно возвращаем имени
+  /// кириллицу: там оно читается как латиница, байт за символ.
+  ///
+  /// Открыто для тестов: сверить хеш можно на собранном в памяти торренте,
+  /// без диска и без сети.
+  @visibleForTesting
+  static dt.TorrentModel torrentFromBytes(Uint8List bytes) {
+    final model = dt.TorrentParser.parseBytes(bytes);
+    final infoDict = TorrentFile.infoDictIn(bytes);
+    // Хеш v2-раздачи считается иначе (sha256), и такие раздачи здесь ещё
+    // не встречались — трогаем только то, о чём знаем наверняка.
+    if (infoDict == null || model.version != dt.TorrentVersion.v1) return model;
+    return dt.TorrentModel(
+      name: TorrentFile.name(infoDict) ?? model.name,
+      files: model.files,
+      infoHashBuffer: Uint8List.fromList(sha1.convert(infoDict).bytes),
+      pieceLength: model.pieceLength,
+      pieces: model.pieces,
+      announces: model.announces,
+      nodes: model.nodes,
+      length: model.length,
+      version: model.version,
+      metaVersion: model.metaVersion,
+      fileTree: model.fileTree,
+      pieceLayers: model.pieceLayers,
+      rootHash: model.rootHash,
+      infoDictBytes: infoDict,
+      rawData: model.rawData,
+    );
   }
 
   void _register(_ManagedDownload managed) {
@@ -284,6 +333,13 @@ class DtorrentEngine implements DownloadEngine {
   /// Позиция в очереди — её показывает интерфейс.
   int positionOf(String id) => _order.indexOf(id);
 
+  /// Файл раздачи, если движок им располагает.
+  ///
+  /// Для торрента это то, что дали при добавлении, для magnet-ссылки —
+  /// собранное из пришедших метаданных. Пока метаданные не пришли, отдавать
+  /// нечего: раздача известна только по хешу.
+  String? torrentPathFor(String id) => _downloads[id]?.torrentPath;
+
   /// Поднимает задачу: для magnet сначала качаются метаданные.
   Future<void> _launch(_ManagedDownload managed) async {
     final generation = managed.generation;
@@ -291,8 +347,11 @@ class DtorrentEngine implements DownloadEngine {
       managed.error = null;
       var model = managed.model;
 
-      if (model == null && managed.torrentPath != null) {
-        model = await dt.TorrentParser.parse(managed.torrentPath!);
+      // Файл могли удалить у нас за спиной — тогда остаётся magnet-ссылка.
+      if (model == null &&
+          managed.torrentPath != null &&
+          await File(managed.torrentPath!).exists()) {
+        model = await parseTorrent(managed.torrentPath!);
       }
       model ??= await managed.fetchMetadata();
       if (model == null ||
@@ -592,7 +651,11 @@ class _ManagedDownload {
   final String savePath;
   final DtorrentEngine engine;
   final String? magnet;
-  final String? torrentPath;
+
+  /// Файл раздачи. У magnet-ссылки его сначала нет, но после получения
+  /// метаданных появляется: собранный `.torrent` сохраняется на диск, и
+  /// дальше задача поднимается из него, а не из сети.
+  String? torrentPath;
 
   String name;
 
@@ -630,7 +693,10 @@ class _ManagedDownload {
       if (event is dt.MetaDataDownloadComplete) {
         try {
           completer.complete(
-            dt.TorrentParser.parseBytes(Uint8List.fromList(event.data)),
+            _adoptMetadata(
+              Uint8List.fromList(event.data),
+              parsed?.trackers ?? const [],
+            ),
           );
         } on Object catch (error) {
           completer.completeError(error);
@@ -642,6 +708,32 @@ class _ManagedDownload {
 
     await downloader.startDownload();
     return completer.future;
+  }
+
+  /// По magnet-ссылке приходит голый info-словарь, а не файл раздачи:
+  /// разборщику нужен торрент целиком, поэтому словарь заворачиваем в него
+  /// сами. Трекеры при этом переезжают из ссылки в файл — иначе задача
+  /// осталась бы с одним DHT, хотя пользователь дал ей адреса.
+  ///
+  /// Готовый файл сохраняем: метаданные ищутся в сети минутами, и платить
+  /// за это при каждом запуске приложения незачем. Он же уходит на экспорт.
+  Future<dt.TorrentModel> _adoptMetadata(
+    Uint8List infoDict,
+    List<Uri> trackers,
+  ) async {
+    final bytes = TorrentFile.assemble(infoDict, trackers: trackers);
+    final model = DtorrentEngine.torrentFromBytes(bytes);
+    try {
+      final file = File(p.join(engine.torrentsDir, '$infoHash.torrent'));
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+      torrentPath = file.path;
+      await engine._persist();
+    } on Object {
+      // Не записался — раздача от этого не страдает, просто метаданные
+      // придётся искать заново.
+    }
+    return model;
   }
 
   DownloadTask toDownloadTask() {

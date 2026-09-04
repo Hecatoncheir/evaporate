@@ -12,6 +12,7 @@ import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../../services/download/dtorrent_engine.dart';
+import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -41,6 +42,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
        engine = DtorrentEngine(
          downloadDir: settings.state.installDir,
          stateFile: paths.engineStateFile,
+         torrentsDir: paths.torrentsDir,
          proxy: settings.state.proxy,
          maxConcurrent: settings.state.maxConcurrent,
        ),
@@ -63,6 +65,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     on<DownloadPauseRequested>(_onPauseRequested);
     on<DownloadResumeRequested>(_onResumeRequested);
     on<DownloadCancelRequested>(_onCancelRequested);
+    on<TorrentExportRequested>(_onTorrentExport);
     on<DownloadReordered>((event, emit) async {
       await engine.reorder(event.id, event.newIndex);
     });
@@ -216,6 +219,39 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     await Directory(paths.torrentsDir).create(recursive: true);
     await File(sourcePath).copy(target);
     return target;
+  }
+
+  /// Где искать `.torrent` игры. Собственного состояния у поиска нет,
+  /// поэтому он собирается на каждый запрос.
+  TorrentExport get torrents => TorrentExport(
+    torrentsDir: paths.torrentsDir,
+    enginePath: engine.torrentPathFor,
+  );
+
+  /// Отдаёт файл раздачи наружу: в другой клиент, на другое устройство или
+  /// просто в архив. Раздача, которую скачали, остаётся раздачей — унести её
+  /// с собой человек вправе, а magnet-ссылка без метаданных этого не даёт.
+  Future<void> _onTorrentExport(
+    TorrentExportRequested event,
+    Emitter<DownloadsState> emit,
+  ) async {
+    try {
+      final source = await torrents.locate(event.game);
+      if (source == null) {
+        emit(
+          state.copyWith(
+            notice: _notice(_l.noticeTorrentUnavailable, isError: true),
+          ),
+        );
+        return;
+      }
+      await File(source).copy(event.destination);
+      emit(
+        state.copyWith(notice: _notice(_l.noticeSavedTo(event.destination))),
+      );
+    } on Object catch (error) {
+      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+    }
   }
 
   Future<void> _onPauseRequested(

@@ -28,6 +28,7 @@ void main() {
     return DtorrentEngine(
       downloadDir: p.join(tmp.path, 'games'),
       stateFile: p.join(tmp.path, 'downloads.json'),
+      torrentsDir: p.join(tmp.path, 'torrents'),
       proxy: proxy,
       maxConcurrent: maxConcurrent,
       autoStart: false,

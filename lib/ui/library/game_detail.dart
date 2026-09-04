@@ -11,6 +11,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../core/format.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
+import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -681,31 +682,45 @@ class _InfoSection extends StatelessWidget {
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
-            child: Builder(
-              builder: (context) {
-                final busy = context.select<LibraryBloc, bool>(
-                  (bloc) => bloc.state.isBusy(LibraryBloc.steamKey(game.id)),
-                );
-                return OutlinedButton.icon(
-                  onPressed: busy
-                      ? null
-                      : () => context.read<LibraryBloc>().add(
-                          SteamLookupRequested(game),
-                        ),
-                  icon: busy
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.travel_explore, size: 16),
-                  label: Text(
-                    game.steamAppId == null
-                        ? L.of(context).findInSteam
-                        : L.of(context).refreshFromSteam,
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                Builder(
+                  builder: (context) {
+                    final busy = context.select<LibraryBloc, bool>(
+                      (bloc) =>
+                          bloc.state.isBusy(LibraryBloc.steamKey(game.id)),
+                    );
+                    return OutlinedButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => context.read<LibraryBloc>().add(
+                              SteamLookupRequested(game),
+                            ),
+                      icon: busy
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.travel_explore, size: 16),
+                      label: Text(
+                        game.steamAppId == null
+                            ? L.of(context).findInSteam
+                            : L.of(context).refreshFromSteam,
+                      ),
+                    );
+                  },
+                ),
+                // Игру принёс торрент — значит, есть что унести обратно.
+                if (TorrentExport.isTorrent(game))
+                  OutlinedButton.icon(
+                    onPressed: () => _exportTorrent(context),
+                    icon: const Icon(Icons.save_alt, size: 16),
+                    label: Text(L.of(context).exportTorrent),
                   ),
-                );
-              },
+              ],
             ),
           ),
           if (source != null)
@@ -717,6 +732,19 @@ class _InfoSection extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  /// Куда положить `.torrent`, спрашиваем здесь, а ищем его — в блоке:
+  /// файл может лежать и у нас, и у движка, и виджету об этом знать незачем.
+  Future<void> _exportTorrent(BuildContext context) async {
+    final downloads = context.read<DownloadsBloc>();
+    final location = await getSaveLocation(
+      suggestedName: '${safeFileName(game.title)}.torrent',
+    );
+    if (location == null) return;
+    downloads.add(
+      TorrentExportRequested(game: game, destination: location.path),
     );
   }
 
