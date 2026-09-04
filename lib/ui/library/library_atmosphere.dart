@@ -94,14 +94,14 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
       if (candidate.overlaps(Offset.zero & box.size)) rect = candidate;
     }
     focus.update(rect, key);
-    field.card = rect?.inflate(8);
     final dt = _previous == null
         ? 1 / 60
         : (elapsed - _previous!).inMicroseconds /
               Duration.microsecondsPerSecond;
     _previous = elapsed;
-    field.step(dt);
     focus.step(dt);
+    field.card = focus.current?.inflate(8);
+    field.step(dt);
     _repaint.repaint();
   }
 
@@ -123,29 +123,35 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
       onExit: (_) => field.pointer = null,
       child: ClipRect(
         key: _viewport,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    key: const ValueKey('library-atmosphere-paint'),
-                    painter: _AtmospherePainter(
-                      field: field,
-                      focus: focus,
-                      colors: colors,
-                      animated:
-                          widget.enabled &&
-                          !MediaQuery.disableAnimationsOf(context),
-                      repaint: _repaint,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Seed even in reduced-motion mode; disabling motion never removes
+            // the static background dots.
+            field.resize(constraints.biggest);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        key: const ValueKey('library-atmosphere-paint'),
+                        painter: _AtmospherePainter(
+                          field: field,
+                          colors: colors,
+                          animated:
+                              widget.enabled &&
+                              !MediaQuery.disableAnimationsOf(context),
+                          repaint: _repaint,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-            RepaintBoundary(child: widget.child),
-          ],
+                RepaintBoundary(child: widget.child),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -166,17 +172,18 @@ const liquidInkColors = [
   Color(0xFFEF147C),
 ];
 
+Color ambientParticleColor(bool isDark) =>
+    isDark ? const Color(0xFFE6DBC7) : const Color(0xFF2F0346);
+
 class _AtmospherePainter extends CustomPainter {
   _AtmospherePainter({
     required this.field,
-    required this.focus,
     required this.colors,
     required this.animated,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
   final ParticleField field;
-  final LiquidFocus focus;
   final EvaporatePalette colors;
   final bool animated;
 
@@ -202,47 +209,25 @@ class _AtmospherePainter extends CustomPainter {
         canvas.drawRect(bounds, paint);
       }
     }
-    if (!animated) return;
-    final shape = focus.outline(time);
-    if (focus.target != null) {
-      final shader = SweepGradient(
-        colors: liquidInkColors,
-        transform: GradientRotation(time * 0.32),
-      ).createShader(focus.current!.inflate(24));
-      canvas.drawPath(
-        shape,
-        Paint()
-          ..shader = shader
-          ..color = Colors.white.withValues(alpha: 0.2)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-      );
-      canvas.drawPath(
-        shape,
-        Paint()
-          ..shader = shader
-          ..color = Colors.white.withValues(alpha: 0.8),
-      );
-      canvas.drawPath(
-        shape,
-        Paint()
-          ..shader = shader
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5,
-      );
-    }
     final dot = Paint();
-    final halo = Paint();
+    final ambient = ambientParticleColor(colors.isDark);
     for (final particle in field.particles) {
-      final color = liquidInkColors[(particle.phase * 10).floor() % 5];
+      if (!animated && particle.life >= 0) continue;
+      final ink = liquidInkColors[(particle.phase * 10).floor() % 5];
+      final highlight = colors.isDark
+          ? Color.lerp(ink, Colors.white, 0.85)!
+          : ink;
+      final color = Color.lerp(
+        ambient,
+        highlight,
+        animated ? particle.glow : 0,
+      )!;
       final fade = particle.life < 0
           ? 1.0
           : (particle.life / 0.35).clamp(0.0, 1.0);
-      // Halo radius is also fixed. Only its intensity responds to attraction.
-      if (particle.glow > 0.2) {
-        halo.color = color.withValues(alpha: particle.glow * 0.16 * fade);
-        canvas.drawCircle(particle.position, 4.5, halo);
-      }
-      dot.color = color.withValues(alpha: (0.19 + particle.glow * 0.81) * fade);
+      // Opaque ambient dots retain the exact theme color, without bubbles,
+      // blurred halos or a selection outline behind them.
+      dot.color = color.withValues(alpha: fade);
       canvas.drawCircle(particle.position, InkParticle.radius, dot);
     }
   }

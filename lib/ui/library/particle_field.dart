@@ -17,7 +17,7 @@ class InkParticle {
 class ParticleField {
   ParticleField({int seed = 42}) : _random = math.Random(seed);
 
-  static const ambientCount = 96;
+  static const ambientCount = 240;
   static const maxCount = 640;
   final math.Random _random;
   final List<InkParticle> particles = [];
@@ -137,10 +137,14 @@ class ParticleField {
       p.glow = proximity * proximity;
       if (proximity > 0.7) near++;
       var acceleration = Offset(
-        math.sin(time * 0.7 + p.phase) * 10,
-        math.cos(time * 0.6 + p.phase) * 10,
+        math.sin(time * 1.7 + p.phase) * 50 +
+            math.sin(time * 4.1 + p.phase * 3) * 18,
+        math.cos(time * 1.3 + p.phase * 2) * 50 +
+            math.cos(time * 3.7 + p.phase * 5) * 18,
       );
-      if (target != null) {
+      // Attraction has a finite range: distant dots keep wandering instead
+      // of the entire background eventually being vacuumed into one card.
+      if (target != null && proximity > 0) {
         final delta = target - p.position;
         final distance = delta.distance;
         final direction = distance < 0.1 ? Offset.zero : delta / distance;
@@ -157,8 +161,8 @@ class ParticleField {
         }
         final chaos = 12 + 210 * proximity * proximity;
         acceleration +=
-            direction * (distance * 3.8).clamp(0, 230) +
-            tangent * (35 + proximity * 95) +
+            direction * (distance * 3.8).clamp(0, 230) * proximity +
+            tangent * (proximity * 130) +
             Offset(
                   math.sin(time * (4 + proximity * 17) + p.phase * 9),
                   math.cos(time * (5 + proximity * 19) + p.phase * 7),

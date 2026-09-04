@@ -5,8 +5,8 @@ import '../theme.dart';
 /// Фокусируемая плитка: работает и мышью, и с клавиатуры, и с геймпада.
 ///
 /// Обычный `InkWell` фокус принимает, но никак его не показывает — при
-/// управлении без мыши это делает интерфейс непроходимым, поэтому рамка
-/// фокуса здесь обязательная часть.
+/// управлении без мыши это делает интерфейс непроходимым. По умолчанию фокус
+/// обозначает рамка; библиотека отключает её и меняет силуэт самой карточки.
 class NavTile extends StatefulWidget {
   const NavTile({
     super.key,
@@ -21,6 +21,7 @@ class NavTile extends StatefulWidget {
     this.borderWidth = 1.5,
     this.focusedScale = 1,
     this.onFocusChange,
+    this.showFocusBorder = true,
   });
 
   final Widget child;
@@ -34,6 +35,7 @@ class NavTile extends StatefulWidget {
   final EdgeInsets margin;
   final double borderRadius;
   final double borderWidth;
+  final bool showFocusBorder;
 
   /// Насколько плитка подрастает под фокусом. Единица — не растёт вовсе.
   /// В сетке обложек рост заметнее рамки: соседи расступаются, и видно, где
@@ -95,10 +97,14 @@ class _NavTileState extends State<NavTile> {
               decoration: BoxDecoration(
                 color: background,
                 borderRadius: BorderRadius.circular(widget.borderRadius),
-                border: Border.all(
-                  color: _focused ? context.colors.primary : Colors.transparent,
-                  width: widget.borderWidth,
-                ),
+                border: widget.showFocusBorder
+                    ? Border.all(
+                        color: _focused
+                            ? context.colors.primary
+                            : Colors.transparent,
+                        width: widget.borderWidth,
+                      )
+                    : null,
               ),
               child: widget.child,
             ),

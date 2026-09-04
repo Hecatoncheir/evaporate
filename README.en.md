@@ -352,10 +352,13 @@ lighter orange because it labels status as well as outlining focus.
 
 The "Living library" setting enables magnetic particles and liquid focus.
 Particles follow the cursor and orbit card edges: proximity increases their
-density, brightness and turbulence, never their radius. The simulation is
-capped at 640 particles, painting independently of the retained grid.
-Cards use [Dough](https://github.com/josiahsrc/dough); a shared wavy focus shape
-merges through a pinching liquid bridge. This is geometric distortion, without
+density, brightness and turbulence, never their radius. Distant dots wander
+in `#2f0346` on light backgrounds or `#e6dbc7` on dark backgrounds, without
+halos. The 240 ambient dots remain visible when motion is disabled. The
+simulation is capped at 640 particles, painting independently of the grid.
+Cards use [Dough](https://github.com/josiahsrc/dough); the selected card keeps
+an asymmetric liquid silhouette without a continuous focus border. Grid gaps
+are 36 pixels horizontally and 40 vertically. This is geometric distortion, without
 full-screen image readback or a platform-specific shader. Effects respect
 reduced motion and pause on hidden tabs or when the app is inactive. Select
 the light theme in Settings if your system is dark; existing preferences are

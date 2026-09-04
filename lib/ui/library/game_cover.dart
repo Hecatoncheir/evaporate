@@ -50,8 +50,8 @@ class GameCoverTile extends StatelessWidget {
       padding: EdgeInsets.zero,
       margin: EdgeInsets.zero,
       borderRadius: 10,
-      borderWidth: 2.5,
-      focusedScale: 1.06,
+      showFocusBorder: false,
+      focusedScale: 1,
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(7.5),

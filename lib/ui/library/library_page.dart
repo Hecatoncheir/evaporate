@@ -218,14 +218,14 @@ class _LibraryPageState extends State<LibraryPage> {
     return GridView.builder(
       findChildIndexCallback: (key) =>
           key is ValueKey<String> ? indices[key.value] : null,
-      padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+      padding: const EdgeInsets.fromLTRB(32, 30, 32, 34),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         // По ширине, а не по числу столбцов: обложка должна остаться
         // читаемой и в узком окне, и на весь экран телевизора.
         maxCrossAxisExtent: 215,
         childAspectRatio: 2 / 3,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 20,
+        crossAxisSpacing: 36,
+        mainAxisSpacing: 40,
       ),
       itemCount: games.length,
       itemBuilder: (context, index) {

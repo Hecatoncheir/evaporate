@@ -7,6 +7,7 @@ import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/library/library_atmosphere.dart';
 import 'package:evaporate/ui/library/liquid_focus.dart';
+import 'package:evaporate/ui/library/liquid_card.dart';
 import 'package:evaporate/ui/library/particle_field.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,20 @@ import 'support/test_app.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('ambient points use the exact requested colors', () {
+    expect(ambientParticleColor(false), const Color(0xFF2F0346));
+    expect(ambientParticleColor(true), const Color(0xFFE6DBC7));
+  });
+
+  test('selection changes the actual card silhouette', () {
+    const size = Size(200, 300);
+    final normal = const LiquidCardClipper(0).getClip(size);
+    final selected = const LiquidCardClipper(1).getClip(size);
+    expect(normal.contains(const Offset(10, 10)), isTrue);
+    expect(selected.contains(const Offset(10, 10)), isFalse);
+    expect(selected.contains(size.center(Offset.zero)), isTrue);
+  });
+
   group('particle simulation', () {
     test('density grows near attraction without changing particle size', () {
       final field = ParticleField()..resize(const Size(1000, 700));
@@ -29,13 +44,17 @@ void main() {
       }
       expect(
         field.particles.length,
-        greaterThan(ParticleField.ambientCount * 2),
+        greaterThan(ParticleField.ambientCount + 60),
       );
       expect(field.particles.length, lessThanOrEqualTo(ParticleField.maxCount));
       final close = field.particles.where(
         (p) => field.proximity(p.position) > 0.7,
       );
-      expect(close.length, greaterThan(field.particles.length ~/ 2));
+      expect(close.length, greaterThan(80));
+      expect(
+        field.particles.where((p) => field.proximity(p.position) == 0).length,
+        greaterThan(60),
+      );
       expect(InkParticle.radius, 1.25);
       expect(field.proximity(const Offset(320, 200)), 1);
       expect(field.proximity(const Offset(950, 600)), 0);
@@ -120,7 +139,7 @@ void main() {
     for (var i = 0; i < 12; i++) {
       focus.step(1 / 60);
     }
-    expect(focus.outline(1).getBounds().width.isFinite, isTrue);
+    expect(focus.current!.width.isFinite, isTrue);
     final intermediate = focus.current;
     focus.update(a, 'a');
     expect(focus.from, intermediate);
@@ -135,7 +154,7 @@ void main() {
     expect(focus.current, a.translate(0, -15));
     focus.update(null, null);
     expect(focus.current, isNull);
-    expect(focus.outline(1).getBounds(), Rect.zero);
+    expect(focus.target, isNull);
   });
 
   test(
@@ -308,6 +327,10 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(state.isAnimating, isFalse);
+        expect(
+          state.field.particles.where((p) => p.life < 0).length,
+          ParticleField.ambientCount,
+        );
         expect(tester.takeException(), isNull);
       },
     );
