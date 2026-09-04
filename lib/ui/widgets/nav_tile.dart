@@ -72,14 +72,14 @@ class _NavTileState extends State<NavTile> {
   Widget build(BuildContext context) {
     final background = widget.selected
         ? context.colors.surfaceHigh
-        : Colors.transparent;
+        : AppColors.transparent;
 
     return Padding(
       padding: widget.margin,
       child: Material(
         // Подсветку рисует контейнер ниже: на Material она переключалась бы
         // рывком, тогда как рамка фокуса рядом уже плавная.
-        color: Colors.transparent,
+        color: AppColors.transparent,
         borderRadius: BorderRadius.circular(widget.borderRadius),
         child: InkWell(
           onTap: widget.onTap,
@@ -100,8 +100,8 @@ class _NavTileState extends State<NavTile> {
                 border: widget.showFocusBorder
                     ? Border.all(
                         color: _focused
-                            ? context.colors.primary
-                            : Colors.transparent,
+                            ? context.colors.selection
+                            : AppColors.transparent,
                         width: widget.borderWidth,
                       )
                     : null,

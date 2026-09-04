@@ -162,29 +162,6 @@ class _PaintSignal extends ChangeNotifier {
   void repaint() => notifyListeners();
 }
 
-/// Saturated ink is decorative; text uses the contrast-tested theme colors.
-const libraryInkColors = [
-  Color(0xFFEF147C),
-  Color(0xFFFF713F),
-  Color(0xFFFFC52E),
-  Color(0xFF05BDC9),
-  Color(0xFF7552D9),
-  Color(0xFFEF147C),
-];
-
-Color ambientParticleColor(bool isDark) =>
-    isDark ? const Color(0xFFE6DBC7) : const Color(0xFF2F0346);
-
-Color particleColor({
-  required bool isDark,
-  required double phase,
-  required double glow,
-}) => Color.lerp(
-  ambientParticleColor(isDark),
-  libraryInkColors[(phase * 10).floor() % 5],
-  glow,
-)!;
-
 class _AtmospherePainter extends CustomPainter {
   _AtmospherePainter({
     required this.field,

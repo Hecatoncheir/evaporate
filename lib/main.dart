@@ -59,7 +59,7 @@ Future<void> main() async {
       ),
       titleBarStyle: TitleBarStyle.hidden,
       windowButtonVisibility: false,
-      backgroundColor: Platform.isWindows ? null : Colors.transparent,
+      backgroundColor: Platform.isWindows ? null : AppColors.transparent,
     ),
     () async {
       // macOS сохраняет нативные тень/скругление NSWindow, но без кнопок.

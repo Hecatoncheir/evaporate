@@ -107,7 +107,7 @@ void main() {
 
   test('ambient points use the exact requested colors', () {
     expect(ambientParticleColor(false), const Color(0xFF2F0346));
-    expect(ambientParticleColor(true), const Color(0xFFE6DBC7));
+    expect(ambientParticleColor(true), const Color(0xFFF2685A));
   });
 
   testWidgets('particle painter has a sharp core and no glow outside it', (
@@ -162,63 +162,95 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  test(
-    'attracted particles have identical saturated colors in both themes',
-    () {
-      for (var i = 0; i < 5; i++) {
-        final light = particleColor(isDark: false, phase: i / 10, glow: 1);
-        final dark = particleColor(isDark: true, phase: i / 10, glow: 1);
-        expect(light, libraryInkColors[i]);
-        expect(dark, light);
-      }
-      expect(ParticleField.ambientCount, 1200);
-      expect(ParticleField.maxCount, 3200);
-      expect(ParticleField.densityMultiplier, 5);
-    },
-  );
+  test('nearby particles have identical saturated colors in both themes', () {
+    for (var i = 0; i < 5; i++) {
+      final light = particleColor(isDark: false, phase: i / 10, glow: 1);
+      final dark = particleColor(isDark: true, phase: i / 10, glow: 1);
+      expect(light, libraryInkColors[i]);
+      expect(dark, light);
+    }
+    expect(ParticleField.ambientCount, 4800);
+    expect(ParticleField.maxCount, 6800);
+  });
 
   group('particle simulation', () {
-    for (final cursor in [false, true]) {
-      test(
-        'particles remain spread around ${cursor ? 'cursor' : 'card perimeter'}',
-        () {
-          final field = ParticleField()..resize(const Size(1000, 700));
-          const rect = Rect.fromLTWH(320, 180, 240, 300);
-          const point = Offset(440, 330);
-          if (cursor) {
-            field.pointer = point;
-          } else {
-            field.card = rect;
+    for (final seed in [4, 42, 108]) {
+      test('ambient particles stay uniform without a target (seed $seed)', () {
+        final field = ParticleField(seed: seed)..resize(const Size(1000, 700));
+        void checkDistribution() {
+          final bins = List.filled(16, 0);
+          for (final p in field.particles) {
+            final x = (p.position.dx / field.size.width * 4).floor().clamp(
+              0,
+              3,
+            );
+            final y = (p.position.dy / field.size.height * 4).floor().clamp(
+              0,
+              3,
+            );
+            bins[y * 4 + x]++;
           }
-          for (var i = 0; i < 600; i++) {
-            field.step(1 / 60);
+          final expected = ParticleField.ambientCount / 16;
+          for (final count in bins) {
+            expect(count, inInclusiveRange(expected * 0.7, expected * 1.3));
           }
-          double distance(InkParticle p) => cursor
-              ? (p.position - point).distance
-              : (p.position - ParticleField.edgePoint(rect, p.position))
-                    .distance;
-          final tight = field.particles.where((p) => distance(p) < 12).length;
-          final outer = field.particles
-              .where((p) => distance(p) >= 12 && distance(p) < 36)
-              .length;
-          expect(tight, greaterThan(0));
-          // Restore the loose cloud instead of compressing most nearby dots
-          // into the innermost band. Keep the increased particle budget.
-          expect(outer, greaterThan(tight));
-          expect(
-            field.particles.where((p) => distance(p) > 180).length,
-            greaterThan(60),
-          );
-          expect(
-            field.particles.length,
-            lessThanOrEqualTo(ParticleField.maxCount),
-          );
-          expect(InkParticle.radius, 1.25);
-        },
-      );
+          expect(field.particles.length, 4800);
+        }
+
+        checkDistribution();
+        for (var i = 0; i < 900; i++) {
+          field.step(1 / 60);
+        }
+        checkDistribution();
+        // Check motion over a frame, not net displacement after a long orbit:
+        // a moving point can return close to its starting position.
+        final original = field.particles.map((p) => p.position).toList();
+        field.step(1 / 60);
+        expect(
+          field.particles.indexed
+              .where(
+                (entry) =>
+                    (entry.$2.position - original[entry.$1]).distance > 0.001,
+              )
+              .length,
+          greaterThan(4750),
+        );
+        field.resize(const Size(350, 900));
+        checkDistribution();
+        expect(InkParticle.radius, 1.25);
+      });
     }
+    test('targets restore attraction, colour and local particle emission', () {
+      final field = ParticleField()..resize(const Size(1000, 700));
+      final ambient = ParticleField()..resize(const Size(1000, 700));
+      field.card = const Rect.fromLTWH(320, 150, 180, 270);
+      field.pointer = const Offset(750, 400);
+      for (var i = 0; i < 300; i++) {
+        field.step(1 / 60);
+        ambient.step(1 / 60);
+      }
+      expect(field.particles.length, greaterThan(ParticleField.ambientCount));
+      expect(field.particles.length, lessThanOrEqualTo(ParticleField.maxCount));
+      final near = field.particles
+          .where((p) => field.proximity(p.position) > 0.7)
+          .length;
+      final baselineNear = ambient.particles
+          .where((p) => field.proximity(p.position) > 0.7)
+          .length;
+      expect(near, greaterThan(baselineNear * 1.5));
+      expect(field.particles.any((p) => p.glow > 0.8), isTrue);
+      expect(field.proximity(const Offset(320, 200)), 1);
+      field.card = null;
+      field.pointer = null;
+      for (var i = 0; i < 240; i++) {
+        field.step(1 / 60);
+      }
+      expect(field.particles.every((p) => p.glow == 0), isTrue);
+      expect(field.particles.length, 4800);
+    });
+
     test(
-      'near-target acceleration is stronger while distant motion is unchanged',
+      'original near-target acceleration leaves distant motion unchanged',
       () {
         final near = ParticleField()..resize(const Size(1000, 700));
         final far = ParticleField()..resize(const Size(1000, 700));
@@ -237,50 +269,10 @@ void main() {
         far.step(1 / 60);
         ambient.step(1 / 60);
         expect(near.particles.first.velocity.distance, greaterThan(6));
-        expect(ParticleField.maxSpeed, 360);
         expect(far.particles.first.velocity, ambient.particles.first.velocity);
-        expect(InkParticle.radius, 1.25);
+        expect(ParticleField.maxSpeed, 360);
       },
     );
-    test('density grows near attraction without changing particle size', () {
-      final field = ParticleField()..resize(const Size(1000, 700));
-      expect(field.particles.length, ParticleField.ambientCount);
-      field.card = const Rect.fromLTWH(320, 150, 180, 270);
-      for (var i = 0; i < 360; i++) {
-        field.step(1 / 60);
-      }
-      expect(
-        field.particles.length,
-        greaterThan(ParticleField.ambientCount + 60),
-      );
-      expect(field.particles.length, lessThanOrEqualTo(ParticleField.maxCount));
-      final close = field.particles.where(
-        (p) => field.proximity(p.position) > 0.7,
-      );
-      expect(close.length, greaterThan(80));
-      expect(
-        field.particles.where((p) => field.proximity(p.position) == 0).length,
-        greaterThan(60),
-      );
-      expect(InkParticle.radius, 1.25);
-      expect(field.proximity(const Offset(320, 200)), 1);
-      expect(field.proximity(const Offset(950, 600)), 0);
-      expect(close.any((p) => p.glow > 0.8), isTrue);
-    });
-
-    test('pointer attracts and extra particles expire after leaving', () {
-      final field = ParticleField()..resize(const Size(600, 400));
-      field.pointer = const Offset(300, 200);
-      for (var i = 0; i < 300; i++) {
-        field.step(1 / 60);
-      }
-      expect(field.particles.length, greaterThan(ParticleField.ambientCount));
-      field.pointer = null;
-      for (var i = 0; i < 240; i++) {
-        field.step(1 / 60);
-      }
-      expect(field.particles.length, ParticleField.ambientCount);
-    });
 
     test('inside a card particles target its perimeter, not the centre', () {
       const rect = Rect.fromLTWH(10, 10, 100, 180);

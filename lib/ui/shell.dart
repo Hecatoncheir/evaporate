@@ -21,6 +21,7 @@ import 'widgets/button_hints.dart';
 import 'widgets/app_mark.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
+import 'widgets/liquid_selection.dart';
 import '../l10n/app_localizations.dart';
 
 class AppShell extends StatelessWidget {
@@ -129,8 +130,21 @@ class AppShell extends StatelessWidget {
   }
 }
 
-class _Rail extends StatelessWidget {
+class _Rail extends StatefulWidget {
   const _Rail();
+
+  @override
+  State<_Rail> createState() => _RailState();
+}
+
+class _RailState extends State<_Rail> {
+  final _targets = List.generate(4, (_) => GlobalKey());
+
+  Widget _ink(Widget child) => LiquidSelectionInk(
+    normalColor: context.colors.textSecondary,
+    selectedColor: context.colors.onSelection,
+    child: child,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -142,59 +156,99 @@ class _Rail extends StatelessWidget {
       (cubit) => cubit.state.activeTasks.length,
     );
 
-    return FocusTraversalGroup(
-      child: NavigationRail(
-        selectedIndex: section,
-        onDestinationSelected: (index) => nav.add(SectionSelected(index)),
-        labelType: NavigationRailLabelType.all,
-        leading: Padding(
-          padding: EdgeInsets.only(top: 16, bottom: 8),
-          child: Column(
-            children: [
-              const AppMark(size: 32),
-              SizedBox(height: 6),
-              Text(
-                'Evaporate',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                  color: context.colors.textSecondary,
+    return ColoredBox(
+      color: context.colors.railBackground,
+      child: LiquidSelection(
+        key: const ValueKey('rail-liquid'),
+        targetKey: () => _targets[section],
+        color: context.colors.railIndicator,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        enabled: context.select<SettingsBloc, bool>(
+          (b) => b.state.libraryEffects,
+        ),
+        child: FocusTraversalGroup(
+          child: NavigationRail(
+            backgroundColor: AppColors.transparent,
+            indicatorColor: AppColors.transparent,
+            selectedIndex: section,
+            onDestinationSelected: (index) => nav.add(SectionSelected(index)),
+            labelType: NavigationRailLabelType.all,
+            leading: Padding(
+              padding: EdgeInsets.only(top: 16, bottom: 8),
+              child: Column(
+                children: [
+                  const AppMark(size: 32),
+                  SizedBox(height: 6),
+                  Text(
+                    'Evaporate',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            destinations: [
+              NavigationRailDestination(
+                icon: SizedBox(
+                  key: _targets[0],
+                  child: _ink(
+                    Icon(
+                      section == 0
+                          ? Icons.grid_view_rounded
+                          : Icons.grid_view_outlined,
+                    ),
+                  ),
                 ),
+                label: Text(L.of(context).library),
+              ),
+              NavigationRailDestination(
+                icon: SizedBox(
+                  key: _targets[1],
+                  child: Badge(
+                    isLabelVisible: activeCount > 0,
+                    label: Text('$activeCount'),
+                    child: _ink(
+                      Icon(
+                        section == 1
+                            ? Icons.download_rounded
+                            : Icons.download_outlined,
+                      ),
+                    ),
+                  ),
+                ),
+                label: Text(L.of(context).downloads),
+              ),
+              NavigationRailDestination(
+                icon: SizedBox(
+                  key: _targets[2],
+                  child: _ink(
+                    Icon(
+                      section == 2 ? Icons.save_rounded : Icons.save_outlined,
+                    ),
+                  ),
+                ),
+                label: Text(L.of(context).saves),
+              ),
+              NavigationRailDestination(
+                icon: SizedBox(
+                  key: _targets[3],
+                  child: _ink(
+                    Icon(
+                      section == 3
+                          ? Icons.settings_rounded
+                          : Icons.settings_outlined,
+                    ),
+                  ),
+                ),
+                label: Text(L.of(context).settings),
               ),
             ],
           ),
         ),
-        destinations: [
-          NavigationRailDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view_rounded),
-            label: Text(L.of(context).library),
-          ),
-          NavigationRailDestination(
-            icon: Badge(
-              isLabelVisible: activeCount > 0,
-              label: Text('$activeCount'),
-              child: const Icon(Icons.download_outlined),
-            ),
-            selectedIcon: Badge(
-              isLabelVisible: activeCount > 0,
-              label: Text('$activeCount'),
-              child: const Icon(Icons.download_rounded),
-            ),
-            label: Text(L.of(context).downloads),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.save_outlined),
-            selectedIcon: Icon(Icons.save_rounded),
-            label: Text(L.of(context).saves),
-          ),
-          NavigationRailDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: Text(L.of(context).settings),
-          ),
-        ],
       ),
     );
   }

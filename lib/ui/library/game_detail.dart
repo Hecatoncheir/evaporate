@@ -202,7 +202,7 @@ class _CoverProgress extends StatelessWidget {
         // Затемнение и белый текст здесь не из палитры и не должны в неё
         // уходить: подложка — обложка игры, а не фон приложения, и на
         // светлой теме она остаётся такой же тёмной.
-        color: Colors.black.withValues(alpha: 0.62),
+        color: AppColors.detailOverlay,
         padding: const EdgeInsets.fromLTRB(6, 3, 6, 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -212,7 +212,7 @@ class _CoverProgress extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: AppColors.coverText,
                 height: 1.2,
               ),
             ),

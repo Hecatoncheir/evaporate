@@ -350,18 +350,23 @@ where text would otherwise be unreadable. Saturated icon colours belong to
 the decorative layer; their text variants are darker. The dark theme uses a
 lighter orange because it labels status as well as outlining focus.
 
-The "Living library" setting enables magnetic particles and holographic foil
+The dedicated "Living library" settings card enables particles and holographic foil
 on the active card. A gentle perspective tilt repeats every 7 seconds,
 synchronized with the rainbow reflection and specular streak.
-The normal focus border stays; liquid distortion and the flowing backdrop
-are removed. Gradients and Matrix4 implement the effect directly in Flutter,
+The normal focus border stays; the selection backdrop flows between elements,
+without distorting text, icons or artwork. Selection uses `#201b31` in the light
+theme and `#e8e1cf` in the dark theme, with contrasting text and icons.
+Gradients and Matrix4 implement the foil effect directly in Flutter,
 without Dough, sensors, or additional foil/xl dependencies.
-Particles follow the cursor and orbit card edges: proximity increases their
-density, brightness and turbulence, never their radius. Distant dots wander
-in `#2f0346` on light backgrounds or `#e6dbc7` on dark backgrounds, without glow.
+4800 ambient particles are initially distributed evenly across the library.
+The original magnetic response returns within 180 pixels of the cursor or
+card perimeter: faster, more chaotic motion and additional local particles.
+Distant dots wander
+in `#2f0346` on light backgrounds or `#f2685a` on dark backgrounds, without glow.
 Close to a target both themes use the same saturated ink palette.
-The 1200 ambient dots remain visible when motion is disabled. The simulation
-is capped at 3200 particles, painting independently of the grid.
+All 4800 ambient dots remain visible when motion is disabled. The total count
+is capped at 6800; extra dots expire after leaving a target. Painting remains
+independent of the grid.
 Grid gaps are 36 pixels horizontally and 40 vertically.
 Reduced motion leaves static foil without tilt; disabling effects removes
 the foil entirely. Animations pause on hidden tabs or when the app is inactive.
@@ -376,9 +381,8 @@ The independent 85–125% interface scale enlarges text, icons, controls and
 dialogs together, leaving the window controls unchanged. Both preferences
 persist; clicking a percentage resets that scale to 100%.
 
-Particles move freely around their target without compression into a tight band.
-Accelerated motion near the target remains, with a speed limit of 360 pixels/s;
-point size and distant motion are unchanged.
+Point size is constant. Resizing scales particle positions proportionally,
+preserving their even distribution instead of clamping dots onto the edges.
 The library and game pages share the same 26-line wave background based on
 the [#wave reference](https://hecatoncheir.github.io/).
 Play is a standard themed button without an animated background.
@@ -387,10 +391,11 @@ Flutter, without loading the website or rebuilding page content each frame.
 Disabling Living library or enabling reduced motion leaves static artwork;
 animations pause on hidden pages and while the window is inactive.
 
-Colours come from a theme extension (`context.colors.textSecondary`) rather
-than constants, because two schemes cannot both be constants. There is one
-exception: the scrim over a game's cover art, where the backdrop is a picture
-rather than the app background, so white text stays white in either theme.
+All Flutter UI colours are defined in `lib/ui/app_colors.dart`: both themes,
+particles, waves, foil, artwork, shadows and window controls. `theme.dart`
+exports the palette; themed colours use `context.colors`, while fixed colours
+use `AppColors` and palette functions. A test rejects colour definitions
+elsewhere in the application.
 
 Three fonts, all bundled rather than fetched at runtime: Nunito Sans for the
 interface, Nunito for headings, JetBrains Mono for paths and sizes. They are

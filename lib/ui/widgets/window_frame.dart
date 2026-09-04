@@ -319,7 +319,7 @@ class _WindowButton extends StatelessWidget {
                 destructive &&
                     (states.contains(WidgetState.hovered) ||
                         states.contains(WidgetState.pressed))
-                ? Colors.white
+                ? AppColors.windowCloseForeground
                 : context.colors.textSecondary,
           ),
           backgroundColor: WidgetStateProperty.resolveWith(
@@ -327,8 +327,8 @@ class _WindowButton extends StatelessWidget {
                 destructive &&
                     (states.contains(WidgetState.hovered) ||
                         states.contains(WidgetState.pressed))
-                ? const Color(0xFFC42B1C)
-                : Colors.transparent,
+                ? AppColors.windowCloseBackground
+                : AppColors.transparent,
           ),
         ),
         child: Icon(icon, size: 17, semanticLabel: label),

@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-/// Fixed-size particles: attraction changes density, light and velocity,
-/// never radius. Pure simulation, independent of widgets and frame rate.
+/// Uniformly seeded ambient dots, with the original local magnetic response.
+/// Proximity changes density, colour and motion, never particle radius.
 class InkParticle {
   InkParticle(this.position, this.velocity, this.phase, this.life);
 
@@ -17,9 +17,9 @@ class InkParticle {
 class ParticleField {
   ParticleField({int seed = 42}) : _random = math.Random(seed);
 
+  static const ambientCount = 4800;
+  static const maxCount = ambientCount + 2000;
   static const densityMultiplier = 5.0;
-  static const ambientCount = 1200;
-  static const maxCount = 3200;
   static const maxSpeed = 360.0;
   final math.Random _random;
   final List<InkParticle> particles = [];
@@ -37,17 +37,39 @@ class ParticleField {
       return;
     }
     if (size == value) return;
+    final previous = size;
     size = value;
-    for (final p in particles) {
-      p.position = Offset(
-        p.position.dx.clamp(0, size.width),
-        p.position.dy.clamp(0, size.height),
-      );
+    if (particles.isNotEmpty && !previous.isEmpty) {
+      // Preserve density on resize instead of clamping dots onto the edges.
+      for (final p in particles) {
+        p.position = Offset(
+          p.position.dx / previous.width * size.width,
+          p.position.dy / previous.height * size.height,
+        );
+      }
+      return;
     }
-    while (particles.length < ambientCount) {
-      particles.add(
-        _newParticle(Offset(_rand(0, size.width), _rand(0, size.height)), -1),
-      );
+    // Stratified random sampling: no large empty patches or visible dot grid.
+    // Each row has the same expected spatial density, including its last cell.
+    final rows = math
+        .sqrt(ambientCount * size.height / size.width)
+        .round()
+        .clamp(1, ambientCount);
+    var remaining = ambientCount;
+    for (var row = 0; row < rows; row++) {
+      final columns = remaining ~/ (rows - row);
+      remaining -= columns;
+      for (var column = 0; column < columns; column++) {
+        particles.add(
+          _newParticle(
+            Offset(
+              (column + _rand(0, 1)) * size.width / columns,
+              (row + _rand(0, 1)) * size.height / rows,
+            ),
+            -1,
+          ),
+        );
+      }
     }
   }
 

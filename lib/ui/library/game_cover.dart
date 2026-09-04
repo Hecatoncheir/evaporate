@@ -63,7 +63,7 @@ class GameCoverTile extends StatelessWidget {
             BoxShadow(
               // Тень своя, а не из темы: она отделяет обложку от фона, и в
               // светлой теме нужна не меньше, чем в тёмной.
-              color: Colors.black.withValues(alpha: 0.3),
+              color: AppColors.coverShadow,
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -150,16 +150,12 @@ class _TitlePlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hue = (game.title.hashCode % 360).abs().toDouble();
-    final top = HSLColor.fromAHSL(1, hue, 0.32, 0.27).toColor();
-    final bottom = HSLColor.fromAHSL(1, (hue + 24) % 360, 0.30, 0.13).toColor();
-
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [top, bottom],
+          colors: gameCoverColors(game.title),
         ),
       ),
       padding: EdgeInsets.fromLTRB(12, 12, 12, underStrip ? 52 : 12),
@@ -171,11 +167,11 @@ class _TitlePlate extends StatelessWidget {
         style: const TextStyle(
           // Подложка своя и в обеих темах тёмная — белый по ней читается,
           // а цвет из палитры на ней бы терялся.
-          color: Colors.white,
+          color: AppColors.coverText,
           fontSize: 15,
           height: 1.2,
           fontWeight: FontWeight.w700,
-          shadows: [Shadow(blurRadius: 6, color: Colors.black54)],
+          shadows: [Shadow(blurRadius: 6, color: AppColors.coverTextShadow)],
         ),
       ),
     );
@@ -194,7 +190,7 @@ class _StatusBadge extends StatelessWidget {
       GameStatus.running => (Icons.play_arrow_rounded, context.colors.accent),
       GameStatus.installed => (Icons.check_rounded, context.colors.accent),
       GameStatus.error => (Icons.priority_high_rounded, context.colors.danger),
-      _ => (null, Colors.transparent),
+      _ => (null, AppColors.transparent),
     };
     if (icon == null) return const SizedBox.shrink();
 
@@ -211,7 +207,7 @@ class _StatusBadge extends StatelessWidget {
             // Кружок лежит на обложке, а не на фоне приложения: подложка
             // тёмная в обеих темах, иначе значок пропадал бы на светлых
             // картинках.
-            color: Colors.black.withValues(alpha: 0.66),
+            color: AppColors.coverOverlay,
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 15, color: color),
@@ -241,7 +237,7 @@ class _ProgressStrip extends StatelessWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
-        color: Colors.black.withValues(alpha: 0.66),
+        color: AppColors.coverOverlay,
         padding: const EdgeInsets.fromLTRB(8, 5, 8, 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -251,7 +247,7 @@ class _ProgressStrip extends StatelessWidget {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Colors.white,
+                color: AppColors.coverText,
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -262,7 +258,7 @@ class _ProgressStrip extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: indeterminate ? null : task.progress,
                 minHeight: 3,
-                backgroundColor: Colors.white24,
+                backgroundColor: AppColors.coverProgressTrack,
                 color: context.colors.primary,
               ),
             ),

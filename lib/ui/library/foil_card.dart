@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'library_atmosphere.dart';
+import '../theme.dart';
 
 /// A rigid card with synchronized perspective and holographic reflection.
 /// Only the active card (or one settling back) owns a running ticker.
@@ -197,9 +197,9 @@ class _FoilPainter extends CustomPainter {
           begin: Alignment(-1.5 + shift * 1.8, -0.7),
           end: Alignment(0.5 + shift * 1.8, 0.7),
           colors: [
-            Colors.transparent,
-            Colors.white.withValues(alpha: 0.25 * motion.amount),
-            Colors.transparent,
+            AppColors.transparent,
+            AppColors.foilHighlight.withValues(alpha: 0.25 * motion.amount),
+            AppColors.transparent,
           ],
           stops: const [0.3, 0.5, 0.7],
         ).createShader(bounds),

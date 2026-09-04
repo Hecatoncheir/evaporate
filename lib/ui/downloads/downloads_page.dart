@@ -167,7 +167,7 @@ class _DraggableGame extends StatelessWidget {
       child: Draggable<Game>(
         data: game,
         feedback: Material(
-          color: Colors.transparent,
+          color: AppColors.transparent,
           child: Opacity(
             opacity: 0.9,
             child: SizedBox(width: 250, child: _GameChip(game: game)),
@@ -259,7 +259,7 @@ class _QueueColumn extends StatelessWidget {
                 ? context.colors.primary.withValues(alpha: 0.06)
                 : null,
             border: Border.all(
-              color: highlight ? context.colors.primary : Colors.transparent,
+              color: highlight ? context.colors.primary : AppColors.transparent,
             ),
           ),
           child: ListView(

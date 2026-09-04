@@ -247,14 +247,6 @@ class SettingsPage extends StatelessWidget {
                 value: settings.themeMode,
                 onChanged: (mode) => update(settings.copyWith(themeMode: mode)),
               ),
-              SwitchListTile(
-                value: settings.libraryEffects,
-                onChanged: (value) =>
-                    update(settings.copyWith(libraryEffects: value)),
-                contentPadding: EdgeInsets.zero,
-                title: Text(L.of(context).libraryEffects),
-                subtitle: Text(L.of(context).libraryEffectsNote),
-              ),
               const SizedBox(height: 10),
               _WindowStartPicker(
                 value: settings.windowStart,
@@ -291,6 +283,19 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        SectionCard(
+          key: const ValueKey('living-library-settings'),
+          title: L.of(context).libraryEffects,
+          icon: Icons.auto_awesome_outlined,
+          child: SwitchListTile(
+            value: settings.libraryEffects,
+            onChanged: (value) =>
+                update(settings.copyWith(libraryEffects: value)),
+            contentPadding: EdgeInsets.zero,
+            title: Text(L.of(context).libraryEffectsEnable),
+            subtitle: Text(L.of(context).libraryEffectsNote),
           ),
         ),
         const AboutCard(),

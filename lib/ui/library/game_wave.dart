@@ -94,19 +94,7 @@ class _WavePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final gradient = LinearGradient(
-      colors: dark
-          ? const [
-              Color(0xFF00E9F0),
-              Color(0xFF4D7CFF),
-              Color(0xFFA855F7),
-              Color(0xFFFF2E93),
-            ]
-          : const [
-              Color(0xFF00878B),
-              Color(0xFF4664C0),
-              Color(0xFF8041AC),
-              Color(0xFFB6196A),
-            ],
+      colors: waveColors(dark),
       stops: const [0, 0.34, 0.68, 1],
     );
     paint.shader = gradient.createShader(Offset.zero & size);
@@ -116,7 +104,7 @@ class _WavePainter extends CustomPainter {
       final k = i / 25;
       final baseline = size.height * (0.47 + 0.30 * k);
       final phase = time + k * 1.9;
-      paint.color = Colors.white.withValues(
+      paint.color = AppColors.waveHighlight.withValues(
         alpha: (0.10 + 0.30 * math.sin(math.pi * k)) * (dark ? 1 : 0.8),
       );
       final path = Path();

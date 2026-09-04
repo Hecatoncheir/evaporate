@@ -31,6 +31,28 @@ void main() {
   };
 
   group('читаемость', () {
+    test('фон выделения использует точные цвета, текст контрастный', () {
+      expect(EvaporatePalette.light.selection, const Color(0xFF201B31));
+      expect(EvaporatePalette.dark.selection, const Color(0xFFE8E1CF));
+      for (final palette in palettes.values) {
+        expect(
+          contrast(palette.onSelection, palette.selection),
+          greaterThan(7),
+        );
+      }
+      for (final theme in [EvaporateTheme.light(), EvaporateTheme.dark()]) {
+        final palette = theme.extension<EvaporatePalette>()!;
+        final style = theme.segmentedButtonTheme.style!;
+        expect(
+          style.backgroundColor!.resolve({WidgetState.selected}),
+          palette.selection,
+        );
+        expect(
+          style.foregroundColor!.resolve({WidgetState.selected}),
+          palette.onSelection,
+        );
+      }
+    });
     palettes.forEach((name, p) {
       // Классическая беда светлой темы: цвета, подобранные для тёмного фона,
       // на белом сливаются с ним. Поэтому меряем, а не смотрим.

@@ -14,6 +14,7 @@ import '../../models/game.dart';
 import '../../models/app_settings.dart';
 import '../../input/input_scope.dart';
 import '../widgets/scale_control.dart';
+import '../widgets/liquid_selection.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -302,55 +303,63 @@ class _LibraryPageState extends State<LibraryPage> {
     double extent,
   ) {
     final indices = {for (var i = 0; i < games.length; i++) games[i].id: i};
-    return GridView.builder(
-      controller: _scroll,
-      findChildIndexCallback: (key) =>
-          key is ValueKey<String> ? indices[key.value] : null,
-      padding: const EdgeInsets.fromLTRB(32, 30, 32, 34),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        // По ширине, а не по числу столбцов: обложка должна остаться
-        // читаемой и в узком окне, и на весь экран телевизора.
-        maxCrossAxisExtent: extent,
-        childAspectRatio: 2 / 3,
-        crossAxisSpacing: 36,
-        mainAxisSpacing: 40,
-      ),
-      itemCount: games.length,
-      itemBuilder: (context, index) {
-        final game = games[index];
-        return MouseRegion(
-          key: ValueKey(game.id),
-          onEnter: (_) => setState(() => _hoveredId = game.id),
-          onExit: (_) {
-            if (mounted && _hoveredId == game.id) {
-              setState(() => _hoveredId = null);
-            }
-          },
-          child: KeyedSubtree(
-            key: _tileKeys.putIfAbsent(
-              game.id,
-              () => GlobalKey(debugLabel: game.id),
-            ),
-            child: FoilCard(
-              active: (_hoveredId ?? selectedId) == game.id,
-              enabled: effects,
-              child: GameCoverTile(
-                focusNode: _tileFocus.putIfAbsent(
-                  game.id,
-                  () => FocusNode(debugLabel: 'game:${game.id}'),
+    return LiquidSelection(
+      key: const ValueKey('grid-liquid'),
+      targetKey: () => _tileKeys[_hoveredId ?? selectedId],
+      enabled: effects,
+      color: context.colors.selection,
+      radius: 16,
+      padding: const EdgeInsets.all(7),
+      child: GridView.builder(
+        controller: _scroll,
+        findChildIndexCallback: (key) =>
+            key is ValueKey<String> ? indices[key.value] : null,
+        padding: const EdgeInsets.fromLTRB(32, 30, 32, 34),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          // По ширине, а не по числу столбцов: обложка должна остаться
+          // читаемой и в узком окне, и на весь экран телевизора.
+          maxCrossAxisExtent: extent,
+          childAspectRatio: 2 / 3,
+          crossAxisSpacing: 36,
+          mainAxisSpacing: 40,
+        ),
+        itemCount: games.length,
+        itemBuilder: (context, index) {
+          final game = games[index];
+          return MouseRegion(
+            key: ValueKey(game.id),
+            onEnter: (_) => setState(() => _hoveredId = game.id),
+            onExit: (_) {
+              if (mounted && _hoveredId == game.id) {
+                setState(() => _hoveredId = null);
+              }
+            },
+            child: KeyedSubtree(
+              key: _tileKeys.putIfAbsent(
+                game.id,
+                () => GlobalKey(debugLabel: game.id),
+              ),
+              child: FoilCard(
+                active: (_hoveredId ?? selectedId) == game.id,
+                enabled: effects,
+                child: GameCoverTile(
+                  focusNode: _tileFocus.putIfAbsent(
+                    game.id,
+                    () => FocusNode(debugLabel: 'game:${game.id}'),
+                  ),
+                  key: ValueKey(game.id),
+                  game: game,
+                  selected: game.id == selectedId,
+                  onOpen: () => nav.add(GameOpened(game.id)),
+                  // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
+                  // работать по той игре, на которую смотришь, не заходя внутрь.
+                  onFocused: () => nav.add(GameSelected(game.id)),
                 ),
-                key: ValueKey(game.id),
-                game: game,
-                selected: game.id == selectedId,
-                onOpen: () => nav.add(GameOpened(game.id)),
-                // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
-                // работать по той игре, на которую смотришь, не заходя внутрь.
-                onFocused: () => nav.add(GameSelected(game.id)),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -566,18 +575,7 @@ class _Toolbar extends StatelessWidget {
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              for (final value in _Shelf.values)
-                _ShelfButton(
-                  label: _label(l, value),
-                  count: counts[value] ?? 0,
-                  active: value == shelf,
-                  onTap: () => onShelf(value),
-                ),
-            ],
-          ),
+          _ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
           SizedBox(
             width: 210,
             child: Actions(
@@ -639,6 +637,46 @@ class _Toolbar extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ShelfTabs extends StatefulWidget {
+  const _ShelfTabs({
+    required this.shelf,
+    required this.counts,
+    required this.onShelf,
+  });
+  final _Shelf shelf;
+  final Map<_Shelf, int> counts;
+  final ValueChanged<_Shelf> onShelf;
+
+  @override
+  State<_ShelfTabs> createState() => _ShelfTabsState();
+}
+
+class _ShelfTabsState extends State<_ShelfTabs> {
+  final _targets = {for (final shelf in _Shelf.values) shelf: GlobalKey()};
+
+  @override
+  Widget build(BuildContext context) => LiquidSelection(
+    key: const ValueKey('shelf-liquid'),
+    targetKey: () => _targets[widget.shelf],
+    color: context.colors.selection,
+    padding: const EdgeInsets.only(right: -4),
+    enabled: context.select<SettingsBloc, bool>((b) => b.state.libraryEffects),
+    child: Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final value in _Shelf.values)
+          _ShelfButton(
+            key: _targets[value],
+            label: _label(L.of(context), value),
+            count: widget.counts[value] ?? 0,
+            active: value == widget.shelf,
+            onTap: () => widget.onShelf(value),
+          ),
+      ],
+    ),
+  );
 
   static String _label(L l, _Shelf shelf) => switch (shelf) {
     _Shelf.all => l.tabAll,
@@ -650,6 +688,7 @@ class _Toolbar extends StatelessWidget {
 /// Полка с числом рядом — как вкладки в библиотеке Steam.
 class _ShelfButton extends StatelessWidget {
   const _ShelfButton({
+    super.key,
     required this.label,
     required this.count,
     required this.active,
@@ -669,34 +708,34 @@ class _ShelfButton extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
-          backgroundColor: active ? colors.surfaceHigh : Colors.transparent,
-          foregroundColor: active ? colors.textPrimary : colors.textSecondary,
+          backgroundColor: AppColors.transparent,
+          foregroundColor: active ? colors.onSelection : colors.textSecondary,
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                letterSpacing: 0.2,
+        child: LiquidSelectionInk(
+          normalColor: colors.textSecondary,
+          selectedColor: colors.onSelection,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  letterSpacing: 0.2,
+                ),
               ),
-            ),
-            const SizedBox(width: 7),
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colors.textSecondary,
+              const SizedBox(width: 7),
+              Text(
+                '$count',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
