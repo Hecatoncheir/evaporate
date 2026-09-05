@@ -35,6 +35,42 @@ flutter test
 Сборки трёх платформ идут только на теге `v*`. Проверить, что проект
 собирается, не выпуская версию, можно ручным запуском прогона.
 
+## Как выпустить версию
+
+Тега мало: версия должна совпасть в трёх местах, иначе прогон упадёт или
+релиз останется черновиком.
+
+1. `version:` в `pubspec.yaml`.
+2. `AppVersion.current` в `lib/services/system/update_check.dart` — их сверяет
+   тест.
+3. Раздел `## [0.23.0] — дата` в `CHANGELOG.md` и ссылка на тег внизу файла.
+
+Описание релиза отдельно не пишется: задача выпуска достаёт раздел версии из
+`CHANGELOG.md`. Раздела нет — сборки всё равно приедут, но релиз останется
+черновиком, и текст допишет человек. Узнать об этом лучше до тега, и для того
+есть `changelog_notes_test.dart`.
+
+Дальше — то же, что гоняет CI, и потом:
+
+```bash
+git tag -a v0.23.0 -m "Evaporate 0.23.0"
+git push origin main
+git push origin v0.23.0
+```
+
+Остальное делает CI: собирает три системы, делает установщики, считает
+`SHA256SUMS`, заводит релиз черновиком, выкладывает файлы и только потом
+публикует — иначе подписчики получают письмо о версии, скачать которую ещё
+нечего.
+
+Два места, где уже спотыкались:
+
+- **Тег ставят на зелёный `main`.** Прогон тега гоняет те же тесты, и 0.19.0
+  с 0.20.0 из-за упавших прогонов так и не вышли — пришлось выпускать 0.21.0.
+- **С `push.followTags = true` в конфиге обычный `git push` утаскивает и
+  локальные теги.** Однажды это воскресило уже удалённый тег: удалять надо
+  сначала локально, потом на сервере.
+
 ## Строки интерфейса
 
 Все видимые строки живут в `lib/l10n/app_ru.arb` и `app_en.arb`. Русский —
@@ -109,6 +145,43 @@ and come back red.
 
 The three platform builds run on a `v*` tag only. To check that the project
 builds without cutting a release, run the workflow by hand.
+
+## Cutting a release
+
+A tag is not enough: the version has to match in three places, or the run
+fails and the release stays a draft.
+
+1. `version:` in `pubspec.yaml`.
+2. `AppVersion.current` in `lib/services/system/update_check.dart` — a test
+   compares the two.
+3. A `## [0.23.0] — date` section in `CHANGELOG.md`, plus the tag link at the
+   bottom of the file.
+
+Release notes are not written separately: the release job pulls the version's
+section out of `CHANGELOG.md`. With no section the builds still arrive, but
+the release stays a draft for a human to describe. Better to find that out
+before the tag, which is what `changelog_notes_test.dart` is for.
+
+Then run what CI runs, and:
+
+```bash
+git tag -a v0.23.0 -m "Evaporate 0.23.0"
+git push origin main
+git push origin v0.23.0
+```
+
+CI does the rest: builds the three systems, makes the installers, computes
+`SHA256SUMS`, opens the release as a draft, uploads the files and only then
+publishes it — otherwise subscribers get an email about a version with
+nothing to download yet.
+
+Two places that have caught us out:
+
+- **Tag a green `main`.** The tag run repeats the same tests, and 0.19.0 and
+  0.20.0 never shipped because theirs went red — 0.21.0 went out instead.
+- **With `push.followTags = true` in your config, a plain `git push` carries
+  local tags along.** That once resurrected an already-deleted tag: delete
+  locally first, then on the server.
 
 ## Interface strings
 
