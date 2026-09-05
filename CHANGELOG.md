@@ -5,6 +5,13 @@
 
 ## [Не выпущено]
 
+## [0.14.2] — 2026-09-05
+
+### Исправлено
+
+- Слайдер «Зона нечувствительности» теперь обрабатывает только ←/→;
+  ↑/↓ возвращают управление навигации по настройкам.
+
 ## [0.14.1] — 2026-09-05
 
 ### Изменено
@@ -376,6 +383,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.14.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.14.2
 [0.14.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.14.1
 [0.14.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.14.0
 [0.13.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.13.2

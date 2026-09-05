@@ -106,6 +106,26 @@ void main() {
   });
 
   group('клавиатура', () {
+    testWidgets(
+      'зона нечувствительности не перехватывает вертикальные стрелки',
+      (tester) async {
+        final harness = attach();
+        await harness.pump(tester);
+        harness.nav.add(const SectionSelected(3));
+        await tester.pumpAndSettle();
+
+        final slider = find.byType(Slider);
+        expect(slider, findsOneWidget);
+        Focus.of(tester.element(slider)).requestFocus();
+        await tester.pump();
+        final before = primaryFocus;
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+
+        expect(primaryFocus, isNot(same(before)));
+      },
+    );
+
     for (final key in [
       LogicalKeyboardKey.arrowDown,
       LogicalKeyboardKey.enter,

@@ -83,18 +83,25 @@ class GamepadSettingsCard extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: Slider(
-                  value: binding.deadzone,
-                  min: 0.2,
-                  max: 0.9,
-                  divisions: 14,
-                  label: binding.deadzone.toStringAsFixed(2),
-                  onChanged: (value) => save(
-                    binding.copyWith(
-                      deadzone: value,
-                      // Порог отпускания держим ниже порога срабатывания,
-                      // иначе стик «дребезжит» на границе.
-                      releaseZone: value * 0.7,
+                child: MediaQuery(
+                  // В направленном режиме Slider обрабатывает только ←/→.
+                  // ↑/↓ проходят к FocusTraversal и двигают курсор дальше
+                  // по настройкам.
+                  data: MediaQuery.of(context)
+                      .copyWith(navigationMode: NavigationMode.directional),
+                  child: Slider(
+                    value: binding.deadzone,
+                    min: 0.2,
+                    max: 0.9,
+                    divisions: 14,
+                    label: binding.deadzone.toStringAsFixed(2),
+                    onChanged: (value) => save(
+                      binding.copyWith(
+                        deadzone: value,
+                        // Порог отпускания держим ниже порога срабатывания,
+                        // иначе стик «дребезжит» на границе.
+                        releaseZone: value * 0.7,
+                      ),
                     ),
                   ),
                 ),
