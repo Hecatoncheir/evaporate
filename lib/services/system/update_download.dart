@@ -185,10 +185,19 @@ class UpdateDownload {
       // Та же мерка, что и у пакетов сохранений: архив приехал из сети, и
       // выход за пределы папки в нём недопустим.
       final relative = file.name.replaceAll(r'\', '/');
-      final parts = relative.split('/');
-      if (parts.any((part) => part.isEmpty || part == '.' || part == '..')) {
+      // Пустые куски пути выходом наружу не являются: так записана обычная
+      // папка (`data/flutter_assets/assets/`), так же выглядит и двойной
+      // слеш. Отбрасываем их и разбираем то, что осталось, — иначе
+      // обновление спотыкалось о первую же папку в архиве.
+      final parts = [
+        for (final part in relative.split('/'))
+          if (part.isNotEmpty) part,
+      ];
+      if (parts.any((part) => part == '.' || part == '..')) {
         throw UpdateException('Архив просит записать файл наружу: $relative');
       }
+      // Запись про корень архива: создавать нечего, целевая папка уже есть.
+      if (parts.isEmpty) continue;
       final destination = p.normalize(p.joinAll([target, ...parts]));
       if (!p.isWithin(target, destination)) {
         throw UpdateException('Архив просит записать файл наружу: $relative');

@@ -116,8 +116,13 @@ class _InputScopeState extends State<InputScope> {
   /// Первое нажатие направления при пустом фокусе должно во что-то попасть,
   /// иначе геймпад выглядит нерабочим.
   void _move(TraversalDirection direction) {
-    final scope = FocusScope.of(context);
     final focused = primaryFocus;
+    // Обход идёт по той области, где сейчас фокус, а не по той, где висит
+    // сам слой ввода. Слой лежит под навигатором и продолжает получать
+    // события геймпада, когда поверх открыто окно, — а `FocusScope.of`
+    // отдаёт область оболочки. Дойдя до нижней кнопки окна, обход уходил в
+    // библиотеку под ним, и вернуться в окно было уже нечем.
+    final scope = focused?.nearestScope ?? FocusScope.of(context);
     if (direction == TraversalDirection.down && _returnFromSearch()) return;
     if (focused == null || !focused.hasFocus || focused == scope) {
       scope.nextFocus();

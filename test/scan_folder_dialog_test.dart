@@ -10,6 +10,7 @@ import 'package:evaporate/ui/library/library_page.dart';
 import 'package:evaporate/ui/library/scan_folder_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/test_app.dart';
@@ -221,6 +222,41 @@ void main() {
 
     expect(find.widgetWithText(FilledButton, 'Добавить: 1'), findsOneWidget);
     expect(find.text('Ещё не добавлена'), findsOneWidget);
+  });
+
+  // Слой ввода лежит под навигатором и продолжает получать события
+  // геймпада, когда поверх открыто окно. Обход шёл по области оболочки, и
+  // дойдя до нижней кнопки окна, фокус уходил в библиотеку под ним —
+  // а вернуться оттуда было нечем, и окно оставалось висеть.
+  testWidgets('спуск геймпадом не выводит фокус из окна', (tester) async {
+    await prepare(tester, () => gameDir('Тихая гавань'));
+    await prepare(tester, () => gameDir('Долгая дорога'));
+    final harness = await openScan(tester);
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    var insideDialog = 0;
+    for (var step = 0; step < 15; step++) {
+      await harness.tapButton(tester, GamepadButton.dpadDown);
+      final context = primaryFocus?.context;
+      expect(context, isNotNull, reason: 'фокус пропал на шаге $step');
+      expect(
+        context!.findAncestorWidgetOfExactType<LibraryPage>(),
+        isNull,
+        reason: 'фокус ушёл в библиотеку под окном на шаге $step',
+      );
+      if (context.findAncestorWidgetOfExactType<AlertDialog>() != null) {
+        insideDialog++;
+      }
+    }
+
+    // Не пустая проверка: фокус всё это время ходил по самому окну.
+    expect(insideDialog, greaterThan(10));
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    // И окно по-прежнему закрывается «назад» — тем же геймпадом.
+    await harness.tapButton(tester, GamepadButton.b);
+    expect(find.byType(AlertDialog), findsNothing);
   });
 
   testWidgets('отмена закрывает окно, ничего не добавив', (tester) async {

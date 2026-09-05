@@ -26,8 +26,14 @@ void main() {
   });
 
   /// Архив в том виде, в каком его кладёт сборка.
-  List<int> zipOf(Map<String, String> files) {
+  ///
+  /// Папки в нём — отдельные записи с косой чертой на конце: так их пишут и
+  /// `Compress-Archive`, и `ditto`, и обычный zip.
+  List<int> zipOf(Map<String, String> files, {List<String> dirs = const []}) {
     final archive = Archive();
+    for (final dir in dirs) {
+      archive.add(ArchiveFile.directory(dir));
+    }
     files.forEach((name, content) {
       archive.add(ArchiveFile.string(name, content));
     });
@@ -149,6 +155,50 @@ void main() {
         throwsA(isA<UpdateException>()),
       );
     });
+
+    // Настоящий архив сборки полон записей о папках, и косая черта на
+    // конце — это не выход наружу, а обычная папка. Приняв её за выход,
+    // обновление спотыкалось о первую же: `data/flutter_assets/assets/`.
+    test('записи о папках не считаются выходом наружу', () async {
+      final name = archiveName();
+      final bytes = zipOf(
+        {'Evaporate.app/Contents/MacOS/evaporate': 'бинарь'},
+        dirs: [
+          'Evaporate.app/',
+          'Evaporate.app/Contents/',
+          'data/flutter_assets/assets/',
+        ],
+      );
+
+      final root = await downloadOf(
+        name: name,
+        bytes: bytes,
+      ).prepare(releaseWith(name: name, bytes: bytes));
+
+      expect(Directory(root).existsSync(), isTrue);
+      expect(
+        File(p.join(root, 'Contents', 'MacOS', 'evaporate')).existsSync(),
+        isTrue,
+      );
+    }, skip: Platform.isLinux ? 'проверяется на zip' : null);
+
+    // Ведущая косая черта делает путь абсолютным, и записать по нему
+    // означало бы писать в корень диска. Такую запись не отклоняем, а
+    // раскладываем внутрь — так же поступает всякий распаковщик.
+    test('путь от корня раскладывается внутри папки', () async {
+      final name = archiveName();
+      // Второй файл рядом — чтобы папкой обновления считалась распакованная
+      // целиком, а не единственная папка внутри неё.
+      final bytes = zipOf({'/etc/подделка': 'нельзя', 'evaporate': 'бинарь'});
+
+      final root = await downloadOf(
+        name: name,
+        bytes: bytes,
+      ).prepare(releaseWith(name: name, bytes: bytes));
+
+      expect(File(p.join(root, 'etc', 'подделка')).existsSync(), isTrue);
+      expect(File('/etc/подделка').existsSync(), isFalse);
+    }, skip: Platform.isLinux ? 'проверяется на zip' : null);
 
     // Та же мерка, что и у пакетов сохранений: архив приехал из сети.
     test('архив с выходом за пределы папки отклоняется', () async {
