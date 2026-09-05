@@ -44,7 +44,8 @@ building; each system has its own file:
 | Windows | `evaporate-<version>-windows-setup.exe` | run it: Next, Next, Finish |
 | macOS | `evaporate-<version>-macos.dmg` | open it and drag Evaporate into Applications |
 | Debian, Ubuntu | `evaporate-<version>-linux-amd64.deb` | double-click, or `sudo apt install ./file.deb` |
-| Other Linux | `evaporate-<version>-linux.tar.gz` | unpack anywhere and run `evaporate` |
+| Other Linux | `evaporate-<version>-linux-x86_64.run` | `chmod +x file.run && ./file.run` |
+| Linux, by hand | `evaporate-<version>-linux.tar.gz` | unpack anywhere and run `evaporate` |
 
 The `-macos.zip` and `-windows.zip` archives sit alongside them, but are not
 for people: the app fetches those itself when updating in place.
@@ -54,10 +55,17 @@ cost money. So the first run brings up SmartScreen ("Windows protected your
 PC" → More info → Run anyway) and, on macOS, Gatekeeper: open the app from
 its context menu once.
 
+The `.run` is a plain self-extracting installer: it puts the app in
+`~/.local/share/evaporate`, adds a menu entry and an `evaporate` command, and
+never asks for root. Remove it with `evaporate-uninstall`; settings, library
+and save snapshots stay. It also takes `--prefix DIR` and `--extract DIR` if
+installing is not what you want.
+
 The app can update itself: a button in the settings downloads the new
 version, checks its checksum and replaces the installation. The `.deb` is the
 deliberate exception — it lands in `/opt`, which needs root to write, and
-what a package manager installed a package manager should update.
+what a package manager installed a package manager should update. A `.run`
+install lives in the user's own directory, where updating works.
 
 [releases]: https://github.com/Hecatoncheir/evaporate/releases/latest
 
@@ -287,7 +295,7 @@ python3 tool/make_icon.py
 |-----|--------|--------------|
 | Analyse and test | ubuntu | `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` |
 | Build macOS | macos | the `.app`: a `ditto` archive and a `.dmg` image |
-| Build Linux | ubuntu | a bundle with every dependency: a `.tar.gz` and a `.deb` |
+| Build Linux | ubuntu | a bundle with every dependency: a `.tar.gz`, a `.deb` and a `.run` |
 | Build Windows | windows | the Release directory: a `.zip` and an Inno Setup installer |
 | Attach to release | ubuntu | uploads the files and `SHA256SUMS` for a `v*` tag |
 
@@ -298,7 +306,8 @@ directory with no wizard involved — [`release_artifacts_test.dart`](test/relea
 keeps the names from drifting apart. The packaging recipes sit next to the
 platform code: [`windows/installer.iss`](windows/installer.iss),
 [`tool/package_macos.sh`](tool/package_macos.sh),
-[`tool/package_linux.sh`](tool/package_linux.sh) — all three run by hand too.
+[`tool/package_linux.sh`](tool/package_linux.sh),
+[`tool/package_run.sh`](tool/package_run.sh) — all of them run by hand too.
 
 A push to `main` runs the analysis and the tests only. The three platform
 builds run on a `v*` tag, and that is when the finished files are attached

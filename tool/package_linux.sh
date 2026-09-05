@@ -25,8 +25,13 @@ cp -a "$bundle/." "$stage/opt/evaporate/"
 install -d "$stage/usr/bin"
 ln -s /opt/evaporate/evaporate "$stage/usr/bin/evaporate"
 
-install -Dm644 "$root/linux/packaging/evaporate.desktop" \
+# Пути в записи известны заранее: пакет всегда ложится в одно и то же место.
+# Заодно выбрасываем комментарии — они писались для нас, а не для системы.
+sed -e '/^#/d' -e 's|@EXEC@|/opt/evaporate/evaporate|' -e 's|@ICON@|evaporate|' \
+  "$root/linux/packaging/evaporate.desktop.in" > "$stage/evaporate.desktop"
+install -Dm644 "$stage/evaporate.desktop" \
   "$stage/usr/share/applications/evaporate.desktop"
+rm "$stage/evaporate.desktop"
 
 # В pixmaps, а не в hicolor: тема hicolor раскладывается по точным размерам,
 # а иконка у нас одна на 1024 точки — класть её в папку «512x512» значило бы

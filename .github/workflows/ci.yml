@@ -198,9 +198,12 @@ jobs:
       - name: Сборка
         run: flutter build linux --release
 
-      # Пакет — для установки: ярлык в меню, значок и удаление одной
-      # командой. Архив — для самообновления приложения; заодно он
-      # единственное, что годится не для Debian и не для Ubuntu.
+      # Три файла, и каждый для своего. Пакет `.deb` — для Debian и Ubuntu:
+      # ставится двойным щелчком, но ложится в /opt, куда без прав
+      # администратора не записать, и обновлять его должен тот же, кто
+      # ставил. `.run` — для всех остальных систем: кладёт приложение в
+      # папку пользователя, поэтому обновление по нажатию там работает.
+      # Архив — для самого приложения, когда оно обновляется.
       - name: Упаковать сборку
         run: |
           set -eu
@@ -209,6 +212,7 @@ jobs:
           tar -czf "dist/evaporate-$VERSION-linux.tar.gz" \
             -C build/linux/x64/release/bundle .
           tool/package_linux.sh "$VERSION" build/linux/x64/release/bundle dist
+          tool/package_run.sh "$VERSION" build/linux/x64/release/bundle dist
           ls -lh dist
 
       - uses: actions/upload-artifact@v7.0.1

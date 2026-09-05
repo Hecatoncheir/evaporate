@@ -43,7 +43,8 @@
 | Windows | `evaporate-<версия>-windows-setup.exe` | запустить: «Далее — Далее — Готово» |
 | macOS | `evaporate-<версия>-macos.dmg` | открыть и перетащить Evaporate в «Программы» |
 | Debian, Ubuntu | `evaporate-<версия>-linux-amd64.deb` | двойной щелчок или `sudo apt install ./файл.deb` |
-| Прочие Linux | `evaporate-<версия>-linux.tar.gz` | распаковать куда угодно и запустить `evaporate` |
+| Прочие Linux | `evaporate-<версия>-linux-x86_64.run` | `chmod +x файл.run && ./файл.run` |
+| Linux вручную | `evaporate-<версия>-linux.tar.gz` | распаковать куда угодно и запустить `evaporate` |
 
 Архивы `-macos.zip` и `-windows.zip` лежат там же, но человеку не нужны: их
 берёт само приложение, когда обновляется по нажатию.
@@ -53,10 +54,17 @@
 компьютер» («Подробнее» → «Выполнить в любом случае»), а Gatekeeper на macOS
 попросит открыть приложение через контекстное меню.
 
+`.run` — обычный самораспаковывающийся установщик: кладёт приложение в
+`~/.local/share/evaporate`, добавляет запись в меню и команду `evaporate`,
+прав администратора не просит. Удаляется командой `evaporate-uninstall`;
+настройки, библиотека и снимки сохранений при этом остаются. Ключи —
+`--prefix DIR` и `--extract DIR`, если ставить никуда не надо.
+
 Обновляться приложение умеет само: кнопка в настройках скачает новую версию,
 проверит контрольную сумму и заменит установку. Пакет `.deb` — исключение, и
 намеренно: он ложится в `/opt`, куда без прав администратора не записать, а
-обновлять поставленное пакетным менеджером должен он же.
+обновлять поставленное пакетным менеджером должен он же. Поставленное из
+`.run` лежит в папке пользователя, и там обновление работает.
 
 [releases]: https://github.com/Hecatoncheir/evaporate/releases/latest
 
@@ -299,7 +307,7 @@ python3 tool/make_icon.py
 |--------|--------|------------|
 | Анализ и тесты | ubuntu | `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` |
 | Сборка macOS | macos | `.app`: архивом `ditto` и образом `.dmg` |
-| Сборка Linux | ubuntu | bundle со всеми зависимостями: `.tar.gz` и пакет `.deb` |
+| Сборка Linux | ubuntu | bundle со всеми зависимостями: `.tar.gz`, пакет `.deb` и `.run` |
 | Сборка Windows | windows | Release-каталог: `.zip` и установщик Inno Setup |
 | Приложить к релизу | ubuntu | выкладывает файлы и `SHA256SUMS` в релиз для тега `v*` |
 
@@ -310,7 +318,8 @@ python3 tool/make_icon.py
 следит, чтобы имена не разошлись. Рецепты упаковки лежат рядом с кодом
 платформы: [`windows/installer.iss`](windows/installer.iss),
 [`tool/package_macos.sh`](tool/package_macos.sh),
-[`tool/package_linux.sh`](tool/package_linux.sh) — их можно запустить и руками.
+[`tool/package_linux.sh`](tool/package_linux.sh),
+[`tool/package_run.sh`](tool/package_run.sh) — их можно запустить и руками.
 
 На пуш в `main` идут только анализ и тесты. Сборки трёх платформ запускаются
 на теге `v*` — и тогда же готовые файлы ложатся в релиз. На пуше они выясняли
