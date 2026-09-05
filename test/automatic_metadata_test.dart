@@ -244,7 +244,16 @@ void main() {
         library,
         (s) => s.gameById('game')?.description == 'Updated description',
       );
-      await _settle(() async => !await File(original.coverPath!).exists());
+      // Ждать надо последнего звена, а не первого: за уборкой старой обложки
+      // в обработчике идёт ещё запрос путей сохранений, и он-то и поднимает
+      // счётчик каталога. Уборку одну дождаться мало — проверка ниже успеет
+      // спросить каталог до того, как его спросит приложение.
+      await _settle(
+        () async =>
+            steam.calls >= 2 &&
+            catalog.loads >= 2 &&
+            !await File(original.coverPath!).exists(),
+      );
       final updated = library.state.gameById('game')!;
       expect(updated.coverPath, isNot(original.coverPath));
       expect(await File(updated.coverPath!).exists(), isTrue);
