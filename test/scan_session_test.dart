@@ -42,6 +42,9 @@ void main() {
         for (final root in roots)
           GameRoot(path: p.join(tmp.path, root), kind: GameRootKind.games),
       ],
+      // Без подделки на Windows спрашивается настоящий реестр раннера, и в
+      // находки приезжает всё, что там установлено.
+      registryQuery: _noRegistry,
     );
     addTearDown(session.dispose);
     return session;
@@ -194,3 +197,7 @@ void main() {
     expect(session.found.single.confident, isTrue);
   });
 }
+
+/// Пустой ответ реестра — на не-Windows его и так не спрашивают.
+Future<ProcessResult> _noRegistry(String executable, List<String> arguments) =>
+    Future.value(ProcessResult(0, 0, '', ''));

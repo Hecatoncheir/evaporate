@@ -4,6 +4,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
 import '../../services/system/desktop_entry.dart';
+
+import 'package:window_manager/window_manager.dart';
+
+import '../../core/app_paths.dart';
+import '../../services/system/update_download.dart';
+import '../../services/system/update_installer.dart';
 import '../../services/system/update_check.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -138,6 +144,64 @@ class _AboutCardState extends State<AboutCard> {
     );
   }
 
+  /// Идёт подготовка обновления.
+  bool _updating = false;
+
+  /// Скачивает обновление, проверяет его и запускает замену.
+  ///
+  /// Заменять папку работающего приложения нельзя, поэтому дальше работает
+  /// скрипт-помощник: он ждёт нашего выхода, меняет папки местами и
+  /// запускает приложение заново. Нам остаётся закрыться — через тот же
+  /// путь, что и обычное закрытие окна, чтобы всё успело лечь на диск.
+  Future<void> _install() async {
+    final release = _found;
+    if (release == null) return;
+    final l = L.of(context);
+
+    setState(() {
+      _updating = true;
+      _isError = false;
+      _message = l.updateRestartNote;
+    });
+
+    try {
+      final paths = AppPaths.instance;
+      final installer = UpdateInstaller(workDir: paths.dataDir);
+      if (!await installer.canInstall) {
+        throw UpdateException(l.updateNotWritable);
+      }
+
+      final staged = await UpdateDownload(workDir: paths.dataDir).prepare(
+        release,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _message = switch (progress.phase) {
+              UpdatePhase.downloading => l.updateDownloading(
+                ((progress.fraction ?? 0) * 100).round(),
+              ),
+              UpdatePhase.verifying => l.updateVerifying,
+              UpdatePhase.unpacking => l.updateUnpacking,
+              _ => l.updateRestartNote,
+            };
+          });
+        },
+      );
+
+      await installer.apply(staged);
+      // Дальше нас заменит помощник — уходим тем же путём, что и по
+      // закрытию окна: иначе отложенные записи не лягут на диск.
+      await windowManager.close();
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _updating = false;
+        _isError = true;
+        _message = error is UpdateException ? error.message : error.toString();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsBloc>().state;
@@ -168,7 +232,19 @@ class _AboutCardState extends State<AboutCard> {
                 label: Text(L.of(context).checkForUpdates),
               ),
               if (_found != null) ...[
-                FilledButton.icon(
+                if (_found!.archiveForThisPlatform != null)
+                  FilledButton.icon(
+                    onPressed: _updating ? null : _install,
+                    icon: _updating
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.system_update_alt, size: 16),
+                    label: Text(L.of(context).updateInstall),
+                  ),
+                FilledButton.tonalIcon(
                   onPressed: () => _openRelease(_found!.url),
                   icon: const Icon(Icons.open_in_new, size: 16),
                   label: Text(L.of(context).openReleasePage),

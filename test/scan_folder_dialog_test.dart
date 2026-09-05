@@ -65,6 +65,8 @@ void main() {
     existingDirs: LibraryScanner.installedDirs(harness.library.state.games),
     steamRoots: const [],
     fixedRoots: [GameRoot(path: root.path, kind: GameRootKind.games)],
+    // Без подделки на Windows спрашивается настоящий реестр раннера.
+    registryQuery: (executable, arguments) async => ProcessResult(0, 0, '', ''),
   );
 
   /// Открывает окно поиска и запускает обход.
