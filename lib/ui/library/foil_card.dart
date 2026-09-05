@@ -5,8 +5,11 @@ import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
 
-/// Independent perspective, holographic reflection and elastic distortion.
-/// Only the active card (or one settling back) owns a running ticker.
+/// Перспектива, голографический перелив и упругая деформация — три
+/// независимых эффекта, каждый со своим выключателем в настройках.
+///
+/// Тикер крутится только у активной карточки и у той, что ещё возвращается
+/// в покой: иначе вся сетка обложек анимировалась бы разом.
 class FoilCard extends StatefulWidget {
   const FoilCard({
     super.key,
@@ -152,8 +155,9 @@ class _FoilMotion extends ChangeNotifier {
         ..rotateY(math.sin(phase + math.pi / 3) * 0.16 * amount);
     }
     if (distortion) {
-      // A travelling squeeze when focus arrives, followed by a gentle liquid
-      // wobble. Reciprocal scales preserve area without changing grid layout.
+      // Пробегающее сжатие в момент прихода фокуса и мягкое покачивание
+      // следом. Масштабы взаимно обратны: площадь сохраняется, и сетка от
+      // деформации не разъезжается.
       final pulse = math.sin(strength * math.pi * 2) * (1 - strength);
       final stretch = 1 + pulse * 0.065 + math.sin(phase * 2) * 0.012 * amount;
       final liquid = Matrix4.identity()
@@ -179,7 +183,8 @@ class _FoilScope extends InheritedWidget {
   bool updateShouldNotify(_FoilScope oldWidget) => motion != oldWidget.motion;
 }
 
-/// Apply to the artwork; status badges and progress stay above the reflection.
+/// Накладывается на обложку: значки состояния и полоса загрузки остаются
+/// поверх перелива, иначе их было бы не прочитать.
 class FoilSurface extends StatelessWidget {
   const FoilSurface({super.key, required this.child});
   final Widget child;
@@ -219,7 +224,8 @@ class _FoilPainter extends CustomPainter {
           transform: GradientRotation(math.sin(motion.phase + 0.6) * 0.45),
         ).createShader(bounds),
     );
-    // Narrow specular streak follows the same cycle as the perspective.
+    // Узкий блик идёт тем же циклом, что и перспектива: разойдись они,
+    // отражение перестало бы читаться как отражение.
     canvas.drawRect(
       bounds,
       Paint()

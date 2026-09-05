@@ -4,9 +4,19 @@ import 'dart:io';
 /// Простое JSON-хранилище с атомарной записью: пишем во временный файл и
 /// переименовываем, чтобы падение посреди записи не убило библиотеку.
 class JsonStore {
-  JsonStore(this.path);
+  JsonStore(this.path, {this.private = false});
 
   final String path;
+
+  /// Файл виден только владельцу.
+  ///
+  /// Нужно настройкам: в них лежит пароль прокси открытым текстом, а права
+  /// по умолчанию на общей машине делают его читаемым кем угодно. Ставим на
+  /// временном файле, до переименования, — тогда содержимое ни мгновения не
+  /// лежит под чужими глазами. На Windows права устроены иначе, и там это
+  /// ничего не меняет.
+  final bool private;
+
   String? recoveryPath;
 
   /// Записи выстраиваются в очередь: два одновременных `write` работали бы
@@ -74,6 +84,11 @@ class JsonStore {
         const JsonEncoder.withIndent('  ').convert(data),
         flush: true,
       );
+      if (private && !Platform.isWindows) {
+        // Своего способа сменить права у Dart нет, а запись настроек — дело
+        // редкое: она случается по нажатию человека, а не по таймеру.
+        await Process.run('chmod', ['600', tmp.path]);
+      }
       await tmp.rename(path);
     } on Object {
       if (await tmp.exists()) await tmp.delete();

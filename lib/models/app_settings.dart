@@ -72,7 +72,9 @@ class AppSettings extends Equatable {
   /// Общий выключатель; индивидуальные предпочтения сохраняются под ним.
   final bool libraryEffects;
 
-  /// Opt-in even when migrating settings written before this preference.
+  /// Включаются только по желанию — в том числе в настройках, записанных
+  /// до появления этого переключателя: частицы заметнее прочего и на слабой
+  /// машине стоят дороже всех.
   final bool particlesEnabled;
   final bool wavesEnabled;
   final bool foilEnabled;
@@ -82,7 +84,8 @@ class AppSettings extends Equatable {
   final bool ambientEnabled;
   final bool interfaceAnimationsEnabled;
 
-  /// Independent layout zoom and cover size; both persist across launches.
+  /// Масштаб интерфейса и размер обложек независимы друг от друга и
+  /// переживают перезапуск.
   final double interfaceScale;
   final double libraryScale;
   static const minInterfaceScale = 0.85;
@@ -95,8 +98,6 @@ class AppSettings extends Equatable {
   /// Хранится строкой, а не Locale: в файле настроек это всё равно
   /// строка, и лишний тип только добавил бы преобразований.
   final String? locale;
-
-  /// Пустое значение означает «искать самим».
 
   /// Ограничения скорости, в том числе на время игры.
   final SpeedLimits limits;

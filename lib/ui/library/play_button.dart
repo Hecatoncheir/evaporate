@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// The standard themed Play action, without decorative effects.
+/// Обычная кнопка запуска в цветах темы, без декоративных эффектов.
 class PlayButton extends StatelessWidget {
   const PlayButton({super.key, required this.label, required this.onPressed});
   final String label;

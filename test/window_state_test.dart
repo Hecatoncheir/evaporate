@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/models/window_start_mode.dart';
+import 'package:evaporate/services/system/managed_window.dart';
 import 'package:evaporate/services/system/window_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -241,6 +242,22 @@ void main() {
       expect(saved!.maximized, isTrue);
       expect(saved.width, 1300);
       expect(saved.x, 90);
+    });
+
+    // Подвинуть окно и тут же закрыть приложение — обычное дело, а запись
+    // отложена на полсекунды и до диска в этом случае не доходила.
+    test('при выходе положение дописывается, не дожидаясь паузы', () async {
+      final window = FakeWindow(bounds: const Rect.fromLTWH(40, 60, 1000, 700));
+      final saver = WindowStateSaver(stateWith(window));
+
+      saver.onWindowMoved();
+      expect(await store.read(), isNull);
+
+      await saver.flush();
+
+      final saved = await stateWith(window).read();
+      expect(saved!.x, 40);
+      expect(saved.width, 1000);
     });
   });
 }

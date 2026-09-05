@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/decorative_motion.dart';
 
-/// The reference hero's 26-line neon field, rendered locally in Flutter.
-/// Reference: https://hecatoncheir.github.io/ (#wave).
+/// Неоновое поле из двадцати шести линий, нарисованное средствами Flutter.
+/// Образец: https://hecatoncheir.github.io/ (#wave).
 class GameWave extends StatefulWidget {
   const GameWave({super.key, required this.enabled, required this.child});
   final bool enabled;

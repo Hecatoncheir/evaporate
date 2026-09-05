@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
@@ -109,14 +110,17 @@ class SteamCatalog {
         final bytes = await (() async {
           final response = await (await client.getUrl(Uri.parse(url))).close();
           if (response.statusCode != 200) return null;
-          final bytes = <int>[];
+          // BytesBuilder, а не List<int>: в списке чисел каждый байт занял бы
+          // машинное слово, и обложка у верхнего предела стоила бы восьмидесяти
+          // мегабайт памяти вместо десяти.
+          final builder = BytesBuilder(copy: false);
           await for (final chunk in response) {
-            bytes.addAll(chunk);
-            if (bytes.length > 10 * 1024 * 1024) {
+            builder.add(chunk);
+            if (builder.length > 10 * 1024 * 1024) {
               throw const FormatException('Cover is too large');
             }
           }
-          return bytes.isEmpty ? null : bytes;
+          return builder.isEmpty ? null : builder.takeBytes();
         })().timeout(const Duration(seconds: 20));
         if (bytes != null) return bytes;
       } on Object {

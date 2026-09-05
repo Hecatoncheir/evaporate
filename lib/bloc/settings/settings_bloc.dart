@@ -16,7 +16,8 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
   SettingsBloc(AppPaths paths, {Autostart? autostart, JsonStore? store})
     : _paths = paths,
       _autostart = autostart ?? Autostart(),
-      _store = store ?? JsonStore(paths.settingsFile),
+      // Приватный: в настройках лежит пароль прокси открытым текстом.
+      _store = store ?? JsonStore(paths.settingsFile, private: true),
       super(AppSettings(installDir: paths.defaultInstallDir)) {
     on<SettingsLoadRequested>(_onLoadRequested);
     on<SettingsChanged>(

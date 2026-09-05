@@ -7,6 +7,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../../models/window_start_mode.dart';
+import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -22,7 +23,13 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = context.watch<SettingsBloc>();
-    final downloads = context.watch<DownloadsBloc>();
+    // Только состояние движка, а не весь блок: скорости в нём меняются раз
+    // в секунду, а страница живёт в IndexedStack и строится даже тогда,
+    // когда открыта библиотека. Подписка на всё перерисовывала бы её
+    // ежесекундно всю загрузку напролёт.
+    final engine = context.select<DownloadsBloc, EngineStatus>(
+      (bloc) => bloc.state.engine,
+    );
     final settings = store.state;
 
     void update(AppSettings next) {
@@ -171,8 +178,9 @@ class SettingsPage extends StatelessWidget {
           title: L.of(context).downloadEngine,
           icon: Icons.settings_ethernet,
           trailing: OutlinedButton.icon(
-            onPressed: () =>
-                downloads.add(const DownloadEngineRestartRequested()),
+            onPressed: () => context.read<DownloadsBloc>().add(
+              const DownloadEngineRestartRequested(),
+            ),
             icon: const Icon(Icons.restart_alt, size: 16),
             label: Text(L.of(context).restart),
           ),
@@ -182,12 +190,9 @@ class SettingsPage extends StatelessWidget {
               InfoRow(
                 label: L.of(context).engineState,
                 value:
-                    downloads.state.engine.message ??
-                    engineStateLabel(
-                      L.of(context),
-                      downloads.state.engine.state,
-                    ),
-                valueColor: downloads.state.engine.isReady
+                    engine.message ??
+                    engineStateLabel(L.of(context), engine.state),
+                valueColor: engine.isReady
                     ? context.colors.accent
                     : context.colors.warning,
               ),

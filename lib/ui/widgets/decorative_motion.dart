@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-/// A repaint clock that never rebuilds retained content on animation frames.
+/// Часы перерисовки: гонят кадры анимации, ни разу не пересобирая то,
+/// что под ними нарисовано.
 class DecorativeMotion extends StatefulWidget {
   const DecorativeMotion({
     super.key,

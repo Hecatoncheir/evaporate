@@ -157,7 +157,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
   }
 }
 
-/// Saturated ink is decorative; text uses the contrast-tested theme colors.
+/// Насыщенные цвета — декоративные. Текст ими не красят: для него есть
+/// цвета темы, выверенные по контрасту в `theme_test.dart`.
 const libraryInkColors = [
   Color(0xFFEF147C),
   Color(0xFFFF713F),
@@ -180,8 +181,8 @@ Color particleColor({
   glow,
 )!;
 
-/// Theme-independent colours used by artwork, effects and window chrome.
-/// Base colours live here; widgets may still animate their opacity.
+/// Цвета, не зависящие от темы: оформление обложек, эффекты и рамка окна.
+/// Здесь лежат базовые значения; прозрачность виджеты всё ещё анимируют.
 abstract final class AppColors {
   static const transparent = Colors.transparent;
   static const coverText = Colors.white;
@@ -212,7 +213,10 @@ const _lightWaveColors = [
 List<Color> waveColors(bool isDark) =>
     isDark ? _darkWaveColors : _lightWaveColors;
 
-/// Stable, title-derived fallback artwork colours, independent of UI theme.
+/// Запасные цвета обложки, выведенные из названия игры.
+///
+/// Устойчивы и не зависят от темы: игра без обложки должна выглядеть
+/// одинаково от запуска к запуску, иначе библиотека каждый раз чужая.
 List<Color> gameCoverColors(String title) {
   final hue = (title.hashCode % 360).abs().toDouble();
   return [

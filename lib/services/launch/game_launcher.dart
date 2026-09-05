@@ -36,8 +36,16 @@ class RunningGame {
 /// Время фиксируется по факту завершения процесса — именно этот момент
 /// нужен и для автоснимка сохранений.
 class GameLauncher {
-  GameLauncher({L Function()? localizations})
-    : _localizations = localizations ?? _defaultLocalizations;
+  GameLauncher({
+    L Function()? localizations,
+    this.terminateGrace = const Duration(seconds: 5),
+  }) : _localizations = localizations ?? _defaultLocalizations;
+
+  /// Сколько ждать вежливого завершения, прежде чем убивать.
+  ///
+  /// Укорачивается в тестах: проверять эскалацию настоящими пятью секундами
+  /// на каждом прогоне — плата ни за что.
+  final Duration terminateGrace;
 
   /// Откуда брать переводы. Сообщения отсюда доходят до пользователя через
   /// уведомления, поэтому язык им нужен, а `BuildContext` взять неоткуда.
@@ -131,10 +139,29 @@ class GameLauncher {
     );
   }
 
+  /// Закрывает игру.
+  ///
+  /// Сначала обычный сигнал завершения, а если процесс на него не ответил —
+  /// принудительный. Игры игнорируют `SIGTERM` сплошь и рядом: у них свой
+  /// цикл событий, и сигнал в нём попросту некому обработать. Без второго
+  /// шага кнопка «Стоп» выглядела бы сломанной, а игра оставалась бы висеть
+  /// вместе со своим полноэкранным окном.
   Future<void> terminate(String gameId) async {
     final running = _running[gameId];
     if (running == null) return;
     running.process.kill();
+
+    // Ждём по факту завершения, а не отмеренной паузой: обычно процесс
+    // уходит сразу, и держать кнопку занятой лишние секунды незачем.
+    try {
+      await running.process.exitCode.timeout(terminateGrace);
+      return;
+    } on TimeoutException {
+      // Не ответил — значит, вежливость исчерпана.
+    }
+    if (_running.containsKey(gameId)) {
+      running.process.kill(ProcessSignal.sigkill);
+    }
   }
 
   Future<void> _ensureExecutable(String path) async {

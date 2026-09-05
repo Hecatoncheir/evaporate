@@ -6,6 +6,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:evaporate/services/system/app_tray.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -120,6 +121,17 @@ void main() {
     test('текст меню берётся из выбранного языка', () {
       expect(AppTray.buildMenu(LEn()).items!.first.label, 'Open Evaporate');
       expect(AppTray.buildMenu(LRu()).items!.first.label, 'Открыть Evaporate');
+    });
+
+    // Своими силами трей умеет только убить окно вместе с процессом, и
+    // отложенные записи на диск до него не доходят.
+    test('«Выход» уходит через завершение приложения, а не мимо него', () {
+      var quits = 0;
+      final tray = AppTray(onQuit: () async => quits++);
+
+      tray.onTrayMenuItemClick(MenuItem(key: 'quit'));
+
+      expect(quits, 1);
     });
   });
 }

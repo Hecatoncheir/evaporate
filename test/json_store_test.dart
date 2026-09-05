@@ -137,4 +137,16 @@ void main() {
     final decoded = jsonDecode(await File(path).readAsString());
     expect(decoded, isA<Map<String, dynamic>>());
   });
+
+  test('приватный файл виден только владельцу', () async {
+    final path = p.join(tmp.path, 'settings.json');
+    await JsonStore(path, private: true).write({'password': 'секрет'});
+
+    final mode = await Process.run('stat', [
+      Platform.isMacOS ? '-f%Lp' : '-c%a',
+      path,
+    ]);
+
+    expect('${mode.stdout}'.trim(), '600');
+  }, skip: Platform.isWindows ? 'права доступа устроены иначе' : null);
 }

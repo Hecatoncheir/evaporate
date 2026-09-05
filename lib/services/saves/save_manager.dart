@@ -78,8 +78,10 @@ class SaveManager {
     L Function()? localizations,
     Future<FileSystemEntity> Function(FileSystemEntity, String)?
     renameForRestore,
+    Future<void> Function(ZipFileEncoder, File, String)? addToArchive,
   }) : _paths = paths ?? AppPaths.instance,
        _renameForRestore = renameForRestore ?? _rename,
+       _addToArchive = addToArchive ?? _addFile,
        _localizations = localizations ?? _defaultLocalizations;
 
   final AppPaths _paths;
@@ -89,6 +91,16 @@ class SaveManager {
   _renameForRestore;
   static Future<FileSystemEntity> _rename(FileSystemEntity source, String to) =>
       source.rename(to);
+
+  // По той же причине подменяется и запись файла в архив: сбой на середине
+  // снимка иначе пришлось бы вызывать правами доступа, а они на трёх
+  // системах ведут себя по-разному.
+  final Future<void> Function(ZipFileEncoder, File, String) _addToArchive;
+  static Future<void> _addFile(
+    ZipFileEncoder encoder,
+    File file,
+    String name,
+  ) => encoder.addFile(file, name);
 
   /// Откуда брать переводы: сообщения об ошибках доходят до пользователя
   /// уведомлениями, а `BuildContext` здесь взять неоткуда.
@@ -178,6 +190,7 @@ class SaveManager {
 
     final encoder = ZipFileEncoder();
     encoder.create(archivePath);
+    var complete = false;
     try {
       encoder.addArchiveFile(
         ArchiveFile.string(
@@ -186,10 +199,22 @@ class SaveManager {
         ),
       );
       for (final entry in entries) {
-        await encoder.addFile(File(entry.sourcePath), entry.archiveName);
+        await _addToArchive(encoder, File(entry.sourcePath), entry.archiveName);
       }
+      complete = true;
     } finally {
       await encoder.close();
+      // Оборвавшийся снимок наверх не возвращается, и в состояние он не
+      // попадает — значит, удалить недописанный архив больше некому, а
+      // места он занимает столько же, сколько удавшийся.
+      if (!complete) {
+        try {
+          final partial = File(archivePath);
+          if (await partial.exists()) await partial.delete();
+        } on FileSystemException {
+          // Уборка не удалась — исходную ошибку подменять этим не станем.
+        }
+      }
     }
 
     return snapshot;

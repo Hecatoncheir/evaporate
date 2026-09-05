@@ -504,27 +504,41 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         )
         .toList();
     if (added.isEmpty) return current;
-    final labels = SavePathRule.labelsFor([...existing, ...added]);
     final updated = current.copyWith(
       ludusaviResolvedPaths: {
         ...current.ludusaviResolvedPaths,
         ...expanded,
       }.toList(),
       saveProfile: current.saveProfile.copyWith(
-        rules: [
-          ...current.saveProfile.rules,
-          for (var i = 0; i < added.length; i++)
-            SavePathRule(
-              id: const Uuid().v4(),
-              label: labels[existing.length + i],
-              template: added[i],
-            ),
-        ],
+        rules: [...current.saveProfile.rules, ..._rulesFor(existing, added)],
       ),
     );
     _replaceGame(updated, emit);
     await persist();
     return updated;
+  }
+
+  /// Правила для путей, добавляемых к уже заданным.
+  ///
+  /// Метки считает по всему набору сразу, а не по одним новым: по метке
+  /// правила сопоставляются между устройствами, и совпавшая метка склеила бы
+  /// разные сейвы. Три обработчика добавляют пути из разных источников —
+  /// сохранённого манифеста, подсказок после игры и ручного поиска, — и
+  /// расходиться в этом им нельзя.
+  static List<SavePathRule> _rulesFor(
+    Iterable<String> existing,
+    List<String> added,
+  ) {
+    final before = existing.toList();
+    final labels = SavePathRule.labelsFor([...before, ...added]);
+    return [
+      for (var i = 0; i < added.length; i++)
+        SavePathRule(
+          id: const Uuid().v4(),
+          label: labels[before.length + i],
+          template: added[i],
+        ),
+    ];
   }
 
   Future<void> _onSnapshotRequested(
@@ -569,7 +583,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
               : _notice(
                   _l.noticeSnapshotReady(
                     snapshot.fileCount,
-                    _formatSize(snapshot.sizeBytes),
+                    formatBytes(snapshot.sizeBytes),
                   ),
                 ),
         ),
@@ -652,7 +666,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
               ? _notice(
                   _l.noticeRestoredFiles(
                     report.filesWritten,
-                    _formatSize(report.bytesWritten),
+                    formatBytes(report.bytesWritten),
                   ),
                 )
               : _notice(
@@ -930,15 +944,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       return;
     }
 
-    final labels = SavePathRule.labelsFor([...existing, ...templates]);
-    final added = <SavePathRule>[
-      for (var i = 0; i < templates.length; i++)
-        SavePathRule(
-          id: const Uuid().v4(),
-          label: labels[existing.length + i],
-          template: templates[i],
-        ),
-    ];
+    final added = _rulesFor(existing, templates);
 
     final games = [...state.games];
     games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
@@ -1233,12 +1239,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         ),
       );
     }
-  }
-
-  static String _formatSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   @override

@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-/// Uniformly seeded ambient dots, with the original local magnetic response.
-/// Proximity changes density, colour and motion, never particle radius.
+/// Ровно рассыпанные фоновые точки с местным притяжением к карточке.
+/// Близость меняет плотность, цвет и движение, но не радиус точки: растущие
+/// точки читаются как рябь, а сгущение — как свет.
 class InkParticle {
   InkParticle(this.position, this.velocity, this.phase, this.life);
 
@@ -40,7 +41,8 @@ class ParticleField {
     final previous = size;
     size = value;
     if (particles.isNotEmpty && !previous.isEmpty) {
-      // Preserve density on resize instead of clamping dots onto the edges.
+      // При смене размера точки растягиваем, а не прижимаем к краям: иначе
+      // после каждого изменения окна они сползались бы к границам.
       for (final p in particles) {
         p.position = Offset(
           p.position.dx / previous.width * size.width,
@@ -49,8 +51,9 @@ class ParticleField {
       }
       return;
     }
-    // Stratified random sampling: no large empty patches or visible dot grid.
-    // Each row has the same expected spatial density, including its last cell.
+    // Выборка по слоям, а не сплошь случайная: у равномерного случая
+    // получаются и заметные проплешины, и различимая сетка. У каждого ряда
+    // одна и та же ожидаемая плотность, включая последнюю ячейку.
     final rows = math
         .sqrt(ambientCount * size.height / size.width)
         .round()
@@ -80,7 +83,7 @@ class ParticleField {
     life,
   );
 
-  /// Nearest point on the perimeter, including for points inside the card.
+  /// Ближайшая точка периметра — в том числе для точек внутри карточки.
   static Offset edgePoint(Rect rect, Offset point) {
     final clamped = Offset(
       point.dx.clamp(rect.left, rect.right),
@@ -106,7 +109,8 @@ class ParticleField {
     final edge = card == null ? null : edgePoint(card!, point);
     final mouse = pointer;
     if (edge == null) return mouse;
-    // Inside a selected card the perimeter owns the field, not its centre.
+    // Внутри выбранной карточки полем правит её периметр, а не центр:
+    // иначе точки собирались бы в одну кучу посреди обложки.
     if (mouse == null || card!.contains(mouse)) return edge;
     return (mouse - point).distance < (edge - point).distance ? mouse : edge;
   }
@@ -124,7 +128,8 @@ class ParticleField {
         (pointer == null ||
             rect.contains(pointer!) ||
             _random.nextDouble() < 0.75)) {
-      // Uniform perimeter sampling; avoid a corner/centre pile-up.
+      // Точку рождения берём равномерно по периметру: иначе они копятся
+      // в углах и в центре.
       final d = _rand(0, 2 * (rect.width + rect.height));
       if (d < rect.width) {
         center = Offset(rect.left + d, rect.top);
@@ -151,7 +156,8 @@ class ParticleField {
 
   void step(double seconds) {
     if (size.isEmpty || !seconds.isFinite || seconds <= 0) return;
-    // No simulation catch-up burst after minimization or a stalled frame.
+    // Шаг ограничен сверху: после сворачивания окна или подвисшего кадра
+    // симуляция иначе догоняла бы упущенное одним рывком.
     final dt = seconds.clamp(0.0, 1 / 30);
     time += dt;
     var near = 0;
@@ -171,8 +177,8 @@ class ParticleField {
         math.cos(time * 1.3 + p.phase * 2) * 50 +
             math.cos(time * 3.7 + p.phase * 5) * 18,
       );
-      // Attraction has a finite range: distant dots keep wandering instead
-      // of the entire background eventually being vacuumed into one card.
+      // У притяжения конечный радиус: дальние точки продолжают бродить,
+      // иначе весь фон рано или поздно всосало бы в одну карточку.
       if (target != null && proximity > 0) {
         var tangent = Offset(-direction.dy, direction.dx);
         final rect = card;
@@ -210,8 +216,8 @@ class ParticleField {
     }
     particles.removeWhere((p) => p.life < 0 && p.life > -0.5);
     if (card != null || pointer != null) {
-      // More particles near a target -> more short-lived particles emitted.
-      // A hard budget prevents exponential growth during long sessions.
+      // Чем больше точек у цели, тем больше рождается короткоживущих.
+      // Жёсткий предел не даёт этому расти лавиной за долгий сеанс.
       _spawnBudget +=
           dt *
           densityMultiplier *

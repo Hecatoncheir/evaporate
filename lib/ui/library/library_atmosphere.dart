@@ -6,8 +6,9 @@ import 'package:flutter/scheduler.dart';
 import '../theme.dart';
 import 'particle_field.dart';
 
-/// One bounded simulation + one repaint layer. The grid is a retained child;
-/// a pointer move or animation frame never rebuilds game covers.
+/// Одна ограниченная симуляция и один слой перерисовки. Сетка обложек —
+/// удерживаемый ребёнок: ни движение мыши, ни кадр анимации её не трогают,
+/// иначе каждый кадр перестраивал бы всю библиотеку.
 class LibraryAtmosphere extends StatefulWidget {
   const LibraryAtmosphere({
     super.key,
@@ -136,7 +137,9 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
         key: _viewport,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Reduced motion retains static dots; an explicit off hides them.
+            // Уменьшенная анимация оставляет точки неподвижными, а явное
+            // выключение убирает их вовсе: остановленная симуляция всё ещё
+            // рисует, и «выключено» должно значить «не видно».
             if (widget.enabled && widget.particlesEnabled) {
               field.resize(constraints.biggest);
             } else {
@@ -204,7 +207,8 @@ class _AtmospherePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final bounds = Offset.zero & size;
     final time = animated ? ambientTime() : 0.0;
-    // Slow, low-contrast pearlescent washes on ivory; never flash the text.
+    // Медленные малоконтрастные перламутровые разводы по слоновой кости.
+    // Контраст низкий намеренно: под текстом фон не должен мигать.
     if (ambientEnabled && !colors.isDark) {
       for (var i = 0; i < 4; i++) {
         final center = Offset(
@@ -234,7 +238,8 @@ class _AtmospherePainter extends CustomPainter {
       final fade = particle.life < 0
           ? 1.0
           : (particle.life / 0.35).clamp(0.0, 1.0);
-      // Crisp, fixed-size points without a blur or glow layer.
+      // Чёткие точки постоянного размера, без слоя размытия и свечения:
+      // они и дешевле, и не превращают фон в туман.
       dot.color = color.withValues(alpha: fade);
       canvas.drawCircle(particle.position, InkParticle.radius, dot);
     }

@@ -499,6 +499,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     engine.stats.removeListener(_pushStats);
     library.launcher.runningIds.removeListener(_onRunningChanged);
     await _settingsSubscription.cancel();
+    // Гасим задачи именно дожидаясь: `dispose` бросает их на полпути, а
+    // движок ведёт свой файл состояния — оборванная задача теряет то,
+    // что успела скачать сверх последней записи.
+    await engine.stop();
     engine.dispose();
     return super.close();
   }

@@ -528,6 +528,42 @@ void main() {
       expect(info.isCompatible, isTrue);
     },
   );
+
+  test('оборвавшийся снимок не оставляет недописанный архив', () async {
+    final saves = await writeSaves('partial', {
+      'slot1.sav': 'первый',
+      'slot2.sav': 'второй',
+    });
+    final game = gameWith(
+      id: 'partial',
+      title: 'Оборванная',
+      rules: [
+        SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
+      ],
+    );
+    final failing = SaveManager(
+      paths: paths,
+      addToArchive: (encoder, file, name) async {
+        if (name.endsWith('slot2.sav')) {
+          throw FileSystemException('Simulated read failure', file.path);
+        }
+        return encoder.addFile(file, name);
+      },
+    );
+
+    await expectLater(
+      failing.createSnapshot(game),
+      throwsA(isA<FileSystemException>()),
+    );
+
+    // Снимок наверх не вернулся, в состоянии его нет — значит, и на диске
+    // остаться нечему.
+    final dir = Directory(paths.snapshotDirFor(game.id));
+    final left = await dir.exists()
+        ? dir.listSync().map((e) => p.basename(e.path)).toList()
+        : <String>[];
+    expect(left, isEmpty);
+  });
 }
 
 class _FailingBackupManager extends SaveManager {

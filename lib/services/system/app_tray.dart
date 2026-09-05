@@ -16,9 +16,18 @@ class AppTray with TrayListener {
     TrayManager? manager,
     WindowManager? window,
     L Function()? localizations,
+    this.onQuit,
   }) : _tray = manager ?? trayManager,
        _window = window ?? windowManager,
        _localizations = localizations ?? _defaultLocalizations;
+
+  /// Как выходить по пункту «Выход».
+  ///
+  /// Своими силами трей умеет только убить окно, а вместе с ним и процесс —
+  /// мимо отложенных записей на диск. Приложение передаёт сюда то же
+  /// завершение, через которое проходит закрытие окна; без него остаётся
+  /// прежнее поведение, чтобы трей был работоспособен и сам по себе.
+  final Future<void> Function()? onQuit;
 
   /// Меню трея живёт вне дерева виджетов, поэтому язык приходит функцией.
   final L Function() _localizations;
@@ -87,7 +96,12 @@ class AppTray with TrayListener {
       case 'show':
         reveal();
       case 'quit':
-        _window.destroy();
+        final quit = onQuit;
+        if (quit == null) {
+          _window.destroy();
+        } else {
+          quit();
+        }
     }
   }
 }

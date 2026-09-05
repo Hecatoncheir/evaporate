@@ -83,7 +83,9 @@ class _LibraryPageState extends State<LibraryPage> {
       _tileFocus[id]!.requestFocus();
       return;
     }
-    // A remembered card may be outside the lazy grid's built viewport.
+    // Запомненная карточка могла остаться за пределами построенной части
+    // ленивой сетки — тогда фокусу не за что зацепиться, и сперва нужно
+    // до неё домотать.
     if (_scroll.hasClients) {
       _scroll.jumpTo(
         (index ~/ _columns * _rowStride).clamp(

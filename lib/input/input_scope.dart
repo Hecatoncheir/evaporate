@@ -24,7 +24,7 @@ class NavBackIntent extends Intent {
   const NavBackIntent();
 }
 
-/// Offered only by the library search, not by general text editors.
+/// Предлагается только поиском по библиотеке, а не текстовыми полями вообще.
 class ReturnToLibraryIntent extends Intent {
   const ReturnToLibraryIntent();
 }

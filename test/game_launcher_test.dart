@@ -134,6 +134,49 @@ void main() {
     await launcher.terminate('нет-такой-игры');
   });
 
+  // Игры игнорируют SIGTERM сплошь и рядом: обрабатывать его в их цикле
+  // событий некому. Без принудительного сигнала «Стоп» ничего не делал бы.
+  //
+  // Скрипт `sh` здесь не годится: на macOS он умирает от SIGTERM и с
+  // `trap`, то есть проверял бы не то. Нужен процесс, который сигнал
+  // действительно игнорирует, — отсюда python3 и пропуск без него.
+  test(
+    'игра, не отвечающая на обычный сигнал, всё равно закрывается',
+    () async {
+      final stubborn = GameLauncher(
+        terminateGrace: const Duration(milliseconds: 200),
+      );
+      addTearDown(stubborn.dispose);
+      final ready = File(p.join(tmp.path, 'ready'));
+      final file = File(p.join(tmp.path, 'stubborn.sh'));
+      // Метка появляется, когда обработчик сигнала уже стоит. Без неё
+      // SIGTERM успевал прилететь в саму оболочку, пока она ещё не
+      // сменилась на python, — и тест проверял бы смерть оболочки.
+      await file.writeAsString(
+        '#!/bin/sh\n'
+        'exec python3 -c "import signal, sys, time; '
+        'signal.signal(signal.SIGTERM, signal.SIG_IGN); '
+        "open(sys.argv[1], 'w').close(); time.sleep(30)\" '${ready.path}'\n",
+      );
+      await Process.run('chmod', ['+x', file.path]);
+      final exited = Completer<void>();
+
+      await stubborn.launch(
+        gameWith(file.path),
+        onExit: (_, _, _) => exited.complete(),
+      );
+      while (!ready.existsSync()) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+
+      await stubborn.terminate('game-1');
+      await exited.future.timeout(const Duration(seconds: 10));
+
+      expect(stubborn.isRunning('game-1'), isFalse);
+    },
+    skip: _stubbornSkip(),
+  );
+
   test('файл без права на запуск получает его сам', () async {
     final path = await makeScript('exit 0', executable: false);
     final exited = Completer<int>();
@@ -174,4 +217,13 @@ void main() {
 
     expect(launcher.isRunning('game-1'), isFalse);
   }, skip: Platform.isMacOS ? null : 'проверка формата macOS .app');
+}
+
+/// Процесс, по-настоящему игнорирующий SIGTERM, нужен именно настоящий —
+/// иначе тест проверял бы не эскалацию, а поведение оболочки. На Windows
+/// скрипт не запустится вовсе, без python3 такой процесс не из чего собрать.
+String? _stubbornSkip() {
+  if (Platform.isWindows) return 'скрипт sh не запустится на Windows';
+  final found = Process.runSync('sh', ['-c', 'command -v python3']);
+  return found.exitCode == 0 ? null : 'нужен python3';
 }

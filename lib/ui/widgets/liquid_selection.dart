@@ -2,9 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// A retained-content selection layer. Only its ink morphs, never labels,
-/// artwork or hit targets. The neck approximates a thresholded gooey mask
-/// with vector curves, avoiding backdrop filters that alter theme colours.
+/// Слой выделения поверх удерживаемого содержимого: перетекает только
+/// заливка, а подписи, обложки и области нажатия остаются на месте.
+///
+/// Перемычка нарисована векторными кривыми, а не размытием с отсечкой по
+/// порогу: `BackdropFilter` увёл бы цвета темы, а их выверяли по контрасту.
 class LiquidSelection extends StatefulWidget {
   const LiquidSelection({
     super.key,
@@ -128,7 +130,8 @@ class LiquidSelectionState extends State<LiquidSelection>
     if (canTravel) {
       _animation.forward(from: 0);
     } else {
-      // Layout, zoom, scrolling and removed items are not selection changes.
+      // Перекладка, масштаб, прокрутка и исчезнувший пункт — не смена
+      // выделения, и капле незачем ехать через весь экран.
       _animation.value = 1;
     }
     _geometry.value++;
@@ -189,8 +192,8 @@ class _LiquidInkScope extends InheritedWidget {
       state != oldWidget.state;
 }
 
-/// Keep a label/icon readable even while the departing lobe is still under it.
-/// Only this small foreground subtree rebuilds, not the surrounding content.
+/// Держит подпись и значок читаемыми, пока под ними ещё уходит капля.
+/// Перерисовывается только это маленькое поддерево, а не всё вокруг.
 class LiquidSelectionInk extends StatefulWidget {
   const LiquidSelectionInk({
     super.key,
@@ -279,8 +282,10 @@ class _LiquidPainter extends CustomPainter {
   bool shouldRepaint(_LiquidPainter oldDelegate) => true;
 }
 
-/// Two rounded lobes exchange volume through a concave, pinching neck.
-/// Exposed for deterministic geometry tests and mid-transition previews.
+/// Две скруглённые доли перетекают друг в друга через вогнутую перемычку.
+///
+/// Открыто наружу ради тестов геометрии и предпросмотра середины перехода:
+/// на глаз такую форму не проверить, а числами — вполне.
 Path liquidSelectionPath(Rect from, Rect to, double progress, double radius) {
   Path rounded(Rect rect) =>
       Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
@@ -292,7 +297,8 @@ Path liquidSelectionPath(Rect from, Rect to, double progress, double radius) {
   final extent = horizontal
       ? math.max(from.width, to.width)
       : math.max(from.height, to.height);
-  // Distant jumps travel as one drop, without drawing a ribbon across a page.
+  // Дальний прыжок капля проделывает целиком, не растягиваясь лентой
+  // через всю страницу.
   if (delta.distance > extent * 2.5) {
     return rounded(Rect.lerp(from, to, Curves.easeInOutCubic.transform(t))!);
   }

@@ -18,6 +18,7 @@ import 'input/gamepad_service.dart';
 import 'models/app_settings.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
+import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/update_check.dart';
@@ -67,9 +68,18 @@ Future<void> main() async {
       await window.restore(settings.state.windowStart);
     },
   );
+  // Что должно успеть лечь на диск, прежде чем процесс закончится. Список
+  // наполняется по мере того, как появляются его владельцы, а порядок в нём
+  // обратный порядку создания: сначала останавливаем, потом отпускаем.
+  final shutdownSteps = <ShutdownStep>[];
+  final shutdown = AppShutdown(shutdownSteps);
+  final closeHandler = WindowCloseHandler(shutdown);
+  await closeHandler.attach();
+
   // Значок в трее ставим всегда: без него свёрнутое при запуске окно
   // было бы ничем не открыть, а режим запуска можно поменять на ходу.
-  final tray = AppTray(localizations: localizations);
+  // «Выход» из трея уходит тем же путём, что и закрытие окна.
+  final tray = AppTray(localizations: localizations, onQuit: closeHandler.quit);
   try {
     await tray.install();
   } on Object {
@@ -79,7 +89,8 @@ Future<void> main() async {
   }
   // Пишем всегда, даже когда восстановление выключено: включив его позже,
   // пользователь получит осмысленные значения, а не размер по умолчанию.
-  WindowStateSaver(window).attach();
+  final windowSaver = WindowStateSaver(window)..attach();
+  shutdownSteps.add(windowSaver.flush);
 
   // Разрешение у системы не спрашиваем на старте: это делает пользователь
   // кнопкой в настройках, чтобы диалог не выскакивал при первом запуске.
@@ -105,7 +116,13 @@ Future<void> main() async {
   // должно открыться — библиотекой и сейвами можно пользоваться.
   downloads.add(const DownloadEngineStartRequested());
 
+  // Порядок важен: движок гасим раньше библиотеки, потому что его задачи
+  // ещё правят её игры, а настройки — последними: на них смотрят оба блока.
+  shutdownSteps.addAll([downloads.close, library.close, settings.close]);
+
   final gamepad = GamepadService(binding: settings.state.gamepad);
+  shutdownSteps.add(() async => gamepad.dispose());
+  shutdownSteps.add(tray.dispose);
   // Отсутствие геймпада не должно мешать запуску — сервис это переживает сам.
   unawaited(gamepad.start());
 

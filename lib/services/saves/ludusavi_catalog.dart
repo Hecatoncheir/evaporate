@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
@@ -130,19 +131,23 @@ class LudusaviCatalog {
       }
       // Читаем кусками, а не целиком: иначе о ходе загрузки сказать
       // нечего, а ждать пришлось бы молча.
+      //
+      // Копим в BytesBuilder, а не в List<int>: манифест весит семнадцать
+      // мегабайт, и растущий список чисел стоил бы под полгигабайта — в нём
+      // каждый байт занимает машинное слово, да ещё удваивается при росте.
       final total = response.contentLength;
-      final bytes = <int>[];
+      final builder = BytesBuilder(copy: false);
       await for (final chunk in response) {
-        bytes.addAll(chunk);
+        builder.add(chunk);
         onProgress?.call(
           CatalogProgress(
             phase: CatalogPhase.downloading,
-            received: bytes.length,
+            received: builder.length,
             total: total > 0 ? total : 0,
           ),
         );
       }
-      return utf8.decode(bytes);
+      return utf8.decode(builder.takeBytes());
     } finally {
       client.close(force: true);
     }

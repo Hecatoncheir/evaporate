@@ -94,6 +94,23 @@ class GamepadService {
     }
   }
 
+  /// Когда список устройств переспрашивали в последний раз.
+  DateTime? _lastRecheck;
+
+  /// Не чаще раза в секунду: события с геймпада идут десятками в секунду, и
+  /// спрашивать плагин на каждое — заметно дороже, чем оно того стоит.
+  /// Список может и остаться пустым — плагин не всегда видит устройство,
+  /// события которого пропускает.
+  void _recheckDevices() {
+    final now = DateTime.now();
+    final last = _lastRecheck;
+    if (last != null && now.difference(last) < const Duration(seconds: 1)) {
+      return;
+    }
+    _lastRecheck = now;
+    unawaited(refreshDevices());
+  }
+
   Future<void> refreshDevices() async {
     if (source != null) return;
     try {
@@ -121,6 +138,11 @@ class GamepadService {
   /// Открыто для тестов: позволяет прогнать сценарий без железа.
   @visibleForTesting
   void handleEvent(NormalizedGamepadEvent event) {
+    // Список устройств спрашивают один раз, при запуске, и геймпад,
+    // подключённый позже, в него не попадал: сам он работал, но подсказки
+    // управления внизу окна молчали, потому что смотрят на этот список.
+    // Пришедшее событие — доказательство, что устройство есть.
+    if (!_status.value.hasDevice) _recheckDevices();
     final button = event.button;
     if (button != null) {
       _handleButton(button, event.value);

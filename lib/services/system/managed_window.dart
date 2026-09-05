@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:window_manager/window_manager.dart';
 
+import 'app_shutdown.dart';
 import 'window_state.dart';
 
 /// Настоящее окно приложения.
@@ -56,6 +57,17 @@ class WindowStateSaver with WindowListener {
     );
   }
 
+  /// Дописать положение окна немедленно.
+  ///
+  /// Нужно при выходе: подвинуть окно и тут же закрыть приложение — обычное
+  /// дело, а отложенная на полсекунды запись до диска в этом случае не
+  /// доходит, и окно открывается на старом месте.
+  Future<void> flush() async {
+    final pending = _debounce?.isActive ?? false;
+    _debounce?.cancel();
+    if (pending) await _state.save();
+  }
+
   @override
   void onWindowResized() => _schedule();
 
@@ -67,4 +79,30 @@ class WindowStateSaver with WindowListener {
 
   @override
   void onWindowUnmaximize() => _schedule();
+}
+
+/// Проводит закрытие окна через [AppShutdown], а не мимо него.
+///
+/// Без `setPreventClose` нажатие «Закрыть» убивает процесс сразу, и отложенные
+/// записи на диск до него не доходят. Тем же путём уходит и «Выход» из трея:
+/// два способа выйти — одно завершение.
+class WindowCloseHandler with WindowListener {
+  WindowCloseHandler(this._shutdown, {WindowManager? window})
+    : _window = window ?? windowManager;
+
+  final AppShutdown _shutdown;
+  final WindowManager _window;
+
+  Future<void> attach() async {
+    _window.addListener(this);
+    await _window.setPreventClose(true);
+  }
+
+  @override
+  void onWindowClose() => unawaited(quit());
+
+  Future<void> quit() async {
+    await _shutdown.run();
+    await _window.destroy();
+  }
 }

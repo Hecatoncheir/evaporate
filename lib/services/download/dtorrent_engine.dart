@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -827,7 +826,3 @@ class _ManagedDownload {
     started = false;
   }
 }
-
-/// Кодирование JSON вынесено сюда, чтобы файл состояния читался глазами.
-String encodeState(Map<String, dynamic> data) =>
-    const JsonEncoder.withIndent('  ').convert(data);
