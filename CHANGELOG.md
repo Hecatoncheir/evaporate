@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.17.0] — 2026-09-05
+
 ### Исправлено
 
 - Раздача больше не может записать файл мимо папки загрузки. Проверять
@@ -494,6 +496,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.17.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.17.0
 [0.16.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.16.0
 [0.15.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.15.0
 [0.14.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.14.2

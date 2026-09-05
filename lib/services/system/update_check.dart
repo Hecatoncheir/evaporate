@@ -14,7 +14,7 @@ import '../../l10n/app_localizations_ru.dart';
 class AppVersion {
   const AppVersion._();
 
-  static const current = '0.16.0';
+  static const current = '0.17.0';
 
   /// Разбирает `1.2.3` или `v1.2.3` в числа. Лишнее после третьего числа
   /// (`-beta`, `+2`) отбрасывается: для сравнения оно роли не играет.
