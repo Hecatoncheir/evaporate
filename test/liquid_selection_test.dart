@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
@@ -165,6 +166,11 @@ void main() {
         }
         final harness = TestHarness(tmp);
         addTearDown(harness.dispose);
+        harness.settings.add(
+          SettingsChanged(
+            harness.settings.state.copyWith(liquidSelectionEnabled: true),
+          ),
+        );
         for (final title in [
           'ABZU',
           'CELESTE',

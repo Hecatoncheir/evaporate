@@ -23,10 +23,10 @@ class AppSettings extends Equatable {
     this.wavesEnabled = true,
     this.foilEnabled = true,
     this.cardTiltEnabled = true,
-    this.liquidDistortionEnabled = true,
-    this.liquidSelectionEnabled = true,
+    this.liquidDistortionEnabled = false,
+    this.liquidSelectionEnabled = false,
     this.ambientEnabled = true,
-    this.interfaceAnimationsEnabled = true,
+    this.interfaceAnimationsEnabled = false,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -194,50 +194,51 @@ class AppSettings extends Equatable {
     'gamepad': gamepad.toJson(),
   };
 
-  factory AppSettings.fromJson(Map<String, dynamic> json, String fallbackDir) =>
-      AppSettings(
-        installDir: json['installDir'] as String? ?? fallbackDir,
-        maxConcurrent: json['maxConcurrent'] as int? ?? 3,
-        syncFolder: json['syncFolder'] as String?,
-        autoExportToSync: json['autoExportToSync'] as bool? ?? true,
-        autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
-        systemNotifications: json['systemNotifications'] as bool? ?? true,
-        launchAtStartup: json['launchAtStartup'] as bool? ?? false,
-        windowStart: _windowStartFromJson(json),
-        checkUpdates: json['checkUpdates'] as bool? ?? true,
-        themeMode: _themeModeFromName(json['themeMode'] as String?),
-        libraryEffects: json['libraryEffects'] as bool? ?? true,
-        particlesEnabled: json['particlesEnabled'] as bool? ?? false,
-        wavesEnabled: json['wavesEnabled'] as bool? ?? true,
-        foilEnabled: json['foilEnabled'] as bool? ?? true,
-        cardTiltEnabled: json['cardTiltEnabled'] as bool? ?? true,
-        liquidDistortionEnabled:
-            json['liquidDistortionEnabled'] as bool? ?? true,
-        liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? true,
-        ambientEnabled: json['ambientEnabled'] as bool? ?? true,
-        interfaceAnimationsEnabled:
-            json['interfaceAnimationsEnabled'] as bool? ?? true,
-        interfaceScale: _scale(
-          json['interfaceScale'],
-          minInterfaceScale,
-          maxInterfaceScale,
-        ),
-        libraryScale: _scale(
-          json['libraryScale'],
-          minLibraryScale,
-          maxLibraryScale,
-        ),
-        locale: _localeFromJson(json['locale']),
-        limits: json['limits'] == null
-            ? SpeedLimits.unlimited
-            : SpeedLimits.fromJson(json['limits'] as Map<String, dynamic>),
-        proxy: json['proxy'] == null
-            ? const ProxySettings()
-            : ProxySettings.fromJson(json['proxy'] as Map<String, dynamic>),
-        gamepad: json['gamepad'] == null
-            ? const GamepadBinding()
-            : GamepadBinding.fromJson(json['gamepad'] as Map<String, dynamic>),
-      );
+  factory AppSettings.fromJson(
+    Map<String, dynamic> json,
+    String fallbackDir,
+  ) => AppSettings(
+    installDir: json['installDir'] as String? ?? fallbackDir,
+    maxConcurrent: json['maxConcurrent'] as int? ?? 3,
+    syncFolder: json['syncFolder'] as String?,
+    autoExportToSync: json['autoExportToSync'] as bool? ?? true,
+    autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
+    systemNotifications: json['systemNotifications'] as bool? ?? true,
+    launchAtStartup: json['launchAtStartup'] as bool? ?? false,
+    windowStart: _windowStartFromJson(json),
+    checkUpdates: json['checkUpdates'] as bool? ?? true,
+    themeMode: _themeModeFromName(json['themeMode'] as String?),
+    libraryEffects: json['libraryEffects'] as bool? ?? true,
+    particlesEnabled: json['particlesEnabled'] as bool? ?? false,
+    wavesEnabled: json['wavesEnabled'] as bool? ?? true,
+    foilEnabled: json['foilEnabled'] as bool? ?? true,
+    cardTiltEnabled: json['cardTiltEnabled'] as bool? ?? true,
+    liquidDistortionEnabled: json['liquidDistortionEnabled'] as bool? ?? false,
+    liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? false,
+    ambientEnabled: json['ambientEnabled'] as bool? ?? true,
+    interfaceAnimationsEnabled:
+        json['interfaceAnimationsEnabled'] as bool? ?? false,
+    interfaceScale: _scale(
+      json['interfaceScale'],
+      minInterfaceScale,
+      maxInterfaceScale,
+    ),
+    libraryScale: _scale(
+      json['libraryScale'],
+      minLibraryScale,
+      maxLibraryScale,
+    ),
+    locale: _localeFromJson(json['locale']),
+    limits: json['limits'] == null
+        ? SpeedLimits.unlimited
+        : SpeedLimits.fromJson(json['limits'] as Map<String, dynamic>),
+    proxy: json['proxy'] == null
+        ? const ProxySettings()
+        : ProxySettings.fromJson(json['proxy'] as Map<String, dynamic>),
+    gamepad: json['gamepad'] == null
+        ? const GamepadBinding()
+        : GamepadBinding.fromJson(json['gamepad'] as Map<String, dynamic>),
+  );
 
   @override
   List<Object?> get props => [

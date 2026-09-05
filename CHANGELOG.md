@@ -5,6 +5,15 @@
 
 ## [Не выпущено]
 
+## [0.14.1] — 2026-09-05
+
+### Изменено
+
+- Эффекты по умолчанию: включены общий переключатель, wave, foil, наклон
+  карточек и переливы фона; выключены частицы, Liquid Distortion, жидкие
+  переходы выделения и плавная смена разделов. Ранее сохранённый выбор
+  пользователя остаётся в силе.
+
 ## [0.14.0] — 2026-09-05
 
 ### Добавлено
@@ -367,6 +376,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.14.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.14.1
 [0.14.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.14.0
 [0.13.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.13.2
 [0.13.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.13.1

@@ -11,51 +11,46 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
-  test(
-    'new and migrated settings default particles off and other effects on',
-    () {
-      for (final settings in [
-        const AppSettings(installDir: '/games'),
-        AppSettings.fromJson({}, '/games'),
-        AppSettings.fromJson({'libraryEffects': true}, '/games'),
-        AppSettings.fromJson({'libraryEffects': false}, '/games'),
-      ]) {
-        expect(settings.particlesEnabled, isFalse);
-        expect(settings.wavesEnabled, isTrue);
-        expect(settings.foilEnabled, isTrue);
-        expect(settings.cardTiltEnabled, isTrue);
-        expect(settings.liquidDistortionEnabled, isTrue);
-        expect(settings.liquidSelectionEnabled, isTrue);
-        expect(settings.ambientEnabled, isTrue);
-        expect(settings.interfaceAnimationsEnabled, isTrue);
-        expect(
-          AppSettings.fromJson(settings.toJson(), '/games').toJson(),
-          settings.toJson(),
-        );
-      }
-      const base = AppSettings(installDir: '/games');
-      for (final changed in [
-        base.copyWith(particlesEnabled: true),
-        base.copyWith(wavesEnabled: false),
-        base.copyWith(foilEnabled: false),
-        base.copyWith(cardTiltEnabled: false),
-        base.copyWith(liquidDistortionEnabled: false),
-        base.copyWith(liquidSelectionEnabled: false),
-        base.copyWith(ambientEnabled: false),
-        base.copyWith(interfaceAnimationsEnabled: false),
-      ]) {
-        expect(changed, isNot(base));
-        final restored = AppSettings.fromJson(changed.toJson(), '/games');
-        expect(restored.toJson(), changed.toJson());
-        expect(
-          changed
-              .copyWith(libraryEffects: false)
-              .copyWith(libraryEffects: true),
-          changed,
-        );
-      }
-    },
-  );
+  test('new and migrated settings use the chosen effect defaults', () {
+    for (final settings in [
+      const AppSettings(installDir: '/games'),
+      AppSettings.fromJson({}, '/games'),
+      AppSettings.fromJson({'libraryEffects': true}, '/games'),
+      AppSettings.fromJson({'libraryEffects': false}, '/games'),
+    ]) {
+      expect(settings.particlesEnabled, isFalse);
+      expect(settings.wavesEnabled, isTrue);
+      expect(settings.foilEnabled, isTrue);
+      expect(settings.cardTiltEnabled, isTrue);
+      expect(settings.liquidDistortionEnabled, isFalse);
+      expect(settings.liquidSelectionEnabled, isFalse);
+      expect(settings.ambientEnabled, isTrue);
+      expect(settings.interfaceAnimationsEnabled, isFalse);
+      expect(
+        AppSettings.fromJson(settings.toJson(), '/games').toJson(),
+        settings.toJson(),
+      );
+    }
+    const base = AppSettings(installDir: '/games');
+    for (final changed in [
+      base.copyWith(particlesEnabled: true),
+      base.copyWith(wavesEnabled: false),
+      base.copyWith(foilEnabled: false),
+      base.copyWith(cardTiltEnabled: false),
+      base.copyWith(liquidDistortionEnabled: true),
+      base.copyWith(liquidSelectionEnabled: true),
+      base.copyWith(ambientEnabled: false),
+      base.copyWith(interfaceAnimationsEnabled: true),
+    ]) {
+      expect(changed, isNot(base));
+      final restored = AppSettings.fromJson(changed.toJson(), '/games');
+      expect(restored.toJson(), changed.toJson());
+      expect(
+        changed.copyWith(libraryEffects: false).copyWith(libraryEffects: true),
+        changed,
+      );
+    }
+  });
 
   Future<void> frames(WidgetTester tester, [int count = 12]) async {
     for (var i = 0; i < count; i++) {

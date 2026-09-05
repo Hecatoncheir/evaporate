@@ -354,7 +354,8 @@ lighter orange because it labels status as well as outlining focus.
 
 The "Living library" settings card has individual switches for particles, waves,
 foil, tilt, Liquid Distortion, liquid selection, background colour flow and
-section fades. Particles default off; the other effects default on. The master
+section fades. Waves, foil, tilt and background colour flow default on; particles,
+Liquid Distortion, liquid selection and section fades default off. The master
 switch preserves individual choices. A perspective tilt repeats every 7 seconds,
 synchronized with the rainbow reflection and specular streak.
 The normal focus border stays; the selection backdrop flows between elements,
