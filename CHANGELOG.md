@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.22.2] — 2026-09-06
+
 ### Исправлено
 
 - Обновление по нажатию перестало спотыкаться о первую же папку в архиве.
@@ -728,6 +730,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.22.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.2
 [0.22.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.1
 [0.22.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.0
 [0.21.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.21.0
