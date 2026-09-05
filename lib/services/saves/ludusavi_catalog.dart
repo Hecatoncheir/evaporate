@@ -28,7 +28,8 @@ class LudusaviCatalog {
     ProxySettings Function()? proxy,
     this.onProgress,
     L Function()? localizations,
-  }) : _store = JsonStore(cacheFile),
+  }) : // Кэш читает только приложение: отступы в нём — лишняя треть файла.
+       _store = JsonStore(cacheFile, pretty: false),
        _localizations = localizations ?? _defaultLocalizations,
        _proxy = proxy ?? _noProxy {
     _fetch = fetch;

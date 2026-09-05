@@ -13,6 +13,7 @@ class AppSettings extends Equatable {
     this.syncFolder,
     this.autoExportToSync = true,
     this.autoSnapshotOnExit = true,
+    this.autoSnapshotOnLaunch = false,
     this.systemNotifications = true,
     this.launchAtStartup = false,
     this.windowStart = WindowStartMode.remembered,
@@ -47,6 +48,9 @@ class AppSettings extends Equatable {
 
   /// Глобальный дефолт: снимать сейв после выхода из игры.
   final bool autoSnapshotOnExit;
+
+  /// Глобальный дефолт: снимать сейв ещё и перед запуском игры.
+  final bool autoSnapshotOnLaunch;
 
   /// Системные уведомления о том, что закончилось в фоне: загрузка,
   /// неудавшийся автоснимок сохранений.
@@ -114,6 +118,7 @@ class AppSettings extends Equatable {
     Object? syncFolder = _u,
     bool? autoExportToSync,
     bool? autoSnapshotOnExit,
+    bool? autoSnapshotOnLaunch,
     bool? systemNotifications,
     bool? launchAtStartup,
     WindowStartMode? windowStart,
@@ -141,6 +146,7 @@ class AppSettings extends Equatable {
       syncFolder: syncFolder == _u ? this.syncFolder : syncFolder as String?,
       autoExportToSync: autoExportToSync ?? this.autoExportToSync,
       autoSnapshotOnExit: autoSnapshotOnExit ?? this.autoSnapshotOnExit,
+      autoSnapshotOnLaunch: autoSnapshotOnLaunch ?? this.autoSnapshotOnLaunch,
       systemNotifications: systemNotifications ?? this.systemNotifications,
       launchAtStartup: launchAtStartup ?? this.launchAtStartup,
       windowStart: windowStart ?? this.windowStart,
@@ -173,6 +179,7 @@ class AppSettings extends Equatable {
     if (syncFolder != null) 'syncFolder': syncFolder,
     'autoExportToSync': autoExportToSync,
     'autoSnapshotOnExit': autoSnapshotOnExit,
+    'autoSnapshotOnLaunch': autoSnapshotOnLaunch,
     'systemNotifications': systemNotifications,
     'launchAtStartup': launchAtStartup,
     'windowStart': windowStart.name,
@@ -204,6 +211,7 @@ class AppSettings extends Equatable {
     syncFolder: json['syncFolder'] as String?,
     autoExportToSync: json['autoExportToSync'] as bool? ?? true,
     autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
+    autoSnapshotOnLaunch: json['autoSnapshotOnLaunch'] as bool? ?? false,
     systemNotifications: json['systemNotifications'] as bool? ?? true,
     launchAtStartup: json['launchAtStartup'] as bool? ?? false,
     windowStart: _windowStartFromJson(json),
@@ -248,6 +256,7 @@ class AppSettings extends Equatable {
     syncFolder,
     autoExportToSync,
     autoSnapshotOnExit,
+    autoSnapshotOnLaunch,
     systemNotifications,
     launchAtStartup,
     windowStart,

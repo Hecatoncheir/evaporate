@@ -79,8 +79,24 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SnapshotImportRequested>(_onImportRequested);
     on<SnapshotExportRequested>(_onExportRequested);
     on<SnapshotDeleted>(_onSnapshotDeleted);
-    on<SteamLookupRequested>(_onSteamLookup);
-    on<SavePathsLookupRequested>(_onSavePathsLookup);
+    // По одному запросу за раз, а не все разом. Загрузка библиотеки
+    // ставит поиск метаданных каждой игре сразу, а Bloc по умолчанию
+    // обрабатывает события параллельно: сорок игр давали сорок
+    // одновременных соединений со Steam, каждое со своим HttpClient.
+    // Steam на такой залп отвечает отказом — и, поскольку маркер «уже
+    // пробовали» записан, игры оставались без обложек навсегда.
+    //
+    // Цена — очередь: ручной поиск, нажатый во время разбора большой
+    // библиотеки, дождётся своей очереди. Это лучше, чем залп, который
+    // не доходит ни для одной игры.
+    on<SteamLookupRequested>(
+      _onSteamLookup,
+      transformer: (events, mapper) => events.asyncExpand(mapper),
+    );
+    on<SavePathsLookupRequested>(
+      _onSavePathsLookup,
+      transformer: (events, mapper) => events.asyncExpand(mapper),
+    );
     on<SavePathsProgressChanged>(_onSavePathsProgress);
     on<SaveHintsRequested>(_onSaveHintsRequested);
     on<SaveHintsAccepted>(_onSaveHintsAccepted);
@@ -276,6 +292,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       status: event.status,
       saveProfile: SaveProfile(
         autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
+        autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
       ),
     );
     emit(state.copyWith(games: [...state.games, game]));
@@ -378,6 +395,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         // Файл мог быть уже удалён вручную.
       }
     }
+    await _collectGarbage();
     if (event.deleteFiles && game.installDir != null) {
       final dir = Directory(game.installDir!);
       // Не удаляем что-то за пределами папки установки — страховка от опечаток.
@@ -398,6 +416,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final key = launchKey(game.id);
     emit(state.copyWith(busy: _withBusy(key, true)));
     try {
+      await _snapshotBeforeLaunch(game, emit);
       await _launcher.launch(
         game,
         onExit: (exited, played, exitCode) => add(
@@ -469,6 +488,50 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Короче этого запуск не считаем игрой: сейвы за такое время не заводят.
   static const _shortestWatchedSession = Duration(seconds: 30);
+
+  /// Снимает сейв до того, как игра начнёт работать.
+  ///
+  /// Автоснимок после выхода бесполезен против игры, которая портит своё
+  /// сохранение при старте: к моменту выхода портить уже нечего, и снимок
+  /// закрепит испорченное. Поэтому снимаем именно до запуска и именно
+  /// дожидаясь: снимок, снятый параллельно со стартом игры, застаёт файлы
+  /// в неизвестном состоянии, а значит, не годится ни на что.
+  ///
+  /// Провал запускать не мешает: играть человек собрался, а резервная
+  /// копия — услуга, а не условие. Молча провалиться она при этом не
+  /// вправе — об этом сообщает система, как и о неудавшемся автоснимке
+  /// после выхода.
+  Future<void> _snapshotBeforeLaunch(
+    Game game,
+    Emitter<LibraryState> emit,
+  ) async {
+    final profile = game.saveProfile;
+    if (!profile.autoSnapshotOnLaunch) return;
+    if (!profile.isConfigured && game.ludusaviTemplates.isEmpty) return;
+
+    try {
+      final snapshot = await _saves.createSnapshot(
+        game,
+        origin: SnapshotOrigin.autoOnLaunch,
+      );
+      emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
+      await _prune(game.id, emit);
+      await persist();
+    } on SaveNothingFoundException {
+      // Сейвов ещё нет — первый запуск. Сохранять нечего, и это не беда.
+    } on Object catch (error) {
+      _notifySystem(
+        AppNotification(
+          title: _l.noticeSnapshotFailed,
+          body: _l.noticeSaveFailedBody(
+            game.title,
+            error is SaveException ? error.message : error.toString(),
+          ),
+          kind: NotificationKind.saveFailed,
+        ),
+      );
+    }
+  }
 
   void _onRunningGamesChanged(
     RunningGamesChanged event,
@@ -588,7 +651,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
                 ),
         ),
       );
-      await _prune(game, emit);
+      await _prune(game.id, emit);
       await persist();
     } on SaveException catch (error) {
       if (silent) {
@@ -623,15 +686,24 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     return snapshots;
   }
 
-  Future<void> _prune(Game game, Emitter<LibraryState> emit) async {
-    final keep = game.saveProfile.keepSnapshots;
-    if (keep <= 0) return;
-    final list = state.snapshots[game.id];
+  /// Оставляет игре столько снимков, сколько разрешено её профилем.
+  ///
+  /// По идентификатору, а не по объекту игры: зовётся отовсюду, где снимок
+  /// попадает в состояние, а свежую игру там под рукой держат не все.
+  /// Путей этих шесть — ручной снимок, автоснимок, резервная копия перед
+  /// восстановлением, импорт пакета, массовый перенос и применение из папки
+  /// синхронизации, — и раньше ротация случалась только на первых двух.
+  /// Диск от остальных рос молча, причём быстрее всего у того, кто и правда
+  /// возит сейвы между машинами.
+  Future<void> _prune(String gameId, Emitter<LibraryState> emit) async {
+    final keep = state.gameById(gameId)?.saveProfile.keepSnapshots;
+    if (keep == null || keep <= 0) return;
+    final list = state.snapshots[gameId];
     if (list == null || list.length <= keep) return;
 
     final excess = list.sublist(keep);
     final snapshots = Map<String, List<SaveSnapshot>>.from(state.snapshots);
-    snapshots[game.id] = list.sublist(0, keep);
+    snapshots[gameId] = list.sublist(0, keep);
     emit(state.copyWith(snapshots: snapshots));
 
     for (final snapshot in excess) {
@@ -640,6 +712,22 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       } on Object {
         // Пропускаем: ротация не критична.
       }
+    }
+    await _collectGarbage();
+  }
+
+  /// Убирает содержимое снимков, на которое больше никто не ссылается.
+  ///
+  /// Хранилище общее для всех игр, а список живых ссылок целиком виден
+  /// только отсюда: снимок можно выкинуть у одной игры, а его файлы —
+  /// оставаться нужными другой, если обе привезли один и тот же пакет.
+  Future<void> _collectGarbage() async {
+    try {
+      await _saves.collectGarbage(
+        state.snapshots.values.expand((list) => list),
+      );
+    } on Object {
+      // Уборка — дело подсобное: не вышло, значит место освободится позже.
     }
   }
 
@@ -675,6 +763,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
                 ),
         ),
       );
+      await _prune(event.game.id, emit);
       await persist();
     } on Object catch (error) {
       emit(
@@ -701,6 +790,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           notice: _notice(_l.noticeSnapshotImported),
         ),
       );
+      await _prune(event.game.id, emit);
       await persist();
     } on Object catch (error) {
       emit(
@@ -743,6 +833,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
     }
+    await _collectGarbage();
     await persist();
   }
 
@@ -1125,6 +1216,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           emit(state.copyWith(snapshots: _withSnapshot(snapshot))),
     );
 
+    await _pruneAll(emit);
     await persist();
     emit(
       state.copyWith(
@@ -1133,6 +1225,17 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         notice: _notice(result.message, isError: result.isError),
       ),
     );
+  }
+
+  /// Ротация по всей библиотеке разом.
+  ///
+  /// Массовый перенос кладёт снимки колбэком, из чужого кода, — там их не
+  /// почистить: колбэк синхронный, а удаление файлов нет. Поэтому чистим
+  /// после, одним проходом.
+  Future<void> _pruneAll(Emitter<LibraryState> emit) async {
+    for (final id in state.games.map((game) => game.id).toList()) {
+      await _prune(id, emit);
+    }
   }
 
   Future<void> _onBulkImport(
@@ -1162,6 +1265,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       return;
     }
 
+    await _pruneAll(emit);
     await persist();
     emit(
       state.copyWith(
@@ -1230,6 +1334,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
                 ),
         ),
       );
+      await _prune(event.game.id, emit);
       await persist();
     } on Object catch (error) {
       emit(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -320,26 +321,32 @@ class _AutoSnapshotToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final library = context.read<LibraryBloc>();
-    return Row(
-      children: [
-        Switch(
-          value: game.saveProfile.autoSnapshotOnExit,
-          onChanged: (value) => library.add(
-            GameUpdated(
-              game.copyWith(
-                saveProfile: game.saveProfile.copyWith(
-                  autoSnapshotOnExit: value,
-                ),
+
+    Widget row(String label, bool value, SaveProfile Function(bool) apply) =>
+        Row(
+          children: [
+            Switch(
+              value: value,
+              onChanged: (next) => library.add(
+                GameUpdated(game.copyWith(saveProfile: apply(next))),
               ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(label, style: TextStyle(fontSize: 13))),
+          ],
+        );
+
+    return Column(
+      children: [
+        row(
+          L.of(context).autoSnapshotOnExit,
+          game.saveProfile.autoSnapshotOnExit,
+          (next) => game.saveProfile.copyWith(autoSnapshotOnExit: next),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            L.of(context).autoSnapshotOnExit,
-            style: TextStyle(fontSize: 13),
-          ),
+        row(
+          L.of(context).autoSnapshotOnLaunch,
+          game.saveProfile.autoSnapshotOnLaunch,
+          (next) => game.saveProfile.copyWith(autoSnapshotOnLaunch: next),
         ),
       ],
     );
@@ -969,6 +976,45 @@ class _RestoreDialogState extends State<_RestoreDialog> {
   bool _backup = true;
   bool _wipe = false;
 
+  /// Когда здешние сохранения менялись в последний раз.
+  ///
+  /// Читается с диска, поэтому появляется не сразу: до ответа строку не
+  /// показываем вовсе — «неизвестно» здесь хуже молчания.
+  DateTime? _localChange;
+  bool _localRead = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_readLocalChange());
+  }
+
+  Future<void> _readLocalChange() async {
+    final manager = context.read<LibraryBloc>().saveManager;
+    try {
+      final when = await manager.lastLocalChange(widget.game);
+      if (mounted) setState(() => _localChange = when);
+    } on Object {
+      // Не прочиталось — просто не покажем строку.
+    } finally {
+      if (mounted) setState(() => _localRead = true);
+    }
+  }
+
+  /// Здешние сохранения новее снимка настолько, что восстановление —
+  /// это откат прогресса.
+  ///
+  /// Допуск тот же, что и у массового переноса: часы разных устройств
+  /// расходятся, а время изменения файла хранится с разной точностью на
+  /// разных файловых системах.
+  bool get _localIsNewer {
+    final local = _localChange;
+    if (local == null) return false;
+    return local.isAfter(
+      widget.snapshot.createdAt.add(LibraryBloc.conflictTolerance),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final targets = _resolveTargets();
@@ -991,6 +1037,37 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                   ),
               style: const TextStyle(fontSize: 13, height: 1.5),
             ),
+            // Массовый перенос такие расхождения ловит сам, а здесь до сих
+            // пор молчали — притом что восстановить одну игру просят чаще,
+            // чем переехать всей библиотекой.
+            if (_localRead) ...[
+              const SizedBox(height: 6),
+              Text(
+                _localChange == null
+                    ? L.of(context).localNeverChanged
+                    : L
+                          .of(context)
+                          .localChangedAt(formatDateTime(_localChange!)),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: _localIsNewer
+                      ? context.colors.warning
+                      : context.colors.textSecondary,
+                ),
+              ),
+              if (_localIsNewer) ...[
+                const SizedBox(height: 4),
+                Text(
+                  L.of(context).localNewerWarning,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.warning,
+                  ),
+                ),
+              ],
+            ],
             const SizedBox(height: 14),
             Text(
               L.of(context).filesGoHere,

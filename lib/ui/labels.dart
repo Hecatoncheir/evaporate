@@ -87,6 +87,7 @@ String speedLabel(L l, num bytesPerSecond) =>
 String snapshotOriginLabel(L l, SnapshotOrigin origin) => switch (origin) {
   SnapshotOrigin.manual => l.originManual,
   SnapshotOrigin.autoOnExit => l.originAutoOnExit,
+  SnapshotOrigin.autoOnLaunch => l.originAutoOnLaunch,
   SnapshotOrigin.imported => l.originImported,
   SnapshotOrigin.preRestore => l.originPreRestore,
 };

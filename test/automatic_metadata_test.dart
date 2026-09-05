@@ -211,6 +211,40 @@ void main() {
     },
   );
 
+  // Загрузка библиотеки ставит поиск метаданных каждой игре сразу, а Bloc
+  // по умолчанию обрабатывает события параллельно. Сорок игр давали сорок
+  // одновременных соединений со Steam, каждое со своим HttpClient, — залп,
+  // на который Steam отвечает отказом. А маркер «уже пробовали» к тому
+  // моменту записан, и без обложек игры остаются навсегда.
+  test('поиск метаданных идёт по одной игре, а не залпом', () async {
+    steam.pending = Completer<SteamGame?>();
+    for (var i = 0; i < 5; i++) {
+      library.add(
+        GameAdded(
+          id: 'game-$i',
+          title: 'Игра $i',
+          installDir: paths.defaultInstallDir,
+          status: GameStatus.installed,
+        ),
+      );
+    }
+    await _wait(library, (s) => s.games.length == 5);
+    // Счётчик живёт в подделке, а не в состоянии, поэтому ждём опросом,
+    // а не подпиской на поток: нужного состояния может уже не прийти.
+    await _settle(() async => steam.calls >= 1);
+
+    // Первый запрос ещё висит — значит, остальные не ушли следом.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(steam.calls, 1);
+
+    // Отпускаем — очередь двигается дальше.
+    steam.pending!.complete(null);
+    steam.pending = null;
+    await _settle(() async => steam.calls >= 5);
+    expect(steam.calls, 5);
+    expect(library.state.games.every((g) => g.steamLookupAttempted), isTrue);
+  });
+
   test('failed Steam request survives restart; manual request retries both catalogs', () async {
     steam.fail = true;
     await add();

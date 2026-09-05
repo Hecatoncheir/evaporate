@@ -4,7 +4,7 @@ import 'dart:io';
 /// Простое JSON-хранилище с атомарной записью: пишем во временный файл и
 /// переименовываем, чтобы падение посреди записи не убило библиотеку.
 class JsonStore {
-  JsonStore(this.path, {this.private = false});
+  JsonStore(this.path, {this.private = false, this.pretty = true});
 
   final String path;
 
@@ -16,6 +16,14 @@ class JsonStore {
   /// лежит под чужими глазами. На Windows права устроены иначе, и там это
   /// ничего не меняет.
   final bool private;
+
+  /// Писать ли с отступами.
+  ///
+  /// По умолчанию да: библиотеку и настройки полезно читать глазами, а
+  /// весят они килобайты. Кэш базы путей — другое дело: там десятки тысяч
+  /// записей, отступы прибавляют к файлу около трети, и разбирает его
+  /// только само приложение.
+  final bool pretty;
 
   String? recoveryPath;
 
@@ -81,7 +89,9 @@ class JsonStore {
     final tmp = File('$path.${DateTime.now().microsecondsSinceEpoch}.tmp');
     try {
       await tmp.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(data),
+        pretty
+            ? const JsonEncoder.withIndent('  ').convert(data)
+            : jsonEncode(data),
         flush: true,
       );
       if (private && !Platform.isWindows) {

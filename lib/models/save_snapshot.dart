@@ -1,3 +1,4 @@
+import '../services/saves/snapshot_store.dart';
 import 'save_profile.dart';
 
 /// Снимок сохранений: zip-архив в хранилище приложения плюс метаданные.
@@ -17,6 +18,7 @@ class SaveSnapshot {
     this.note,
     this.fileCount = 0,
     this.origin = SnapshotOrigin.manual,
+    this.blobs = const [],
   });
 
   final String id;
@@ -26,7 +28,20 @@ class SaveSnapshot {
   final String deviceName;
   final String platform;
   final int sizeBytes;
+
+  /// Путь к собственному архиву снимка.
+  ///
+  /// Пуст у снимков, которые лежат в хранилище по содержимому: у них файла
+  /// нет вовсе, а пакет собирается из [blobs] по требованию. Непустым он
+  /// остаётся у снятых до появления хранилища — их не переписываем, они
+  /// уходят сами по мере ротации.
   final String archivePath;
+
+  /// Файлы снимка, найденные по содержимому. Пусто у старых снимков.
+  final List<SnapshotBlob> blobs;
+
+  /// Хранится ли снимок по содержимому, а не своим архивом.
+  bool get isDeduplicated => blobs.isNotEmpty;
 
   /// Правила путей на момент снимка — нужны, чтобы разложить файлы обратно
   /// даже если игра пришла на новое устройство вместе с сейвом.
@@ -36,7 +51,11 @@ class SaveSnapshot {
   final int fileCount;
   final SnapshotOrigin origin;
 
-  SaveSnapshot copyWith({String? archivePath, String? note}) => SaveSnapshot(
+  SaveSnapshot copyWith({
+    String? archivePath,
+    String? note,
+    List<SnapshotBlob>? blobs,
+  }) => SaveSnapshot(
     id: id,
     gameId: gameId,
     gameTitle: gameTitle,
@@ -50,6 +69,7 @@ class SaveSnapshot {
     note: note ?? this.note,
     fileCount: fileCount,
     origin: origin,
+    blobs: blobs ?? this.blobs,
   );
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +86,7 @@ class SaveSnapshot {
     if (note != null) 'note': note,
     'fileCount': fileCount,
     'origin': origin.name,
+    if (blobs.isNotEmpty) 'blobs': blobs.map((blob) => blob.toJson()).toList(),
   };
 
   factory SaveSnapshot.fromJson(Map<String, dynamic> json) => SaveSnapshot(
@@ -88,6 +109,9 @@ class SaveSnapshot {
       (o) => o.name == json['origin'],
       orElse: () => SnapshotOrigin.manual,
     ),
+    blobs: (json['blobs'] as List<dynamic>? ?? const [])
+        .map((e) => SnapshotBlob.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 
   /// Манифест внутри архива — то, что читает другое устройство при импорте.
@@ -123,13 +147,14 @@ class SaveSnapshot {
   static const fileExtension = '.evsave';
 }
 
-enum SnapshotOrigin { manual, autoOnExit, imported, preRestore }
+enum SnapshotOrigin { manual, autoOnExit, autoOnLaunch, imported, preRestore }
 
 extension SnapshotOriginLabel on SnapshotOrigin {
   /// Для журналов. В интерфейсе — `snapshotOriginLabel`.
   String get label => switch (this) {
     SnapshotOrigin.manual => 'Вручную',
     SnapshotOrigin.autoOnExit => 'Авто после игры',
+    SnapshotOrigin.autoOnLaunch => 'Авто перед запуском',
     SnapshotOrigin.imported => 'Импорт',
     SnapshotOrigin.preRestore => 'Бэкап перед откатом',
   };

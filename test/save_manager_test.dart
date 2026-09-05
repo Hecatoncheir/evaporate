@@ -70,7 +70,12 @@ void main() {
       final snapshot = await manager.createSnapshot(game);
 
       expect(snapshot.fileCount, 2);
-      expect(File(snapshot.archivePath).existsSync(), isTrue);
+      // Своего архива у снимка нет: содержимое лежит в общем хранилище.
+      expect(snapshot.isDeduplicated, isTrue);
+      expect(snapshot.archivePath, isEmpty);
+      for (final blob in snapshot.blobs) {
+        expect(manager.store.fileFor(blob.hash).existsSync(), isTrue);
+      }
 
       // Играем дальше и портим сейв.
       await File(p.join(saves.path, 'slot1.sav'))
@@ -490,12 +495,15 @@ void main() {
     }
     expect(payload, greaterThanOrEqualTo(0));
     bytes[payload] = 9;
-    await File(snapshot.archivePath).writeAsBytes(bytes);
+    // Битый пакет подкладываем как снимок со своим архивом: так лежат
+    // снятые до появления хранилища, и разбирает их тот же самый код.
+    final broken = p.join(tmp.path, 'broken${SaveSnapshot.fileExtension}');
+    await File(broken).writeAsBytes(bytes);
 
     await expectLater(
       manager.restoreSnapshot(
         game: game,
-        snapshot: snapshot,
+        snapshot: snapshot.copyWith(archivePath: broken, blobs: const []),
         backupCurrent: false,
         wipeTarget: true,
       ),
@@ -520,8 +528,11 @@ void main() {
         ],
       );
       final snapshot = await manager.createSnapshot(game);
+      // Пакет собирается по требованию: у снимка своего файла больше нет.
+      final exported = p.join(tmp.path, 'п${SaveSnapshot.fileExtension}');
+      await manager.exportSnapshot(snapshot, exported);
 
-      final info = await manager.inspectPackage(snapshot.archivePath);
+      final info = await manager.inspectPackage(exported);
 
       expect(info.snapshot.gameTitle, 'Инспектируемая');
       expect(info.snapshot.fileCount, 1);
@@ -529,7 +540,7 @@ void main() {
     },
   );
 
-  test('оборвавшийся снимок не оставляет недописанный архив', () async {
+  test('оборвавшаяся выгрузка не оставляет недописанный пакет', () async {
     final saves = await writeSaves('partial', {
       'slot1.sav': 'первый',
       'slot2.sav': 'второй',
@@ -550,19 +561,162 @@ void main() {
         return encoder.addFile(file, name);
       },
     );
+    final snapshot = await failing.createSnapshot(game);
+    final destination = p.join(tmp.path, 'вывоз${SaveSnapshot.fileExtension}');
 
     await expectLater(
-      failing.createSnapshot(game),
+      failing.exportSnapshot(snapshot, destination),
       throwsA(isA<FileSystemException>()),
     );
 
-    // Снимок наверх не вернулся, в состоянии его нет — значит, и на диске
-    // остаться нечему.
-    final dir = Directory(paths.snapshotDirFor(game.id));
-    final left = await dir.exists()
-        ? dir.listSync().map((e) => p.basename(e.path)).toList()
-        : <String>[];
-    expect(left, isEmpty);
+    // Наружу пакет не вернулся, и половина его на диске никому не нужна:
+    // отличить её от целого нечем, а место она занимает то же.
+    expect(File(destination).existsSync(), isFalse);
+  });
+
+  group('хранилище по содержимому', () {
+    Future<SaveSnapshot> snapshotOf(Directory saves, String id) =>
+        manager.createSnapshot(
+          gameWith(
+            id: id,
+            title: 'Игра',
+            rules: [
+              SavePathRule(
+                id: 'rule-1',
+                label: SavePathRule.defaultLabel,
+                template: saves.path,
+              ),
+            ],
+          ),
+        );
+
+    /// Сколько файлов лежит в хранилище содержимого.
+    int blobsOnDisk() {
+      final dir = Directory(paths.blobsDir);
+      if (!dir.existsSync()) return 0;
+      return dir.listSync(recursive: true).whereType<File>().length;
+    }
+
+    // Двадцать снимков одной игры — это двадцать полных копий её сейвов,
+    // хотя между соседними меняется обычно один файл.
+    test('неизменившиеся файлы лежат на диске один раз', () async {
+      final saves = await writeSaves('dedup', {
+        'big.sav': 'то, что не меняется' * 100,
+        'slot.sav': 'первый',
+      });
+
+      final first = await snapshotOf(saves, 'g1');
+      expect(blobsOnDisk(), 2);
+
+      await File(p.join(saves.path, 'slot.sav')).writeAsString('второй');
+      final second = await snapshotOf(saves, 'g1');
+
+      // Прибавился ровно один файл — изменившийся.
+      expect(blobsOnDisk(), 3);
+      expect(second.fileCount, 2);
+
+      // Ссылки обоих снимков указывают на неизменившийся файл — один и
+      // тот же, а не на две его копии.
+      final shared = first.blobs
+          .map((b) => b.hash)
+          .toSet()
+          .intersection(second.blobs.map((b) => b.hash).toSet());
+      expect(shared, hasLength(1));
+    });
+
+    test('одинаковые сейвы разных игр делят одно содержимое', () async {
+      final a = await writeSaves('игра-а', {'slot.sav': 'ровно то же самое'});
+      final b = await writeSaves('игра-б', {'slot.sav': 'ровно то же самое'});
+
+      await snapshotOf(a, 'g1');
+      await snapshotOf(b, 'g2');
+
+      expect(blobsOnDisk(), 1);
+    });
+
+    // Содержимое общее, поэтому удалять его вместе со снимком нельзя:
+    // на него может ссылаться соседний.
+    test('уборка не трогает содержимое, нужное живому снимку', () async {
+      final saves = await writeSaves('gc', {'a.sav': 'общее', 'b.sav': 'своё'});
+      final first = await snapshotOf(saves, 'g1');
+      await File(p.join(saves.path, 'b.sav')).writeAsString('другое своё');
+      final second = await snapshotOf(saves, 'g1');
+      expect(blobsOnDisk(), 3);
+
+      await manager.deleteSnapshot(first);
+      final freed = await manager.collectGarbage([second]);
+
+      expect(blobsOnDisk(), 2);
+      expect(freed, greaterThan(0));
+      for (final blob in second.blobs) {
+        expect(manager.store.fileFor(blob.hash).existsSync(), isTrue);
+      }
+    });
+
+    test('уборка без единого живого снимка выносит всё', () async {
+      final saves = await writeSaves('gc2', {'a.sav': 'x'});
+      await snapshotOf(saves, 'g1');
+      expect(blobsOnDisk(), 1);
+
+      await manager.collectGarbage(const []);
+
+      expect(blobsOnDisk(), 0);
+    });
+
+    // Формат пакета от дедупликации не меняется ни на байт: его уносят на
+    // другую машину и читают чужие сборки, которые про хранилище не знают.
+    test('выгруженный пакет остаётся самодостаточным', () async {
+      final saves = await writeSaves('portable', {
+        'slot.sav': 'прогресс',
+        'meta/p.json': '{}',
+      });
+      final snapshot = await snapshotOf(saves, 'g1');
+      final exported = p.join(tmp.path, 'вывоз${SaveSnapshot.fileExtension}');
+      await manager.exportSnapshot(snapshot, exported);
+
+      // Хранилище выносим целиком — пакет обязан пережить это без потерь.
+      await Directory(paths.blobsDir).delete(recursive: true);
+
+      final info = await manager.inspectPackage(exported);
+      expect(info.snapshot.fileCount, 2);
+      expect(info.isCompatible, isTrue);
+    });
+
+    // Снимки, снятые до появления хранилища, лежат своими архивами и
+    // обязаны продолжать работать: их не переписывают, они уходят сами.
+    test('снимок со своим архивом восстанавливается по-прежнему', () async {
+      final saves = await writeSaves('старый', {'slot.sav': 'исходное'});
+      final game = gameWith(
+        id: 'старый',
+        title: 'Игра',
+        rules: [
+          SavePathRule(
+            id: 'rule-1',
+            label: SavePathRule.defaultLabel,
+            template: saves.path,
+          ),
+        ],
+      );
+      final fresh = await manager.createSnapshot(game);
+      final archive = p.join(tmp.path, 'старый${SaveSnapshot.fileExtension}');
+      await manager.exportSnapshot(fresh, archive);
+      final legacy = fresh.copyWith(archivePath: archive, blobs: const []);
+
+      await Directory(paths.blobsDir).delete(recursive: true);
+      await File(p.join(saves.path, 'slot.sav')).writeAsString('испорчено');
+
+      final report = await manager.restoreSnapshot(
+        game: game,
+        snapshot: legacy,
+        backupCurrent: false,
+      );
+
+      expect(report.isComplete, isTrue);
+      expect(
+        await File(p.join(saves.path, 'slot.sav')).readAsString(),
+        'исходное',
+      );
+    });
   });
 }
 

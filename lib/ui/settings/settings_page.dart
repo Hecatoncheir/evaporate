@@ -287,6 +287,20 @@ class SettingsPage extends StatelessWidget {
                   style: TextStyle(fontSize: 12),
                 ),
               ),
+              SwitchListTile(
+                value: settings.autoSnapshotOnLaunch,
+                onChanged: (value) =>
+                    update(settings.copyWith(autoSnapshotOnLaunch: value)),
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  L.of(context).snapshotOnLaunch,
+                  style: TextStyle(fontSize: 13),
+                ),
+                subtitle: Text(
+                  L.of(context).autoSnapshotOnLaunchNote,
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
             ],
           ),
         ),

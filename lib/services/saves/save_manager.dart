@@ -12,6 +12,7 @@ import '../../core/format.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
+import 'snapshot_store.dart';
 
 part 'restore_transaction.dart';
 
@@ -82,7 +83,14 @@ class SaveManager {
   }) : _paths = paths ?? AppPaths.instance,
        _renameForRestore = renameForRestore ?? _rename,
        _addToArchive = addToArchive ?? _addFile,
-       _localizations = localizations ?? _defaultLocalizations;
+       _localizations = localizations ?? _defaultLocalizations,
+       store = SnapshotStore(root: (paths ?? AppPaths.instance).blobsDir);
+
+  /// Хранилище файлов снимков по содержимому.
+  ///
+  /// Открыто наружу: уборку неиспользуемого запускает библиотека — только
+  /// она знает полный список живых снимков.
+  final SnapshotStore store;
 
   final AppPaths _paths;
   // Подмена файловой операции позволяет проверять откат при сбое на
@@ -164,15 +172,17 @@ class SaveManager {
     }
 
     final id = _uuid.v4();
-    final dir = Directory(_paths.snapshotDirFor(game.id));
-    await dir.create(recursive: true);
     final stamp = DateTime.now();
-    final archivePath = p.join(
-      dir.path,
-      '${_timestampSlug(stamp)}-${id.substring(0, 8)}${SaveSnapshot.fileExtension}',
-    );
 
-    final snapshot = SaveSnapshot(
+    // Своего архива у снимка нет: файлы уходят в хранилище по содержимому,
+    // а пакет собирается из ссылок, когда его просят унести наружу.
+    // Одинаковые файлы соседних снимков при этом лежат на диске один раз.
+    final blobs = <SnapshotBlob>[];
+    for (final entry in entries) {
+      blobs.add(await store.put(entry.archiveName, File(entry.sourcePath)));
+    }
+
+    return SaveSnapshot(
       id: id,
       gameId: game.id,
       gameTitle: game.title,
@@ -180,16 +190,27 @@ class SaveManager {
       deviceName: currentDeviceName(),
       platform: currentPlatformKey(),
       sizeBytes: totalBytes,
-      archivePath: archivePath,
+      archivePath: '',
       rules: usedRules,
       playtime: game.playtime,
       note: note,
       fileCount: entries.length,
       origin: origin,
+      blobs: blobs,
     );
+  }
+
+  /// Собирает настоящий `.evsave` из ссылок на содержимое.
+  ///
+  /// Пакет обязан оставаться самодостаточным zip: его уносят на другую
+  /// машину и читают чужие сборки, которые про здешнее хранилище ничего не
+  /// знают и знать не должны.
+  Future<File> _materialize(SaveSnapshot snapshot, String destination) async {
+    final target = File(destination);
+    await target.parent.create(recursive: true);
 
     final encoder = ZipFileEncoder();
-    encoder.create(archivePath);
+    encoder.create(destination);
     var complete = false;
     try {
       encoder.addArchiveFile(
@@ -198,26 +219,33 @@ class SaveManager {
           const JsonEncoder.withIndent('  ').convert(snapshot.toManifest()),
         ),
       );
-      for (final entry in entries) {
-        await _addToArchive(encoder, File(entry.sourcePath), entry.archiveName);
+      // Содержимое в хранилище лежит сжатым, а zip-упаковщику нужен
+      // обычный файл — распаковываем по одному, а не всё разом: снимок
+      // может весить гигабайты, и держать их в памяти нечем.
+      for (final blob in snapshot.blobs) {
+        if (!await store.fileFor(blob.hash).exists()) {
+          throw SaveException(_l.saveArchiveMissing(blob.name));
+        }
+        final staged = File('$destination.${blob.hash}.part');
+        try {
+          await store.extractTo(blob.hash, staged.path);
+          await _addToArchive(encoder, staged, blob.name);
+        } finally {
+          if (await staged.exists()) await staged.delete();
+        }
       }
       complete = true;
     } finally {
       await encoder.close();
-      // Оборвавшийся снимок наверх не возвращается, и в состояние он не
-      // попадает — значит, удалить недописанный архив больше некому, а
-      // места он занимает столько же, сколько удавшийся.
       if (!complete) {
         try {
-          final partial = File(archivePath);
-          if (await partial.exists()) await partial.delete();
+          if (await target.exists()) await target.delete();
         } on FileSystemException {
           // Уборка не удалась — исходную ошибку подменять этим не станем.
         }
       }
     }
-
-    return snapshot;
+    return target;
   }
 
   /// Когда сохранения игры в последний раз менялись на этом устройстве.
@@ -309,7 +337,17 @@ class SaveManager {
     bool backupCurrent = true,
     bool wipeTarget = false,
   }) async {
-    final archive = await _openArchive(snapshot.archivePath);
+    // Снимок из хранилища по содержимому своего архива не имеет, поэтому
+    // собираем временный. Разбирать его дальше будет тот же самый код:
+    // раскладка файлов по целям — самое опасное место приложения, и
+    // заводить ей вторую реализацию ради экономии временного файла значило
+    // бы удвоить то, что обязано быть одним.
+    final source = snapshot.isDeduplicated
+        ? await _materialize(snapshot, _temporaryPackagePath(snapshot))
+        : null;
+    final path = source?.path ?? snapshot.archivePath;
+
+    final archive = await _openArchive(path);
     try {
       return await _restoreFrom(
         archive: archive,
@@ -321,8 +359,16 @@ class SaveManager {
     } finally {
       // Освобождаем файловые хендлы, которые держит распакованный архив.
       await archive.clear();
+      if (source != null && await source.exists()) await source.delete();
     }
   }
+
+  /// Куда собрать пакет, который нужен только на время операции.
+  String _temporaryPackagePath(SaveSnapshot snapshot) => p.join(
+    _paths.snapshotDirFor(snapshot.gameId),
+    '.${snapshot.id}-${DateTime.now().microsecondsSinceEpoch}'
+    '${SaveSnapshot.fileExtension}',
+  );
 
   Future<RestoreReport> _restoreFrom({
     required Archive archive,
@@ -435,6 +481,11 @@ class SaveManager {
     SaveSnapshot snapshot,
     String destinationPath,
   ) async {
+    // Снимок из хранилища собирается сразу по назначению: лишней копии
+    // здесь не нужно, а пакет всё равно пишется целиком.
+    if (snapshot.isDeduplicated) {
+      return _materialize(snapshot, destinationPath);
+    }
     final source = File(snapshot.archivePath);
     if (!await source.exists()) {
       throw SaveException(_l.saveArchiveMissing(snapshot.archivePath));
@@ -488,15 +539,41 @@ class SaveManager {
   Future<SaveSnapshot> importPackage(String path, {required Game game}) async {
     final info = await inspectPackage(path);
     final id = _uuid.v4();
+
+    // Пакет разбираем в хранилище, а не кладём копией: чужой снимок часто
+    // повторяет здешние почти целиком — привезли ту же игру с другой
+    // машины, — и класть его отдельным архивом значит хранить одно и то же
+    // дважды. Содержимое переливаем через временный файл, а не читаем в
+    // память: пакет может весить гигабайты.
     final dir = Directory(_paths.snapshotDirFor(game.id));
     await dir.create(recursive: true);
-    final target = p.join(
-      dir.path,
-      '${_timestampSlug(info.snapshot.createdAt)}-imported-'
-      '$id'
-      '${SaveSnapshot.fileExtension}',
-    );
-    await File(path).copy(target);
+    final blobs = <SnapshotBlob>[];
+
+    final archive = await _openArchive(path);
+    try {
+      for (final file in archive.files) {
+        if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
+        if (_parseEntryName(file.name) == null) continue;
+        final tmp = File(
+          p.join(dir.path, '.import-${DateTime.now().microsecondsSinceEpoch}'),
+        );
+        final output = OutputFileStream(tmp.path);
+        try {
+          file.writeContent(output);
+        } finally {
+          await output.close();
+        }
+        try {
+          blobs.add(await store.put(file.name, tmp));
+        } finally {
+          if (await tmp.exists()) await tmp.delete();
+        }
+      }
+    } finally {
+      await archive.clear();
+    }
+
+    if (blobs.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
 
     return SaveSnapshot(
       id: id,
@@ -506,19 +583,35 @@ class SaveManager {
       deviceName: info.snapshot.deviceName,
       platform: info.snapshot.platform,
       sizeBytes: info.snapshot.sizeBytes,
-      archivePath: target,
+      archivePath: '',
       rules: info.snapshot.rules,
       playtime: info.snapshot.playtime,
       note: info.snapshot.note,
       fileCount: info.snapshot.fileCount,
       origin: SnapshotOrigin.imported,
+      blobs: blobs,
     );
   }
 
+  /// Убирает снимок.
+  ///
+  /// У снимка из хранилища удалять нечего: его содержимое может быть общим
+  /// с соседними снимками, и разбирается с этим уборка — [SnapshotStore.collect],
+  /// которой библиотека передаёт полный список живых ссылок.
   Future<void> deleteSnapshot(SaveSnapshot snapshot) async {
+    if (snapshot.isDeduplicated) return;
     final file = File(snapshot.archivePath);
     if (await file.exists()) await file.delete();
   }
+
+  /// Убирает содержимое, на которое больше никто не ссылается.
+  ///
+  /// Список живых ссылок собирает библиотека: только она видит все снимки
+  /// всех игр разом, а хранилище — общее для них.
+  Future<int> collectGarbage(Iterable<SaveSnapshot> alive) => store.collect({
+    for (final snapshot in alive)
+      for (final blob in snapshot.blobs) blob.hash,
+  });
 
   /// Сканирует папку синхронизации (Dropbox, Syncthing, iCloud) на пакеты
   /// с других устройств.
@@ -570,12 +663,6 @@ class SaveManager {
     if (parts.length < 3) return null;
     if (parts.first != SaveSnapshot.dataPrefix) return null;
     return _EntryName(parts[1], parts.sublist(2).join('/'));
-  }
-
-  static String _timestampSlug(DateTime value) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${value.year}${two(value.month)}${two(value.day)}'
-        '-${two(value.hour)}${two(value.minute)}${two(value.second)}';
   }
 }
 

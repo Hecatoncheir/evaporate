@@ -141,6 +141,7 @@ class SaveProfile {
   const SaveProfile({
     this.rules = const [],
     this.autoSnapshotOnExit = true,
+    this.autoSnapshotOnLaunch = false,
     this.keepSnapshots = 20,
   });
 
@@ -148,6 +149,14 @@ class SaveProfile {
 
   /// Снимать сейв автоматически после выхода из игры.
   final bool autoSnapshotOnExit;
+
+  /// Снимать сейв ещё и перед запуском.
+  ///
+  /// Снимок после выхода не спасает от игры, которая портит собственное
+  /// сохранение при старте: к моменту выхода портить уже нечего. По
+  /// умолчанию выключено — лишний снимок на каждый запуск нужен не всем,
+  /// а место он занимает.
+  final bool autoSnapshotOnLaunch;
 
   /// Сколько снапшотов держать на диске; старые ротируются.
   final int keepSnapshots;
@@ -160,11 +169,13 @@ class SaveProfile {
   SaveProfile copyWith({
     List<SavePathRule>? rules,
     bool? autoSnapshotOnExit,
+    bool? autoSnapshotOnLaunch,
     int? keepSnapshots,
   }) {
     return SaveProfile(
       rules: rules ?? this.rules,
       autoSnapshotOnExit: autoSnapshotOnExit ?? this.autoSnapshotOnExit,
+      autoSnapshotOnLaunch: autoSnapshotOnLaunch ?? this.autoSnapshotOnLaunch,
       keepSnapshots: keepSnapshots ?? this.keepSnapshots,
     );
   }
@@ -172,6 +183,7 @@ class SaveProfile {
   Map<String, dynamic> toJson() => {
     'rules': rules.map((r) => r.toJson()).toList(),
     'autoSnapshotOnExit': autoSnapshotOnExit,
+    'autoSnapshotOnLaunch': autoSnapshotOnLaunch,
     'keepSnapshots': keepSnapshots,
   };
 
@@ -180,6 +192,7 @@ class SaveProfile {
         .map((e) => SavePathRule.fromJson(e as Map<String, dynamic>))
         .toList(),
     autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
+    autoSnapshotOnLaunch: json['autoSnapshotOnLaunch'] as bool? ?? false,
     keepSnapshots: json['keepSnapshots'] as int? ?? 20,
   );
 }

@@ -39,6 +39,7 @@ class AppPaths {
       defaultInstallDir: p.join(home, 'Games', 'Evaporate'),
     );
     await Directory(paths.savesDir).create(recursive: true);
+    await Directory(paths.blobsDir).create(recursive: true);
     await Directory(paths.coversDir).create(recursive: true);
     await Directory(paths.torrentsDir).create(recursive: true);
     _instance = paths;
@@ -50,7 +51,17 @@ class AppPaths {
   String get settingsFile => p.join(dataDir, 'settings.json');
 
   /// Архивы снапшотов сейвов: `saves/<gameId>/<snapshotId>.evsave`.
+  ///
+  /// Так лежат снимки, снятые до появления хранилища по содержимому. Новые
+  /// хранятся в [blobsDir] и своего архива не имеют.
   String get savesDir => p.join(dataDir, 'saves');
+
+  /// Файлы снимков, сложенные по содержимому: `blobs/<две буквы>/<sha256>`.
+  ///
+  /// Двадцать снимков одной игры — это двадцать полных копий её сохранений,
+  /// хотя между соседними меняется обычно один файл. Здесь одинаковое
+  /// содержимое лежит один раз, сколько бы снимков на него ни ссылалось.
+  String get blobsDir => p.join(dataDir, 'blobs');
 
   String snapshotDirFor(String gameId) => p.join(savesDir, gameId);
 
