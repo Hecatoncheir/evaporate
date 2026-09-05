@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/launch/library_scanner.dart';
+import 'package:evaporate/services/launch/steam_install.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -127,5 +128,94 @@ void main() {
 
       expect(LibraryScanner.installedDirs(games), {'/games/first'});
     });
+  });
+
+  // Указать диск целиком — обычное дело: человек не обязан помнить, в какой
+  // именно подпапке лежат игры. Раньше при этом находилась одна «игра» с
+  // названием папки-контейнера, накрывавшая всю коллекцию, — а `installDir`
+  // потом идёт и в удаление файлов, и в плейсхолдер `{GAME}` у путей
+  // сохранений.
+  test('папка с играми внутри не выдаётся за одну игру', () async {
+    final games = Directory(p.join(root.path, 'Games'));
+    await games.create(recursive: true);
+    for (final name in ['Первая', 'Вторая']) {
+      final dir = Directory(p.join(games.path, name));
+      await dir.create(recursive: true);
+      final file = File(
+        p.join(dir.path, Platform.isWindows ? 'game.exe' : 'game'),
+      );
+      await file.writeAsString('исполняемый');
+      if (!Platform.isWindows) await Process.run('chmod', ['+x', file.path]);
+    }
+
+    final found = await LibraryScanner.scan(root.path);
+
+    expect(found.map((g) => g.title), ['Вторая', 'Первая']);
+    expect(found.every((g) => p.isWithin(games.path, g.installDir)), isTrue);
+  });
+
+  // У игр движка Unreal исполняемый файл лежит в `Binaries/Win64`, и
+  // спускаться в него нельзя: игра — это папка целиком.
+  test('игра с исполняемым файлом в глубине остаётся одной игрой', () async {
+    final dir = Directory(p.join(root.path, 'Глубокая', 'Binaries', 'Win64'));
+    await dir.create(recursive: true);
+    final file = File(
+      p.join(dir.path, Platform.isWindows ? 'game.exe' : 'game'),
+    );
+    await file.writeAsString('исполняемый');
+    if (!Platform.isWindows) await Process.run('chmod', ['+x', file.path]);
+    // Рядом с игрой всегда лежит что-то ещё: у контейнера так не бывает.
+    await File(p.join(root.path, 'Глубокая', 'readme.txt')).writeAsString('!');
+
+    final found = await LibraryScanner.scan(root.path);
+
+    expect(found, hasLength(1));
+    expect(found.single.title, 'Глубокая');
+    expect(found.single.installDir, endsWith('Глубокая'));
+  });
+
+  // Название папки — плохой источник: у репаков она называется
+  // `Hollow.Knight.v1.5.78-GOG`, и это же имя уезжало дальше в поиск
+  // метаданных. Разбирать такие имена проект уже умеет.
+  test('название папки чистится от версий и меток релиз-групп', () async {
+    await gameDir('Hollow.Knight.v1.5.78-GOG');
+
+    final found = await LibraryScanner.scan(root.path);
+
+    expect(found.single.title, 'Hollow Knight');
+    // Папка при этом остаётся той же самой: чистится показ, а не путь.
+    expect(found.single.installDir, endsWith('Hollow.Knight.v1.5.78-GOG'));
+  });
+
+  test('нечитаемое название не превращается в пустое', () async {
+    await gameDir('v1.2.3');
+
+    expect((await LibraryScanner.scan(root.path)).single.title, 'v1.2.3');
+  });
+
+  // Точный идентификатор важнее найденной папки: по нему ищутся пути
+  // сохранений, и совпадение названия другой игры подставило бы чужие сейвы.
+  test('игру, знакомую Steam, называет сам Steam', () async {
+    final dir = await gameDir('Mansions');
+
+    final found = await LibraryScanner.scan(
+      root.path,
+      steamApps: {
+        p.normalize(dir.path): SteamApp(
+          appId: 478980,
+          name: 'Mansions of Madness',
+          installDir: dir.path,
+        ),
+      },
+    );
+
+    expect(found.single.title, 'Mansions of Madness');
+    expect(found.single.steamAppId, 478980);
+  });
+
+  test('незнакомой Steam игре идентификатор не приписывается', () async {
+    await gameDir('Своя игра');
+
+    expect((await LibraryScanner.scan(root.path)).single.steamAppId, isNull);
   });
 }

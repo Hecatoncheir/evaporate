@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -10,6 +12,8 @@ import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../services/launch/drop_import.dart';
+import '../../services/launch/library_scanner.dart';
+import '../../services/launch/scan_session.dart';
 import '../../models/game.dart';
 import '../../models/app_settings.dart';
 import '../../input/input_scope.dart';
@@ -456,14 +460,35 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   /// Добавление по одной терпимо для трёх игр и мучительно для сорока.
+  ///
+  /// Поиск начинается сразу, не дожидаясь выбора папки: пока человек ищет
+  /// её в системном окне, известные места — библиотеки Steam, папки
+  /// лончеров, подключённые тома — уже осматриваются. Выбрал папку —
+  /// начатое отменяется и заход идёт по ней; закрыл окно, ничего не выбрав,
+  /// — поиск останавливается, а найденное остаётся на экране.
   Future<void> _scanFolder(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     final l = L.of(context);
-    final dir = await getDirectoryPath(confirmButtonText: l.scan);
-    if (dir == null || !context.mounted) return;
+    final library = context.read<LibraryBloc>();
+    final settings = context.read<SettingsBloc>();
 
-    final added = await showScanFolderDialog(context, dir);
-    if (added == null || added == 0) return;
+    final session = ScanSession(
+      existingDirs: LibraryScanner.installedDirs(library.state.games),
+      installDir: settings.state.installDir,
+    );
+    unawaited(session.scanKnownRoots());
+
+    final result = showScanFolderDialog(context, session);
+    final dir = await getDirectoryPath(confirmButtonText: l.scan);
+    if (dir == null) {
+      session.stop();
+    } else {
+      unawaited(session.scanOnly(dir));
+    }
+
+    final added = await result;
+    session.dispose();
+    if (added == null || added == 0 || !mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(l.gamesAdded(added))));
   }
 

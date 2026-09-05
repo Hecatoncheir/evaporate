@@ -21,6 +21,7 @@ final class GameAdded extends LibraryEvent {
     this.installDir,
     this.executablePath,
     this.status = GameStatus.notInstalled,
+    this.steamAppId,
   });
 
   final String id;
@@ -30,10 +31,18 @@ final class GameAdded extends LibraryEvent {
   final String? executablePath;
   final GameStatus status;
 
+  /// Точный идентификатор Steam, если он известен заранее.
+  ///
+  /// Его приносят манифесты Steam с диска. С ним поиск по названию не нужен
+  /// вовсе, а пути сохранений ищутся по идентификатору — то есть без риска
+  /// подставить сейвы другой игры с похожим именем.
+  final int? steamAppId;
+
   @override
   List<Object?> get props => [
     id,
     title,
+    steamAppId,
     source,
     installDir,
     executablePath,

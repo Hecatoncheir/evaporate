@@ -6,6 +6,7 @@ import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
 import '../core/format.dart';
 import '../models/download_task.dart';
+import '../services/launch/game_roots.dart';
 import '../models/game.dart';
 import '../models/save_profile.dart';
 import '../models/save_snapshot.dart';
@@ -30,6 +31,24 @@ String navActionLabel(L l, NavAction action) => switch (action) {
   NavAction.prevSection => l.navPreviousSection,
   NavAction.scrollUp => l.navScrollUp,
   NavAction.scrollDown => l.navScrollDown,
+};
+
+/// Как назвать место, где стоит поискать игры.
+///
+/// Имена лончеров не переводятся — это имена собственные; переводится всё
+/// остальное. Собрать это вместе может только слой интерфейса: у сервиса,
+/// который эти места находит, языка нет.
+String gameRootLabel(L l, GameRoot root) => switch (root.kind) {
+  GameRootKind.steam => 'Steam',
+  GameRootKind.gog => 'GOG',
+  GameRootKind.epic => 'Epic Games',
+  GameRootKind.heroic => 'Heroic',
+  GameRootKind.lutris => 'Lutris',
+  GameRootKind.games => l.rootHomeGames,
+  GameRootKind.applications => l.rootApplications,
+  GameRootKind.appDownloads => l.rootAppDownloads,
+  GameRootKind.volume => l.rootVolume(root.name ?? ''),
+  GameRootKind.drive => l.rootDrive(root.name ?? ''),
 };
 
 /// Состояние игры словами.

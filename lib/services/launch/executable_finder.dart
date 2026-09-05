@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../metadata/release_name.dart';
+
 class ExecutableCandidate {
   const ExecutableCandidate({
     required this.path,
@@ -34,6 +36,17 @@ class ExecutableFinder {
     'dotnet',
     'installer',
     'updater',
+    // Нынешние спутники игр: защиты, служебные утилиты и всё, что кладут
+    // рядом «на всякий случай».
+    'easyanticheat',
+    'battleye',
+    'crashpad',
+    'crashreporter',
+    'ffmpeg',
+    'python',
+    '7z',
+    'quicksfv',
+    'directx_',
   ];
 
   static Future<List<ExecutableCandidate>> scan(
@@ -45,7 +58,7 @@ class ExecutableFinder {
     if (!await root.exists()) return const [];
 
     final candidates = <ExecutableCandidate>[];
-    await _walk(root, rootDir, 0, maxDepth, candidates);
+    await _walk(root, p.basename(rootDir), 0, maxDepth, candidates);
 
     candidates.sort((a, b) {
       final byScore = b.score.compareTo(a.score);
@@ -57,7 +70,7 @@ class ExecutableFinder {
 
   static Future<void> _walk(
     Directory dir,
-    String rootDir,
+    String folderName,
     int depth,
     int maxDepth,
     List<ExecutableCandidate> out,
@@ -87,12 +100,12 @@ class ExecutableFinder {
           );
           continue;
         }
-        await _walk(entity, rootDir, depth + 1, maxDepth, out);
+        await _walk(entity, folderName, depth + 1, maxDepth, out);
         continue;
       }
 
       if (entity is! File) continue;
-      final candidate = await _evaluateFile(entity, name, depth);
+      final candidate = await _evaluateFile(entity, name, depth, folderName);
       if (candidate != null) out.add(candidate);
     }
   }
@@ -101,6 +114,7 @@ class ExecutableFinder {
     File file,
     String name,
     int depth,
+    String folderName,
   ) async {
     final lower = name.toLowerCase();
     int base;
@@ -138,9 +152,30 @@ class ExecutableFinder {
     return ExecutableCandidate(
       path: file.path,
       name: name,
-      score: base + _score(name, depth) + (size > 5 * 1024 * 1024 ? 10 : 0),
+      score:
+          base +
+          _score(name, depth) +
+          _matchesFolder(name, folderName) +
+          (size > 5 * 1024 * 1024 ? 10 : 0),
       sizeBytes: size,
     );
+  }
+
+  /// Насколько имя файла похоже на имя папки игры.
+  ///
+  /// Самый сильный признак из имеющихся, и до сих пор не использованный:
+  /// `Hollow Knight/hollow_knight.exe` — очевидный ответ, а рядом лежащий
+  /// `crashpad.exe` получал столько же очков. Мерку берём ту же, что и для
+  /// имён раздач: игры называют свои файлы по-разному, но узнаваемо.
+  static int _matchesFolder(String name, String folderName) {
+    if (folderName.isEmpty) return 0;
+    final file = ReleaseName.clean(p.basenameWithoutExtension(name));
+    final folder = ReleaseName.clean(folderName);
+    if (file.isEmpty || folder.isEmpty) return 0;
+    final similarity = ReleaseName.similarity(file, folder);
+    if (similarity >= 0.99) return 45;
+    if (similarity >= 0.5) return 25;
+    return 0;
   }
 
   static int _score(String name, int depth) {

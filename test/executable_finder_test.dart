@@ -126,4 +126,28 @@ void main() {
 
     expect(found.first.name, 'Game.app');
   }, skip: !Platform.isMacOS ? 'только для macOS' : null);
+
+  // Самый сильный признак, и до сих пор не использованный: рядом с игрой
+  // лежит десяток исполняемых файлов, и лишь один назван как она сама.
+  test('файл, названный как папка, выигрывает у соседей', () async {
+    for (final name in ['crashpad', 'hollow_knight', 'helper']) {
+      await makeFile(p.join('Hollow Knight', exeName(name)), executable: true);
+    }
+
+    final found = await ExecutableFinder.scan(
+      p.join(tmp.path, 'Hollow Knight'),
+    );
+
+    expect(p.basenameWithoutExtension(found.first.path), 'hollow_knight');
+  });
+
+  test('защиты и служебные утилиты уходят вниз списка', () async {
+    for (final name in ['EasyAntiCheat', 'BattlEye', 'ffmpeg', 'Игра']) {
+      await makeFile(p.join('Игра', exeName(name)), executable: true);
+    }
+
+    final found = await ExecutableFinder.scan(p.join(tmp.path, 'Игра'));
+
+    expect(p.basenameWithoutExtension(found.first.path), 'Игра');
+  });
 }

@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/services/launch/game_roots.dart';
+import 'package:evaporate/services/launch/library_scanner.dart';
+import 'package:evaporate/services/launch/scan_session.dart';
 import 'package:evaporate/ui/library/library_page.dart';
 import 'package:evaporate/ui/library/scan_folder_dialog.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +15,9 @@ import 'support/test_app.dart';
 
 /// Добавление по одной терпимо для трёх игр и мучительно для сорока —
 /// ради этого диалог и существует.
+///
+/// Поиск идёт, пока человек выбирает папку в системном окне, поэтому окно
+/// показывает ход и умеет останавливаться, не выбрасывая найденное.
 void main() {
   late Directory tmp;
   late Directory root;
@@ -23,6 +29,16 @@ void main() {
   });
 
   tearDown(() => TestHarness.removeTempDir(tmp));
+
+  /// Готовит дерево папок настоящими файловыми операциями.
+  ///
+  /// Через `runAsync`: внутри `testWidgets` файловый ввод-вывод живёт в
+  /// фейковом времени и не завершается никогда.
+  Future<T> prepare<T>(WidgetTester tester, Future<T> Function() build) async {
+    late T result;
+    await tester.runAsync(() async => result = await build());
+    return result;
+  }
 
   /// Папка с исполняемым файлом внутри — то, что сканер считает игрой.
   Future<Directory> gameDir(String name) async {
@@ -43,54 +59,59 @@ void main() {
     return dir;
   }
 
-  /// Готовит дерево папок настоящими файловыми операциями.
-  ///
-  /// Через `runAsync`, а не напрямую: внутри `testWidgets` файловый
-  /// ввод-вывод живёт в фейковом времени и не завершается никогда — тест
-  /// висел бы до самого таймаута, ничего не сообщая.
-  Future<T> prepare<T>(WidgetTester tester, Future<T> Function() build) async {
-    late T result;
-    await tester.runAsync(() async => result = await build());
-    return result;
-  }
+  ScanSession sessionFor(TestHarness harness) => ScanSession(
+    existingDirs: LibraryScanner.installedDirs(harness.library.state.games),
+    steamRoots: const [],
+    fixedRoots: [GameRoot(path: root.path, kind: GameRootKind.games)],
+  );
 
-  /// Открывает диалог и дожидается конца обхода папок.
+  /// Открывает окно поиска и запускает обход.
   ///
-  /// Две тонкости, и обе стоили висящего теста. Диалог открывается **внутри**
-  /// `runAsync`: обход папок настоящий, а начатый в фейковом времени теста он
-  /// не сдвинется с места, сколько потом ни прокручивай кадры. А вот ждать
-  /// его приходится **снаружи**: кадры внутри `runAsync` в цикле не идут.
-  ///
-  /// Ждём по условию, а не отмеренной паузой: на загруженной машине сборки
-  /// обход укладывается в другое время, чем здесь.
-  Future<void> runScan(WidgetTester tester) async {
+  /// Диалог и обход стартуют **внутри** `runAsync`: файловые операции
+  /// настоящие, а начатые в фейковом времени теста они не сдвинутся с места.
+  Future<ScanSession> startScan(
+    WidgetTester tester,
+    TestHarness harness,
+  ) async {
+    final session = sessionFor(harness);
+    addTearDown(session.dispose);
     final context = tester.element(find.byType(LibraryPage));
+
     await tester.runAsync(() async {
-      unawaited(showScanFolderDialog(context, root.path));
+      unawaited(showScanFolderDialog(context, session));
+      unawaited(session.scanKnownRoots());
       await tester.pump();
     });
+    await tester.pump();
+    return session;
+  }
 
+  /// Ждёт конца обхода — **снаружи** `runAsync`: кадры внутри него в цикле
+  /// не идут. По условию, а не паузой: на машине сборки обход занимает
+  /// другое время.
+  Future<void> waitForScan(WidgetTester tester, ScanSession session) async {
     final deadline = DateTime.now().add(const Duration(seconds: 20));
-    while (find.byType(CircularProgressIndicator).evaluate().isNotEmpty) {
+    while (session.isRunning) {
       if (DateTime.now().isAfter(deadline)) fail('обход папок не закончился');
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),
       );
       await tester.pump();
     }
+    await tester.pump();
   }
 
-  /// Пустая библиотека с показанными результатами обхода.
+  /// Пустая библиотека с законченным обходом на экране.
   Future<TestHarness> openScan(WidgetTester tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
     await harness.pump(tester);
-    await runScan(tester);
+    final session = await startScan(tester, harness);
+    await waitForScan(tester, session);
     return harness;
   }
 
-  /// Нажатие «Добавить» вместе с отложенной записью библиотеки на диск:
-  /// без неё в конце теста остаётся висеть таймер.
+  /// Нажатие «Добавить» вместе с отложенной записью библиотеки на диск.
   Future<void> addChosen(WidgetTester tester, int count) async {
     await tester.tap(find.widgetWithText(FilledButton, 'Добавить: $count'));
     await tester.pumpAndSettle();
@@ -176,8 +197,8 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Добавить: 0'), findsOneWidget);
   });
 
-  // Повторное сканирование той же папки не должно предлагать добавить то,
-  // что уже добавлено: библиотека обросла бы дублями.
+  // Повторный поиск не должен предлагать добавить то, что уже добавлено:
+  // библиотека обросла бы дублями.
   testWidgets('уже добавленную папку второй раз не предлагают', (tester) async {
     final dir = await prepare(tester, () => gameDir('Уже в библиотеке'));
     await prepare(tester, () => gameDir('Ещё не добавлена'));
@@ -190,13 +211,15 @@ void main() {
       status: GameStatus.installed,
     );
     await harness.pump(tester);
-    await runScan(tester);
+
+    final session = await startScan(tester, harness);
+    await waitForScan(tester, session);
 
     expect(find.widgetWithText(FilledButton, 'Добавить: 1'), findsOneWidget);
     expect(find.text('Ещё не добавлена'), findsOneWidget);
   });
 
-  testWidgets('отмена закрывает диалог, ничего не добавив', (tester) async {
+  testWidgets('отмена закрывает окно, ничего не добавив', (tester) async {
     await prepare(tester, () => gameDir('Передумали'));
 
     final harness = await openScan(tester);
@@ -205,5 +228,48 @@ void main() {
 
     expect(find.byType(AlertDialog), findsNothing);
     expect(harness.library.state.games, isEmpty);
+  });
+
+  // Окно с одной вертушкой ничем не отличается от зависшего: пока идёт
+  // обход, человек должен видеть, на чём приложение стоит, и уметь его
+  // прервать.
+  testWidgets('пока идёт поиск, видны ход и кнопка остановки', (tester) async {
+    await prepare(tester, () => gameDir('Медленная'));
+
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+    await startScan(tester, harness);
+
+    expect(find.widgetWithText(TextButton, 'Остановить'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('по окончании поиска остановка уже не предлагается', (
+    tester,
+  ) async {
+    await prepare(tester, () => gameDir('Найденная'));
+
+    await openScan(tester);
+
+    expect(find.text('Найденная'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Остановить'), findsNothing);
+  });
+
+  // Остановка — это «хватит искать», а не «забудь найденное».
+  testWidgets('остановка оставляет найденное на экране', (tester) async {
+    await prepare(tester, () => gameDir('Найденная'));
+
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+    final session = await startScan(tester, harness);
+    await waitForScan(tester, session);
+
+    session.stop();
+    await tester.pump();
+
+    expect(find.text('Найденная'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Добавить: 1'), findsOneWidget);
   });
 }

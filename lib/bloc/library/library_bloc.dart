@@ -295,6 +295,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       installDir: event.installDir,
       executablePath: event.executablePath,
       status: event.status,
+      steamAppId: event.steamAppId,
+      // Идентификатор пришёл с диска — искать его по названию незачем.
+      steamLookupAttempted: event.steamAppId != null,
       saveProfile: SaveProfile(
         autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
         autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
