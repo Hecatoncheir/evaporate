@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:evaporate/services/system/update_check.dart';
 
 import 'dart:convert';
@@ -123,26 +121,15 @@ void main() {
   });
 
   group('версия приложения', () {
-    // Версия держится константой, чтобы не тащить зависимость ради строки.
-    // Цена такого решения — риск разойтись с pubspec.yaml, и стережёт от
-    // этого только тест.
-    test('совпадает с версией в pubspec.yaml', () {
-      final pubspec = File('pubspec.yaml').readAsStringSync();
-      final match = RegExp(
-        r'^version:\s*([0-9]+\.[0-9]+\.[0-9]+)',
-        multiLine: true,
-      ).firstMatch(pubspec);
-
-      expect(match, isNotNull, reason: 'в pubspec.yaml нет строки version');
-      expect(
-        match!.group(1),
-        AppVersion.current,
-        reason: 'подняли версию в pubspec — поднимите и в AppVersion.current',
-      );
-    });
-
     test('своя версия разбирается', () {
       expect(AppVersion.parse(AppVersion.current), isNotNull);
+    });
+
+    // Версию задаёт сборка (`--dart-define`), а прогон тестов идёт без неё —
+    // то есть ровно такой сборкой, какую собирают на своей машине. Отсюда и
+    // нули: версии у неё нет, и делать вид, что есть, незачем.
+    test('без заданной версии остаются нули', () {
+      expect(AppVersion.current, AppVersion.dev);
     });
   });
 

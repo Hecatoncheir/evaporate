@@ -31,10 +31,11 @@ jobs:
       # имена файлов, в мастер установки и в пакет, и три отдельных способа
       # её вывести однажды дали бы три разных ответа.
       #
-      # На теге версия — это тег. На ручном прогоне тега нет вовсе, а имя
-      # ветки версией не притворяется: `evaporate-main-windows-setup.exe`
-      # ещё куда ни шло, но Inno Setup на «main» в номере версии
-      # останавливается с ошибкой.
+      # На теге версия — это тег, и другого источника у неё нет: ни в коде,
+      # ни в pubspec.yaml её больше не держат. На ручном прогоне тега нет
+      # вовсе, и остаются нули из pubspec.yaml — они там и значат «сборка не
+      # из релиза». Имя ветки версией не притворяется: Inno Setup на «main»
+      # в номере версии останавливается с ошибкой.
       - name: Версия
         id: version
         run: |
@@ -70,6 +71,14 @@ jobs:
       # от релиза к релизу, потому что сборка на это не жалуется.
       - name: Регистраторы плагинов пересобраны
         run: git diff --exit-code linux windows macos
+
+      # Описание релиза — это раздел версии в CHANGELOG.md, отдельно оно не
+      # пишется. Нет раздела — релиз останется черновиком, а узнать об этом
+      # лучше сейчас, за минуту, чем через двадцать, когда соберутся три
+      # системы.
+      - name: Версия описана в CHANGELOG
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: dart run tool/changelog_notes.dart '${{ steps.version.outputs.value }}' > /dev/null
 
   test:
     name: Тесты (${{ matrix.os }})
@@ -143,8 +152,16 @@ jobs:
       # Без сертификата разработчика Xcode подписывает бандл ad-hoc —
       # такой .app запускается локально, но Gatekeeper на чужой машине
       # потребует «Открыть всё равно».
+      # Версия приходит тегом и попадает в сборку двумя путями: в свойства
+      # файла (`--build-name`) и в само приложение (`--dart-define`), откуда
+      # её читает проверка обновлений. В коде она не лежит — иначе выпуск
+      # начинался бы с правки файлов, ничего не решающих.
       - name: Сборка
-        run: flutter build macos --release
+        run: |
+          flutter build macos --release \
+            --build-name='${{ needs.analyze.outputs.version }}' \
+            --build-number='${{ github.run_number }}' \
+            --dart-define=EVAPORATE_VERSION='${{ needs.analyze.outputs.version }}'
 
       # Двумя файлами, и оба нужны. Образ — то, что ставит человек: бандл
       # перетаскивают в «Программы» и на этом всё. Архив — то, что берёт
@@ -195,8 +212,16 @@ jobs:
 
       - run: flutter pub get
 
+      # Версия приходит тегом и попадает в сборку двумя путями: в свойства
+      # файла (`--build-name`) и в само приложение (`--dart-define`), откуда
+      # её читает проверка обновлений. В коде она не лежит — иначе выпуск
+      # начинался бы с правки файлов, ничего не решающих.
       - name: Сборка
-        run: flutter build linux --release
+        run: |
+          flutter build linux --release \
+            --build-name='${{ needs.analyze.outputs.version }}' \
+            --build-number='${{ github.run_number }}' \
+            --dart-define=EVAPORATE_VERSION='${{ needs.analyze.outputs.version }}'
 
       # Три файла, и каждый для своего. Пакет `.deb` — для Debian и Ubuntu:
       # ставится двойным щелчком, но ложится в /opt, куда без прав
@@ -240,8 +265,16 @@ jobs:
 
       - run: flutter pub get
 
+      # Версия приходит тегом и попадает в сборку двумя путями: в свойства
+      # файла (`--build-name`) и в само приложение (`--dart-define`), откуда
+      # её читает проверка обновлений. В коде она не лежит — иначе выпуск
+      # начинался бы с правки файлов, ничего не решающих.
       - name: Сборка
-        run: flutter build windows --release
+        run: >-
+          flutter build windows --release
+          --build-name='${{ needs.analyze.outputs.version }}'
+          --build-number='${{ github.run_number }}'
+          --dart-define=EVAPORATE_VERSION='${{ needs.analyze.outputs.version }}'
 
       # Ставим свой: на образе раннера Inno Setup может оказаться версии
       # старее той, чей синтаксис понимает windows/installer.iss.

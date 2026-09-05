@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yaml/yaml.dart';
 
 import '../tool/changelog_notes.dart';
 
@@ -73,23 +72,60 @@ void main() {
     expect(changelogNotes('## [1.0.0]\n\n- Первая.\n', '1.0.0'), '- Первая.');
   });
 
-  // Страж на будущее: тег выпускают по версии из pubspec, и если раздела
-  // для неё нет, CI заведёт черновик вместо релиза — а узнать об этом лучше
-  // здесь, чем по факту молчаливого выпуска.
-  test('у текущей версии из pubspec есть раздел в CHANGELOG', () {
-    final pubspec =
-        loadYaml(File('pubspec.yaml').readAsStringSync()) as YamlMap;
-    final version = (pubspec['version'] as String).split('+').first;
+  group('верхний раздел годится в описание релиза', () {
+    // Версию задаёт тег, и другого её источника в репозитории нет. Значит и
+    // проверить до тега можно только одно: что верхний раздел файла — тот,
+    // который выпустят следующим, — написан так, как его прочтёт выпуск.
+    final changelog = File('CHANGELOG.md').readAsStringSync();
 
-    final notes = changelogNotes(
-      File('CHANGELOG.md').readAsStringSync(),
-      version,
-    );
+    test('заголовок верхней версии разбирается', () {
+      expect(
+        latestVersion(changelog),
+        isNotNull,
+        reason: 'заголовок версии пишется как «## [0.24.0] — 2026-01-01»',
+      );
+    });
 
-    expect(
-      notes,
-      isNotNull,
-      reason: 'подняли версию — опишите её в CHANGELOG.md',
-    );
+    test('у верхней версии есть текст описания', () {
+      final version = latestVersion(changelog)!;
+
+      expect(
+        changelogNotes(changelog, version),
+        isNotNull,
+        reason: 'раздел $version пуст — релиз выйдет без описания',
+      );
+    });
+
+    // Заголовок раздела написан ссылкой, и без определения внизу он
+    // останется на странице квадратными скобками вокруг числа.
+    test('на верхнюю версию есть ссылка внизу файла', () {
+      final version = latestVersion(changelog)!;
+
+      expect(
+        hasLinkReference(changelog, version),
+        isTrue,
+        reason:
+            'добавьте вниз CHANGELOG.md строку '
+            '[$version]: https://github.com/Hecatoncheir/evaporate/releases/tag/v$version',
+      );
+    });
+  });
+
+  group('поиск верхней версии', () {
+    test('берётся первая сверху, а не самая большая', () {
+      expect(latestVersion(sample), '0.8.0');
+    });
+
+    // «Не выпущено» стоит выше всех разделов и версией не является.
+    test('заголовок без номера пропускается', () {
+      expect(
+        latestVersion('## [Не выпущено]\n\n## [1.2.3] — 2026-01-01\n'),
+        '1.2.3',
+      );
+    });
+
+    test('файл без версий даёт null', () {
+      expect(latestVersion('# История изменений\n'), isNull);
+    });
   });
 }

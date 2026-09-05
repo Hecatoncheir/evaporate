@@ -16,7 +16,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.22.0+29
+#
+# Нули здесь намеренно и означают «сборка не из релиза». Версию выпуска
+# задаёт тег: CI передаёт её в `--build-name` и `--dart-define`, а держать её
+# ещё и тут значило бы иметь два источника правды и однажды их развести.
+version: 0.0.0+1
 
 environment:
   sdk: ^3.13.2

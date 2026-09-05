@@ -65,6 +65,28 @@ String? changelogNotes(String changelog, String version) {
   return notes.isEmpty ? null : notes;
 }
 
+/// Самая свежая версия в [changelog] — та, что выпускают следующей.
+///
+/// Нужна тесту-стражу: тег теперь и есть версия, и проверить заранее, что
+/// её раздел на месте, можно только со стороны файла. `null`, когда ни
+/// одного разобранного заголовка версии нет.
+String? latestVersion(String changelog) {
+  // Именно первый сверху: разделы идут от новых к старым, и «Не выпущено»
+  // с «не выпущена» под эту мерку не подходят — там, где стоит версия,
+  // стоит именно версия.
+  final header = RegExp(r'^## \[([0-9]+\.[0-9]+\.[0-9]+)\]', multiLine: true);
+  return header.firstMatch(changelog)?.group(1);
+}
+
+/// Есть ли внизу файла определение ссылки на тег [version].
+///
+/// Заголовок раздела написан ссылкой (`## [0.8.0]`), и без определения он
+/// останется на странице квадратными скобками вокруг числа.
+bool hasLinkReference(String changelog, String version) => RegExp(
+  '^\\[${RegExp.escape(version)}\\]:\\s',
+  multiLine: true,
+).hasMatch(changelog);
+
 /// Строка вида `[0.8.0]: https://...` — определение ссылки, не текст.
 final _linkReference = RegExp(r'^\[[^\]]+\]:\s');
 

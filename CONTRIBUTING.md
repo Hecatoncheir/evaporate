@@ -37,31 +37,29 @@ flutter test
 
 ## Как выпустить версию
 
-Тега мало: версия должна совпасть в трёх местах, иначе прогон упадёт или
-релиз останется черновиком.
+Версию задаёт тег — ни в коде, ни в `pubspec.yaml` её держать не нужно.
 
-1. `version:` в `pubspec.yaml`.
-2. `AppVersion.current` в `lib/services/system/update_check.dart` — их сверяет
-   тест.
-3. Раздел `## [0.23.0] — дата` в `CHANGELOG.md` и ссылка на тег внизу файла.
-
-Описание релиза отдельно не пишется: задача выпуска достаёт раздел версии из
-`CHANGELOG.md`. Раздела нет — сборки всё равно приедут, но релиз останется
-черновиком, и текст допишет человек. Узнать об этом лучше до тега, и для того
-есть `changelog_notes_test.dart`.
-
-Дальше — то же, что гоняет CI, и потом:
+1. Опишите версию в `CHANGELOG.md`: раздел `## [0.24.0] — дата` вверху файла
+   и ссылка на тег вниз, в общий блок. Из этого раздела и берётся описание
+   релиза, отдельно оно не пишется.
+2. Коммит.
+3. Тег и отправка:
 
 ```bash
-git tag -a v0.23.0 -m "Evaporate 0.23.0"
+git tag -a v0.24.0 -m "Evaporate 0.24.0"
 git push origin main
-git push origin v0.23.0
+git push origin v0.24.0
 ```
 
-Остальное делает CI: собирает три системы, делает установщики, считает
+Дальше всё делает CI: сверяет, что раздел для тега на месте — до сборок, а не
+после, — гоняет тесты на трёх системах, собирает установщики, считает
 `SHA256SUMS`, заводит релиз черновиком, выкладывает файлы и только потом
-публикует — иначе подписчики получают письмо о версии, скачать которую ещё
+публикует, иначе подписчики получают письмо о версии, скачать которую ещё
 нечего.
+
+Номер попадает в сборку оттуда же, из тега: `--build-name` в свойства файла и
+`--dart-define` в само приложение, откуда его читает проверка обновлений.
+Собранное на своей машине числится версией `0.0.0` — это и значит «не релиз».
 
 Два места, где уже спотыкались:
 
@@ -148,32 +146,31 @@ builds without cutting a release, run the workflow by hand.
 
 ## Cutting a release
 
-A tag is not enough: the version has to match in three places, or the run
-fails and the release stays a draft.
+The tag sets the version — there is nothing to bump in the code or in
+`pubspec.yaml`.
 
-1. `version:` in `pubspec.yaml`.
-2. `AppVersion.current` in `lib/services/system/update_check.dart` — a test
-   compares the two.
-3. A `## [0.23.0] — date` section in `CHANGELOG.md`, plus the tag link at the
-   bottom of the file.
-
-Release notes are not written separately: the release job pulls the version's
-section out of `CHANGELOG.md`. With no section the builds still arrive, but
-the release stays a draft for a human to describe. Better to find that out
-before the tag, which is what `changelog_notes_test.dart` is for.
-
-Then run what CI runs, and:
+1. Describe the version in `CHANGELOG.md`: a `## [0.24.0] — date` section at
+   the top of the file, and the tag link at the bottom, in the block with the
+   rest. That section becomes the release notes; they are not written twice.
+2. Commit.
+3. Tag and push:
 
 ```bash
-git tag -a v0.23.0 -m "Evaporate 0.23.0"
+git tag -a v0.24.0 -m "Evaporate 0.24.0"
 git push origin main
-git push origin v0.23.0
+git push origin v0.24.0
 ```
 
-CI does the rest: builds the three systems, makes the installers, computes
+CI does the rest: it checks the tag's section is there — before the builds,
+not after — runs the tests on three systems, builds the installers, computes
 `SHA256SUMS`, opens the release as a draft, uploads the files and only then
-publishes it — otherwise subscribers get an email about a version with
+publishes it, so that subscribers never get an email about a version with
 nothing to download yet.
+
+The number reaches the build from the same tag: `--build-name` for the file's
+properties and `--dart-define` for the app itself, where the update check
+reads it. A build made on your own machine reports version `0.0.0` — which is
+exactly what "not a release" means.
 
 Two places that have caught us out:
 
