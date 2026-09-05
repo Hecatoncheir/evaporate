@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.22.0] — 2026-09-05
+
 ### Добавлено
 
 - Установщики в релизе. Windows получает мастер Inno Setup («Далее — Далее —
@@ -658,6 +660,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.22.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.0
 [0.21.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.21.0
 [0.18.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.18.0
 [0.17.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.17.0
