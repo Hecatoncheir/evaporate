@@ -165,4 +165,78 @@ void main() {
       expect(DtorrentEngine.torrentFromBytes(file).name, 'Ведьмак 3');
     });
   });
+
+  // Разборщик движка склеивает сегменты пути как есть, а сам движок
+  // складывает `папка + путь` конкатенацией: ни `..`, ни ведущий разделитель
+  // ни один из них не замечает. Торрент приходит от незнакомых людей — это
+  // тот же случай, ради которого в `.evsave` проверяют zip-slip.
+  group('пути раздачи', () {
+    /// Info-словарь с одним файлом по заданному пути.
+    Uint8List withPath(List<String> path, {List<String>? symlink}) =>
+        Uint8List.fromList(
+          bencode.encode({
+            'files': [
+              {'length': 16, 'path': path, 'symlink path': ?symlink},
+            ],
+            'name': 'Раздача',
+            'piece length': 262144,
+            'pieces': pieces(),
+          }, 'utf-8'),
+        );
+
+    for (final path in [
+      ['..', '..', 'evil.sh'],
+      ['data', '..', '..', 'evil.sh'],
+      ['/etc', 'passwd'],
+      ['C:', 'Windows', 'evil.dll'],
+      ['data', '', 'evil'],
+      ['.'],
+    ]) {
+      test('«${path.join('/')}» отклоняется', () {
+        expect(
+          () => DtorrentEngine.torrentFromBytes(
+            TorrentFile.assemble(withPath(path)),
+          ),
+          throwsA(isA<UnsafeTorrentException>()),
+        );
+      });
+    }
+
+    test('обычный вложенный путь принимается', () {
+      final model = DtorrentEngine.torrentFromBytes(
+        TorrentFile.assemble(withPath(['data', 'levels', 'pak01.dat'])),
+      );
+
+      expect(model.files, hasLength(1));
+    });
+
+    // Движок создаёт симлинк с целью прямо из раздачи, а ссылка наружу —
+    // это запись наружу при первом же обращении по ней.
+    test('симлинк с целью за пределами папки отклоняется', () {
+      expect(
+        () => DtorrentEngine.torrentFromBytes(
+          TorrentFile.assemble(
+            withPath(['data', 'link'], symlink: ['..', '..', 'secret']),
+          ),
+        ),
+        throwsA(isA<UnsafeTorrentException>()),
+      );
+    });
+
+    test('симлинк внутрь раздачи не мешает', () {
+      final model = DtorrentEngine.torrentFromBytes(
+        TorrentFile.assemble(
+          withPath(['data', 'link'], symlink: ['data', 'pak01.dat']),
+        ),
+      );
+
+      expect(model.files, hasLength(1));
+    });
+
+    test('проверка пути смотрит и на обратные слеши', () {
+      expect(TorrentFile.unsafePath(r'data\..\..\evil'), isNotNull);
+      expect(TorrentFile.unsafePath(r'C:\Windows\evil'), isNotNull);
+      expect(TorrentFile.unsafePath('data/levels/pak01.dat'), isNull);
+    });
+  });
 }

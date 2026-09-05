@@ -245,6 +245,43 @@ void main() {
     expect(library.state.games.every((g) => g.steamLookupAttempted), isTrue);
   });
 
+  // Автоматически маркер «уже пробовали» не снимается никогда — иначе
+  // приложение при каждом запуске ходило бы в Steam за играми, которых там
+  // нет. Но первый запуск мог прийтись на офлайн, и тогда без обложек
+  // осталась вся библиотека сразу, а кнопка есть только у отдельной игры.
+  test('«поискать для всех» повторяет то, что не вышло', () async {
+    steam.fail = true;
+    await add();
+    await _wait(
+      library,
+      (s) =>
+          s.notice?.isError == true && !s.isBusy(LibraryBloc.steamKey('game')),
+    );
+    expect(steam.calls, 1);
+    expect(library.state.gameById('game')!.steamLookupAttempted, isTrue);
+
+    steam.fail = false;
+    library.add(const MetadataRetryRequested());
+    await complete();
+
+    expect(steam.calls, 2);
+    expect(library.state.gameById('game')!.steamAppId, 42);
+  });
+
+  test('«поискать для всех» молчит, когда искать нечего', () async {
+    await add();
+    await complete();
+    final before = steam.calls;
+
+    library.add(const MetadataRetryRequested());
+    await _wait(
+      library,
+      (s) => s.notice?.message.contains('Метаданные есть') ?? false,
+    );
+
+    expect(steam.calls, before);
+  });
+
   test('failed Steam request survives restart; manual request retries both catalogs', () async {
     steam.fail = true;
     await add();

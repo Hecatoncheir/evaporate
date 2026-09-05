@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
+import '../../bloc/library/library_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
@@ -172,6 +173,24 @@ class SettingsPage extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        SectionCard(
+          title: L.of(context).metadataRetryTitle,
+          icon: Icons.image_search_outlined,
+          trailing: OutlinedButton.icon(
+            onPressed: () =>
+                context.read<LibraryBloc>().add(const MetadataRetryRequested()),
+            icon: const Icon(Icons.refresh, size: 16),
+            label: Text(L.of(context).metadataRetryAction),
+          ),
+          child: Text(
+            L.of(context).metadataRetryNote,
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.5,
+              color: context.colors.textSecondary,
+            ),
           ),
         ),
         SectionCard(

@@ -98,6 +98,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       transformer: (events, mapper) => events.asyncExpand(mapper),
     );
     on<SavePathsProgressChanged>(_onSavePathsProgress);
+    on<MetadataRetryRequested>(_onMetadataRetry);
     on<SaveHintsRequested>(_onSaveHintsRequested);
     on<SaveHintsAccepted>(_onSaveHintsAccepted);
     on<SaveHintsDismissed>(_onSaveHintsDismissed);
@@ -956,6 +957,53 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         ),
       );
     }
+  }
+
+  /// Просит поискать метаданные заново для всех игр, которым их не хватает.
+  ///
+  /// Маркер «уже пробовали» снимается только здесь и только по нажатию
+  /// человека. Автоматически он не снимается никогда: иначе приложение при
+  /// каждом запуске ходило бы в Steam за играми, которых там попросту нет,
+  /// — а таких в торрент-библиотеке половина.
+  Future<void> _onMetadataRetry(
+    MetadataRetryRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final pending = [
+      for (final game in state.games)
+        if (game.isInstalled &&
+            game.installDir != null &&
+            (game.steamAppId == null || !game.savePathsLookupAttempted))
+          game,
+    ];
+    if (pending.isEmpty) {
+      emit(state.copyWith(notice: _notice(_l.noticeMetadataNothingToDo)));
+      return;
+    }
+
+    for (final game in pending) {
+      _replaceGame(
+        game.steamAppId == null
+            ? game.copyWith(steamLookupAttempted: false)
+            : game.copyWith(savePathsLookupAttempted: false),
+        emit,
+      );
+    }
+    await persist();
+
+    // Дальше — обычная очередь: события идут по одному, и залпа не будет.
+    for (final game in pending) {
+      final current = state.gameById(game.id);
+      if (current == null) continue;
+      add(
+        current.steamAppId == null
+            ? SteamLookupRequested(current, automatic: true)
+            : SavePathsLookupRequested(current, automatic: true),
+      );
+    }
+    emit(
+      state.copyWith(notice: _notice(_l.noticeMetadataRetry(pending.length))),
+    );
   }
 
   /// Подбирает папки сохранений по базе. Уже заданные правила не трогаем:

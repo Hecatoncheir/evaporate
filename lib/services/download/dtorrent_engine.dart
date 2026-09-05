@@ -15,6 +15,20 @@ import '../../models/proxy_settings.dart';
 import 'download_engine.dart';
 import 'torrent_file.dart';
 
+/// Раздача просит записать файл мимо папки загрузки.
+///
+/// Отдельный тип, а не общая ошибка разбора: причина здесь не в испорченном
+/// файле, а в его содержимом, и сказать об этом человеку надо иначе.
+class UnsafeTorrentException implements Exception {
+  UnsafeTorrentException(this.path);
+
+  /// Путь, из-за которого раздача отклонена.
+  final String path;
+
+  @override
+  String toString() => 'Небезопасный путь в раздаче: $path';
+}
+
 /// Что нашла проверка файлов после загрузки.
 class IntegrityReport {
   const IntegrityReport({
@@ -211,6 +225,8 @@ class DtorrentEngine implements DownloadEngine {
     final dt.TorrentModel model;
     try {
       model = await parseTorrent(path);
+    } on UnsafeTorrentException catch (error) {
+      throw DownloadEngineException(_l.torrentUnsafePath(error.path));
     } on Object catch (error) {
       throw DownloadEngineException(_l.torrentReadFailed('$error'));
     }
@@ -249,6 +265,7 @@ class DtorrentEngine implements DownloadEngine {
   @visibleForTesting
   static dt.TorrentModel torrentFromBytes(Uint8List bytes) {
     final model = dt.TorrentParser.parseBytes(bytes);
+    _rejectUnsafePaths(model);
     final infoDict = TorrentFile.infoDictIn(bytes);
     // Хеш v2-раздачи считается иначе (sha256), и такие раздачи здесь ещё
     // не встречались — трогаем только то, о чём знаем наверняка.
@@ -270,6 +287,29 @@ class DtorrentEngine implements DownloadEngine {
       infoDictBytes: infoDict,
       rawData: model.rawData,
     );
+  }
+
+  /// Отклоняет раздачу, которая писала бы мимо папки загрузки.
+  ///
+  /// Проверка наша, потому что больше ничья: разборщик склеивает сегменты
+  /// пути как есть, движок складывает `папка + путь` конкатенацией, а
+  /// симлинк создаёт с целью прямо из раздачи. Торрент приходит от
+  /// незнакомых людей — это ровно тот случай, ради которого в `.evsave`
+  /// проверяют zip-slip.
+  ///
+  /// Место выбрано одно на всё: и `.torrent` с диска, и метаданные
+  /// magnet-ссылки собираются в модель здесь, и мимо этой проверки в
+  /// движок не попадает ничего.
+  static void _rejectUnsafePaths(dt.TorrentModel model) {
+    for (final file in model.files) {
+      final unsafe = TorrentFile.unsafePath(file.path);
+      if (unsafe != null) throw UnsafeTorrentException(unsafe);
+
+      final link = file.symlinkPath;
+      if (link == null || link.isEmpty) continue;
+      final target = TorrentFile.unsafePath(link.join('/'));
+      if (target != null) throw UnsafeTorrentException(target);
+    }
   }
 
   void _register(_ManagedDownload managed) {
