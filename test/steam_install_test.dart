@@ -47,6 +47,15 @@ void main() {
       expect(Vdf.string(doc, ['libraryfolders', 'path']), r'D:\SteamLibrary');
     });
 
+    // Одинарный слеш в пути — файл не по канону, но проглотить его молча
+    // значит испортить путь, ничего об этом не сказав. Ровно на этом и
+    // упал прогон Windows: подделка писала пути как есть.
+    test('неизвестное экранирование оставляется как есть', () {
+      final doc = Vdf.parse('"libraryfolders"\n{\n"path" "D:\\Steam"\n}\n');
+
+      expect(Vdf.string(doc, ['libraryfolders', 'path']), r'D:\Steam');
+    });
+
     // Файл принадлежит чужой программе: падать из-за его формата незачем.
     test('мусор не роняет разбор', () {
       expect(Vdf.parse('совсем не vdf'), isEmpty);
@@ -91,11 +100,17 @@ void main() {
       final steamapps = Directory(p.join(root.path, 'steamapps'));
       await steamapps.create(recursive: true);
 
+      // Слеши в путях Steam удваивает — на Windows иначе не прочитать
+      // ни одного пути, и подделка обязана вести себя так же.
+      String escaped(String path) => path.replaceAll(r'\', r'\\');
+
       final buffer = StringBuffer('"libraryfolders"\n{\n\t"0"\n\t{\n')
-        ..write('\t\t"path"\t\t"${root.path}"\n\t}\n');
+        ..write('\t\t"path"\t\t"${escaped(root.path)}"\n\t}\n');
       var index = 1;
       for (final extra in extraLibraries) {
-        buffer.write('\t"${index++}"\n\t{\n\t\t"path"\t\t"$extra"\n\t}\n');
+        buffer.write(
+          '\t"${index++}"\n\t{\n\t\t"path"\t\t"${escaped(extra)}"\n\t}\n',
+        );
       }
       buffer.write('}\n');
       await File(p.join(steamapps.path, 'libraryfolders.vdf'))

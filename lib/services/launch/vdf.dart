@@ -76,9 +76,22 @@ class Vdf {
     for (var i = 0; i < line.length; i++) {
       final char = line[i];
       if (escaped) {
-        // Пути Windows записаны с удвоенными слешами: `C:\\Program Files`.
-        buffer.write(char);
         escaped = false;
+        // Valve знает `\\`, `\"`, `\n` и `\t`. Всё прочее оставляем как
+        // есть, вместе со слешем: файл чужой, и проглотить в нём слеш
+        // молча значит испортить путь, ничего об этом не сказав.
+        switch (char) {
+          case r'\':
+          case '"':
+            buffer.write(char);
+          case 'n':
+            buffer.write('\n');
+          case 't':
+            buffer.write('\t');
+          default:
+            buffer.write(r'\');
+            buffer.write(char);
+        }
         continue;
       }
       if (char == r'\' && inside) {

@@ -57,6 +57,11 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
   /// находка воскрешала бы снятые галочки.
   final _unchecked = <String>{};
 
+  /// Отмеченное вручную среди неуверенного. Реестр Windows знает всё
+  /// установленное, и заранее отмечать оттуда нельзя: браузер добавился бы
+  /// в библиотеку игрой, стоило нажать «Добавить».
+  final _checked = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -77,7 +82,11 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
 
   Set<String> get _selected => {
     for (final game in _games)
-      if (!_unchecked.contains(game.installDir)) game.installDir,
+      if (game.confident && !_unchecked.contains(game.installDir))
+        game.installDir,
+    for (final game in _games)
+      if (!game.confident && _checked.contains(game.installDir))
+        game.installDir,
   };
 
   /// Сужает поиск до одной папки, отменяя начатое.
@@ -194,10 +203,15 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
           return CheckboxListTile(
             value: _selected.contains(game.installDir),
             onChanged: (checked) => setState(() {
-              if (checked ?? false) {
-                _unchecked.remove(game.installDir);
+              final on = checked ?? false;
+              if (game.confident) {
+                on
+                    ? _unchecked.remove(game.installDir)
+                    : _unchecked.add(game.installDir);
               } else {
-                _unchecked.add(game.installDir);
+                on
+                    ? _checked.add(game.installDir)
+                    : _checked.remove(game.installDir);
               }
             }),
             dense: true,

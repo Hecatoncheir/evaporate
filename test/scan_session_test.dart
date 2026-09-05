@@ -132,4 +132,65 @@ void main() {
     expect(session.found, isEmpty);
     expect(session.isComplete, isTrue);
   });
+
+  // Игры, поставленные обычным установщиком мимо лончеров, иначе не найти.
+  // Но в тех же ветках реестра лежит вообще всё установленное, поэтому
+  // найденное там предлагается неуверенным.
+  test('игры из реестра Windows находятся, но помечены неуверенными', () async {
+    final dir = await gameDir('Место', 'Из реестра');
+    final session = ScanSession(
+      existingDirs: const {},
+      steamRoots: const [],
+      fixedRoots: const [],
+      registryQuery: (executable, args) async => ProcessResult(
+        0,
+        0,
+        'HKEY_LOCAL_MACHINE\\Uninstall\\Игра\n'
+            '    DisplayName    REG_SZ    Из реестра\n'
+            '    InstallLocation    REG_SZ    ${dir.path}\n\n',
+        '',
+      ),
+    );
+    addTearDown(session.dispose);
+
+    await session.scanKnownRoots();
+
+    expect(session.found.map((g) => g.title), ['Из реестра']);
+    expect(session.found.single.confident, isFalse);
+  });
+
+  test('найденное обходом остаётся уверенным', () async {
+    await gameDir('Место', 'Из папки');
+    final session = sessionOver(['Место']);
+
+    await session.scanKnownRoots();
+
+    expect(session.found.single.confident, isTrue);
+  });
+
+  // Иначе одна и та же игра пришла бы дважды: и обходом, и из реестра.
+  test('игра, уже найденная обходом, из реестра не двоится', () async {
+    final dir = await gameDir('Место', 'Общая');
+    final session = ScanSession(
+      existingDirs: const {},
+      steamRoots: const [],
+      fixedRoots: [
+        GameRoot(path: p.join(tmp.path, 'Место'), kind: GameRootKind.games),
+      ],
+      registryQuery: (executable, args) async => ProcessResult(
+        0,
+        0,
+        'HKEY_LOCAL_MACHINE\\Uninstall\\Общая\n'
+            '    DisplayName    REG_SZ    Общая\n'
+            '    InstallLocation    REG_SZ    ${dir.path}\n\n',
+        '',
+      ),
+    );
+    addTearDown(session.dispose);
+
+    await session.scanKnownRoots();
+
+    expect(session.found, hasLength(1));
+    expect(session.found.single.confident, isTrue);
+  });
 }

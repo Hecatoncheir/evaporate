@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import 'game_roots.dart';
 import 'library_scanner.dart';
 import 'steam_install.dart';
+import 'windows_installs.dart';
 
 /// Один заход сканирования: что уже нашли, где сейчас смотрим и можно ли
 /// это прервать.
@@ -23,6 +26,7 @@ class ScanSession extends ChangeNotifier {
     this.installDir,
     @visibleForTesting this.steamRoots,
     @visibleForTesting this.fixedRoots,
+    @visibleForTesting this.registryQuery,
   });
 
   /// Папки, уже известные библиотеке: их незачем предлагать снова.
@@ -35,6 +39,10 @@ class ScanSession extends ChangeNotifier {
   /// машине, а прогон идёт на трёх.
   final List<String>? steamRoots;
   final List<GameRoot>? fixedRoots;
+
+  /// Чем спрашивать реестр Windows. `reg` есть только там, а прогон идёт
+  /// на трёх системах.
+  final Future<ProcessResult> Function(String, List<String>)? registryQuery;
 
   final List<ScannedGame> _found = [];
   String? _directory;
@@ -115,9 +123,45 @@ class ScanSession extends ChangeNotifier {
     }
 
     if (generation != _generation) return;
+    await _addRegistryInstalls(generation, steam);
+
+    if (generation != _generation) return;
     _running = false;
     _completed = true;
     _directory = null;
+    notifyListeners();
+  }
+
+  /// Добавляет игры, о которых знает только реестр Windows.
+  ///
+  /// Установщик записывает `InstallLocation`, и это единственный след игры,
+  /// поставленной мимо всяких лончеров. В тех же ветках лежит вообще всё
+  /// установленное, поэтому найденное здесь помечается неуверенным: оно
+  /// предлагается, но галочкой заранее не отмечается.
+  Future<void> _addRegistryInstalls(
+    int generation,
+    Map<String, SteamApp> steam,
+  ) async {
+    final entries = await WindowsInstalls.installed(run: registryQuery);
+    final known = {...existingDirs, for (final game in _found) game.installDir};
+
+    for (final entry in entries) {
+      if (generation != _generation) return;
+      final game = await LibraryScanner.inspect(
+        entry.installDir,
+        title: entry.name,
+        existingDirs: known,
+        steamApps: steam,
+        confident: false,
+      );
+      if (game == null) continue;
+      _found.add(game);
+      known.add(game.installDir);
+    }
+    if (generation != _generation) return;
+    _found.sort(
+      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+    );
     notifyListeners();
   }
 

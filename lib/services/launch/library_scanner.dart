@@ -14,6 +14,7 @@ class ScannedGame {
     required this.installDir,
     required this.executablePath,
     this.steamAppId,
+    this.confident = true,
   });
 
   /// Название игры.
@@ -28,6 +29,14 @@ class ScannedGame {
 
   /// Точный идентификатор Steam, если игру опознали по его манифесту.
   final int? steamAppId;
+
+  /// Уверены ли мы, что это игра.
+  ///
+  /// Обход папок с играми уверен: раз папка лежит среди игр и в ней есть
+  /// исполняемый файл, это игра. А реестр Windows знает вообще всё
+  /// установленное — браузеры, драйверы, — и отсеять их наверняка нельзя.
+  /// Неуверенное предлагается, но галочкой заранее не отмечается.
+  final bool confident;
 }
 
 /// Поиск уже установленных игр в одной папке.
@@ -196,6 +205,37 @@ class LibraryScanner {
     if (!looseFiles) return _container;
 
     return (kind: _Kind.game, executable: candidates.first.path);
+  }
+
+  /// Осматривает одну папку: игра ли это.
+  ///
+  /// Нужно записям реестра Windows: там указана сама папка игры, а не место,
+  /// где её искать, — обходить её детей незачем.
+  static Future<ScannedGame?> inspect(
+    String directory, {
+    required String title,
+    Set<String> existingDirs = const {},
+    Map<String, SteamApp> steamApps = const {},
+    bool confident = true,
+  }) async {
+    final dir = Directory(directory);
+    if (!await dir.exists()) return null;
+    if (existingDirs.map(p.normalize).contains(p.normalize(directory))) {
+      return null;
+    }
+
+    final verdict = await _classify(dir);
+    if (verdict.kind != _Kind.game) return null;
+
+    final known = steamApps[p.normalize(directory)];
+    final cleaned = ReleaseName.clean(title);
+    return ScannedGame(
+      title: known?.name ?? (cleaned.isEmpty ? title : cleaned),
+      installDir: directory,
+      executablePath: verdict.executable!,
+      steamAppId: known?.appId,
+      confident: confident,
+    );
   }
 
   static bool _never() => false;
