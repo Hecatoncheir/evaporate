@@ -11,6 +11,7 @@ import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/input/gamepad_service.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
+import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +50,7 @@ class _WidgetLibraryStore extends JsonStore {
 /// Временную папку, наоборот, готовим снаружи — реальный файловый I/O
 /// внутри `testWidgets` не завершается никогда.
 class TestHarness {
-  TestHarness(this.tmp)
+  TestHarness(this.tmp, {List<SaveRoot> Function()? saveRoots})
     : paths = AppPaths.custom(
         dataDir: p.join(tmp.path, 'data'),
         defaultInstallDir: p.join(tmp.path, 'games'),
@@ -64,7 +65,9 @@ class TestHarness {
       notifications: notifications,
       // Выход из игры запускает обход папок в поисках следов её работы:
       // настоящий файловый ввод-вывод внутри testWidgets не завершается.
-      saveRoots: () => const [],
+      // Тест, которому подсказки нужны, задаёт корни сам и крутит обход
+      // через `runAsync`.
+      saveRoots: saveRoots ?? () => const [],
     );
     downloads = DownloadsBloc(
       paths: paths,
@@ -148,8 +151,9 @@ class TestHarness {
           Provider<NotificationService>.value(value: notifications),
         ],
         child: MaterialApp(
-          // Ordinary interaction tests do not advance an infinite decorative
-          // ticker. Effect tests explicitly opt in and pump bounded frames.
+          // Обычные тесты взаимодействия не крутят бесконечный декоративный
+          // тикер. Тесты эффектов включают его явно и прокручивают
+          // ограниченное число кадров.
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
             child:
