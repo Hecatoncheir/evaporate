@@ -1,6 +1,10 @@
 import 'dart:io';
 
 import 'package:evaporate/services/system/update_check.dart';
+
+import 'dart:convert';
+
+import 'package:evaporate/core/format.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -139,6 +143,73 @@ void main() {
 
     test('своя версия разбирается', () {
       expect(AppVersion.parse(AppVersion.current), isNotNull);
+    });
+  });
+
+  // Обновление скачивается по этим ссылкам, и брать их надо из ответа
+  // GitHub, а не собирать по шаблону: имя файла содержит версию, а хост
+  // раздачи Valve менять не обещал.
+  group('файлы релиза', () {
+    String body(List<Map<String, Object>> assets) => jsonEncode({
+      'tag_name': 'v9.9.9',
+      'html_url': 'https://example.invalid/release',
+      'body': 'Описание',
+      'assets': assets,
+    });
+
+    test('архивы и суммы читаются из ответа', () {
+      final release = UpdateCheck.parseRelease(
+        body([
+          {
+            'name': 'evaporate-9.9.9-macos.zip',
+            'browser_download_url': 'https://example.invalid/macos.zip',
+            'size': 100,
+          },
+          {
+            'name': 'evaporate-9.9.9-windows.zip',
+            'browser_download_url': 'https://example.invalid/windows.zip',
+            'size': 200,
+          },
+          {
+            'name': 'evaporate-9.9.9-linux.tar.gz',
+            'browser_download_url': 'https://example.invalid/linux.tar.gz',
+            'size': 300,
+          },
+          {
+            'name': 'SHA256SUMS',
+            'browser_download_url': 'https://example.invalid/SHA256SUMS',
+            'size': 400,
+          },
+        ]),
+      )!;
+
+      expect(release.assets, hasLength(4));
+      expect(release.checksums?.url, 'https://example.invalid/SHA256SUMS');
+      // Своя система — та, на которой идёт прогон.
+      expect(release.archiveForThisPlatform, isNotNull);
+      expect(
+        release.archiveForThisPlatform!.name,
+        contains(currentPlatformKey()),
+      );
+    });
+
+    test('релиз без файлов не обещает обновления', () {
+      final release = UpdateCheck.parseRelease(body(const []))!;
+
+      expect(release.assets, isEmpty);
+      expect(release.archiveForThisPlatform, isNull);
+      expect(release.checksums, isNull);
+    });
+
+    test('запись без имени или ссылки пропускается', () {
+      final release = UpdateCheck.parseRelease(
+        body([
+          {'name': 'evaporate-9.9.9-macos.zip', 'size': 1},
+          {'browser_download_url': 'https://example.invalid/x', 'size': 1},
+        ]),
+      )!;
+
+      expect(release.assets, isEmpty);
     });
   });
 }

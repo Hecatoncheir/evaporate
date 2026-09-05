@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 
+import '../../core/format.dart';
+
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 
@@ -53,12 +55,29 @@ class AppVersion {
 }
 
 /// Вышедшая версия.
+/// Файл, приложенный к релизу.
+class ReleaseAsset extends Equatable {
+  const ReleaseAsset({
+    required this.name,
+    required this.url,
+    required this.sizeBytes,
+  });
+
+  final String name;
+  final String url;
+  final int sizeBytes;
+
+  @override
+  List<Object?> get props => [name, url, sizeBytes];
+}
+
 class Release extends Equatable {
   const Release({
     required this.version,
     required this.url,
     this.notes = '',
     this.publishedAt,
+    this.assets = const [],
   });
 
   final String version;
@@ -66,8 +85,41 @@ class Release extends Equatable {
   final String notes;
   final DateTime? publishedAt;
 
+  /// Приложенные архивы и файл контрольных сумм.
+  final List<ReleaseAsset> assets;
+
+  /// Архив для этой системы.
+  ///
+  /// Имена задаёт сборка: `evaporate-<версия>-macos.zip` и рядом такие же
+  /// для Windows и Linux. Опознаём по хвосту, а не по полному имени: в нём
+  /// стоит версия, и знать её заранее неоткуда.
+  ReleaseAsset? get archiveForThisPlatform {
+    final suffix = switch (currentPlatformKey()) {
+      'macos' => '-macos.zip',
+      'windows' => '-windows.zip',
+      'linux' => '-linux.tar.gz',
+      _ => null,
+    };
+    if (suffix == null) return null;
+    for (final asset in assets) {
+      if (asset.name.endsWith(suffix)) return asset;
+    }
+    return null;
+  }
+
+  /// Файл контрольных сумм, которым проверяется скачанное.
+  ///
+  /// Канал защищён TLS, но оборванная загрузка выглядит как целый файл, и
+  /// распаковывать её поверх установки нельзя.
+  ReleaseAsset? get checksums {
+    for (final asset in assets) {
+      if (asset.name == 'SHA256SUMS') return asset;
+    }
+    return null;
+  }
+
   @override
-  List<Object?> get props => [version, url, notes, publishedAt];
+  List<Object?> get props => [version, url, notes, publishedAt, assets];
 }
 
 class UpdateCheckException implements Exception {
@@ -137,6 +189,17 @@ class UpdateCheck {
       url: decoded['html_url'] as String? ?? '',
       notes: decoded['body'] as String? ?? '',
       publishedAt: DateTime.tryParse(decoded['published_at'] as String? ?? ''),
+      assets: [
+        for (final entry in decoded['assets'] as List<dynamic>? ?? const [])
+          if (entry is Map<String, dynamic>)
+            if (entry['name'] is String &&
+                entry['browser_download_url'] is String)
+              ReleaseAsset(
+                name: entry['name'] as String,
+                url: entry['browser_download_url'] as String,
+                sizeBytes: entry['size'] as int? ?? 0,
+              ),
+      ],
     );
   }
 

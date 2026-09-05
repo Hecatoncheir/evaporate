@@ -50,7 +50,14 @@ void main() {
       [
         () => Completer<void>().future,
         () => Completer<void>().future,
-        () async => done.add('до этого шага не дошли'),
+        // Шаг не мгновенный намеренно. Два предыдущих съедают бюджет ровно
+        // до нуля, и от того, осталось ли после них полмиллисекунды,
+        // зависеть проверка не должна: на загруженной машине сборки это
+        // выпадало то так, то этак.
+        () async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          done.add('до этого шага не дошли');
+        },
       ],
       stepTimeout: const Duration(milliseconds: 40),
       budget: const Duration(milliseconds: 60),
