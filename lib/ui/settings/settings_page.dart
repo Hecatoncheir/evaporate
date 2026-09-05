@@ -15,6 +15,7 @@ import '../widgets/common.dart';
 import '../widgets/scale_control.dart';
 import 'about_card.dart';
 import 'gamepad_settings.dart';
+import 'log_card.dart';
 import 'notification_settings.dart';
 import 'proxy_settings_card.dart';
 
@@ -422,6 +423,7 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+        const LogCard(),
         const AboutCard(),
       ],
     );

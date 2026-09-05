@@ -78,6 +78,14 @@ class AppPaths {
   /// пользователя, а состояние, которое меняется само.
   String get windowStateFile => p.join(dataDir, 'window.json');
 
+  /// Журнал приложения и его предыдущее поколение.
+  ///
+  /// В папке данных, а не рядом с исполняемым файлом: на Linux приложение
+  /// может лежать в системном каталоге без прав на запись.
+  String get logFile => p.join(dataDir, 'evaporate.log');
+
+  String get previousLogFile => p.join(dataDir, 'evaporate.log.1');
+
   /// Список загрузок движка: он переживает перезапуск приложения.
   String get engineStateFile => p.join(dataDir, 'downloads.json');
 

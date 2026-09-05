@@ -565,10 +565,18 @@ class _TaskCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            AnimatedProgress(
-              value: indeterminate ? null : task.progress,
-              height: 5,
-              borderRadius: 4,
+            // Полосу прогресса экранный диктор не видит, а число ему
+            // сказать можно. Пока размер неизвестен, числа нет — и врать
+            // выдуманным процентом хуже, чем промолчать.
+            Semantics(
+              value: indeterminate
+                  ? L.of(context).fetchingMetadata
+                  : percentLabel(L.of(context), task.progress),
+              child: AnimatedProgress(
+                value: indeterminate ? null : task.progress,
+                height: 5,
+                borderRadius: 4,
+              ),
             ),
             const SizedBox(height: 10),
             DefaultTextStyle(

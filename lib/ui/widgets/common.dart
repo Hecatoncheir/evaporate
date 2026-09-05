@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/game.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -13,25 +14,14 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, color) = switch (status) {
-      GameStatus.notInstalled => (
-        L.of(context).statusNotInstalled,
-        context.colors.textSecondary,
-      ),
-      GameStatus.downloading => (
-        L.of(context).statusDownloading,
-        context.colors.primary,
-      ),
-      GameStatus.paused => (L.of(context).statusPaused, context.colors.warning),
-      GameStatus.installed => (
-        L.of(context).statusInstalled,
-        context.colors.accent,
-      ),
-      GameStatus.running => (
-        L.of(context).statusRunning,
-        context.colors.accent,
-      ),
-      GameStatus.error => (L.of(context).statusError, context.colors.danger),
+    final label = gameStatusLabel(L.of(context), status);
+    final color = switch (status) {
+      GameStatus.notInstalled => context.colors.textSecondary,
+      GameStatus.downloading => context.colors.primary,
+      GameStatus.paused => context.colors.warning,
+      GameStatus.installed => context.colors.accent,
+      GameStatus.running => context.colors.accent,
+      GameStatus.error => context.colors.danger,
     };
 
     return Container(

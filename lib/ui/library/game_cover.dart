@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/nav_tile.dart';
 import 'foil_card.dart';
@@ -41,6 +42,29 @@ class GameCoverTile extends StatelessWidget {
     );
     final running = task != null && task.state != DownloadState.complete;
 
+    // Сетку читают по картинкам, и текста в плитке с обложкой нет вовсе —
+    // экранному диктору объявить было бы нечего.
+    //
+    // Подпись кладётся внутрь плитки, а не поверх неё: обёртка с
+    // `excludeSemantics` снаружи убирает вместе с лишними подписями и
+    // действие нажатия, и плитка перестаёт нажиматься с клавиатуры. А
+    // `MergeSemantics` сводит кнопку и подпись в одно объявление — иначе
+    // диктор читает их подряд двумя.
+    return MergeSemantics(child: _tile(context, task, running));
+  }
+
+  /// Что услышит человек, дошедший до плитки: название, состояние и — если
+  /// игра качается — насколько.
+  String _spokenLabel(BuildContext context, DownloadTask? task) {
+    final l = L.of(context);
+    final parts = <String>[game.title, gameStatusLabel(l, game.status)];
+    if (task != null && task.state != DownloadState.complete) {
+      parts.add(percentLabel(l, task.progress));
+    }
+    return parts.join(', ');
+  }
+
+  Widget _tile(BuildContext context, DownloadTask? task, bool running) {
     return NavTile(
       focusNode: focusNode,
       onTap: onOpen,
@@ -73,15 +97,25 @@ class GameCoverTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(7.5),
           child: AspectRatio(
             aspectRatio: 2 / 3,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                FoilSurface(
-                  child: _Art(game: game, underStrip: running),
-                ),
-                if (running) _ProgressStrip(task: task),
-                if (!running) _StatusBadge(game: game),
-              ],
+            child: Semantics(
+              label: _spokenLabel(context, task),
+              // Плитка открывает игру, и сказать об этом надо явно: сама по
+              // себе она объявляется просто выделяемой областью.
+              button: true,
+              selected: selected,
+              // Значок состояния и название на подложке говорят то же самое:
+              // с ними одна плитка звучала бы тремя объявлениями.
+              excludeSemantics: true,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  FoilSurface(
+                    child: _Art(game: game, underStrip: running),
+                  ),
+                  if (running && task != null) _ProgressStrip(task: task),
+                  if (!running) _StatusBadge(game: game),
+                ],
+              ),
             ),
           ),
         ),

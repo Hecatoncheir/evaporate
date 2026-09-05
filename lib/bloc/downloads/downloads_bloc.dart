@@ -15,6 +15,7 @@ import '../../services/download/dtorrent_engine.dart';
 import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
+import '../../services/system/app_log.dart';
 import '../../l10n/app_localizations.dart';
 import '../../ui/labels.dart';
 import '../../l10n/app_localizations_ru.dart';
@@ -114,8 +115,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
 
   void _pushStats() => add(EngineStatsChanged(engine.stats.value));
 
-  Notice _notice(String message, {bool isError = false}) =>
-      Notice(message: message, seq: ++_noticeSeq, isError: isError);
+  Notice _notice(String message, {bool isError = false}) {
+    if (isError) AppLog.instance.write('загрузки: $message');
+    return Notice(message: message, seq: ++_noticeSeq, isError: isError);
+  }
 
   void _notifySystem(AppNotification notification) {
     if (!settings.state.systemNotifications) return;

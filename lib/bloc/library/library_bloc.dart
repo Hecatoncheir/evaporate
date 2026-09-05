@@ -25,6 +25,7 @@ import '../../services/saves/save_path_finder.dart';
 import '../../services/saves/save_path_globs.dart';
 import '../../services/saves/bulk_transfer.dart';
 import '../../services/saves/save_manager.dart';
+import '../../services/system/app_log.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
@@ -183,8 +184,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   void _pushRunningGames() =>
       add(RunningGamesChanged(_launcher.runningIds.value));
 
-  Notice _notice(String message, {bool isError = false}) =>
-      Notice(message: message, seq: ++_noticeSeq, isError: isError);
+  Notice _notice(String message, {bool isError = false}) {
+    // SnackBar живёт секунды, а рассказ о случившемся доходит через день.
+    if (isError) AppLog.instance.write('библиотека: $message');
+    return Notice(message: message, seq: ++_noticeSeq, isError: isError);
+  }
 
   void _notifySystem(AppNotification notification) {
     if (!settings.state.systemNotifications) return;
@@ -392,8 +396,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     for (final snapshot in removed) {
       try {
         await _saves.deleteSnapshot(snapshot);
-      } on Object {
+      } on Object catch (error) {
         // Файл мог быть уже удалён вручную.
+        AppLog.instance.write('удаление игры: снимок ${snapshot.id}', error);
       }
     }
     await _collectGarbage();
@@ -633,8 +638,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           settings.state.syncFolder != null) {
         try {
           await _exportToSyncFolder(snapshot);
-        } on Object {
-          // Папка синхронизации могла отвалиться — снимок уже сохранён локально.
+        } on Object catch (error) {
+          // Папка синхронизации могла отвалиться — снимок сохранён локально.
+          AppLog.instance.write('выгрузка в папку синхронизации', error);
         }
       }
 
@@ -710,8 +716,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     for (final snapshot in excess) {
       try {
         await _saves.deleteSnapshot(snapshot);
-      } on Object {
-        // Пропускаем: ротация не критична.
+      } on Object catch (error) {
+        // Пропускаем: ротация не критична, но след оставляем.
+        AppLog.instance.write(
+          'ротация: не удалить ${snapshot.archivePath}',
+          error,
+        );
       }
     }
     await _collectGarbage();
@@ -727,8 +737,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       await _saves.collectGarbage(
         state.snapshots.values.expand((list) => list),
       );
-    } on Object {
+    } on Object catch (error) {
       // Уборка — дело подсобное: не вышло, значит место освободится позже.
+      AppLog.instance.write('уборка хранилища снимков', error);
     }
   }
 
@@ -1030,8 +1041,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         gameDir: event.game.installDir,
         roots: _saveRoots(),
       );
-    } on Object {
+    } on Object catch (error) {
       // Обход папок — дело подсобное: не вышло, значит подсказок не будет.
+      AppLog.instance.write('поиск следов игры «${event.game.title}»', error);
       return;
     }
 

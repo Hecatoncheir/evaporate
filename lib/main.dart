@@ -18,6 +18,7 @@ import 'input/gamepad_service.dart';
 import 'models/app_settings.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
+import 'services/system/app_log.dart';
 import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
@@ -32,6 +33,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final paths = await AppPaths.init();
+  // Раньше всего остального: смысл журнала в том, чтобы застать и то, что
+  // ломается на старте.
+  AppLog.instance = AppLog(
+    path: paths.logFile,
+    previousPath: paths.previousLogFile,
+  );
+  AppLog.instance.write('запуск ${AppVersion.current}');
 
   final settings = SettingsBloc(paths);
   settings.add(const SettingsLoadRequested());
@@ -71,7 +79,7 @@ Future<void> main() async {
   // Что должно успеть лечь на диск, прежде чем процесс закончится. Список
   // наполняется по мере того, как появляются его владельцы, а порядок в нём
   // обратный порядку создания: сначала останавливаем, потом отпускаем.
-  final shutdownSteps = <ShutdownStep>[];
+  final shutdownSteps = <ShutdownStep>[AppLog.instance.flush];
   final shutdown = AppShutdown(shutdownSteps);
   final closeHandler = WindowCloseHandler(shutdown);
   await closeHandler.attach();

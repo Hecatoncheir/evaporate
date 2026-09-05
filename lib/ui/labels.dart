@@ -6,6 +6,7 @@ import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
 import '../core/format.dart';
 import '../models/download_task.dart';
+import '../models/game.dart';
 import '../models/save_profile.dart';
 import '../models/save_snapshot.dart';
 import '../services/download/download_engine.dart';
@@ -30,6 +31,24 @@ String navActionLabel(L l, NavAction action) => switch (action) {
   NavAction.scrollUp => l.navScrollUp,
   NavAction.scrollDown => l.navScrollDown,
 };
+
+/// Состояние игры словами.
+///
+/// Здесь, а не в модели: у `GameStatus` нет `BuildContext`, а строка нужна и
+/// значку состояния, и подписи для экранного диктора — расходиться им нельзя.
+String gameStatusLabel(L l, GameStatus status) => switch (status) {
+  GameStatus.notInstalled => l.statusNotInstalled,
+  GameStatus.downloading => l.statusDownloading,
+  GameStatus.paused => l.statusPaused,
+  GameStatus.installed => l.statusInstalled,
+  GameStatus.running => l.statusRunning,
+  GameStatus.error => l.statusError,
+};
+
+/// Доля скачанного словами — для экранного диктора: полосу прогресса он
+/// не видит, а число ему сказать можно.
+String percentLabel(L l, double progress) =>
+    l.percentDone((progress.clamp(0.0, 1.0) * 100).round());
 
 String downloadStateLabel(L l, DownloadState state) => switch (state) {
   DownloadState.waiting => l.stateQueued,
