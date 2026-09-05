@@ -65,6 +65,32 @@ class JsonStore {
     }
   }
 
+  /// Читает файл как есть, не разбирая.
+  ///
+  /// Нужно тем, кто разбирает JSON в отдельном изоляте: у кэша базы путей
+  /// это десятки тысяч записей, и разбор их на главном потоке роняет
+  /// несколько кадров подряд.
+  Future<String?> readText() async {
+    final file = File(path);
+    if (!await file.exists()) return null;
+    try {
+      final content = await file.readAsString();
+      return content.trim().isEmpty ? null : content;
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  /// Пишет готовый текст, не кодируя.
+  ///
+  /// Та же атомарная запись через переименование, что и у [write], — просто
+  /// кодирование уже сделано в другом месте, обычно в изоляте.
+  Future<void> writeText(String text) {
+    final next = (_queue ?? Future<void>.value()).then((_) => _writeText(text));
+    _queue = next.catchError((Object _) {});
+    return next;
+  }
+
   /// Сохраняет исходные данные отдельно перед восстановлением части записей.
   Future<void> quarantine() async {
     final file = File(path);
@@ -81,19 +107,20 @@ class JsonStore {
     return next;
   }
 
-  Future<void> _write(Map<String, dynamic> data) async {
+  Future<void> _write(Map<String, dynamic> data) => _writeText(
+    pretty
+        ? const JsonEncoder.withIndent('  ').convert(data)
+        : jsonEncode(data),
+  );
+
+  Future<void> _writeText(String text) async {
     final file = File(path);
     await file.parent.create(recursive: true);
     // Уникальное имя: даже если очередь кто-то обойдёт, два писателя не
     // столкнутся на одном временном файле.
     final tmp = File('$path.${DateTime.now().microsecondsSinceEpoch}.tmp');
     try {
-      await tmp.writeAsString(
-        pretty
-            ? const JsonEncoder.withIndent('  ').convert(data)
-            : jsonEncode(data),
-        flush: true,
-      );
+      await tmp.writeAsString(text, flush: true);
       if (private && !Platform.isWindows) {
         // Своего способа сменить права у Dart нет, а запись настроек — дело
         // редкое: она случается по нажатию человека, а не по таймеру.

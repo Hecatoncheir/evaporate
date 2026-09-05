@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/launch/game_roots.dart';
 import 'package:evaporate/services/launch/library_scanner.dart';
@@ -16,8 +17,9 @@ import 'support/test_app.dart';
 /// Добавление по одной терпимо для трёх игр и мучительно для сорока —
 /// ради этого диалог и существует.
 ///
-/// Поиск идёт, пока человек выбирает папку в системном окне, поэтому окно
-/// показывает ход и умеет останавливаться, не выбрасывая найденное.
+/// Поиск начинается сразу, ещё до того, как человек что-то выберет, поэтому
+/// окно показывает ход, умеет останавливаться, не выбрасывая найденное, и
+/// предлагает сузить себя брошенной или выбранной папкой.
 void main() {
   late Directory tmp;
   late Directory root;
@@ -271,5 +273,49 @@ void main() {
 
     expect(find.text('Найденная'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Добавить: 1'), findsOneWidget);
+  });
+
+  // Системное окно выбора само не открывается: человек нажал «найти игры», а
+  // не «выбери папку». Сузить поиск предлагается здесь же.
+  testWidgets('в окне есть куда бросить папку и куда нажать', (tester) async {
+    await prepare(tester, () => gameDir('Найденная'));
+
+    await openScan(tester);
+
+    expect(find.text('Бросьте сюда папку с играми'), findsOneWidget);
+    expect(find.textContaining('нажмите, чтобы выбрать'), findsOneWidget);
+    expect(find.byType(DropTarget), findsWidgets);
+  });
+
+  // Брошенная папка сужает поиск, а не добавляется одной игрой: для этого
+  // есть сетка библиотеки, и она броски в это время не ловит.
+  testWidgets('брошенная папка сужает поиск до неё', (tester) async {
+    await prepare(tester, () => gameDir('Широкая'));
+    final narrow = await prepare(tester, () async {
+      final dir = Directory(p.join(tmp.path, 'узкая', 'Нужная'));
+      await dir.create(recursive: true);
+      final file = File(
+        p.join(dir.path, Platform.isWindows ? 'game.exe' : 'game'),
+      );
+      await file.writeAsString('исполняемый');
+      if (!Platform.isWindows) await Process.run('chmod', ['+x', file.path]);
+      return Directory(p.join(tmp.path, 'узкая'));
+    });
+
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+    final session = await startScan(tester, harness);
+    await waitForScan(tester, session);
+    expect(find.text('Широкая'), findsOneWidget);
+
+    await tester.runAsync(() async {
+      unawaited(session.scanOnly(narrow.path));
+      await tester.pump();
+    });
+    await waitForScan(tester, session);
+
+    expect(find.text('Нужная'), findsOneWidget);
+    expect(find.text('Широкая'), findsNothing);
   });
 }

@@ -12,10 +12,35 @@ import 'ludusavi_manifest.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 
+/// Разобранный манифест и текст для кэша.
+typedef _Parsed = ({LudusaviManifest manifest, String json});
+
 /// Разбор в отдельном изоляте: манифест — это десятки тысяч записей,
 /// в главном потоке такой разбор заморозил бы интерфейс на секунды.
-Map<String, dynamic> _parseManifest(String source) =>
-    LudusaviManifest.parse(source).toJson();
+///
+/// В изоляте делается **всё** тяжёлое разом, включая кодирование кэша: оно
+/// стоит ещё двух десятков миллисекунд, то есть кадра с лишним.
+_Parsed _parseManifest(String source) {
+  final manifest = LudusaviManifest.parse(source);
+  return (manifest: manifest, json: jsonEncode(manifest.toJson()));
+}
+
+/// Чтение кэша — тоже в изоляте.
+///
+/// Три мегабайта JSON разбираются миллисекунд тридцать пять, а это два-три
+/// подряд пропущенных кадра: анимация в это время видимо дёргается.
+///
+/// `null` означает испорченный кэш: разбирается он вдали от главного
+/// потока, и бросать исключение через границу изолята ради этого незачем.
+LudusaviManifest? _decodeManifest(String text) {
+  try {
+    final json = jsonDecode(text);
+    if (json is! Map<String, dynamic>) return null;
+    return LudusaviManifest.fromJson(json);
+  } on Object {
+    return null;
+  }
+}
 
 /// Доступ к базе известных путей сохранений.
 ///
@@ -59,6 +84,9 @@ class LudusaviCatalog {
 
   static ProxySettings _noProxy() => const ProxySettings();
 
+  /// Как часто сообщать о ходе загрузки.
+  static const _progressInterval = Duration(milliseconds: 100);
+
   bool get isLoaded => _manifest != null;
 
   int get entryCount => _manifest?.entries.length ?? 0;
@@ -72,18 +100,23 @@ class LudusaviCatalog {
 
   Future<bool> _load({required bool refresh}) async {
     if (!refresh) {
-      final cached = await _store.readAs(LudusaviManifest.fromJson);
-      if (cached != null) {
-        _manifest = cached;
-        return true;
+      final text = await _store.readText();
+      if (text != null) {
+        final cached = await compute(_decodeManifest, text);
+        if (cached != null) {
+          _manifest = cached;
+          return true;
+        }
+        // Кэш испорчен — сохраняем его рядом и качаем заново.
+        await _store.quarantine();
       }
     }
 
     final source = await _download();
     onProgress?.call(CatalogProgress.parsing);
-    final json = await compute(_parseManifest, source);
-    _manifest = LudusaviManifest.fromJson(json);
-    await _store.write(json);
+    final parsed = await compute(_parseManifest, source);
+    _manifest = parsed.manifest;
+    await _store.writeText(parsed.json);
     return true;
   }
 
@@ -138,8 +171,13 @@ class LudusaviCatalog {
       // каждый байт занимает машинное слово, да ещё удваивается при росте.
       final total = response.contentLength;
       final builder = BytesBuilder(copy: false);
-      await for (final chunk in response) {
-        builder.add(chunk);
+
+      // О ходе сообщаем не чаще десяти раз в секунду. Кусков приходит
+      // несколько сотен, каждый поднимал событие блока и перерисовку — то
+      // есть сотни кадров работы там, где глазу хватает десятка в секунду.
+      // Ровно от этого и дёргалась анимация на фоне.
+      var reported = DateTime.now();
+      void report() {
         onProgress?.call(
           CatalogProgress(
             phase: CatalogPhase.downloading,
@@ -148,6 +186,17 @@ class LudusaviCatalog {
           ),
         );
       }
+
+      await for (final chunk in response) {
+        builder.add(chunk);
+        final now = DateTime.now();
+        if (now.difference(reported) < _progressInterval) continue;
+        reported = now;
+        report();
+      }
+      // Последний отчёт обязателен: без него полоса замирает, не дойдя
+      // до конца, и выглядит это как оборванная загрузка.
+      report();
       return utf8.decode(builder.takeBytes());
     } finally {
       client.close(force: true);

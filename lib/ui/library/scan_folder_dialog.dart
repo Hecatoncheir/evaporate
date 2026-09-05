@@ -1,5 +1,12 @@
+import 'dart:io';
+
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'dart:async';
+
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
@@ -14,9 +21,10 @@ import '../../l10n/app_localizations.dart';
 ///
 /// Возвращает число добавленных игр.
 ///
-/// Сессию заводит вызывающая сторона: пока человек выбирает папку в
-/// системном окне, поиск уже идёт, и остановить или перенацелить его должен
-/// тот, кто это окно открыл.
+/// Поиск начинается сразу, ещё до того, как человек что-то выберет: пока он
+/// смотрит на найденное, известные места уже осматриваются. Сузить поиск до
+/// одной папки можно здесь же — бросив её в окно или выбрав в системном
+/// окне, которое откроется по нажатию.
 Future<int?> showScanFolderDialog(BuildContext context, ScanSession session) {
   return showDialog<int>(
     context: context,
@@ -37,6 +45,13 @@ class _ScanFolderDialog extends StatefulWidget {
 }
 
 class _ScanFolderDialogState extends State<_ScanFolderDialog> {
+  /// Папку держат над окном — показываем, что бросить её можно сюда.
+  bool _dragging = false;
+
+  /// Бросили не папку. Молчаливый отказ хуже всего: человек не поймёт,
+  /// случилось что-нибудь или нет.
+  bool _wrongDrop = false;
+
   /// Папки, которые человек снял сам. Отмечено по умолчанию всё, а находки
   /// приходят по ходу поиска — запоминать надо именно снятое, иначе новая
   /// находка воскрешала бы снятые галочки.
@@ -64,6 +79,30 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
     for (final game in _games)
       if (!_unchecked.contains(game.installDir)) game.installDir,
   };
+
+  /// Сужает поиск до одной папки, отменяя начатое.
+  void _narrowTo(String directory) {
+    setState(() => _wrongDrop = false);
+    unawaited(widget.session.scanOnly(directory));
+  }
+
+  Future<void> _pickFolder() async {
+    final directory = await getDirectoryPath(
+      confirmButtonText: L.of(context).scan,
+    );
+    if (directory != null && mounted) _narrowTo(directory);
+  }
+
+  Future<void> _onDrop(DropDoneDetails details) async {
+    setState(() => _dragging = false);
+    for (final file in details.files) {
+      if (await Directory(file.path).exists()) {
+        if (mounted) _narrowTo(file.path);
+        return;
+      }
+    }
+    if (mounted) setState(() => _wrongDrop = true);
+  }
 
   void _add() {
     final library = context.read<LibraryBloc>();
@@ -103,6 +142,15 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Progress(session: session),
+            const SizedBox(height: 12),
+            _DropArea(
+              dragging: _dragging,
+              wrongDrop: _wrongDrop,
+              onTap: _pickFolder,
+              onEntered: () => setState(() => _dragging = true),
+              onExited: () => setState(() => _dragging = false),
+              onDrop: _onDrop,
+            ),
             if (games.isNotEmpty) ...[
               const SizedBox(height: 12),
               Flexible(child: _list(games)),
@@ -234,6 +282,85 @@ class _Progress extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Куда бросить папку и куда нажать, чтобы её выбрать.
+///
+/// Системное окно выбора само не открывается: человек нажал «найти игры», а
+/// не «выбери папку», — поиск к этому времени уже идёт, и окно поверх него
+/// было бы требованием, а не предложением. Здесь же и приём броском: папку
+/// проще притащить из файлового менеджера, чем искать заново в чужом окне.
+class _DropArea extends StatelessWidget {
+  const _DropArea({
+    required this.dragging,
+    required this.wrongDrop,
+    required this.onTap,
+    required this.onEntered,
+    required this.onExited,
+    required this.onDrop,
+  });
+
+  final bool dragging;
+  final bool wrongDrop;
+  final VoidCallback onTap;
+  final VoidCallback onEntered;
+  final VoidCallback onExited;
+  final void Function(DropDoneDetails) onDrop;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    final colors = context.colors;
+    final accent = dragging ? colors.primary : colors.outline;
+
+    return DropTarget(
+      onDragEntered: (_) => onEntered(),
+      onDragExited: (_) => onExited(),
+      onDragDone: onDrop,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            color: dragging ? colors.surfaceHigh : null,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: accent, width: dragging ? 2 : 1),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.drive_folder_upload_outlined,
+                size: 22,
+                color: dragging ? colors.primary : colors.textSecondary,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l.scanDropHere,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                l.scanPickFolder,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+              ),
+              if (wrongDrop) ...[
+                const SizedBox(height: 8),
+                Text(
+                  l.scanNotAFolder,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: colors.warning),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

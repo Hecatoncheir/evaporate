@@ -296,8 +296,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       executablePath: event.executablePath,
       status: event.status,
       steamAppId: event.steamAppId,
-      // Идентификатор пришёл с диска — искать его по названию незачем.
-      steamLookupAttempted: event.steamAppId != null,
       saveProfile: SaveProfile(
         autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
         autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
@@ -360,7 +358,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         game.installDir == null) {
       return;
     }
-    if (game.steamAppId == null && !game.steamLookupAttempted) {
+    // Через Steam проходят и те игры, чей идентификатор уже известен: по
+    // названию их искать не нужно, а обложка и описание нужны так же.
+    if (!game.steamLookupAttempted) {
       add(SteamLookupRequested(game, query: query, automatic: true));
     } else if (game.steamAppId != null && !game.savePathsLookupAttempted) {
       add(SavePathsLookupRequested(game, automatic: true));
@@ -871,10 +871,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     final key = steamKey(event.game.id);
     final game = state.gameById(event.game.id);
+    // Наличия идентификатора для отказа мало: он мог прийти из манифеста
+    // Steam на диске, и тогда обложки у игры ещё нет. Отказывает только
+    // маркер «уже пробовали».
     if (game == null ||
         state.isBusy(key) ||
-        (event.automatic &&
-            (game.steamLookupAttempted || game.steamAppId != null))) {
+        (event.automatic && game.steamLookupAttempted)) {
       return;
     }
     emit(state.copyWith(busy: _withBusy(key, true)));
@@ -882,7 +884,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       _replaceGame(game.copyWith(steamLookupAttempted: true), emit);
       // Маркер записан до сети: даже аварийный выход не вызывает повтор.
       await persist();
-      final match = await steam.bestMatch(event.query ?? game.title);
+      // Идентификатор уже известен — спрашиваем прямо по нему. Поиск по
+      // названию тут не только лишний, но и вреден: он способен ответить
+      // другой игрой.
+      final match = game.steamAppId != null
+          ? await steam.details(game.steamAppId!)
+          : await steam.bestMatch(event.query ?? game.title);
       if (_closing) return;
       if (match == null) {
         emit(

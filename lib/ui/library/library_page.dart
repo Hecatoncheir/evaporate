@@ -22,8 +22,6 @@ import '../widgets/liquid_selection.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-import 'package:file_selector/file_selector.dart';
-
 import 'add_game_dialog.dart';
 import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
@@ -65,6 +63,9 @@ class _LibraryPageState extends State<LibraryPage> {
   /// Разбор сброшенного идёт с обращениями к диску, и второй сброс поверх
   /// первого наплодил бы дубли.
   bool _importing = false;
+
+  /// Открыто окно поиска установленных игр.
+  bool _scanning = false;
 
   @override
   void dispose() {
@@ -156,10 +157,14 @@ class _LibraryPageState extends State<LibraryPage> {
         ),
         Expanded(
           child: DropTarget(
-            onDragEntered: (_) => setState(() => _dragging = true),
+            onDragEntered: (_) {
+              if (!_scanning) setState(() => _dragging = true);
+            },
             onDragExited: (_) => setState(() => _dragging = false),
             onDragDone: (details) {
               setState(() => _dragging = false);
+              // Пока открыто окно поиска, брошенное принадлежит ему.
+              if (_scanning) return;
               _handleDrop(context, [for (final f in details.files) f.path]);
             },
             child: GameWave(
@@ -461,11 +466,12 @@ class _LibraryPageState extends State<LibraryPage> {
 
   /// Добавление по одной терпимо для трёх игр и мучительно для сорока.
   ///
-  /// Поиск начинается сразу, не дожидаясь выбора папки: пока человек ищет
-  /// её в системном окне, известные места — библиотеки Steam, папки
-  /// лончеров, подключённые тома — уже осматриваются. Выбрал папку —
-  /// начатое отменяется и заход идёт по ней; закрыл окно, ничего не выбрав,
-  /// — поиск останавливается, а найденное остаётся на экране.
+  /// Поиск начинается сразу: известные места — библиотеки Steam, папки
+  /// лончеров, подключённые тома — осматриваются, не дожидаясь, пока
+  /// человек что-нибудь выберет. Сузить его до одной папки можно прямо в
+  /// окне поиска: бросить её туда или выбрать в системном окне, которое
+  /// откроется по нажатию. Само оно не открывается — человек нажал «найти
+  /// игры», а не «выбери папку».
   Future<void> _scanFolder(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     final l = L.of(context);
@@ -478,18 +484,17 @@ class _LibraryPageState extends State<LibraryPage> {
     );
     unawaited(session.scanKnownRoots());
 
-    final result = showScanFolderDialog(context, session);
-    final dir = await getDirectoryPath(confirmButtonText: l.scan);
-    if (dir == null) {
-      session.stop();
-    } else {
-      unawaited(session.scanOnly(dir));
+    // Пока окно поиска открыто, сетка броски не ловит: папку в нём бросают
+    // ради сужения поиска, а не чтобы добавить её как одну игру.
+    setState(() => _scanning = true);
+    try {
+      final added = await showScanFolderDialog(context, session);
+      if (added == null || added == 0 || !mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l.gamesAdded(added))));
+    } finally {
+      session.dispose();
+      if (mounted) setState(() => _scanning = false);
     }
-
-    final added = await result;
-    session.dispose();
-    if (added == null || added == 0 || !mounted) return;
-    messenger.showSnackBar(SnackBar(content: Text(l.gamesAdded(added))));
   }
 
   Future<void> _addGame(BuildContext context) async {

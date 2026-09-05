@@ -37,6 +37,18 @@ class _Steam extends SteamCatalog {
     return pending == null ? result : pending!.future;
   }
 
+  /// Подробности по известному идентификатору.
+  ///
+  /// Когда `appid` уже известен — например, пришёл из манифеста Steam с
+  /// диска, — приложение спрашивает по нему, а не ищет по названию: поиск
+  /// тут не только лишний, но и способен ответить другой игрой.
+  @override
+  Future<SteamGame?> details(int appId) async {
+    calls++;
+    if (fail) throw const SocketException('offline');
+    return pending == null ? result : pending!.future;
+  }
+
   @override
   Future<List<int>?> coverBytes(SteamGame game) async {
     covers++;
@@ -87,6 +99,15 @@ Future<void> _settle(Future<bool> Function() done) async {
     if (await done()) return;
     await Future<void>.delayed(const Duration(milliseconds: 20));
   }
+}
+
+/// Ждёт игру, удовлетворяющую условию, и возвращает её.
+Future<Game> _waitFor(
+  LibraryBloc bloc,
+  bool Function(LibraryState) predicate,
+) async {
+  await _wait(bloc, predicate);
+  return bloc.state.gameById('game')!;
 }
 
 Future<void> _wait(
@@ -280,6 +301,33 @@ void main() {
     );
 
     expect(steam.calls, before);
+  });
+
+  // Игру, поставленную Steam, приложение опознаёт по манифесту на диске:
+  // идентификатор приходит вместе с папкой. Искать её по названию после
+  // этого незачем, а обложка нужна ровно так же — без неё в сетке
+  // остаётся безымянный прямоугольник.
+  test('игра с известным appid получает обложку, минуя поиск', () async {
+    library.add(
+      GameAdded(
+        id: 'game',
+        title: 'Из манифеста',
+        installDir: paths.defaultInstallDir,
+        status: GameStatus.installed,
+        steamAppId: 42,
+      ),
+    );
+
+    final game = await _waitFor(
+      library,
+      (s) => s.gameById('game')?.coverPath != null,
+    );
+
+    expect(game.steamAppId, 42);
+    expect(steam.covers, 1);
+    expect(await File(game.coverPath!).exists(), isTrue);
+    // Название из библиотеки не трогаем: его задавал человек или манифест.
+    expect(game.title, 'Из манифеста');
   });
 
   test('failed Steam request survives restart; manual request retries both catalogs', () async {
