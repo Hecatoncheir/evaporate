@@ -34,6 +34,33 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 - **Save locations** — found automatically from an open database of known
   paths, so you rarely have to type a path by hand.
 
+## Installing
+
+Ready-made builds live on the [releases page][releases]. Nothing needs
+building; each system has its own file:
+
+| System | File | What to do |
+|--------|------|------------|
+| Windows | `evaporate-<version>-windows-setup.exe` | run it: Next, Next, Finish |
+| macOS | `evaporate-<version>-macos.dmg` | open it and drag Evaporate into Applications |
+| Debian, Ubuntu | `evaporate-<version>-linux-amd64.deb` | double-click, or `sudo apt install ./file.deb` |
+| Other Linux | `evaporate-<version>-linux.tar.gz` | unpack anywhere and run `evaporate` |
+
+The `-macos.zip` and `-windows.zip` archives sit alongside them, but are not
+for people: the app fetches those itself when updating in place.
+
+Neither the Windows installer nor the macOS bundle is signed — certificates
+cost money. So the first run brings up SmartScreen ("Windows protected your
+PC" → More info → Run anyway) and, on macOS, Gatekeeper: open the app from
+its context menu once.
+
+The app can update itself: a button in the settings downloads the new
+version, checks its checksum and replaces the installation. The `.deb` is the
+deliberate exception — it lands in `/opt`, which needs root to write, and
+what a package manager installed a package manager should update.
+
+[releases]: https://github.com/Hecatoncheir/evaporate/releases/latest
+
 ## Controls: mouse, keyboard, gamepad
 
 The entire interface is reachable without a mouse. Keyboard and gamepad both
@@ -259,13 +286,22 @@ python3 tool/make_icon.py
 | Job | Runner | What it does |
 |-----|--------|--------------|
 | Analyse and test | ubuntu | `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` |
-| Build macOS | macos | the `.app`, packed with `ditto` |
-| Build Linux | ubuntu | a bundle with every dependency, packed as `.tar.gz` |
-| Build Windows | windows | the Release directory, packed as `.zip` |
-| Attach to release | ubuntu | uploads the archives to the release for a `v*` tag |
+| Build macOS | macos | the `.app`: a `ditto` archive and a `.dmg` image |
+| Build Linux | ubuntu | a bundle with every dependency: a `.tar.gz` and a `.deb` |
+| Build Windows | windows | the Release directory: a `.zip` and an Inno Setup installer |
+| Attach to release | ubuntu | uploads the files and `SHA256SUMS` for a `v*` tag |
+
+Every build ships two files: an installer for a person and an archive for the
+app itself. The in-place update looks for a release file ending in
+`-macos.zip`, `-windows.zip` or `-linux.tar.gz` and swaps the installation
+directory with no wizard involved — [`release_artifacts_test.dart`](test/release_artifacts_test.dart)
+keeps the names from drifting apart. The packaging recipes sit next to the
+platform code: [`windows/installer.iss`](windows/installer.iss),
+[`tool/package_macos.sh`](tool/package_macos.sh),
+[`tool/package_linux.sh`](tool/package_linux.sh) — all three run by hand too.
 
 A push to `main` runs the analysis and the tests only. The three platform
-builds run on a `v*` tag, and that is when the finished archives are attached
+builds run on a `v*` tag, and that is when the finished files are attached
 to the release. On a push they would establish what the tests already do, and
 take four times as long doing it: the macOS build runs for minutes, while
 “the tests passed” is wanted at once.

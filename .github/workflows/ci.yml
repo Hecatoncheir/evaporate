@@ -125,19 +125,27 @@ jobs:
       - name: Сборка
         run: flutter build macos --release
 
+      # Двумя файлами, и оба нужны. Образ — то, что ставит человек: бандл
+      # перетаскивают в «Программы» и на этом всё. Архив — то, что берёт
+      # само приложение при обновлении: оно ищет в релизе файл с хвостом
+      # `-macos.zip` и распаковывает его без участия Finder.
       - name: Упаковать бандл
         run: |
+          set -eu
           APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -1)
           if [ -z "$APP" ]; then echo 'Собранный .app не найден'; exit 1; fi
+          VERSION="${GITHUB_REF_NAME#v}"
           echo "Упаковываю $APP"
+          mkdir -p dist
           # ditto, а не zip: сохраняет симлинки и права внутри бандла.
-          ditto -c -k --keepParent "$APP" \
-            "evaporate-${GITHUB_REF_NAME#v}-macos.zip"
+          ditto -c -k --keepParent "$APP" "dist/evaporate-$VERSION-macos.zip"
+          tool/package_macos.sh "$VERSION" "$APP" dist
+          ls -lh dist
 
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: evaporate-macos-${{ github.sha }}
-          path: evaporate-*-macos.zip
+          path: dist/evaporate-*
           retention-days: 14
 
   build-linux:
@@ -169,16 +177,23 @@ jobs:
       - name: Сборка
         run: flutter build linux --release
 
-      # Архивом, а не папкой: к релизу прикладывают файл.
+      # Пакет — для установки: ярлык в меню, значок и удаление одной
+      # командой. Архив — для самообновления приложения; заодно он
+      # единственное, что годится не для Debian и не для Ubuntu.
       - name: Упаковать сборку
         run: |
-          tar -czf "evaporate-${GITHUB_REF_NAME#v}-linux.tar.gz" \
+          set -eu
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          tar -czf "dist/evaporate-$VERSION-linux.tar.gz" \
             -C build/linux/x64/release/bundle .
+          tool/package_linux.sh "$VERSION" build/linux/x64/release/bundle dist
+          ls -lh dist
 
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: evaporate-linux-${{ github.sha }}
-          path: evaporate-*-linux.tar.gz
+          path: dist/evaporate-*
           retention-days: 14
 
   build-windows:
@@ -203,17 +218,37 @@ jobs:
       - name: Сборка
         run: flutter build windows --release
 
-      # Compress-Archive, а не zip: его на раннере может не оказаться.
+      # Ставим свой: на образе раннера Inno Setup может оказаться версии
+      # старее той, чей синтаксис понимает windows/installer.iss.
+      - name: Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      # Установщик — для человека, архив — для самообновления приложения:
+      # оно ищет в релизе файл с хвостом `-windows.zip` и заменяет папку
+      # само, мастер ему только помешал бы.
       - name: Упаковать сборку
         run: |
-          $slug = "${env:GITHUB_REF_NAME}" -replace '^v', ''
+          $ErrorActionPreference = 'Stop'
+          $version = "${env:GITHUB_REF_NAME}" -replace '^v', ''
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # Compress-Archive, а не zip: его на раннере может не оказаться.
           Compress-Archive -Path build/windows/x64/runner/Release/* `
-            -DestinationPath "evaporate-$slug-windows.zip"
+            -DestinationPath "dist/evaporate-$version-windows.zip"
+
+          $iscc = Get-ChildItem -Path `
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", `
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" `
+            -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $iscc) { throw 'ISCC.exe не найден' }
+          & $iscc.FullName "/DAppVersion=$version" windows\installer.iss
+          if ($LASTEXITCODE -ne 0) { throw "iscc вернул $LASTEXITCODE" }
+          Get-ChildItem dist
 
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: evaporate-windows-${{ github.sha }}
-          path: evaporate-*-windows.zip
+          path: dist/evaporate-*
           retention-days: 14
 
   release:

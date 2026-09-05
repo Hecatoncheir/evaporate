@@ -88,18 +88,25 @@ class Release extends Equatable {
   /// Приложенные архивы и файл контрольных сумм.
   final List<ReleaseAsset> assets;
 
-  /// Архив для этой системы.
+  /// Хвост имени архива для системы.
   ///
   /// Имена задаёт сборка: `evaporate-<версия>-macos.zip` и рядом такие же
   /// для Windows и Linux. Опознаём по хвосту, а не по полному имени: в нём
   /// стоит версия, и знать её заранее неоткуда.
+  ///
+  /// Рядом с архивами релиз несёт установщики (`.dmg`, `.deb`, `setup.exe`),
+  /// и приложению нужны не они: мастер установки в обновлении по нажатию
+  /// только помешал бы. Отсюда и точность хвоста.
+  static String? archiveSuffix(String platformKey) => switch (platformKey) {
+    'macos' => '-macos.zip',
+    'windows' => '-windows.zip',
+    'linux' => '-linux.tar.gz',
+    _ => null,
+  };
+
+  /// Архив для этой системы.
   ReleaseAsset? get archiveForThisPlatform {
-    final suffix = switch (currentPlatformKey()) {
-      'macos' => '-macos.zip',
-      'windows' => '-windows.zip',
-      'linux' => '-linux.tar.gz',
-      _ => null,
-    };
+    final suffix = archiveSuffix(currentPlatformKey());
     if (suffix == null) return null;
     for (final asset in assets) {
       if (asset.name.endsWith(suffix)) return asset;
