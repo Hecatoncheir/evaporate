@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.22.1] — 2026-09-06
+
 ### Исправлено
 
 - Окно на Windows больше не закрывается, когда его тянут за край. Невидимые
@@ -705,6 +707,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.22.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.1
 [0.22.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.0
 [0.21.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.21.0
 [0.18.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.18.0
