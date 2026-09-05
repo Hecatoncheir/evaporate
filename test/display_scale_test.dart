@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/widgets/interface_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -174,8 +175,17 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: 'section $section');
       }
+      // Именно прокрутка настроек, а не «последняя из найденных»: список
+      // настроек собран не ListView — иначе фокусу некуда идти дальше
+      // построенной карточки.
+      final settingsScroll = find
+          .descendant(
+            of: find.byType(SettingsPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
       for (var i = 0; i < 24; i++) {
-        await tester.drag(find.byType(ListView).last, const Offset(0, -350));
+        await tester.drag(settingsScroll, const Offset(0, -350));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull, reason: 'settings scroll $i');
       }

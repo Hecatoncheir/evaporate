@@ -105,6 +105,68 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  // Полосы, за которые тянут края окна, лежат поверх всего — иначе до них
+  // не дотянуться. Значит они легко накрывают то, что под ними, и проверять
+  // тут нужно именно геометрию.
+  group('полосы изменения размера', () {
+    // Кнопка под невидимой полосой — не просто мёртвая точка. Нажатие
+    // уходит в системный цикл изменения размера, отпускания мыши Flutter не
+    // видит, и отложенное нажатие достаётся кнопке под полосой. С «Закрыть»
+    // это выглядит так: потянул окно за верх — окно закрылось.
+    test('ни одна не залезает на кнопки окна', () {
+      for (final size in const [
+        Size(900, 600),
+        Size(1280, 800),
+        Size(640, 480),
+      ]) {
+        final buttons = WindowChrome.buttonsRect(size.width);
+
+        for (final zone in WindowChrome.resizeZones(size)) {
+          expect(
+            zone.rect.overlaps(buttons),
+            isFalse,
+            reason: 'полоса ${zone.edge.name} ${zone.rect} накрыла кнопки окна',
+          );
+        }
+      }
+    });
+
+    // Отступ панели рассчитан на полосу в четыре точки. Стань любая толще —
+    // и она снова полезет на кнопки, а тест выше об этом узнает не сразу:
+    // толщину меняют в одном месте, а отступ в другом.
+    test('все не толще отступа, на который отодвинуты кнопки', () {
+      for (final zone in WindowChrome.resizeZones(const Size(900, 600))) {
+        expect(
+          zone.rect.shortestSide,
+          lessThanOrEqualTo(WindowChrome.edge),
+          reason: 'полоса ${zone.edge.name} толще отступа кнопок',
+        );
+      }
+    });
+
+    // Углом тянут за угол, и полоса в четыре точки — это четыре точки:
+    // промахнуться по ней легко, поэтому вдоль каждой стороны угол длиннее.
+    test('углы длиннее, чем толще', () {
+      final zones = WindowChrome.resizeZones(const Size(900, 600));
+      final corners = zones.where(
+        (zone) => zone.edge.name.length > 'bottom'.length,
+      );
+
+      expect(corners, hasLength(8));
+      for (final zone in corners) {
+        expect(zone.rect.longestSide, WindowChrome.corner);
+      }
+    });
+
+    test('каждый край окна можно потянуть', () {
+      final edges = WindowChrome.resizeZones(const Size(900, 600))
+          .map((zone) => zone.edge)
+          .toSet();
+
+      expect(edges, hasLength(8));
+    });
+  });
+
   testWidgets('minimize, maximize, restore and close call the OS', (
     tester,
   ) async {
