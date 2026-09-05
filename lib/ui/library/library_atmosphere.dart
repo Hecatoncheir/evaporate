@@ -12,11 +12,14 @@ class LibraryAtmosphere extends StatefulWidget {
   const LibraryAtmosphere({
     super.key,
     required this.enabled,
+    this.particlesEnabled = true,
+    this.ambientEnabled = true,
     required this.targetKey,
     required this.child,
   });
 
   final bool enabled;
+  final bool particlesEnabled, ambientEnabled;
   final GlobalKey? Function() targetKey;
   final Widget child;
 
@@ -35,6 +38,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
   Duration? _previous;
   bool _foreground = true;
   bool _motion = false;
+  double _ambientTime = 0;
   bool get isAnimating => _ticker.isActive && !_ticker.muted;
 
   @override
@@ -58,6 +62,8 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
   void _syncMotion() {
     _motion =
         widget.enabled &&
+        (widget.particlesEnabled ||
+            (widget.ambientEnabled && !context.colors.isDark)) &&
         !MediaQuery.disableAnimationsOf(context) &&
         (ModalRoute.isCurrentOf(context) ?? true) &&
         TickerMode.valuesOf(context).enabled &&
@@ -84,7 +90,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
     }
     final box = _viewport.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return;
-    field.resize(box.size);
+    if (widget.particlesEnabled) field.resize(box.size);
     final key = widget.targetKey();
     final tile = key?.currentContext?.findRenderObject();
     Rect? rect;
@@ -100,8 +106,11 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
         : (elapsed - _previous!).inMicroseconds /
               Duration.microsecondsPerSecond;
     _previous = elapsed;
-    field.card = rect?.inflate(8);
-    field.step(dt);
+    _ambientTime += dt.clamp(0.0, 1 / 30);
+    if (widget.particlesEnabled) {
+      field.card = rect?.inflate(8);
+      field.step(dt);
+    }
     _repaint.repaint();
   }
 
@@ -118,36 +127,48 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
     final colors = context.colors;
     return MouseRegion(
       onHover: (event) {
-        if (_motion) field.pointer = event.localPosition;
+        if (_motion && widget.particlesEnabled) {
+          field.pointer = event.localPosition;
+        }
       },
       onExit: (_) => field.pointer = null,
       child: ClipRect(
         key: _viewport,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Seed even in reduced-motion mode; disabling motion never removes
-            // the static background dots.
-            field.resize(constraints.biggest);
+            // Reduced motion retains static dots; an explicit off hides them.
+            if (widget.enabled && widget.particlesEnabled) {
+              field.resize(constraints.biggest);
+            } else {
+              field.particles.clear();
+              field.size = Size.zero;
+              field.pointer = null;
+              field.card = null;
+            }
             return Stack(
               fit: StackFit.expand,
               children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: RepaintBoundary(
-                      child: CustomPaint(
-                        key: const ValueKey('library-atmosphere-paint'),
-                        painter: _AtmospherePainter(
-                          field: field,
-                          colors: colors,
-                          animated:
-                              widget.enabled &&
-                              !MediaQuery.disableAnimationsOf(context),
-                          repaint: _repaint,
+                if (widget.enabled)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          key: const ValueKey('library-atmosphere-paint'),
+                          painter: _AtmospherePainter(
+                            field: field,
+                            colors: colors,
+                            particlesEnabled: widget.particlesEnabled,
+                            ambientEnabled: widget.ambientEnabled,
+                            ambientTime: () => _ambientTime,
+                            animated:
+                                widget.enabled &&
+                                !MediaQuery.disableAnimationsOf(context),
+                            repaint: _repaint,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 RepaintBoundary(child: widget.child),
               ],
             );
@@ -167,19 +188,24 @@ class _AtmospherePainter extends CustomPainter {
     required this.field,
     required this.colors,
     required this.animated,
+    required this.particlesEnabled,
+    required this.ambientEnabled,
+    required this.ambientTime,
     required Listenable repaint,
   }) : super(repaint: repaint);
 
   final ParticleField field;
   final EvaporatePalette colors;
   final bool animated;
+  final bool particlesEnabled, ambientEnabled;
+  final double Function() ambientTime;
 
   @override
   void paint(Canvas canvas, Size size) {
     final bounds = Offset.zero & size;
-    final time = animated ? field.time : 0.0;
+    final time = animated ? ambientTime() : 0.0;
     // Slow, low-contrast pearlescent washes on ivory; never flash the text.
-    if (!colors.isDark) {
+    if (ambientEnabled && !colors.isDark) {
       for (var i = 0; i < 4; i++) {
         final center = Offset(
           size.width * (0.5 + 0.45 * math.sin(time * 0.13 + i * 1.8)),
@@ -196,6 +222,7 @@ class _AtmospherePainter extends CustomPainter {
         canvas.drawRect(bounds, paint);
       }
     }
+    if (!particlesEnabled) return;
     final dot = Paint();
     for (final particle in field.particles) {
       if (!animated && particle.life >= 0) continue;
@@ -215,5 +242,8 @@ class _AtmospherePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_AtmospherePainter oldDelegate) =>
-      oldDelegate.colors != colors || oldDelegate.animated != animated;
+      oldDelegate.colors != colors ||
+      oldDelegate.animated != animated ||
+      oldDelegate.particlesEnabled != particlesEnabled ||
+      oldDelegate.ambientEnabled != ambientEnabled;
 }

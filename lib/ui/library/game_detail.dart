@@ -36,7 +36,7 @@ class GameDetail extends StatelessWidget {
     // Страница занимает всё окно, а строка длиной в тысячу точек не
     // читается — колонка держится в разумной ширине и стоит по центру.
     final effects = context.select<SettingsBloc, bool>(
-      (b) => b.state.libraryEffects,
+      (b) => b.state.libraryEffects && b.state.wavesEnabled,
     );
     return GameWave(
       enabled: effects,

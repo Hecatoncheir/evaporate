@@ -19,6 +19,14 @@ class AppSettings extends Equatable {
     this.checkUpdates = true,
     this.themeMode = ThemeMode.system,
     this.libraryEffects = true,
+    this.particlesEnabled = false,
+    this.wavesEnabled = true,
+    this.foilEnabled = true,
+    this.cardTiltEnabled = true,
+    this.liquidDistortionEnabled = true,
+    this.liquidSelectionEnabled = true,
+    this.ambientEnabled = true,
+    this.interfaceAnimationsEnabled = true,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -61,8 +69,18 @@ class AppSettings extends Equatable {
   /// Светлая, тёмная или как в системе.
   final ThemeMode themeMode;
 
-  /// Частицы, foil и декоративные анимации страниц игр.
+  /// Общий выключатель; индивидуальные предпочтения сохраняются под ним.
   final bool libraryEffects;
+
+  /// Opt-in even when migrating settings written before this preference.
+  final bool particlesEnabled;
+  final bool wavesEnabled;
+  final bool foilEnabled;
+  final bool cardTiltEnabled;
+  final bool liquidDistortionEnabled;
+  final bool liquidSelectionEnabled;
+  final bool ambientEnabled;
+  final bool interfaceAnimationsEnabled;
 
   /// Independent layout zoom and cover size; both persist across launches.
   final double interfaceScale;
@@ -101,6 +119,14 @@ class AppSettings extends Equatable {
     bool? checkUpdates,
     ThemeMode? themeMode,
     bool? libraryEffects,
+    bool? particlesEnabled,
+    bool? wavesEnabled,
+    bool? foilEnabled,
+    bool? cardTiltEnabled,
+    bool? liquidDistortionEnabled,
+    bool? liquidSelectionEnabled,
+    bool? ambientEnabled,
+    bool? interfaceAnimationsEnabled,
     double? interfaceScale,
     double? libraryScale,
     Object? locale = _u,
@@ -120,6 +146,17 @@ class AppSettings extends Equatable {
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
       libraryEffects: libraryEffects ?? this.libraryEffects,
+      particlesEnabled: particlesEnabled ?? this.particlesEnabled,
+      wavesEnabled: wavesEnabled ?? this.wavesEnabled,
+      foilEnabled: foilEnabled ?? this.foilEnabled,
+      cardTiltEnabled: cardTiltEnabled ?? this.cardTiltEnabled,
+      liquidDistortionEnabled:
+          liquidDistortionEnabled ?? this.liquidDistortionEnabled,
+      liquidSelectionEnabled:
+          liquidSelectionEnabled ?? this.liquidSelectionEnabled,
+      ambientEnabled: ambientEnabled ?? this.ambientEnabled,
+      interfaceAnimationsEnabled:
+          interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
       interfaceScale: interfaceScale ?? this.interfaceScale,
       libraryScale: libraryScale ?? this.libraryScale,
       locale: locale == _u ? this.locale : locale as String?,
@@ -141,6 +178,14 @@ class AppSettings extends Equatable {
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
     'libraryEffects': libraryEffects,
+    'particlesEnabled': particlesEnabled,
+    'wavesEnabled': wavesEnabled,
+    'foilEnabled': foilEnabled,
+    'cardTiltEnabled': cardTiltEnabled,
+    'liquidDistortionEnabled': liquidDistortionEnabled,
+    'liquidSelectionEnabled': liquidSelectionEnabled,
+    'ambientEnabled': ambientEnabled,
+    'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
     'interfaceScale': interfaceScale,
     'libraryScale': libraryScale,
     if (locale != null) 'locale': locale,
@@ -162,6 +207,16 @@ class AppSettings extends Equatable {
         checkUpdates: json['checkUpdates'] as bool? ?? true,
         themeMode: _themeModeFromName(json['themeMode'] as String?),
         libraryEffects: json['libraryEffects'] as bool? ?? true,
+        particlesEnabled: json['particlesEnabled'] as bool? ?? false,
+        wavesEnabled: json['wavesEnabled'] as bool? ?? true,
+        foilEnabled: json['foilEnabled'] as bool? ?? true,
+        cardTiltEnabled: json['cardTiltEnabled'] as bool? ?? true,
+        liquidDistortionEnabled:
+            json['liquidDistortionEnabled'] as bool? ?? true,
+        liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? true,
+        ambientEnabled: json['ambientEnabled'] as bool? ?? true,
+        interfaceAnimationsEnabled:
+            json['interfaceAnimationsEnabled'] as bool? ?? true,
         interfaceScale: _scale(
           json['interfaceScale'],
           minInterfaceScale,
@@ -197,6 +252,14 @@ class AppSettings extends Equatable {
     checkUpdates,
     themeMode,
     libraryEffects,
+    particlesEnabled,
+    wavesEnabled,
+    foilEnabled,
+    cardTiltEnabled,
+    liquidDistortionEnabled,
+    liquidSelectionEnabled,
+    ambientEnabled,
+    interfaceAnimationsEnabled,
     interfaceScale,
     libraryScale,
     locale,

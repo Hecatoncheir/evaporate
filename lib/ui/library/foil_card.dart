@@ -5,18 +5,22 @@ import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
 
-/// A rigid card with synchronized perspective and holographic reflection.
+/// Independent perspective, holographic reflection and elastic distortion.
 /// Only the active card (or one settling back) owns a running ticker.
 class FoilCard extends StatefulWidget {
   const FoilCard({
     super.key,
     required this.active,
     required this.enabled,
+    this.foilEnabled = true,
+    this.tiltEnabled = true,
+    this.distortionEnabled = false,
     required this.child,
   });
 
   final bool active;
   final bool enabled;
+  final bool foilEnabled, tiltEnabled, distortionEnabled;
   final Widget child;
 
   @override
@@ -55,16 +59,21 @@ class FoilCardState extends State<FoilCard>
 
   void _syncMotion() {
     final reduced = MediaQuery.disableAnimationsOf(context);
-    if (!widget.enabled || reduced) {
-      _motion.strength = widget.enabled && widget.active ? 1 : 0;
+    final enabled =
+        widget.enabled &&
+        (widget.foilEnabled || widget.tiltEnabled || widget.distortionEnabled);
+    _motion.foil = widget.enabled && widget.foilEnabled;
+    _motion.distortion = enabled && !reduced && widget.distortionEnabled;
+    if (!enabled || reduced) {
+      _motion.strength = enabled && widget.active ? 1 : 0;
       _motion.tilt = false;
       _motion.phase = 0;
-      _motion.changed();
     } else {
-      _motion.tilt = true;
+      _motion.tilt = widget.tiltEnabled;
     }
+    _motion.changed();
     final run =
-        widget.enabled &&
+        enabled &&
         !reduced &&
         _foreground &&
         TickerMode.valuesOf(context).enabled &&
@@ -130,13 +139,34 @@ class _FoilMotion extends ChangeNotifier {
   double phase = 0;
   double strength = 0;
   bool tilt = true;
+  bool foil = true;
+  bool distortion = false;
   double get amount => Curves.easeInOut.transform(strength);
   Matrix4 get perspective {
-    if (!tilt || strength == 0) return Matrix4.identity();
-    return Matrix4.identity()
-      ..setEntry(3, 2, 0.0015)
-      ..rotateX(math.sin(phase) * 0.11 * amount)
-      ..rotateY(math.sin(phase + math.pi / 3) * 0.16 * amount);
+    final matrix = Matrix4.identity();
+    if (strength == 0) return matrix;
+    if (tilt) {
+      matrix
+        ..setEntry(3, 2, 0.0015)
+        ..rotateX(math.sin(phase) * 0.11 * amount)
+        ..rotateY(math.sin(phase + math.pi / 3) * 0.16 * amount);
+    }
+    if (distortion) {
+      // A travelling squeeze when focus arrives, followed by a gentle liquid
+      // wobble. Reciprocal scales preserve area without changing grid layout.
+      final pulse = math.sin(strength * math.pi * 2) * (1 - strength);
+      final stretch = 1 + pulse * 0.065 + math.sin(phase * 2) * 0.012 * amount;
+      final liquid = Matrix4.identity()
+        ..setEntry(0, 0, stretch)
+        ..setEntry(1, 1, 1 / stretch)
+        ..setEntry(
+          0,
+          1,
+          pulse * 0.035 + math.sin(phase * 1.7) * 0.009 * amount,
+        );
+      matrix.multiply(liquid);
+    }
+    return matrix;
   }
 
   void changed() => notifyListeners();
@@ -173,7 +203,7 @@ class _FoilPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (motion.strength == 0 || size.isEmpty) return;
+    if (!motion.foil || motion.strength == 0 || size.isEmpty) return;
     final bounds = Offset.zero & size;
     final shift = math.sin(motion.phase);
     canvas.drawRect(

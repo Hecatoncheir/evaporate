@@ -352,11 +352,14 @@ where text would otherwise be unreadable. Saturated icon colours belong to
 the decorative layer; their text variants are darker. The dark theme uses a
 lighter orange because it labels status as well as outlining focus.
 
-The dedicated "Living library" settings card enables particles and holographic foil
-on the active card. A gentle perspective tilt repeats every 7 seconds,
+The "Living library" settings card has individual switches for particles, waves,
+foil, tilt, Liquid Distortion, liquid selection, background colour flow and
+section fades. Particles default off; the other effects default on. The master
+switch preserves individual choices. A perspective tilt repeats every 7 seconds,
 synchronized with the rainbow reflection and specular streak.
 The normal focus border stays; the selection backdrop flows between elements,
-without distorting text, icons or artwork. Selection uses `#201b31` in the light
+while Liquid Distortion elastically squeezes the card on focus changes and gently
+wobbles the active card. Selection uses `#201b31` in the light
 theme and `#e8e1cf` in the dark theme, with contrasting text and icons.
 Gradients and Matrix4 implement the foil effect directly in Flutter,
 without Dough, sensors, or additional foil/xl dependencies.
@@ -366,7 +369,8 @@ card perimeter: faster, more chaotic motion and additional local particles.
 Distant dots wander
 in `#2f0346` on light backgrounds or `#f2685a` on dark backgrounds, without glow.
 Close to a target both themes use the same saturated ink palette.
-All 4800 ambient dots remain visible when motion is disabled. The total count
+Enabled particles remain static under reduced motion. Turning particles off
+hides them and stops their simulation. The total count
 is capped at 6800; extra dots expire after leaving a target. Painting remains
 independent of the grid.
 Grid gaps are 36 pixels horizontally and 40 vertically.
@@ -390,7 +394,8 @@ the [#wave reference](https://hecatoncheir.github.io/).
 Play is a standard themed button without an animated background.
 The lines bend smoothly near the pointer. Everything renders locally in
 Flutter, without loading the website or rebuilding page content each frame.
-Disabling Living library or enabling reduced motion leaves static artwork;
+Turning waves or Living library off removes the wave background completely.
+Reduced motion keeps enabled waves static;
 animations pause on hidden pages and while the window is inactive.
 
 All Flutter UI colours are defined in `lib/ui/app_colors.dart`: both themes,

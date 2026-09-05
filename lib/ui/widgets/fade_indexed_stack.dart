@@ -12,9 +12,11 @@ class FadeIndexedStack extends StatefulWidget {
     required this.index,
     required this.children,
     this.duration = const Duration(milliseconds: 150),
+    this.enabled = true,
   });
 
   final int index;
+  final bool enabled;
   final List<Widget> children;
 
   /// Коротко по замыслу: разделы переключают и с геймпада, где любая
@@ -36,11 +38,21 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   @override
   void didUpdateWidget(FadeIndexedStack oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.index != widget.index) {
+    if (!widget.enabled || MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
+    } else if (oldWidget.index != widget.index) {
       // Показываем новый раздел сразу, но проявляем его: перекрёстное
       // затухание потребовало бы держать оба видимыми, а они занимают
       // одно и то же место.
       _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.enabled || MediaQuery.disableAnimationsOf(context)) {
+      _controller.value = 1;
     }
   }
 

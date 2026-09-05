@@ -99,6 +99,11 @@ class AppShell extends StatelessWidget {
                               selector: (state) => state.section,
                               builder: (context, section) => FadeIndexedStack(
                                 index: section,
+                                enabled: context.select<SettingsBloc, bool>(
+                                  (b) =>
+                                      b.state.libraryEffects &&
+                                      b.state.interfaceAnimationsEnabled,
+                                ),
                                 children: const [
                                   LibraryPage(),
                                   DownloadsPage(),
@@ -164,7 +169,7 @@ class _RailState extends State<_Rail> {
         color: context.colors.railIndicator,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         enabled: context.select<SettingsBloc, bool>(
-          (b) => b.state.libraryEffects,
+          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
         ),
         child: FocusTraversalGroup(
           child: NavigationRail(

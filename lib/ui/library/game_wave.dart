@@ -47,21 +47,22 @@ class _GameWaveState extends State<GameWave> {
           builder: (context, clock, child) => Stack(
             fit: StackFit.expand,
             children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      key: const ValueKey('detail-wave-paint'),
-                      painter: _WavePainter(
-                        clock,
-                        _pointer,
-                        context.colors.isDark,
-                        widget.enabled && !reduced,
+              if (widget.enabled)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        key: const ValueKey('detail-wave-paint'),
+                        painter: _WavePainter(
+                          clock,
+                          _pointer,
+                          context.colors.isDark,
+                          widget.enabled && !reduced,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
               child!,
             ],
           ),

@@ -289,13 +289,99 @@ class SettingsPage extends StatelessWidget {
           key: const ValueKey('living-library-settings'),
           title: L.of(context).libraryEffects,
           icon: Icons.auto_awesome_outlined,
-          child: SwitchListTile(
-            value: settings.libraryEffects,
-            onChanged: (value) =>
-                update(settings.copyWith(libraryEffects: value)),
-            contentPadding: EdgeInsets.zero,
-            title: Text(L.of(context).libraryEffectsEnable),
-            subtitle: Text(L.of(context).libraryEffectsNote),
+          child: Column(
+            children: [
+              SwitchListTile(
+                key: const ValueKey('effects-master-toggle'),
+                value: settings.libraryEffects,
+                onChanged: (value) =>
+                    update(settings.copyWith(libraryEffects: value)),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).libraryEffectsEnable),
+                subtitle: Text(L.of(context).libraryEffectsNote),
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-particles-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectParticles),
+                value: settings.particlesEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) =>
+                          update(settings.copyWith(particlesEnabled: value))
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-waves-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectWaves),
+                value: settings.wavesEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) => update(settings.copyWith(wavesEnabled: value))
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-foil-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectFoil),
+                value: settings.foilEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) => update(settings.copyWith(foilEnabled: value))
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-cardTilt-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectCardTilt),
+                value: settings.cardTiltEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) =>
+                          update(settings.copyWith(cardTiltEnabled: value))
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-liquidDistortion-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectLiquidDistortion),
+                value: settings.liquidDistortionEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) => update(
+                        settings.copyWith(liquidDistortionEnabled: value),
+                      )
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-liquidSelection-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectLiquidSelection),
+                value: settings.liquidSelectionEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) => update(
+                        settings.copyWith(liquidSelectionEnabled: value),
+                      )
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-ambient-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectAmbient),
+                value: settings.ambientEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) =>
+                          update(settings.copyWith(ambientEnabled: value))
+                    : null,
+              ),
+              SwitchListTile(
+                key: const ValueKey('effects-interfaceAnimations-toggle'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(L.of(context).effectInterfaceAnimations),
+                value: settings.interfaceAnimationsEnabled,
+                onChanged: settings.libraryEffects
+                    ? (value) => update(
+                        settings.copyWith(interfaceAnimationsEnabled: value),
+                      )
+                    : null,
+              ),
+            ],
           ),
         ),
         const AboutCard(),

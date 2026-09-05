@@ -359,9 +359,17 @@ void main() {
       WidgetTester tester, {
       TransitionBuilder? builder,
       ThemeData? theme,
+      bool particles = true,
     }) async {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);
+      if (particles) {
+        harness.settings.add(
+          SettingsChanged(
+            harness.settings.state.copyWith(particlesEnabled: true),
+          ),
+        );
+      }
       for (final title in [
         'HADES',
         'ORI',

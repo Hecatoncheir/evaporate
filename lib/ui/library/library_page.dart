@@ -102,9 +102,7 @@ class _LibraryPageState extends State<LibraryPage> {
     final library = context.watch<LibraryBloc>().state;
     final nav = context.read<NavigationBloc>();
     final navState = context.watch<NavigationBloc>().state;
-    final effects = context.select<SettingsBloc, bool>(
-      (b) => b.state.libraryEffects,
-    );
+    final effects = context.watch<SettingsBloc>().state;
     final libraryIds = library.games.map((g) => g.id).toSet();
     final scale = context.select<SettingsBloc, double>(
       (b) => b.state.libraryScale,
@@ -160,9 +158,11 @@ class _LibraryPageState extends State<LibraryPage> {
             },
             child: GameWave(
               key: const ValueKey('library-wave'),
-              enabled: effects,
+              enabled: effects.libraryEffects && effects.wavesEnabled,
               child: LibraryAtmosphere(
-                enabled: effects,
+                enabled: effects.libraryEffects,
+                particlesEnabled: effects.particlesEnabled,
+                ambientEnabled: effects.ambientEnabled,
                 targetKey: () =>
                     _tileKeys[_hoveredId ?? navState.selectedGameId],
                 child: Stack(
@@ -299,14 +299,14 @@ class _LibraryPageState extends State<LibraryPage> {
     List<Game> games,
     String? selectedId,
     NavigationBloc nav,
-    bool effects,
+    AppSettings effects,
     double extent,
   ) {
     final indices = {for (var i = 0; i < games.length; i++) games[i].id: i};
     return LiquidSelection(
       key: const ValueKey('grid-liquid'),
       targetKey: () => _tileKeys[_hoveredId ?? selectedId],
-      enabled: effects,
+      enabled: effects.libraryEffects && effects.liquidSelectionEnabled,
       color: context.colors.selection,
       radius: 16,
       padding: const EdgeInsets.all(7),
@@ -341,7 +341,10 @@ class _LibraryPageState extends State<LibraryPage> {
               ),
               child: FoilCard(
                 active: (_hoveredId ?? selectedId) == game.id,
-                enabled: effects,
+                enabled: effects.libraryEffects,
+                foilEnabled: effects.foilEnabled,
+                tiltEnabled: effects.cardTiltEnabled,
+                distortionEnabled: effects.liquidDistortionEnabled,
                 child: GameCoverTile(
                   focusNode: _tileFocus.putIfAbsent(
                     game.id,
@@ -662,7 +665,9 @@ class _ShelfTabsState extends State<_ShelfTabs> {
     targetKey: () => _targets[widget.shelf],
     color: context.colors.selection,
     padding: const EdgeInsets.only(right: -4),
-    enabled: context.select<SettingsBloc, bool>((b) => b.state.libraryEffects),
+    enabled: context.select<SettingsBloc, bool>(
+      (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+    ),
     child: Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [

@@ -280,7 +280,7 @@ void main() {
         await frames(20);
         expect(tester.widget<SectionCard>(effects).title, 'Живая библиотека');
         final toggle = find.descendant(
-          of: effects,
+          of: find.byKey(const ValueKey('effects-master-toggle')),
           matching: find.byType(Switch),
         );
         expect(toggle, findsOneWidget);

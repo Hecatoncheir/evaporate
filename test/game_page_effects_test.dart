@@ -107,6 +107,7 @@ void main() {
       await show();
       await tester.pumpAndSettle();
       expect(motion.isAnimating, isFalse);
+      expect(find.byKey(const ValueKey('detail-wave-paint')), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
   );
