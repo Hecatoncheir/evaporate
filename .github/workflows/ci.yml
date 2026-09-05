@@ -22,8 +22,29 @@ jobs:
   analyze:
     name: Формат и анализ
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
     steps:
       - uses: actions/checkout@v7.0.1
+
+      # Версию считаем один раз здесь, а не в каждой сборке: она попадает в
+      # имена файлов, в мастер установки и в пакет, и три отдельных способа
+      # её вывести однажды дали бы три разных ответа.
+      #
+      # На теге версия — это тег. На ручном прогоне тега нет вовсе, а имя
+      # ветки версией не притворяется: `evaporate-main-windows-setup.exe`
+      # ещё куда ни шло, но Inno Setup на «main» в номере версии
+      # останавливается с ошибкой.
+      - name: Версия
+        id: version
+        run: |
+          set -eu
+          case "$GITHUB_REF_NAME" in
+            v[0-9]*) value="${GITHUB_REF_NAME#v}" ;;
+            *) value=$(sed -n 's/^version: \([^+]*\).*/\1/p' pubspec.yaml) ;;
+          esac
+          echo "Версия сборки: $value"
+          echo "value=$value" >> "$GITHUB_OUTPUT"
 
       - uses: subosito/flutter-action@v2.23.0
         with:
@@ -134,7 +155,7 @@ jobs:
           set -eu
           APP=$(find build/macos/Build/Products/Release -maxdepth 1 -name '*.app' | head -1)
           if [ -z "$APP" ]; then echo 'Собранный .app не найден'; exit 1; fi
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION='${{ needs.analyze.outputs.version }}'
           echo "Упаковываю $APP"
           mkdir -p dist
           # ditto, а не zip: сохраняет симлинки и права внутри бандла.
@@ -183,7 +204,7 @@ jobs:
       - name: Упаковать сборку
         run: |
           set -eu
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION='${{ needs.analyze.outputs.version }}'
           mkdir -p dist
           tar -czf "dist/evaporate-$VERSION-linux.tar.gz" \
             -C build/linux/x64/release/bundle .
@@ -229,7 +250,7 @@ jobs:
       - name: Упаковать сборку
         run: |
           $ErrorActionPreference = 'Stop'
-          $version = "${env:GITHUB_REF_NAME}" -replace '^v', ''
+          $version = '${{ needs.analyze.outputs.version }}'
           New-Item -ItemType Directory -Force -Path dist | Out-Null
 
           # Compress-Archive, а не zip: его на раннере может не оказаться.
