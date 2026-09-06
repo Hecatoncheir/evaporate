@@ -249,6 +249,32 @@ void main() {
     }
   });
 
+  // Экран игры показывается вместо сетки, и при закрытии его виджеты
+  // исчезают вместе с фокусом. Опереться фокусу было не на что, и он уезжал
+  // в боковую панель — а человек ждёт, что вернётся на ту самую игру, с
+  // экрана которой ушёл.
+  testWidgets('закрытие экрана игры возвращает фокус на её плитку', (
+    tester,
+  ) async {
+    final harness = await withGames(tester);
+    Focus.of(tester.element(find.text('Бета'))).requestFocus();
+    await tester.pumpAndSettle();
+    final selected = harness.nav.state.selectedGameId;
+
+    harness.nav.add(GameOpened(selected));
+    await tester.pumpAndSettle();
+    expect(harness.nav.state.openedGameId, selected);
+
+    harness.nav.add(const GameOpened(null));
+    await tester.pumpAndSettle();
+
+    expect(
+      primaryFocus?.debugLabel,
+      'game:$selected',
+      reason: 'фокус ушёл из библиотеки, хотя игра осталась выбранной',
+    );
+  });
+
   testWidgets('плитка показывает рамку фокуса', (tester) async {
     await withGames(tester);
 

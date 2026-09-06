@@ -52,6 +52,10 @@ class _LibraryPageState extends State<LibraryPage> {
   _Shelf _shelf = _Shelf.all;
   final Map<String, GlobalKey> _tileKeys = {};
   final Map<String, FocusNode> _tileFocus = {};
+
+  /// Какая игра была открыта на прошлой сборке — по её исчезновению и видно,
+  /// что экран закрыли.
+  String? _openedBefore;
   final _scroll = ScrollController();
   int _columns = 1;
   double _rowStride = 320;
@@ -81,7 +85,13 @@ class _LibraryPageState extends State<LibraryPage> {
       nav.searchFocus.unfocus();
       return;
     }
-    final selected = games.indexWhere((g) => g.id == nav.state.selectedGameId);
+    _focusGame(nav.state.selectedGameId, games);
+  }
+
+  /// Возвращает фокус на плитку игры, домотав до неё, если нужно.
+  void _focusGame(String? gameId, List<Game> games) {
+    if (games.isEmpty) return;
+    final selected = games.indexWhere((g) => g.id == gameId);
     final index = selected < 0 ? 0 : selected;
     final id = games[index].id;
     if (_tileFocus[id]?.context != null) {
@@ -130,6 +140,7 @@ class _LibraryPageState extends State<LibraryPage> {
     // Открытую игру могли удалить, а выбранную — отфильтровать. И то и
     // другое чинится после кадра: менять состояние во время сборки нельзя.
     _repairSelection(nav, navState, games, opened);
+    _restoreFocusOnClose(navState, games);
 
     if (opened != null) return _GamePage(game: opened);
 
@@ -393,6 +404,25 @@ class _LibraryPageState extends State<LibraryPage> {
       if (!mounted) return;
       if (openingLost) nav.add(const GameOpened(null));
       if (selectionLost) nav.add(GameSelected(games.first.id));
+    });
+  }
+
+  /// Возвращает фокус на плитку, с экрана которой ушли.
+  ///
+  /// Экран игры показывается вместо сетки, и при закрытии его виджеты
+  /// исчезают вместе с фокусом. Опереться фокусу становится не на что, и он
+  /// уезжает в боковую панель — а человек ждёт, что вернётся туда, откуда
+  /// уходил, тем более что игра там по-прежнему выбрана.
+  void _restoreFocusOnClose(NavigationState state, List<Game> games) {
+    final opened = state.openedGameId;
+    final before = _openedBefore;
+    _openedBefore = opened;
+    if (before == null || opened != null) return;
+
+    // После кадра: сетка на этот момент ещё не построена, и плитки, на
+    // которую надо встать, в дереве нет.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusGame(state.selectedGameId ?? before, games);
     });
   }
 

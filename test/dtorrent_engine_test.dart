@@ -10,6 +10,72 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  group('во что складывается состояние задачи', () {
+    DownloadState stateOf({
+      bool hasError = false,
+      bool pausedByUser = false,
+      double? progress,
+      dt.TaskState? taskState = dt.TaskState.running,
+    }) => DtorrentEngine.stateOf(
+      hasError: hasError,
+      pausedByUser: pausedByUser,
+      progress: progress,
+      taskState: taskState,
+    );
+
+    // Скачанное остаётся скачанным, остановили раздачу или нет, — а
+    // остановить её может и сам движок, дойдя до предела рейтинга. Пока
+    // пауза шла первой, законченная загрузка не объявлялась законченной:
+    // игра не становилась установленной, «Играть» не появлялась, а на её
+    // месте оставались «Пауза» и «Отменить».
+    test('готовность решается раньше паузы', () {
+      expect(
+        stateOf(progress: 1, pausedByUser: true),
+        DownloadState.complete,
+        reason: 'остановленная раздача не отменяет того, что файлы скачаны',
+      );
+      expect(
+        stateOf(progress: 1, taskState: dt.TaskState.paused),
+        DownloadState.complete,
+      );
+      expect(
+        stateOf(progress: 1, taskState: dt.TaskState.stopped),
+        DownloadState.complete,
+      );
+    });
+
+    test('незаконченная и поставленная на паузу — на паузе', () {
+      expect(stateOf(progress: 0.4, pausedByUser: true), DownloadState.paused);
+    });
+
+    // О готовности той, что ждёт очереди, сказать нечего: прогресса ещё нет.
+    test('задачи нет — ждёт очереди, а на паузе стоит паузой', () {
+      expect(stateOf(taskState: null), DownloadState.waiting);
+      expect(
+        stateOf(taskState: null, pausedByUser: true),
+        DownloadState.paused,
+      );
+    });
+
+    test('ошибка перевешивает всё', () {
+      expect(
+        stateOf(hasError: true, progress: 1, pausedByUser: true),
+        DownloadState.error,
+      );
+    });
+
+    test('состояние движка доходит без изменений', () {
+      expect(stateOf(progress: 0.5), DownloadState.active);
+      expect(
+        stateOf(progress: 0.5, taskState: dt.TaskState.paused),
+        DownloadState.paused,
+      );
+      expect(
+        stateOf(progress: 0.5, taskState: dt.TaskState.stopped),
+        DownloadState.waiting,
+      );
+    });
+  });
   late Directory tmp;
 
   setUp(() async {

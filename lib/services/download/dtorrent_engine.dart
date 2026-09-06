@@ -487,6 +487,39 @@ class DtorrentEngine implements DownloadEngine {
     );
   }
 
+  /// Во что складывается состояние задачи.
+  ///
+  /// Порядок проверок и есть суть. **Готовность решается раньше паузы**:
+  /// скачанное остаётся скачанным, остановили раздачу или нет, — а
+  /// остановить её может и сам движок, дойдя до заданного предела рейтинга.
+  /// Пока пауза шла первой, законченная загрузка так и не объявлялась
+  /// законченной: игра не становилась установленной, кнопка «Играть» не
+  /// появлялась, а на её месте оставались «Пауза» и «Отменить».
+  ///
+  /// Открыто для тестов: порядок важнее всего остального в этом файле, а
+  /// проверить его можно без движка и без сети.
+  @visibleForTesting
+  static DownloadState stateOf({
+    required bool hasError,
+    required bool pausedByUser,
+    required double? progress,
+    required dt.TaskState? taskState,
+  }) {
+    if (hasError) return DownloadState.error;
+    // Задачи ещё нет — она ждёт своей очереди. Пауза здесь всё же вперёд:
+    // о готовности сказать нечего, прогресса не существует.
+    if (taskState == null) {
+      return pausedByUser ? DownloadState.paused : DownloadState.waiting;
+    }
+    if ((progress ?? 0) >= 1.0) return DownloadState.complete;
+    if (pausedByUser) return DownloadState.paused;
+    return switch (taskState) {
+      dt.TaskState.running => DownloadState.active,
+      dt.TaskState.paused => DownloadState.paused,
+      dt.TaskState.stopped => DownloadState.waiting,
+    };
+  }
+
   static const _limitWindowId = 'evaporate-speed-limit';
 
   /// Открыто для тестов: настройки прокси приложения в конфиг движка.
@@ -811,18 +844,12 @@ class _ManagedDownload {
         info.files.fold<int>(0, (sum, file) => sum + file.length);
   }
 
-  DownloadState _state() {
-    if (error != null) return DownloadState.error;
-    if (pausedByUser) return DownloadState.paused;
-    final current = task;
-    if (current == null) return DownloadState.waiting;
-    if ((current.progress) >= 1.0) return DownloadState.complete;
-    return switch (current.state) {
-      dt.TaskState.running => DownloadState.active,
-      dt.TaskState.paused => DownloadState.paused,
-      dt.TaskState.stopped => DownloadState.waiting,
-    };
-  }
+  DownloadState _state() => DtorrentEngine.stateOf(
+    hasError: error != null,
+    pausedByUser: pausedByUser,
+    progress: task?.progress,
+    taskState: task?.state,
+  );
 
   Map<String, dynamic> toJson() => {
     'infoHash': infoHash,
