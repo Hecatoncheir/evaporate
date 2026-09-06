@@ -115,14 +115,37 @@ class UpdateScript {
   /// Имя файла скрипта — по нему же его и запускают.
   static String fileName({String? platform}) =>
       (platform ?? Platform.operatingSystem) == 'windows'
-      ? 'evaporate-update.cmd'
+      ? 'evaporate-update.ps1'
       : 'evaporate-update.sh';
 
   /// Чем запускать скрипт.
+  ///
+  /// На Windows — PowerShell со скрытым окном, и это не украшательство.
+  /// Помощник запускается отсоединённым процессом, то есть **без консоли**, а
+  /// каждая внешняя команда в такой обстановке получает от системы
+  /// собственное окно. Прежний помощник на `cmd` ждал выхода приложения
+  /// циклом из `tasklist`, `find` и `ping` — по три окна на оборот, до сотни
+  /// оборотов, и человек видел, как они появляются одно за другим. В
+  /// PowerShell то же ожидание — один `Wait-Process`, без единого
+  /// подпроцесса.
   static List<String> command(String script, {String? platform}) =>
       (platform ?? Platform.operatingSystem) == 'windows'
-      ? ['cmd', '/c', script]
+      ? [
+          'powershell',
+          '-NoProfile',
+          // Скрипт свой, только что записанный рядом, но политика запуска по
+          // умолчанию не даст выполнить и такой.
+          '-ExecutionPolicy',
+          'Bypass',
+          '-WindowStyle',
+          'Hidden',
+          '-File',
+          script,
+        ]
       : ['sh', script];
+
+  /// Путь в кавычках для PowerShell: одинарная кавычка внутри удваивается.
+  static String _ps(String value) => "'${value.replaceAll("'", "''")}'";
 
   static String _posix(
     InstallLayout layout,
@@ -169,36 +192,41 @@ rm -rf "\$backup"
     int pid,
   ) =>
       '''
-@echo off
-rem Помощник обновления Evaporate. Запускается приложением перед выходом:
-rem заменить файлы работающего процесса Windows не даёт.
-setlocal
-set "root=${layout.root}"
-set "staged=$staged"
-set "backup=$backup"
-set "launch=${layout.executable}"
+# Помощник обновления Evaporate. Запускается приложением перед выходом:
+# заменить файлы работающего процесса Windows не даёт.
+\$ErrorActionPreference = 'Stop'
 
-rem Ждём, пока процесс исчезнет, но не дольше десяти секунд.
-set /a tries=0
-:wait
-tasklist /fi "PID eq $pid" 2>nul | find "$pid" >nul
-if errorlevel 1 goto ready
-set /a tries+=1
-if %tries% gtr 100 exit /b 1
-ping -n 1 -w 100 127.0.0.1 >nul
-goto wait
+\$root = ${_ps(layout.root)}
+\$staged = ${_ps(staged)}
+\$backup = ${_ps(backup)}
+\$launch = ${_ps(layout.executable)}
 
-:ready
-if exist "%backup%" rmdir /s /q "%backup%"
-move "%root%" "%backup%" || exit /b 1
-move "%staged%" "%root%"
-if errorlevel 1 (
-  rem Новая папка не встала — возвращаем прежнюю и уходим.
-  move "%backup%" "%root%"
-  exit /b 1
-)
+# Ждём, пока процесс исчезнет. Не вечно: если он завис, обновление всё
+# равно не задача помощника, и лучше выйти, ничего не тронув.
+try {
+  Wait-Process -Id $pid -Timeout 10 -ErrorAction Stop
+} catch {
+  # Ждать было нечего: процесса уже нет. Разбираться по типу исключения
+  # ненадёжно, поэтому просто смотрим ниже, жив ли он ещё.
+}
+if (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
+  exit 1
+}
 
-start "" "%launch%"
-rmdir /s /q "%backup%"
+if (Test-Path -LiteralPath \$backup) {
+  Remove-Item -LiteralPath \$backup -Recurse -Force
+}
+Move-Item -LiteralPath \$root -Destination \$backup
+
+try {
+  Move-Item -LiteralPath \$staged -Destination \$root
+} catch {
+  # Новая папка не встала — возвращаем прежнюю и уходим.
+  Move-Item -LiteralPath \$backup -Destination \$root
+  exit 1
+}
+
+Start-Process -FilePath \$launch
+Remove-Item -LiteralPath \$backup -Recurse -Force -ErrorAction SilentlyContinue
 ''';
 }

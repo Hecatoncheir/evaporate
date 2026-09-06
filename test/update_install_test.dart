@@ -337,32 +337,88 @@ void main() {
       );
     });
 
-    test('на windows ждут исчезновения процесса по номеру', () {
-      final script = UpdateScript.build(
-        layout: const InstallLayout(
-          root: r'C:\Program Files\Evaporate',
-          executable: r'C:\Program Files\Evaporate\evaporate.exe',
-        ),
-        stagedRoot: r'C:\Temp\staged',
-        pid: 777,
-        platform: 'windows',
-      );
+    String windowsScript() => UpdateScript.build(
+      layout: const InstallLayout(
+        root: r'C:\Program Files\Evaporate',
+        executable: r'C:\Program Files\Evaporate\evaporate.exe',
+      ),
+      stagedRoot: r'C:\Temp\staged',
+      pid: 777,
+      platform: 'windows',
+    );
 
-      expect(script, contains('PID eq 777'));
-      expect(script, contains(r'move "%root%" "%backup%"'));
-      expect(script, contains(r'move "%backup%" "%root%"'));
-      expect(script, contains(r'start "" "%launch%"'));
+    test('на windows ждут исчезновения процесса по номеру', () {
+      final script = windowsScript();
+
+      expect(script, contains('Wait-Process -Id 777'));
+      expect(script, contains(r'Move-Item -LiteralPath $root'));
+      expect(script, contains(r'Move-Item -LiteralPath $backup'));
+      expect(script, contains(r'Start-Process -FilePath $launch'));
+    });
+
+    // Помощник запускается отсоединённым процессом, то есть без консоли, а
+    // каждая внешняя команда в такой обстановке получает от системы своё
+    // окно. Прежний помощник ждал выхода приложения циклом из `tasklist`,
+    // `find` и `ping` — по три окна на оборот, до сотни оборотов, и человек
+    // смотрел, как они появляются одно за другим поверх всего.
+    test('на windows помощник не зовёт внешних команд', () {
+      final script = windowsScript();
+
+      for (final external in ['tasklist', 'find ', 'ping ', 'timeout ']) {
+        expect(
+          script,
+          isNot(contains(external)),
+          reason: '«$external» откроет своё окно: консоли у помощника нет',
+        );
+      }
     });
 
     test('чем запускать и как называется — по системе', () {
-      expect(UpdateScript.fileName(platform: 'windows'), endsWith('.cmd'));
+      expect(UpdateScript.fileName(platform: 'windows'), endsWith('.ps1'));
       expect(UpdateScript.fileName(platform: 'linux'), endsWith('.sh'));
-      expect(UpdateScript.command('x.cmd', platform: 'windows'), [
-        'cmd',
-        '/c',
-        'x.cmd',
-      ]);
+
+      final windows = UpdateScript.command('x.ps1', platform: 'windows');
+      expect(windows.first, 'powershell');
+      expect(windows, containsAllInOrder(['-WindowStyle', 'Hidden']));
+      // Скрипт свой и только что записанный, но политика запуска по
+      // умолчанию не даст выполнить и такой.
+      expect(windows, containsAllInOrder(['-ExecutionPolicy', 'Bypass']));
+      expect(windows.last, 'x.ps1');
+
       expect(UpdateScript.command('x.sh', platform: 'linux'), ['sh', 'x.sh']);
+    });
+
+    // Проверка на настоящем разборщике: скрипт пишется строкой, и опечатка
+    // в нём выяснилась бы только на чужой машине, посреди обновления.
+    // Идёт на сборке Windows — там PowerShell есть.
+    test('скрипт разбирается самим PowerShell', () async {
+      final file = File(p.join(tmp.path, 'probe.ps1'));
+      await file.writeAsString(windowsScript());
+
+      final read = "(Get-Content -Raw -LiteralPath '${file.path}')";
+      final result = await Process.run('powershell', [
+        '-NoProfile',
+        '-Command',
+        "[void][ScriptBlock]::Create($read)",
+      ]);
+
+      expect(result.exitCode, 0, reason: '${result.stderr}');
+    }, skip: Platform.isWindows ? null : 'PowerShell есть на Windows');
+
+    // Путь может прийти с апострофом в имени пользователя, а строки в
+    // PowerShell им же и закрываются.
+    test('апостроф в пути не рвёт скрипт', () {
+      final script = UpdateScript.build(
+        layout: const InstallLayout(
+          root: r"C:\Users\D'Artagnan\Evaporate",
+          executable: r"C:\Users\D'Artagnan\Evaporate\evaporate.exe",
+        ),
+        stagedRoot: r'C:\Temp\staged',
+        pid: 1,
+        platform: 'windows',
+      );
+
+      expect(script, contains(r"'C:\Users\D''Artagnan\Evaporate'"));
     });
   });
 
