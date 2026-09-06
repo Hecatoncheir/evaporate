@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.24.0] — 2026-09-06
+
 ### Добавлено
 
 - Кнопка «Выключить» внизу боковой панели. Закрыть приложение с геймпада
@@ -829,6 +831,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.24.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.24.0
 [0.23.3]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.3
 [0.23.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.2
 [0.23.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.1
