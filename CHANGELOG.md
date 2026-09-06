@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.23.3] — 2026-09-06
+
 ### Исправлено
 
 - Кнопка «Проверить обновления» достаётся с клавиатуры и геймпада. Штатный
@@ -807,6 +809,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.23.3]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.3
 [0.23.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.2
 [0.23.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.1
 [0.23.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.0
