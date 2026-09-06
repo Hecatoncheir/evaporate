@@ -132,10 +132,11 @@ packages:
   dtorrent_task_v2:
     dependency: "direct main"
     description:
-      name: dtorrent_task_v2
-      sha256: "890125d51478805988db1a62b21c87c87d7ae633aea6fd32db0d8acfa8e38ebe"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: c0151d8d46996d55ac59ed972bf81fc3b0ca71df
+      resolved-ref: c0151d8d46996d55ac59ed972bf81fc3b0ca71df
+      url: "https://github.com/Hecatoncheir/dtorrent_task_v2.git"
+    source: git
     version: "0.5.4"
   equatable:
     dependency: "direct main"

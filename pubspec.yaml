@@ -50,7 +50,18 @@ dependencies:
   flutter_bloc: ^9.1.1
   equatable: ^2.1.0
   flutter_local_notifications: ^22.3.0
-  dtorrent_task_v2: ^0.5.4
+  # Форк с правкой DHT: в 0.5.4 один из зашитых корневых узлов
+  # (`router.bittorrent.com`) разрешается в 0.0.0.0, отправка туда роняет
+  # UDP-сокет, а следующая попытка возвращает порт уже закрытого — и DHT
+  # выключается целиком, для любой раздачи. Правка отправлена автору; когда
+  # он её примет, здесь снова будет версия с pub.
+  #
+  # Коммит закреплён намеренно: ветка может уехать, а сборка обязана
+  # собираться той же.
+  dtorrent_task_v2:
+    git:
+      url: https://github.com/Hecatoncheir/dtorrent_task_v2.git
+      ref: c0151d8d46996d55ac59ed972bf81fc3b0ca71df
   # Bencode: движок его прячет, а приложению он нужен напрямую —
   # собрать .torrent из метаданных magnet-ссылки и посчитать infohash.
   b_encode_decode: ^1.0.5
