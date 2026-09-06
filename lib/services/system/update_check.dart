@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 
+import 'proxy_http_overrides.dart';
 import '../../core/format.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -229,7 +230,7 @@ class UpdateCheck {
     final override = _fetch;
     if (override != null) return override(uri);
 
-    final client = HttpClient()
+    final client = directHttpClient()
       ..connectionTimeout = const Duration(seconds: 15);
     try {
       final request = await client.getUrl(uri);

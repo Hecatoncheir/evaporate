@@ -5,6 +5,7 @@ import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
+import 'proxy_http_overrides.dart';
 import 'app_log.dart';
 import 'update_check.dart';
 
@@ -255,7 +256,7 @@ class UpdateDownload {
     Uri uri,
     void Function(int, int) onProgress,
   ) async {
-    final client = HttpClient()
+    final client = directHttpClient()
       ..connectionTimeout = const Duration(seconds: 20);
     try {
       var request = await client.getUrl(uri);

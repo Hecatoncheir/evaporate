@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
+import '../system/proxy_http_overrides.dart';
 import '../../core/json_store.dart';
 import '../../models/catalog_progress.dart';
 import '../../models/proxy_settings.dart';
@@ -154,9 +155,14 @@ class LudusaviCatalog {
     final override = _fetch;
     if (override != null) return override(Uri.parse(LudusaviManifest.source));
 
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 20);
-    _applyProxy(client);
+    // Прокси применяет общий перехват; здесь остаётся только выбор, брать
+    // перехваченного клиента или прямого.
+    final proxy = _proxy();
+    final client =
+        (proxy.isUsable && proxy.useForSteam
+              ? HttpClient()
+              : directHttpClient())
+          ..connectionTimeout = const Duration(seconds: 20);
     try {
       final request = await client.getUrl(Uri.parse(LudusaviManifest.source));
       final response = await request.close();
@@ -200,23 +206,6 @@ class LudusaviCatalog {
       return utf8.decode(builder.takeBytes());
     } finally {
       client.close(force: true);
-    }
-  }
-
-  void _applyProxy(HttpClient client) {
-    final proxy = _proxy();
-    if (!proxy.isUsable || !proxy.useForSteam) return;
-    if (proxy.kind != ProxyKind.http) return;
-
-    final host = proxy.host.trim().replaceFirst(RegExp(r'^\w+://'), '');
-    client.findProxy = (_) => 'PROXY $host:${proxy.port}';
-    if (proxy.hasCredentials) {
-      client.addProxyCredentials(
-        host,
-        proxy.port,
-        'Basic',
-        HttpClientBasicCredentials(proxy.username, proxy.password),
-      );
     }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -22,6 +23,7 @@ import 'services/system/app_log.dart';
 import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
+import 'services/system/proxy_http_overrides.dart';
 import 'services/system/update_check.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
@@ -41,11 +43,34 @@ Future<void> main() async {
   );
   AppLog.instance.write('запуск ${AppVersion.current}');
 
+  // Движок загрузок жалуется через `logging`, и до сих пор его жалобы не
+  // доходили никуда: задача часами висела «активной», а о недоступном
+  // трекере или не поднявшемся DHT не было сказано ни слова.
+  Logger.root.level = Level.WARNING;
+  Logger.root.onRecord.listen(
+    (record) => AppLog.instance.write(
+      '${record.loggerName}: ${record.message}',
+      record.error,
+    ),
+  );
+
   final settings = SettingsBloc(paths);
   settings.add(const SettingsLoadRequested());
   // Настройки нужны блокам загрузок и библиотеки уже в конструкторе,
   // поэтому дожидаемся первого состояния из хранилища.
   await settings.loaded;
+
+  // Прокси применяется ко всему HTTP приложения, а не только к движку:
+  // объявление трекеру внутри библиотеки заводит клиента само, и наши
+  // настройки мимо него проходят. Перехват создания клиента — единственное
+  // место, откуда до него дотянуться.
+  final proxyRouting = ProxyHttpOverrides();
+  await proxyRouting.apply(settings.state.proxy);
+  HttpOverrides.global = proxyRouting;
+  final proxyChanges = settings.stream
+      .map((state) => state.proxy)
+      .distinct()
+      .listen((proxy) => unawaited(proxyRouting.apply(proxy)));
 
   L localizations() {
     final code = settings.state.locale;
@@ -79,7 +104,10 @@ Future<void> main() async {
   // Что должно успеть лечь на диск, прежде чем процесс закончится. Список
   // наполняется по мере того, как появляются его владельцы, а порядок в нём
   // обратный порядку создания: сначала останавливаем, потом отпускаем.
-  final shutdownSteps = <ShutdownStep>[AppLog.instance.flush];
+  final shutdownSteps = <ShutdownStep>[
+    proxyChanges.cancel,
+    AppLog.instance.flush,
+  ];
   final shutdown = AppShutdown(shutdownSteps);
   final closeHandler = WindowCloseHandler(shutdown);
   await closeHandler.attach();

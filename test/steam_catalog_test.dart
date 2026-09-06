@@ -97,61 +97,33 @@ void main() {
     SteamCatalog withProxy(ProxySettings proxy) =>
         SteamCatalog(proxy: () => proxy);
 
+    // Своей настройки прокси у каталога больше нет: её применяет общий
+    // перехват создания клиентов, а здесь остаётся только выбор — брать
+    // перехваченного клиента или прямого. Что перехват работает, проверяет
+    // `proxy_routing_test.dart` на настоящем SOCKS5.
     test('без прокси запросы идут напрямую', () {
-      final catalog = withProxy(const ProxySettings());
-
-      expect(catalog.httpProxyDirective(), isNull);
-      expect(catalog.usesSocksTunnel(), isFalse);
+      expect(withProxy(const ProxySettings()).usesProxy(), isFalse);
     });
 
-    test('HTTP-прокси превращается в директиву для клиента', () {
-      final catalog = withProxy(
-        const ProxySettings(
-          enabled: true,
-          kind: ProxyKind.http,
-          host: 'proxy.local',
-          port: 8080,
-        ),
-      );
+    test('включённый прокси годится обоим видам', () {
+      for (final kind in ProxyKind.values) {
+        final catalog = withProxy(
+          ProxySettings(
+            enabled: true,
+            kind: kind,
+            host: 'proxy.local',
+            port: 8080,
+          ),
+        );
 
-      expect(catalog.httpProxyDirective(), 'PROXY proxy.local:8080');
-      expect(catalog.usesSocksTunnel(), isFalse);
-    });
-
-    test('схема в адресе прокси отбрасывается', () {
-      final catalog = withProxy(
-        const ProxySettings(
-          enabled: true,
-          kind: ProxyKind.http,
-          host: 'http://proxy.local',
-          port: 3128,
-        ),
-      );
-
-      expect(catalog.httpProxyDirective(), 'PROXY proxy.local:3128');
-    });
-
-    // HttpClient про SOCKS не знает: он подключается подменой фабрики
-    // соединений, а не штатной настройкой прокси.
-    test('SOCKS5 идёт через туннель, а не через директиву', () {
-      final catalog = withProxy(
-        const ProxySettings(
-          enabled: true,
-          kind: ProxyKind.socks5,
-          host: '127.0.0.1',
-          port: 9050,
-        ),
-      );
-
-      expect(catalog.usesSocksTunnel(), isTrue);
-      expect(catalog.httpProxyDirective(), isNull);
+        expect(catalog.usesProxy(), isTrue, reason: '$kind');
+      }
     });
 
     test('выключённый для Steam прокси не применяется', () {
       final catalog = withProxy(
         const ProxySettings(
           enabled: true,
-          kind: ProxyKind.http,
           host: 'proxy.local',
           port: 8080,
           useForSteam: false,
@@ -159,8 +131,8 @@ void main() {
       );
 
       expect(
-        catalog.httpProxyDirective(),
-        isNull,
+        catalog.usesProxy(),
+        isFalse,
         reason:
             'качать через прокси и ходить в Steam напрямую — законное желание',
       );
@@ -171,8 +143,7 @@ void main() {
         const ProxySettings(enabled: true, host: '   ', port: 8080),
       );
 
-      expect(catalog.httpProxyDirective(), isNull);
-      expect(catalog.usesSocksTunnel(), isFalse);
+      expect(catalog.usesProxy(), isFalse);
     });
   });
 
