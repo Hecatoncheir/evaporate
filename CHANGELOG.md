@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.23.0] — 2026-09-06
+
 ### Исправлено
 
 - Загрузки, которые не начинались вовсе. Пиров у раздачи два источника —
@@ -758,6 +760,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.23.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.0
 [0.22.2]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.2
 [0.22.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.1
 [0.22.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.22.0
