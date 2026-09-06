@@ -496,22 +496,31 @@ class DtorrentEngine implements DownloadEngine {
   /// законченной: игра не становилась установленной, кнопка «Играть» не
   /// появлялась, а на её месте оставались «Пауза» и «Отменить».
   ///
+  /// Байты считаем сами, а не спрашиваем у движка `progress`: тот делит
+  /// скачанное на `length` из метаданных, а `length` есть только у
+  /// однофайловой раздачи. У игры из дюжины файлов он `null`, и готовность
+  /// у движка всегда ноль — «завершено» не наступало никогда, игра не
+  /// становилась установленной, и запустить скачанное было нечем.
+  ///
   /// Открыто для тестов: порядок важнее всего остального в этом файле, а
   /// проверить его можно без движка и без сети.
   @visibleForTesting
   static DownloadState stateOf({
     required bool hasError,
     required bool pausedByUser,
-    required double? progress,
+    required int completedBytes,
+    required int totalBytes,
     required dt.TaskState? taskState,
   }) {
     if (hasError) return DownloadState.error;
     // Задачи ещё нет — она ждёт своей очереди. Пауза здесь всё же вперёд:
-    // о готовности сказать нечего, прогресса не существует.
+    // о готовности сказать нечего, скачанного не существует.
     if (taskState == null) {
       return pausedByUser ? DownloadState.paused : DownloadState.waiting;
     }
-    if ((progress ?? 0) >= 1.0) return DownloadState.complete;
+    if (totalBytes > 0 && completedBytes >= totalBytes) {
+      return DownloadState.complete;
+    }
     if (pausedByUser) return DownloadState.paused;
     return switch (taskState) {
       dt.TaskState.running => DownloadState.active,
@@ -847,7 +856,8 @@ class _ManagedDownload {
   DownloadState _state() => DtorrentEngine.stateOf(
     hasError: error != null,
     pausedByUser: pausedByUser,
-    progress: task?.progress,
+    completedBytes: task?.downloaded ?? 0,
+    totalBytes: _totalBytes(),
     taskState: task?.state,
   );
 

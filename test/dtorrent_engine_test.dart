@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:b_encode_decode/b_encode_decode.dart' as bencode;
 
 import 'package:dtorrent_task_v2/dtorrent_task_v2.dart' as dt;
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/services/download/download_engine.dart';
 import 'package:evaporate/services/download/dtorrent_engine.dart';
+import 'package:evaporate/services/download/torrent_file.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -14,14 +18,31 @@ void main() {
     DownloadState stateOf({
       bool hasError = false,
       bool pausedByUser = false,
-      double? progress,
+      int completedBytes = 0,
+      int totalBytes = 100,
       dt.TaskState? taskState = dt.TaskState.running,
     }) => DtorrentEngine.stateOf(
       hasError: hasError,
       pausedByUser: pausedByUser,
-      progress: progress,
+      completedBytes: completedBytes,
+      totalBytes: totalBytes,
       taskState: taskState,
     );
+
+    // Движок делит скачанное на `length` из метаданных, а `length` есть
+    // только у однофайловой раздачи: у игры из дюжины файлов он null, и
+    // готовность у движка всегда ноль. Своих байтов у нас достаточно —
+    // размер складывается из файлов, — и спрашивать чужой счёт незачем.
+    test('готовность считается своими байтами', () {
+      expect(stateOf(completedBytes: 100), DownloadState.complete);
+      expect(stateOf(completedBytes: 99), DownloadState.active);
+      // Размер ещё неизвестен: метаданные magnet-ссылки не пришли.
+      expect(
+        stateOf(completedBytes: 0, totalBytes: 0),
+        DownloadState.active,
+        reason: 'нулевой размер — это «пока неизвестно», а не «всё готово»',
+      );
+    });
 
     // Скачанное остаётся скачанным, остановили раздачу или нет, — а
     // остановить её может и сам движок, дойдя до предела рейтинга. Пока
@@ -30,22 +51,62 @@ void main() {
     // месте оставались «Пауза» и «Отменить».
     test('готовность решается раньше паузы', () {
       expect(
-        stateOf(progress: 1, pausedByUser: true),
+        stateOf(completedBytes: 100, pausedByUser: true),
         DownloadState.complete,
         reason: 'остановленная раздача не отменяет того, что файлы скачаны',
       );
       expect(
-        stateOf(progress: 1, taskState: dt.TaskState.paused),
+        stateOf(completedBytes: 100, taskState: dt.TaskState.paused),
         DownloadState.complete,
       );
       expect(
-        stateOf(progress: 1, taskState: dt.TaskState.stopped),
+        stateOf(completedBytes: 100, taskState: dt.TaskState.stopped),
         DownloadState.complete,
       );
     });
 
+    // Причина, по которой чужой готовности верить нельзя: у многофайловой
+    // раздачи — то есть у любой игры — ключа `length` в метаданных нет
+    // вовсе, а движок делит скачанное именно на него.
+    test('у многофайловой раздачи размера в метаданных нет', () {
+      final info = Uint8List.fromList(
+        bencode.encode({
+          'files': [
+            {
+              'length': 1200,
+              'path': ['data', 'pak01.dat'],
+            },
+            {
+              'length': 800,
+              'path': ['game.exe'],
+            },
+          ],
+          'name': 'Игра',
+          'piece length': 262144,
+          'pieces': Uint8List.fromList(List.filled(20, 1)),
+        }, 'utf-8'),
+      );
+
+      final model = DtorrentEngine.torrentFromBytes(TorrentFile.assemble(info));
+
+      expect(model.files, hasLength(2));
+      expect(
+        model.length,
+        isNull,
+        reason: 'на этом ключе движок и считает готовность — и получает ноль',
+      );
+      expect(
+        model.files.fold<int>(0, (sum, file) => sum + file.length),
+        2000,
+        reason: 'а сложить файлы можно всегда',
+      );
+    });
+
     test('незаконченная и поставленная на паузу — на паузе', () {
-      expect(stateOf(progress: 0.4, pausedByUser: true), DownloadState.paused);
+      expect(
+        stateOf(completedBytes: 40, pausedByUser: true),
+        DownloadState.paused,
+      );
     });
 
     // О готовности той, что ждёт очереди, сказать нечего: прогресса ещё нет.
@@ -59,19 +120,19 @@ void main() {
 
     test('ошибка перевешивает всё', () {
       expect(
-        stateOf(hasError: true, progress: 1, pausedByUser: true),
+        stateOf(hasError: true, completedBytes: 100, pausedByUser: true),
         DownloadState.error,
       );
     });
 
     test('состояние движка доходит без изменений', () {
-      expect(stateOf(progress: 0.5), DownloadState.active);
+      expect(stateOf(completedBytes: 50), DownloadState.active);
       expect(
-        stateOf(progress: 0.5, taskState: dt.TaskState.paused),
+        stateOf(completedBytes: 50, taskState: dt.TaskState.paused),
         DownloadState.paused,
       );
       expect(
-        stateOf(progress: 0.5, taskState: dt.TaskState.stopped),
+        stateOf(completedBytes: 50, taskState: dt.TaskState.stopped),
         DownloadState.waiting,
       );
     });

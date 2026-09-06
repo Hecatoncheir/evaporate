@@ -133,8 +133,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: c0151d8d46996d55ac59ed972bf81fc3b0ca71df
-      resolved-ref: c0151d8d46996d55ac59ed972bf81fc3b0ca71df
+      ref: "2668afb14ed31f3631f9b338e56eec4482786809"
+      resolved-ref: "2668afb14ed31f3631f9b338e56eec4482786809"
       url: "https://github.com/Hecatoncheir/dtorrent_task_v2.git"
     source: git
     version: "0.5.4"
