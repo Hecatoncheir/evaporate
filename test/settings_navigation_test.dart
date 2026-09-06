@@ -90,6 +90,51 @@ void main() {
     );
   });
 
+  // Штатный обход ищет соседа по пересечению полос: «Показать» в карточке
+  // журнала прижата вправо, а «Проверить обновления» под ней — влево, полосы
+  // не пересекаются, и спуск перепрыгивал кнопку целиком. Достаться она
+  // могла только после круга через боковую панель и всю страницу заново.
+  testWidgets('спуск доходит до кнопки «Проверить обновления»', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    await openSettings(tester, harness);
+
+    /// Подписи внутри узла, на котором сейчас фокус.
+    List<String> labels() {
+      final context = primaryFocus?.context;
+      if (context is! Element) return const [];
+      final found = <String>[];
+      void walk(Element element) {
+        final widget = element.widget;
+        if (widget is Text && widget.data != null) found.add(widget.data!);
+        if (found.length < 3) element.visitChildren(walk);
+      }
+
+      context.visitChildren(walk);
+      return found;
+    }
+
+    bool inSettings() =>
+        primaryFocus?.context?.findAncestorWidgetOfExactType<SettingsPage>() !=
+        null;
+
+    // Идём сверху донизу ровно один раз: круг через боковую панель вернул бы
+    // фокус на страницу и скрыл бы пропуск.
+    final seen = <String>[];
+    for (var step = 0; step < 80; step++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await frames(tester, 3);
+      if (step > 0 && !inSettings()) break;
+      seen.addAll(labels());
+    }
+
+    expect(
+      seen,
+      contains('Проверить обновления'),
+      reason: 'кнопку перепрыгнули: она левее того, что стоит над ней',
+    );
+  });
+
   // Спуск не должен упираться ни во что: ни в поле ввода, ни в конец
   // построенного. Двадцать шагов проходят все карточки насквозь.
   testWidgets('спуск стрелками идёт по настройкам, не застревая', (
