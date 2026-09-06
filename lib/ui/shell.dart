@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../bloc/downloads/downloads_bloc.dart';
@@ -252,7 +255,51 @@ class _RailState extends State<_Rail> {
                 label: Text(L.of(context).settings),
               ),
             ],
+            // Внизу и последней в обходе: закрыть приложение с геймпада
+            // иначе нечем — своя панель окна мышью и кнопкой в трее закрытие
+            // даёт, а стрелками до них не дойти.
+            trailing: Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _QuitButton(),
+                ),
+              ),
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Выход из приложения — тем же путём, что и крестик окна.
+///
+/// `windowManager.close()` не убивает процесс: закрытие перехвачено, и
+/// отложенные записи успевают лечь на диск, а движок загрузок — остановиться.
+class _QuitButton extends StatelessWidget {
+  const _QuitButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final label = L.of(context).quitApp;
+    return Tooltip(
+      message: label,
+      child: TextButton(
+        key: const ValueKey('rail-quit'),
+        onPressed: () => unawaited(windowManager.close()),
+        style: TextButton.styleFrom(
+          foregroundColor: context.colors.textSecondary,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.power_settings_new, size: 22),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 11)),
+          ],
         ),
       ),
     );

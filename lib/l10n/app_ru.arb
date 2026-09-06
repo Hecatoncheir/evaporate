@@ -25,7 +25,13 @@
   "findInstalledGames": "Найти установленные игры",
   "@@locale": "ru",
   "noticeStorageRecovered": "Часть библиотеки не удалось прочитать. Исправные записи восстановлены, исходные данные сохранены: {path}",
-  "@noticeStorageRecovered": {"placeholders": {"path": {"type": "String"}}},
+  "@noticeStorageRecovered": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "@addCount": {
     "placeholders": {
       "count": {
@@ -723,7 +729,13 @@
   "localChangedAt": "Здесь сохранения менялись {when}",
   "localNewerWarning": "Здешние сохранения новее снимка — восстановление откатит прогресс.",
   "localNeverChanged": "Здесь сохранений пока нет",
-  "@localChangedAt": {"placeholders": {"when": {"type": "String"}}},
+  "@localChangedAt": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "badMagnet": "Введите корректную magnet-ссылку.",
   "bindings": "Назначение кнопок",
   "bulkTransfer": "Перенос всей библиотеки",
@@ -832,8 +844,20 @@
   "rootHomeGames": "Домашняя папка Games",
   "rootVolume": "Том «{name}»",
   "rootDrive": "Диск {name}:",
-  "@rootVolume": {"placeholders": {"name": {"type": "String"}}},
-  "@rootDrive": {"placeholders": {"name": {"type": "String"}}},
+  "@rootVolume": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@rootDrive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gamesWithPaths": "игр с путями: {count}",
   "hintBack": "Назад",
   "hintNavigate": "Навигация",
@@ -959,7 +983,13 @@
   "logNote": "Сюда попадает то, о чём приложение промолчало: неудавшаяся уборка, сорвавшийся обход папок, ошибки, которые вы уже закрыли. Журнал не уходит никуда сам — отправить его решаете вы.",
   "noticeMetadataRetry": "Ищем метаданные: игр — {count}",
   "noticeMetadataNothingToDo": "Метаданные есть у всех игр",
-  "@noticeMetadataRetry": {"placeholders": {"count": {"type": "int"}}},
+  "@noticeMetadataRetry": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "noticeSyncFolderNotSet": "Папка синхронизации не задана в настройках.",
   "noticeTorrentUnavailable": "Файл раздачи недоступен: метаданные magnet-ссылки ещё не получены",
   "noticeUnresolvedPaths": "Часть путей не сопоставилась: {paths}. Остальное восстановлено.",
@@ -981,7 +1011,13 @@
   "updateUnpacking": "Распаковываем",
   "updateRestartNote": "Приложение закроется и откроется заново уже обновлённым. Загрузки на это время остановятся.",
   "updateNotWritable": "Обновить отсюда нельзя: в папку приложения нет доступа на запись. Обновите тем способом, каким ставили.",
-  "@updateDownloading": {"placeholders": {"percent": {"type": "int"}}},
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "originAutoOnExit": "Авто после игры",
   "originAutoOnLaunch": "Авто перед запуском",
   "originImported": "Импорт",
@@ -1068,8 +1104,20 @@
   "scanDropHere": "Бросьте сюда папку с играми",
   "scanPickFolder": "или нажмите, чтобы выбрать её",
   "scanNotAFolder": "Это не папка — искать в ней нечего.",
-  "@scanLooking": {"placeholders": {"directory": {"type": "String"}}},
-  "@scanFoundCount": {"placeholders": {"count": {"type": "int"}}},
+  "@scanLooking": {
+    "placeholders": {
+      "directory": {
+        "type": "String"
+      }
+    }
+  },
+  "@scanFoundCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "searchHint": "Поиск  ( / )",
   "seedRatio": "Раздавать до рейтинга",
   "seedRatioNote": "В сотых долях: 150 — это 1,5. Ноль — раздавать без предела",
@@ -1098,8 +1146,26 @@
   "statusDownloading": "Загрузка",
   "percentDone": "скачано {percent}%",
   "snapshotSpoken": "Снимок от {when}, {origin}, файлов: {files}",
-  "@percentDone": {"placeholders": {"percent": {"type": "int"}}},
-  "@snapshotSpoken": {"placeholders": {"when": {"type": "String"}, "origin": {"type": "String"}, "files": {"type": "int"}}},
+  "@percentDone": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "@snapshotSpoken": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "origin": {
+        "type": "String"
+      },
+      "files": {
+        "type": "int"
+      }
+    }
+  },
   "statusError": "Ошибка",
   "statusInstalled": "Установлена",
   "statusNotInstalled": "Не установлена",
@@ -1130,9 +1196,19 @@
   "torrentNamed": "Раздача {hash}",
   "torrentReadFailed": "Не удалось прочитать торрент: {error}",
   "torrentUnsafePath": "Раздача просит записать файл мимо папки загрузки: {path}. Такой торрент не добавляем.",
-  "@torrentUnsafePath": {"placeholders": {"path": {"type": "String"}}},
+  "@torrentUnsafePath": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "trayOpen": "Открыть Evaporate",
   "trayQuit": "Выйти",
+  "quitApp": "Выключить",
+  "@quitApp": {
+    "description": "Кнопка выхода из приложения в боковой панели"
+  },
   "unassigned": "не назначено",
   "unlimitedShort": "без огр.",
   "untitled": "Без названия",
