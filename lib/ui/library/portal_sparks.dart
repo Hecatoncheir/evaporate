@@ -6,21 +6,34 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/decorative_motion.dart';
 
-/// Искра, сорвавшаяся с кромки обложки.
+/// Искра, кружащая вокруг обложки.
 ///
-/// Летит свободно, а не по контуру: привязанная к контуру искра рисует
-/// дрожащую обводку, а не разлёт. Скорость гасится сопротивлением и слегка
-/// заворачивается — из этого и получается вихрь, а не веер.
+/// Движение разложено на два: угловое — вдоль кромки, и наружное — прочь от
+/// неё. Свободный полёт по прямой давал брызги, но не вихрь; движение по
+/// одной лишь кромке — дрожащую обводку. Вихрь получается, когда есть оба
+/// сразу, и хвост считается в тех же координатах, поэтому он изгибается по
+/// дуге, а не тянется чертой.
 class PortalSpark {
   PortalSpark({
-    required this.position,
-    required this.velocity,
+    required this.at,
+    required this.angular,
+    required this.radius,
+    required this.radial,
     required this.life,
     required this.maxLife,
   });
 
-  Offset position;
-  Offset velocity;
+  /// Доля пути вдоль кромки, 0..1.
+  double at;
+
+  /// Оборотов вокруг обложки в секунду, со знаком.
+  final double angular;
+
+  /// Насколько отошла наружу от кромки, в точках.
+  double radius;
+
+  /// Скорость ухода наружу, в точках в секунду. Гасится сопротивлением.
+  double radial;
 
   /// Сколько осталось, в секундах.
   double life;
@@ -29,14 +42,14 @@ class PortalSpark {
   final double maxLife;
 }
 
-/// Точка кромки: где она, куда наружу и куда вдоль.
+/// Точка кромки: где она и куда от неё наружу.
 typedef PortalEdge = ({Offset point, Offset outward, Offset along});
 
-/// Разлёт искр вокруг обложки выбранной игры.
+/// Вихрь искр вокруг обложки выбранной игры.
 ///
-/// Кромка — контур самой обложки, а не окружность: обложка вытянута два к
+/// Кромка повторяет контур обложки, а не окружность: обложка вытянута два к
 /// трём, и вписанный в неё круг оставил бы половину плитки пустой. Искры
-/// срываются с кромки наружу, увлекаемые вдоль неё вращением, и гаснут.
+/// кружат вдоль кромки и одновременно уходят наружу, выдыхаясь в кайме.
 class PortalSparkField {
   PortalSparkField({int seed = 17}) : _random = math.Random(seed);
 
@@ -50,12 +63,9 @@ class PortalSparkField {
   /// налезали бы на соседние обложки в сетке.
   static const halo = 34.0;
 
-  /// Сопротивление: доля скорости, теряемая за секунду. Без него искры
-  /// улетали бы за экран, с ним — выдыхаются в кайме.
-  static const drag = 5.0;
-
-  /// Насколько заворачивает разлёт, в радианах в секунду.
-  static const curl = 2.2;
+  /// Сопротивление уходу наружу: доля скорости, теряемая за секунду. Без
+  /// него искры улетали бы за экран, с ним — выдыхаются в кайме.
+  static const drag = 2.6;
 
   final math.Random _random;
   final List<PortalSpark> sparks = [];
@@ -75,30 +85,20 @@ class PortalSparkField {
     size = value;
   }
 
-  /// Двигает разлёт на [dt] секунд.
+  /// Двигает вихрь на [dt] секунд.
   ///
   /// Шаг ограничен сверху: после свёрнутого окна или просадки приходит
-  /// секунда разом, и без предела искры улетели бы неведомо куда.
+  /// секунда разом, и без предела искры проскочили бы пол-оборота.
   void advance(double dt) {
     if (size.isEmpty) return;
     final step = dt.clamp(0.0, 1 / 30);
     time += step;
 
-    final turn = curl * step;
-    final cos = math.cos(turn);
-    final sin = math.sin(turn);
     final slow = math.max(0.0, 1 - drag * step);
-
     for (final spark in sparks) {
-      spark.position += spark.velocity * step;
-      // Поворот скорости — тот самый завиток: без него разлёт читается
-      // ровным веером из каждой точки кромки.
-      spark.velocity =
-          Offset(
-            spark.velocity.dx * cos - spark.velocity.dy * sin,
-            spark.velocity.dx * sin + spark.velocity.dy * cos,
-          ) *
-          slow;
+      spark.at += spark.angular * step;
+      spark.radius += spark.radial * step;
+      spark.radial *= slow;
       spark.life -= step;
     }
     sparks.removeWhere((spark) => spark.life <= 0);
@@ -106,22 +106,32 @@ class PortalSparkField {
     _budget += rate * step;
     while (_budget >= 1 && sparks.length < maxCount) {
       _budget -= 1;
-      final edge = edgeAt(_random.nextDouble());
-      final life = _rand(0.4, 1.0);
-      // Наружу — обязательно, вдоль — с разбросом и знаком: встречные искры
-      // не дают разлёту выглядеть нарисованной каруселью.
-      final outward = _rand(55, 190);
-      final along = _rand(20, 150) * (_random.nextDouble() < 0.25 ? -1 : 1);
+      final life = _rand(0.5, 1.2);
       sparks.add(
         PortalSpark(
-          position: edge.point + edge.outward * _rand(0, 2),
-          velocity: edge.outward * outward + edge.along * along,
+          at: _random.nextDouble(),
+          // Почти все в одну сторону: встречные нужны для живости, но если
+          // их поровну, вращения не видно вовсе.
+          angular: _rand(0.45, 1.1) * (_random.nextDouble() < 0.15 ? -1 : 1),
+          radius: _rand(0, 3),
+          // Дальше кромки ровно на кайму и ни точкой больше: предел —
+          // это скорость, делённая на сопротивление, плюс начальный отход.
+          radial: _rand(15, 76),
           life: life,
           maxLife: life,
         ),
       );
     }
     if (_budget > rate) _budget = rate;
+  }
+
+  /// Где искра находится сейчас.
+  Offset positionOf(PortalSpark spark) => at(spark.at, spark.radius);
+
+  /// Точка в стольких долях пути вдоль кромки и стольких точках наружу.
+  Offset at(double along, double radius) {
+    final edge = edgeAt(along);
+    return edge.point + edge.outward * math.max(0, radius);
   }
 
   /// Точка кромки по доле пути [at] вдоль периметра.
@@ -172,13 +182,20 @@ class PortalSparkField {
 
   /// След искры: где она была на протяжении [seconds] до этого кадра.
   ///
-  /// Считается обратным ходом по её же скорости. Приблизительно —
-  /// сопротивление тут не учитывается, — но на длине хвоста разница не
-  /// видна, а точный обратный ход стоил бы хранения всей истории.
-  List<Offset> trail(PortalSpark spark, {double seconds = 0.1, int steps = 6}) {
+  /// Считается обратным ходом в тех же координатах — вдоль кромки и наружу,
+  /// — поэтому хвост изгибается по дуге вокруг обложки. Посчитай его по
+  /// прямой, и вихрь снова выглядел бы разлётом.
+  List<Offset> trail(
+    PortalSpark spark, {
+    double seconds = 0.08,
+    int steps = 6,
+  }) {
     final points = <Offset>[];
     for (var i = 0; i <= steps; i++) {
-      points.add(spark.position - spark.velocity * (seconds * i / steps));
+      final back = seconds * i / steps;
+      points.add(
+        at(spark.at - spark.angular * back, spark.radius - spark.radial * back),
+      );
     }
     return points;
   }

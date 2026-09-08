@@ -20,7 +20,7 @@ void main() {
     }
   }
 
-  group('разлёт искр', () {
+  group('вихрь искр', () {
     test('искры появляются и держатся в пределе', () {
       final sparks = field();
 
@@ -35,63 +35,67 @@ void main() {
       );
     });
 
-    // Ради этого всё и переделано: искра должна улетать от обложки, а не
-    // ползти вдоль её края. Привязанная к контуру, она рисовала дрожащую
-    // обводку вместо разлёта.
+    // Искра должна уходить от обложки, а не ползти по её краю: привязанная
+    // к кромке, она рисовала дрожащую обводку вместо искр.
     test('искры уходят от обложки, а не вдоль неё', () {
       final sparks = field();
       run(sparks, frames: 20);
 
-      final away = sparks.sparks.where((spark) {
-        final p = spark.position;
-        // Снаружи прямоугольника обложки — значит улетела.
-        return p.dx < 0 || p.dy < 0 || p.dx > size.width || p.dy > size.height;
-      });
+      final away = sparks.sparks.where((spark) => spark.radius > 4);
 
       expect(
         away.length / sparks.sparks.length,
         greaterThan(0.5),
-        reason: 'искры держатся кромки — это обводка, а не разлёт',
+        reason: 'искры держатся кромки — это обводка, а не искры',
       );
     });
 
-    // Сопротивление и есть то, что удерживает разлёт в кайме: без него
-    // искры за свою жизнь улетали бы на сотни точек, к соседним обложкам.
-    test('разлёт остаётся в кайме', () {
+    // И одновременно кружить вокруг плитки: без углового движения выходил
+    // ровный разлёт во все стороны, а просили вихрь.
+    test('искры обходят обложку по кругу', () {
+      final sparks = field();
+      run(sparks, frames: 20);
+      final before = {for (final spark in sparks.sparks) spark: spark.at};
+
+      run(sparks, frames: 30);
+
+      final moved = before.entries
+          .where((e) => sparks.sparks.contains(e.key))
+          .where((e) => (e.key.at - e.value).abs() > 0.05);
+
+      expect(
+        moved,
+        isNotEmpty,
+        reason: 'искры стоят на месте по кромке — вращения не видно',
+      );
+      // Почти все в одну сторону, иначе вращение не читается.
+      final forward = sparks.sparks.where((s) => s.angular > 0).length;
+      expect(forward / sparks.sparks.length, greaterThan(0.7));
+    });
+
+    // Сопротивление удерживает вихрь в кайме: без него искры за свою жизнь
+    // улетали бы на сотни точек, к соседним обложкам.
+    test('вихрь остаётся в кайме', () {
       final sparks = field();
       run(sparks, frames: 300);
 
       for (final spark in sparks.sparks) {
-        final p = spark.position;
-        expect(
-          p.dx,
-          inInclusiveRange(
-            -PortalSparkField.halo * 2,
-            size.width + PortalSparkField.halo * 2,
-          ),
-        );
-        expect(
-          p.dy,
-          inInclusiveRange(
-            -PortalSparkField.halo * 2,
-            size.height + PortalSparkField.halo * 2,
-          ),
-        );
+        expect(spark.radius, lessThan(PortalSparkField.halo));
       }
     });
 
     // Свёрнутое окно возвращается одним огромным шагом. Без предела искры
     // улетели бы неведомо куда одним кадром.
-    test('огромный шаг не рвёт разлёт', () {
+    test('огромный шаг не рвёт вихрь', () {
       final sparks = field();
       run(sparks, frames: 30);
 
       sparks.advance(5);
 
       for (final spark in sparks.sparks) {
-        expect(spark.position.dx.isFinite, isTrue);
-        expect(spark.position.dy.isFinite, isTrue);
-        expect(spark.velocity.distance.isFinite, isTrue);
+        expect(spark.at.isFinite, isTrue);
+        expect(spark.radius.isFinite, isTrue);
+        expect(sparks.positionOf(spark).dx.isFinite, isTrue);
       }
     });
 
@@ -106,11 +110,11 @@ void main() {
       expect(
         sparks.sparks.where(born.contains),
         isEmpty,
-        reason: 'старые искры остались — разлёт перестал быть разлётом',
+        reason: 'старые искры остались — вихрь перестал быть вихрем',
       );
     });
 
-    test('без размера разлёта нет', () {
+    test('без размера вихря нет', () {
       final sparks = PortalSparkField();
 
       run(sparks);
