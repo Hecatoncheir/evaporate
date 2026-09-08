@@ -462,6 +462,20 @@ class SettingsPage extends StatelessWidget {
                           : null,
                     ),
                     SwitchListTile(
+                      key: const ValueKey('effects-portal-toggle'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(L.of(context).effectPortal),
+                      subtitle: Text(
+                        L.of(context).effectPortalNote,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      value: settings.portalEnabled,
+                      onChanged: settings.libraryEffects
+                          ? (value) =>
+                                update(settings.copyWith(portalEnabled: value))
+                          : null,
+                    ),
+                    SwitchListTile(
                       key: const ValueKey('effects-interfaceAnimations-toggle'),
                       contentPadding: EdgeInsets.zero,
                       title: Text(L.of(context).effectInterfaceAnimations),

@@ -193,6 +193,11 @@ abstract final class AppColors {
   static const coverProgressTrack = Colors.white24;
   static const foilHighlight = Colors.white;
   static const waveHighlight = Colors.white;
+
+  // Портал горит своим огнём, а не цветом темы: он один и тот же на светлой
+  // и на тёмной подложке — как искры и должны выглядеть.
+  static const portalSpark = Color(0xFFFFE79A);
+  static const portalRim = Color(0xFFFF8A1F);
   static const windowCloseForeground = Colors.white;
   static const windowCloseBackground = Color(0xFFC42B1C);
 }

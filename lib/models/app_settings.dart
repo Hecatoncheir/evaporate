@@ -29,6 +29,7 @@ class AppSettings extends Equatable {
     this.ambientEnabled = true,
     this.interfaceAnimationsEnabled = false,
     this.dropsEnabled = false,
+    this.portalEnabled = false,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -94,6 +95,10 @@ class AppSettings extends Equatable {
   /// заранее, чем удивляться. Поэтому по умолчанию выключен.
   final bool dropsEnabled;
 
+  /// Искры, бегущие по краю обложки выбранной игры. Как и капли, по
+  /// умолчанию выключены: движение у самой заметной плитки — дело вкуса.
+  final bool portalEnabled;
+
   /// Масштаб интерфейса и размер обложек независимы друг от друга и
   /// переживают перезапуск.
   final double interfaceScale;
@@ -140,6 +145,7 @@ class AppSettings extends Equatable {
     bool? ambientEnabled,
     bool? interfaceAnimationsEnabled,
     bool? dropsEnabled,
+    bool? portalEnabled,
     double? interfaceScale,
     double? libraryScale,
     Object? locale = _u,
@@ -172,6 +178,7 @@ class AppSettings extends Equatable {
       interfaceAnimationsEnabled:
           interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
       dropsEnabled: dropsEnabled ?? this.dropsEnabled,
+      portalEnabled: portalEnabled ?? this.portalEnabled,
       interfaceScale: interfaceScale ?? this.interfaceScale,
       libraryScale: libraryScale ?? this.libraryScale,
       locale: locale == _u ? this.locale : locale as String?,
@@ -203,6 +210,7 @@ class AppSettings extends Equatable {
     'ambientEnabled': ambientEnabled,
     'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
     'dropsEnabled': dropsEnabled,
+    'portalEnabled': portalEnabled,
     'interfaceScale': interfaceScale,
     'libraryScale': libraryScale,
     if (locale != null) 'locale': locale,
@@ -237,6 +245,7 @@ class AppSettings extends Equatable {
     interfaceAnimationsEnabled:
         json['interfaceAnimationsEnabled'] as bool? ?? false,
     dropsEnabled: json['dropsEnabled'] as bool? ?? false,
+    portalEnabled: json['portalEnabled'] as bool? ?? false,
     interfaceScale: _scale(
       json['interfaceScale'],
       minInterfaceScale,
@@ -282,6 +291,7 @@ class AppSettings extends Equatable {
     ambientEnabled,
     interfaceAnimationsEnabled,
     dropsEnabled,
+    portalEnabled,
     interfaceScale,
     libraryScale,
     locale,

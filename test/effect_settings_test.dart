@@ -27,6 +27,7 @@ void main() {
       expect(settings.ambientEnabled, isTrue);
       expect(settings.interfaceAnimationsEnabled, isFalse);
       expect(settings.dropsEnabled, isFalse);
+      expect(settings.portalEnabled, isFalse);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),
@@ -43,6 +44,7 @@ void main() {
       base.copyWith(ambientEnabled: false),
       base.copyWith(interfaceAnimationsEnabled: true),
       base.copyWith(dropsEnabled: true),
+      base.copyWith(portalEnabled: true),
     ]) {
       expect(changed, isNot(base));
       final restored = AppSettings.fromJson(changed.toJson(), '/games');

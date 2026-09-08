@@ -17,6 +17,8 @@
   "effectAmbient": "Light background colour flow",
   "effectDrops": "Raindrops on the selected cover",
   "effectDropsNote": "Covers only: the drops refract the artwork, and there is nothing to refract on a title plate",
+  "effectPortal": "Sparks around the selected cover",
+  "effectPortalNote": "A portal ring: sparks race along the border, drift outward and fade",
   "effectInterfaceAnimations": "Section fade transitions",
   "libraryEffectsNote": "Magnetic particles, foil, tilting cards, waves and liquid selection transitions. Respects the system's reduced-motion setting.",
   "minimizeWindow": "Minimize window",

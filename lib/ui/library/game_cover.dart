@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'cover_drops.dart';
+import 'portal_sparks.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -26,6 +27,7 @@ class GameCoverTile extends StatelessWidget {
     required this.game,
     required this.selected,
     this.dropsEnabled = false,
+    this.portalEnabled = false,
     required this.onOpen,
     required this.onFocused,
     this.focusNode,
@@ -39,6 +41,9 @@ class GameCoverTile extends StatelessWidget {
   /// Капли на обложке выбранной игры. Приходит сверху вместе с остальными
   /// эффектами: плитка о настройках не спрашивает.
   final bool dropsEnabled;
+
+  /// Искры по краю выбранной обложки.
+  final bool portalEnabled;
   final VoidCallback onOpen;
   final VoidCallback onFocused;
   final FocusNode? focusNode;
@@ -117,13 +122,18 @@ class GameCoverTile extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  FoilSurface(
-                    // Капли — только у выбранной: они стоят кадров, а вся
-                    // сетка под дождём читалась бы хуже, чем одна плитка.
-                    child: CoverDrops(
-                      enabled: selected && dropsEnabled,
-                      coverPath: game.coverPath,
-                      child: _Art(game: game, underStrip: running),
+                  // Искры идут поверх обложки, но под полосой загрузки и
+                  // значком состояния: они украшение, а не сообщение.
+                  PortalSparks(
+                    enabled: selected && portalEnabled,
+                    child: FoilSurface(
+                      // Капли — только у выбранной: они стоят кадров, а вся
+                      // сетка под дождём читалась бы хуже, чем одна плитка.
+                      child: CoverDrops(
+                        enabled: selected && dropsEnabled,
+                        coverPath: game.coverPath,
+                        child: _Art(game: game, underStrip: running),
+                      ),
                     ),
                   ),
                   if (running && task != null) _ProgressStrip(task: task),
