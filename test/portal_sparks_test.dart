@@ -1,14 +1,16 @@
-import 'package:evaporate/ui/library/portal_sparks.dart';
-
+import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:evaporate/ui/library/portal_sparks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Искры бегут по краю обложки бесконечно, поэтому проверять надо не
-/// картинку, а то, что поток остаётся потоком: не растёт без предела, не
-/// уходит в NaN и не прыгает через полконтура после свёрнутого окна.
+/// Вокруг обложки идут по кругу головы, роняя за собой быстро гаснущий след.
+/// Проверять тут надо не красоту, а то, что след остаётся следом: тянется за
+/// головой, не растёт без предела, не уходит в NaN и переживает возвращение
+/// свёрнутого окна одним огромным шагом. Видно ли его вообще — отдельно, по
+/// снимку отрисовки.
 void main() {
   const size = Size(200, 300);
 
@@ -20,7 +22,7 @@ void main() {
     }
   }
 
-  group('вихрь искр', () {
+  group('головы и их след', () {
     test('искры появляются и держатся в пределе', () {
       final sparks = field();
 
@@ -35,47 +37,72 @@ void main() {
       );
     });
 
-    // Искра должна уходить от обложки, а не ползти по её краю: привязанная
-    // к кромке, она рисовала дрожащую обводку вместо искр.
-    test('искры уходят от обложки, а не вдоль неё', () {
+    // Искра должна отходить от кромки, а не лежать на ней: иначе вместо
+    // шлейфа выходит дрожащая обводка.
+    test('искры отходят от кромки', () {
       final sparks = field();
-      run(sparks, frames: 20);
+      run(sparks, frames: 30);
 
-      final away = sparks.sparks.where((spark) => spark.radius > 4);
+      final away = sparks.sparks.where((spark) => spark.radius > 2);
 
       expect(
         away.length / sparks.sparks.length,
-        greaterThan(0.5),
-        reason: 'искры держатся кромки — это обводка, а не искры',
+        greaterThan(0.4),
+        reason: 'искры лежат на кромке — это обводка, а не шлейф',
       );
     });
 
-    // И одновременно кружить вокруг плитки: без углового движения выходил
-    // ровный разлёт во все стороны, а просили вихрь.
-    test('искры обходят обложку по кругу', () {
+    // Вращение создают головы: их немного, живут они долго и идут по кругу.
+    test('головы обходят обложку по кругу', () {
       final sparks = field();
-      run(sparks, frames: 20);
-      final before = {for (final spark in sparks.sparks) spark: spark.at};
+      final before = [for (final head in sparks.heads) head.at];
 
-      run(sparks, frames: 30);
+      run(sparks, frames: 60);
 
-      final moved = before.entries
-          .where((e) => sparks.sparks.contains(e.key))
-          .where((e) => (e.key.at - e.value).abs() > 0.05);
-
-      expect(
-        moved,
-        isNotEmpty,
-        reason: 'искры стоят на месте по кромке — вращения не видно',
-      );
-      // Почти все в одну сторону, иначе вращение не читается.
-      final forward = sparks.sparks.where((s) => s.angular > 0).length;
-      expect(forward / sparks.sparks.length, greaterThan(0.7));
+      for (var i = 0; i < sparks.heads.length; i++) {
+        expect(
+          sparks.heads[i].at - before[i],
+          greaterThan(0.1),
+          reason: 'голова стоит на месте — вращения не видно',
+        );
+      }
     });
 
-    // Сопротивление удерживает вихрь в кайме: без него искры за свою жизнь
-    // улетали бы на сотни точек, к соседним обложкам.
-    test('вихрь остаётся в кайме', () {
+    // Шлейф тянется за головой, а не появляется по всему кругу разом:
+    // искра рождается там, где голова была только что.
+    test('искры рождаются у голов, а не где придётся', () {
+      final sparks = field();
+      run(sparks, frames: 4);
+
+      for (final spark in sparks.sparks) {
+        final nearest = sparks.heads
+            .map((head) => (head.at - spark.at).abs() % 1.0)
+            .reduce(math.min);
+        expect(
+          nearest,
+          lessThan(0.05),
+          reason: 'искра появилась вдали от голов — это не шлейф',
+        );
+      }
+    });
+
+    // Искра должна погаснуть раньше, чем голова уедет далеко: иначе след
+    // растянется в сплошное кольцо и вращения не станет видно.
+    test('след короткий: искра гаснет, пока голова рядом', () {
+      final sparks = field();
+      run(sparks, frames: 90);
+
+      for (final spark in sparks.sparks) {
+        final nearest = sparks.heads
+            .map((head) => (head.at - spark.at).abs() % 1.0)
+            .reduce(math.min);
+        expect(nearest, lessThan(0.3));
+      }
+    });
+
+    // Сопротивление удерживает искры в кайме: без него они уходили бы к
+    // соседним обложкам.
+    test('искры остаются в кайме', () {
       final sparks = field();
       run(sparks, frames: 300);
 
@@ -86,7 +113,7 @@ void main() {
 
     // Свёрнутое окно возвращается одним огромным шагом. Без предела искры
     // улетели бы неведомо куда одним кадром.
-    test('огромный шаг не рвёт вихрь', () {
+    test('огромный шаг не рвёт след', () {
       final sparks = field();
       run(sparks, frames: 30);
 
@@ -96,6 +123,9 @@ void main() {
         expect(spark.at.isFinite, isTrue);
         expect(spark.radius.isFinite, isTrue);
         expect(sparks.positionOf(spark).dx.isFinite, isTrue);
+      }
+      for (final head in sparks.heads) {
+        expect(sparks.positionOfHead(head).dx.isFinite, isTrue);
       }
     });
 
@@ -110,11 +140,11 @@ void main() {
       expect(
         sparks.sparks.where(born.contains),
         isEmpty,
-        reason: 'старые искры остались — вихрь перестал быть вихрем',
+        reason: 'старые искры остались — след перестал быть следом',
       );
     });
 
-    test('без размера вихря нет', () {
+    test('без размера ничего не происходит', () {
       final sparks = PortalSparkField();
 
       run(sparks);
@@ -183,7 +213,7 @@ void main() {
       expect(find.byKey(const ValueKey('portal-sparks')), findsNothing);
     });
 
-    testWidgets('включённый рисует поверх обложки', (tester) async {
+    testWidgets('включённый рисует слой искр', (tester) async {
       await show(tester, enabled: true);
       await tester.pump(const Duration(milliseconds: 17));
 
@@ -276,10 +306,9 @@ void main() {
       // Кайма вокруг обложки — двадцать пять тысяч точек, и пятая их часть
       // должна гореть. С прежней плотностью там набиралась сотня: искр
       // «почти совсем не видно» — с этого всё и началось.
-      // ignore: avoid_print
       expect(
         around,
-        greaterThan(2000),
+        greaterThan(2500),
         reason: 'вокруг обложки почти ничего не горит — искр не видно',
       );
       expect(
