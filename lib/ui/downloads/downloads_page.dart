@@ -10,8 +10,8 @@ import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
-import '../widgets/animated_progress.dart';
 import '../../l10n/app_localizations.dart';
+import 'download_activity.dart';
 
 /// Загрузки: что качается сейчас и что пойдёт следом.
 ///
@@ -505,7 +505,6 @@ class _TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final downloads = context.read<DownloadsBloc>();
-    final indeterminate = task.isMetadata || task.totalBytes == 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -528,7 +527,9 @@ class _TaskCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  task.stateLabel,
+                  task.isMetadata
+                      ? L.of(context).stateMetadata
+                      : downloadStateLabel(L.of(context), task.state),
                   style: TextStyle(
                     fontSize: 12,
                     color: task.state == DownloadState.error
@@ -564,42 +565,20 @@ class _TaskCard extends StatelessWidget {
                 ],
               ],
             ),
+            const SizedBox(height: 14),
+            DownloadActivity(key: ValueKey(task.id), task: task),
             const SizedBox(height: 12),
-            // Полосу прогресса экранный диктор не видит, а число ему
-            // сказать можно. Пока размер неизвестен, числа нет — и врать
-            // выдуманным процентом хуже, чем промолчать.
-            Semantics(
-              value: indeterminate
-                  ? L.of(context).fetchingMetadata
-                  : percentLabel(L.of(context), task.progress),
-              child: AnimatedProgress(
-                value: indeterminate ? null : task.progress,
-                height: 5,
-                borderRadius: 4,
-              ),
-            ),
-            const SizedBox(height: 10),
             DefaultTextStyle(
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
               ),
-              child: Row(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 6,
                 children: [
-                  Text(
-                    task.isMetadata
-                        ? L.of(context).fetchingMetadata
-                        : '${formatBytes(task.completedBytes)} / '
-                              '${formatBytes(task.totalBytes)}',
-                  ),
-                  const Spacer(),
-                  if (task.downloadSpeed > 0) ...[
-                    Text('↓ ${speedLabel(L.of(context), task.downloadSpeed)}'),
-                    const SizedBox(width: 12),
-                  ],
                   if (task.seeders > 0) ...[
                     Text(L.of(context).seedsCount(task.seeders)),
-                    const SizedBox(width: 12),
                   ],
                   // Отданное показываем всегда, когда оно есть: раздача —
                   // плата за скачанное, и знать свой вклад пользователь вправе.
@@ -620,11 +599,9 @@ class _TaskCard extends StatelessWidget {
                             ),
                       ),
                     ],
-                    const SizedBox(width: 12),
                   ],
                   Text(L.of(context).peersCount(task.connections)),
                   if (!task.isMetadata && task.etaSeconds > 0) ...[
-                    const SizedBox(width: 12),
                     Text(
                       L
                           .of(context)
