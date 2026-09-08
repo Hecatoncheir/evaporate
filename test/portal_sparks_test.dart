@@ -152,6 +152,37 @@ void main() {
       expect(sparks.edgeAt(-0.75).point, sparks.edgeAt(0.25).point);
     });
 
+    // Углы. У острого прямоугольника нормаль скачком переходит с одной
+    // стороны на другую: по диагонали не летит ничего, и угол выглядит
+    // срезанным — это и было видно на плитке. На дуге она поворачивается
+    // плавно, и сноп огибает угол.
+    test('в углах есть направление по диагонали', () {
+      final sparks = field();
+
+      final diagonal = List.generate(400, (i) => sparks.edgeAt(i / 400))
+          .where((edge) => edge.outward.dx.abs() > 0.3)
+          .where((edge) => edge.outward.dy.abs() > 0.3);
+
+      expect(
+        diagonal,
+        isNotEmpty,
+        reason: 'наружу летят только по сторонам — углы будут срезаны',
+      );
+    });
+
+    test('кромка нигде не рвётся', () {
+      final sparks = field();
+
+      var previous = sparks.edgeAt(0).point;
+      for (var i = 1; i <= 400; i++) {
+        final point = sparks.edgeAt(i / 400).point;
+        // Шаг по периметру — около четверти процента: разрыв был бы кратно
+        // больше и выдал бы ошибку в раскладке сторон.
+        expect((point - previous).distance, lessThan(8));
+        previous = point;
+      }
+    });
+
     test('наружу — это наружу, а вдоль перпендикулярно ему', () {
       final sparks = field();
 
@@ -297,7 +328,7 @@ void main() {
       // «почти совсем не видно» — с этого всё и началось.
       expect(
         around,
-        greaterThan(2500),
+        greaterThan(8000),
         reason: 'вокруг обложки почти ничего не горит — искр не видно',
       );
       expect(

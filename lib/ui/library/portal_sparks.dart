@@ -53,11 +53,11 @@ class PortalSparkField {
   PortalSparkField({int seed = 17}) : _random = math.Random(seed);
 
   /// Предел на случай просадки кадров: сноп держится сменой, а не числом.
-  static const maxCount = 9000;
+  static const maxCount = 7000;
 
   /// Сколько искр срывается в секунду. Сварка — это густо: редкий сноп
   /// читается не искрами, а сором вокруг обложки.
-  static const rate = 12000.0;
+  static const rate = 9000.0;
 
   /// Насколько поле шире обложки. Дальше искры залетают на соседние
   /// обложки — там они не мешают, но и держать их там незачем.
@@ -69,6 +69,14 @@ class PortalSparkField {
 
   /// Частота мерцания, оборотов в секунду.
   static const flicker = 9.0;
+
+  /// Скругление кромки. Совпадает со скруглением обложки: сноп должен
+  /// повторять её форму, а не жить в своём прямоугольнике.
+  static const corner = 8.0;
+
+  /// Длина следа искры в секундах: где она была только что. Короткая —
+  /// иначе вместо искр выходят полосы.
+  static const trail = 0.04;
 
   final math.Random _random;
   final List<PortalSpark> sparks = [];
@@ -144,6 +152,13 @@ class PortalSparkField {
   /// Где искра находится сейчас.
   Offset positionOf(PortalSpark spark) => at(spark.at, spark.radius);
 
+  /// Где искра была [trail] секунд назад — начало её следа.
+  ///
+  /// Обратный ход считается в тех же координатах, вдоль кромки и наружу,
+  /// поэтому след у летящей вбок искры изгибается, а не тянется прямой.
+  Offset tailOf(PortalSpark spark) =>
+      at(spark.at - spark.angular * trail, spark.radius - spark.radial * trail);
+
   /// Точка в стольких долях пути вдоль кромки и стольких точках наружу.
   Offset at(double along, double radius) {
     final edge = edgeAt(along);
@@ -152,8 +167,10 @@ class PortalSparkField {
 
   /// Точка кромки по доле пути [at] вдоль периметра.
   ///
-  /// Кромка — прямоугольник обложки, поэтому идём по сторонам: доля пути
-  /// раскладывается на сторону и место на ней.
+  /// Кромка — прямоугольник обложки со скруглёнными углами, и скругление
+  /// тут не украшение: у острого угла наружу некуда лететь по диагонали —
+  /// нормаль скачком переходит с одной стороны на другую, и угол выглядит
+  /// срезанным. На дуге она поворачивается плавно, и сноп огибает угол.
   PortalEdge edgeAt(double at) {
     final w = size.width;
     final h = size.height;
@@ -165,34 +182,71 @@ class PortalSparkField {
       );
     }
 
-    final t = at % 1.0;
-    final along = (t < 0 ? t + 1 : t) * (w + h) * 2;
+    final r = math.min(corner, math.min(w, h) / 2);
+    final flatX = w - r * 2;
+    final flatY = h - r * 2;
+    final quarter = math.pi / 2 * r;
+    final perimeter = (flatX + flatY) * 2 + quarter * 4;
 
-    if (along < w) {
+    final t = at % 1.0;
+    var s = (t < 0 ? t + 1 : t) * perimeter;
+
+    // Верх, правый верхний угол, право, правый нижний, низ, левый нижний,
+    // лево, левый верхний — в порядке обхода по часовой стрелке.
+    if (s < flatX) {
       return (
-        point: Offset(along, 0),
+        point: Offset(r + s, 0),
         outward: const Offset(0, -1),
         along: const Offset(1, 0),
       );
     }
-    if (along < w + h) {
+    s -= flatX;
+    if (s < quarter) {
+      return _arc(Offset(w - r, r), r, -math.pi / 2 + s / r);
+    }
+    s -= quarter;
+    if (s < flatY) {
       return (
-        point: Offset(w, along - w),
+        point: Offset(w, r + s),
         outward: const Offset(1, 0),
         along: const Offset(0, 1),
       );
     }
-    if (along < w * 2 + h) {
+    s -= flatY;
+    if (s < quarter) {
+      return _arc(Offset(w - r, h - r), r, s / r);
+    }
+    s -= quarter;
+    if (s < flatX) {
       return (
-        point: Offset(w - (along - w - h), h),
+        point: Offset(w - r - s, h),
         outward: const Offset(0, 1),
         along: const Offset(-1, 0),
       );
     }
+    s -= flatX;
+    if (s < quarter) {
+      return _arc(Offset(r, h - r), r, math.pi / 2 + s / r);
+    }
+    s -= quarter;
+    if (s < flatY) {
+      return (
+        point: Offset(0, h - r - s),
+        outward: const Offset(-1, 0),
+        along: const Offset(0, -1),
+      );
+    }
+    s -= flatY;
+    return _arc(Offset(r, r), r, math.pi + s / r);
+  }
+
+  /// Точка на дуге угла: наружу — от центра дуги, вдоль — по касательной.
+  static PortalEdge _arc(Offset center, double radius, double angle) {
+    final outward = Offset(math.cos(angle), math.sin(angle));
     return (
-      point: Offset(0, h - (along - w * 2 - h)),
-      outward: const Offset(-1, 0),
-      along: const Offset(0, -1),
+      point: center + outward * radius,
+      outward: outward,
+      along: Offset(-outward.dy, outward.dx),
     );
   }
 }
@@ -311,10 +365,10 @@ class _PortalPainter extends CustomPainter {
 
     // Тысячи искр — тысячи вызовов рисования, если делать их по одной.
     // `drawRawPoints` кладёт целую пачку за раз, поэтому искры разложены по
-    // корзинам яркости: внутри корзины цвет и размер общие.
+    // корзинам яркости: внутри корзины цвет и толщина общие.
     //
     // Считаем в два прохода, чтобы не растить списки: сперва сколько куда
-    // попадёт, потом заполняем массивы точной длины. При девяти тысячах
+    // попадёт, потом заполняем массивы точной длины. При десяти тысячах
     // искр в кадре растущий список стоил бы дороже самой отрисовки.
     const buckets = 4;
     final counts = List.filled(buckets, 0);
@@ -327,25 +381,31 @@ class _PortalPainter extends CustomPainter {
       counts[bucket]++;
     }
 
-    final points = [for (final count in counts) Float32List(count * 2)];
+    // По четыре числа на искру: начало следа и её нынешнее место.
+    final lines = [for (final count in counts) Float32List(count * 4)];
     final filled = List.filled(buckets, 0);
     for (final entry in bucketOf.entries) {
       final bucket = entry.value;
-      final at = field.positionOf(entry.key);
-      final i = filled[bucket]++;
-      points[bucket][i * 2] = at.dx;
-      points[bucket][i * 2 + 1] = at.dy;
+      final head = field.positionOf(entry.key);
+      final tail = field.tailOf(entry.key);
+      final i = filled[bucket]++ * 4;
+      lines[bucket][i] = tail.dx;
+      lines[bucket][i + 1] = tail.dy;
+      lines[bucket][i + 2] = head.dx;
+      lines[bucket][i + 3] = head.dy;
     }
 
     for (var i = 0; i < buckets; i++) {
       if (counts[i] == 0) continue;
       final brightness = (i + 0.5) / buckets;
       canvas.drawRawPoints(
-        PointMode.points,
-        points[i],
+        // Отрезками, а не точками: искра тянет за собой след, и он же
+        // делает её видимой, не утолщая саму искру.
+        PointMode.lines,
+        lines[i],
         Paint()
           ..strokeCap = StrokeCap.round
-          ..strokeWidth = 1.1 + 2.2 * brightness
+          ..strokeWidth = 0.55 + 1.05 * brightness
           // Складываем свет, а не закрашиваем: сгущение искр должно
           // разгораться, а не перекрывать само себя.
           ..blendMode = BlendMode.plus
