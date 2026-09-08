@@ -103,13 +103,26 @@ class UpdateScript {
     required InstallLayout layout,
     required String stagedRoot,
     required int pid,
+    required String logPath,
     String? platform,
   }) {
     final os = platform ?? Platform.operatingSystem;
     final backup = '${layout.root}$backupSuffix';
-    return os == 'windows'
-        ? _windows(layout, stagedRoot, backup, pid)
-        : _posix(layout, stagedRoot, backup, pid);
+    final windows = os == 'windows';
+    // Пути подставляются внутрь строк в одинарных кавычках, а имя
+    // пользователя бывает и `D'Artagnan`. Экранируем по правилам языка:
+    // в PowerShell апостроф удваивается, в sh — закрывает строку и
+    // приписывается отдельно.
+    String quoted(String value) =>
+        windows ? value.replaceAll("'", "''") : value.replaceAll("'", r"'\''");
+
+    return (windows ? _windows : _posix)
+        .replaceAll('@ROOT@', quoted(layout.root))
+        .replaceAll('@STAGED@', quoted(stagedRoot))
+        .replaceAll('@BACKUP@', quoted(backup))
+        .replaceAll('@LAUNCH@', quoted(layout.executable))
+        .replaceAll('@LOG@', quoted(logPath))
+        .replaceAll('@PID@', '$pid');
   }
 
   /// Имя файла скрипта — по нему же его и запускают.
@@ -144,89 +157,171 @@ class UpdateScript {
         ]
       : ['sh', script];
 
-  /// Путь в кавычках для PowerShell: одинарная кавычка внутри удваивается.
-  static String _ps(String value) => "'${value.replaceAll("'", "''")}'";
+  /// Помощник для Windows.
+  ///
+  /// Собирается подстановкой, а не интерполяцией: в PowerShell своих
+  /// `$переменных` больше, чем наших, и экранировать каждую — верный способ
+  /// однажды промахнуться в строке, которую никто не компилирует.
+  static const _windows = r'''
+# Помощник обновления Evaporate. Запускается приложением перед выходом:
+# заменить файлы работающего процесса Windows не даёт.
 
-  static String _posix(
-    InstallLayout layout,
-    String staged,
-    String backup,
-    int pid,
-  ) =>
-      '''
+$root = '@ROOT@'
+$staged = '@STAGED@'
+$backup = '@BACKUP@'
+$launch = '@LAUNCH@'
+$log = '@LOG@'
+
+# Помощник работает уже без приложения, и рассказать о себе ему больше
+# нечем. Без этих строк отказ выглядел так: окно закрылось, не открылось, и
+# ни следа почему.
+function Note($text) {
+  try {
+    Add-Content -LiteralPath $log -Value "$(Get-Date -Format 'o') $text"
+  } catch {}
+}
+
+Note "обновление: начинаю, папка $root"
+
+# Ждём, пока процесс исчезнет. Тридцать секунд, а не десять: у приложения
+# свой бюджет на дописывание несделанного, и уложиться в десять оно не
+# обязано.
+$gone = $false
+for ($i = 0; $i -lt 60; $i++) {
+  if (-not (Get-Process -Id @PID@ -ErrorAction SilentlyContinue)) {
+    $gone = $true
+    break
+  }
+  Start-Sleep -Milliseconds 500
+}
+if (-not $gone) {
+  Note 'обновление: приложение не закрылось, папку не трогаю'
+  exit 1
+}
+
+# Папку могут ещё держать: антивирус, индексатор, проводник. Одна попытка
+# сразу после выхода — самая неудачная из возможных.
+function Swap($from, $to) {
+  for ($i = 0; $i -lt 20; $i++) {
+    try {
+      Move-Item -LiteralPath $from -Destination $to -Force -ErrorAction Stop
+      return $true
+    } catch {
+      Start-Sleep -Milliseconds 300
+    }
+  }
+  Note "обновление: не переместить $from -> $to"
+  return $false
+}
+
+if (Test-Path -LiteralPath $backup) {
+  try {
+    Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction Stop
+  } catch {
+    Note 'обновление: прежняя копия не убралась'
+  }
+}
+
+$replaced = $false
+if (Swap $root $backup) {
+  if (Swap $staged $root) {
+    $replaced = $true
+  } else {
+    Note 'обновление: новая папка не встала, возвращаю прежнюю'
+    [void](Swap $backup $root)
+  }
+}
+
+# Запускаем в любом случае — и после удачи, и после отката. Человек закрыл
+# приложение ради обновления; остаться вовсе без него — худший исход, чем
+# остаться на прежней версии.
+try {
+  Start-Process -FilePath $launch
+} catch {
+  Note 'обновление: приложение не запустилось'
+}
+
+if ($replaced) {
+  Note 'обновление: установлено'
+  Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue
+} else {
+  Note 'обновление: не установлено, версия прежняя'
+}
+''';
+
+  /// Помощник для macOS и Linux. Отличается от windows только языком:
+  /// порядок шагов и обещание запустить приложение в любом случае — те же.
+  static const _posix = r'''
 #!/bin/sh
 # Помощник обновления Evaporate. Запускается приложением перед выходом и
 # работает уже без него: заменить папку работающего приложения нельзя.
 set -u
 
-root='${layout.root}'
-staged='$staged'
-backup='$backup'
-launch='${layout.executable}'
+root='@ROOT@'
+staged='@STAGED@'
+backup='@BACKUP@'
+launch='@LAUNCH@'
+log='@LOG@'
 
-# Ждём, пока процесс исчезнет. Не вечно: если он завис, обновление всё
-# равно не задача помощника, и лучше выйти, ничего не тронув.
+note() {
+  printf '%s %s\n' "$(date +%FT%T)" "$1" >> "$log" 2>/dev/null || true
+}
+
+note "обновление: начинаю, папка $root"
+
+# Ждём, пока процесс исчезнет. Тридцать секунд: у приложения свой бюджет на
+# дописывание несделанного.
+gone=0
 i=0
-while kill -0 $pid 2>/dev/null; do
-  i=\$((i + 1))
-  [ "\$i" -gt 100 ] && exit 1
-  sleep 0.1
+while [ "$i" -lt 60 ]; do
+  if ! kill -0 @PID@ 2>/dev/null; then
+    gone=1
+    break
+  fi
+  i=$((i + 1))
+  sleep 0.5
 done
-
-rm -rf "\$backup"
-mv "\$root" "\$backup" || exit 1
-if ! mv "\$staged" "\$root"; then
-  # Новая папка не встала — возвращаем прежнюю и уходим.
-  mv "\$backup" "\$root"
+if [ "$gone" -ne 1 ]; then
+  note 'обновление: приложение не закрылось, папку не трогаю'
   exit 1
 fi
 
-"\$launch" >/dev/null 2>&1 &
-rm -rf "\$backup"
-''';
-
-  static String _windows(
-    InstallLayout layout,
-    String staged,
-    String backup,
-    int pid,
-  ) =>
-      '''
-# Помощник обновления Evaporate. Запускается приложением перед выходом:
-# заменить файлы работающего процесса Windows не даёт.
-\$ErrorActionPreference = 'Stop'
-
-\$root = ${_ps(layout.root)}
-\$staged = ${_ps(staged)}
-\$backup = ${_ps(backup)}
-\$launch = ${_ps(layout.executable)}
-
-# Ждём, пока процесс исчезнет. Не вечно: если он завис, обновление всё
-# равно не задача помощника, и лучше выйти, ничего не тронув.
-try {
-  Wait-Process -Id $pid -Timeout 10 -ErrorAction Stop
-} catch {
-  # Ждать было нечего: процесса уже нет. Разбираться по типу исключения
-  # ненадёжно, поэтому просто смотрим ниже, жив ли он ещё.
-}
-if (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
-  exit 1
+# Папку могут ещё держать, и одна попытка сразу после выхода — самая
+# неудачная из возможных.
+swap() {
+  j=0
+  while [ "$j" -lt 20 ]; do
+    if mv "$1" "$2" 2>/dev/null; then
+      return 0
+    fi
+    j=$((j + 1))
+    sleep 0.3
+  done
+  note "обновление: не переместить $1 -> $2"
+  return 1
 }
 
-if (Test-Path -LiteralPath \$backup) {
-  Remove-Item -LiteralPath \$backup -Recurse -Force
-}
-Move-Item -LiteralPath \$root -Destination \$backup
+rm -rf "$backup" 2>/dev/null || true
 
-try {
-  Move-Item -LiteralPath \$staged -Destination \$root
-} catch {
-  # Новая папка не встала — возвращаем прежнюю и уходим.
-  Move-Item -LiteralPath \$backup -Destination \$root
-  exit 1
-}
+replaced=0
+if swap "$root" "$backup"; then
+  if swap "$staged" "$root"; then
+    replaced=1
+  else
+    note 'обновление: новая папка не встала, возвращаю прежнюю'
+    swap "$backup" "$root" || true
+  fi
+fi
 
-Start-Process -FilePath \$launch
-Remove-Item -LiteralPath \$backup -Recurse -Force -ErrorAction SilentlyContinue
+# Запускаем в любом случае — и после удачи, и после отката: остаться вовсе
+# без приложения хуже, чем остаться на прежней версии.
+"$launch" >/dev/null 2>&1 &
+
+if [ "$replaced" -eq 1 ]; then
+  note 'обновление: установлено'
+  rm -rf "$backup" 2>/dev/null || true
+else
+  note 'обновление: не установлено, версия прежняя'
+fi
 ''';
 }

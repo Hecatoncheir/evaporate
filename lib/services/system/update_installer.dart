@@ -31,6 +31,15 @@ class UpdateInstaller {
   /// её вот-вот заменят.
   final String workDir;
 
+  /// Куда помощник пишет о себе.
+  ///
+  /// Работает он уже без приложения, и рассказать о случившемся ему больше
+  /// нечем: при следующем запуске приложение забирает написанное в свой
+  /// журнал. Без этого отказ выглядел так — окно закрылось, не открылось, и
+  /// ни следа почему.
+  static String logPath(String workDir) =>
+      p.join(workDir, 'evaporate-update.log');
+
   final InstallLayout? _layout;
   final Future<Process> Function(String, List<String>) _start;
   final int _pid;
@@ -64,7 +73,12 @@ class UpdateInstaller {
     final script = File(p.join(workDir, UpdateScript.fileName()));
     await script.parent.create(recursive: true);
     await script.writeAsString(
-      UpdateScript.build(layout: target, stagedRoot: stagedRoot, pid: _pid),
+      UpdateScript.build(
+        layout: target,
+        stagedRoot: stagedRoot,
+        pid: _pid,
+        logPath: logPath(workDir),
+      ),
       flush: true,
     );
     if (!Platform.isWindows) {
@@ -74,6 +88,25 @@ class UpdateInstaller {
     AppLog.instance.write('обновление: запускаю замену из $stagedRoot');
     final command = UpdateScript.command(script.path);
     await _start(command.first, command.sublist(1));
+  }
+
+  /// Забирает записи помощника в журнал приложения и убирает его файл.
+  ///
+  /// Помощник работает, когда приложения уже нет, поэтому написать в общий
+  /// журнал сам он не может — пишет в свой, а мы переносим при следующем
+  /// запуске. Иначе о неудавшейся замене не узнал бы никто: человек видел бы
+  /// только прежнюю версию и гадал.
+  static Future<void> collectLog(String workDir) async {
+    final file = File(logPath(workDir));
+    try {
+      if (!await file.exists()) return;
+      for (final line in (await file.readAsString()).split('\n')) {
+        if (line.trim().isNotEmpty) AppLog.instance.write(line.trim());
+      }
+      await file.delete();
+    } on Object {
+      // Записи помощника — не то, ради чего стоит ронять запуск.
+    }
   }
 
   /// Отдельным процессом и без привязки к нашему: он обязан пережить наш

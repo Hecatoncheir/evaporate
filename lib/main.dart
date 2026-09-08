@@ -24,6 +24,7 @@ import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/proxy_http_overrides.dart';
+import 'services/system/update_installer.dart';
 import 'services/system/update_check.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
@@ -42,6 +43,10 @@ Future<void> main() async {
     previousPath: paths.previousLogFile,
   );
   AppLog.instance.write('запуск ${AppVersion.current}');
+  // Помощник обновления работает, когда приложения уже нет, и пишет в свой
+  // файл. Забираем написанное сюда — иначе о неудавшейся замене не узнал бы
+  // никто, кроме того, кто полез бы искать файл руками.
+  await UpdateInstaller.collectLog(paths.dataDir);
 
   // Движок загрузок жалуется через `logging`, и до сих пор его жалобы не
   // доходили никуда: задача часами висела «активной», а о недоступном

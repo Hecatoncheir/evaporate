@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
+import 'package:evaporate/services/system/app_log.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/services/system/update_download.dart';
 import 'package:evaporate/services/system/update_install.dart';
@@ -312,31 +313,6 @@ void main() {
       executable: '/Applications/Evaporate.app/Contents/MacOS/evaporate',
     );
 
-    // Порядок шагов и есть возможность откатиться: прежняя папка
-    // отодвигается, а не удаляется, и убирается только после запуска новой.
-    test('на posix прежняя папка отодвигается, а не удаляется', () {
-      final script = UpdateScript.build(
-        layout: layout,
-        stagedRoot: '/tmp/staged/Evaporate.app',
-        pid: 4242,
-        platform: 'macos',
-      );
-
-      expect(script, contains('kill -0 4242'));
-      expect(script, contains(r'mv "$root" "$backup"'));
-      expect(
-        script.indexOf(r'mv "$staged" "$root"'),
-        greaterThan(script.indexOf(r'mv "$root" "$backup"')),
-      );
-      // Откат при сорвавшейся замене.
-      expect(script, contains(r'mv "$backup" "$root"'));
-      // Уборка прежней — после запуска новой, а не до.
-      expect(
-        script.lastIndexOf(r'rm -rf "$backup"'),
-        greaterThan(script.indexOf(r'"$launch"')),
-      );
-    });
-
     String windowsScript() => UpdateScript.build(
       layout: const InstallLayout(
         root: r'C:\Program Files\Evaporate',
@@ -344,23 +320,83 @@ void main() {
       ),
       stagedRoot: r'C:\Temp\staged',
       pid: 777,
+      logPath: '/tmp/evaporate-update.log',
       platform: 'windows',
     );
+
+    String posixScript() => UpdateScript.build(
+      layout: layout,
+      stagedRoot: '/tmp/staged/Evaporate.app',
+      pid: 4242,
+      logPath: '/tmp/evaporate-update.log',
+      platform: 'macos',
+    );
+
+    // Порядок шагов и есть возможность откатиться: прежняя папка
+    // отодвигается, а не удаляется, и убирается только после запуска новой.
+    test('на posix прежняя папка отодвигается, а не удаляется', () {
+      final script = posixScript();
+
+      expect(script, contains('kill -0 4242'));
+      expect(script, contains(r'swap "$root" "$backup"'));
+      expect(
+        script.indexOf(r'swap "$staged" "$root"'),
+        greaterThan(script.indexOf(r'swap "$root" "$backup"')),
+      );
+      // Откат при сорвавшейся замене.
+      expect(script, contains(r'swap "$backup" "$root"'));
+      // Уборка прежней — после запуска новой, а не до.
+      expect(
+        script.lastIndexOf(r'rm -rf "$backup"'),
+        greaterThan(script.indexOf(r'"$launch"')),
+      );
+    });
 
     test('на windows ждут исчезновения процесса по номеру', () {
       final script = windowsScript();
 
-      expect(script, contains('Wait-Process -Id 777'));
-      expect(script, contains(r'Move-Item -LiteralPath $root'));
-      expect(script, contains(r'Move-Item -LiteralPath $backup'));
+      expect(script, contains('Get-Process -Id 777'));
+      expect(script, contains(r'Swap $root $backup'));
+      expect(script, contains(r'Swap $backup $root'));
       expect(script, contains(r'Start-Process -FilePath $launch'));
     });
 
-    // Помощник запускается отсоединённым процессом, то есть без консоли, а
-    // каждая внешняя команда в такой обстановке получает от системы своё
-    // окно. Прежний помощник ждал выхода приложения циклом из `tasklist`,
-    // `find` и `ping` — по три окна на оборот, до сотни оборотов, и человек
-    // смотрел, как они появляются одно за другим поверх всего.
+    // То, из-за чего обновление кончалось закрытым приложением: помощник
+    // выходил на любом отказе, так и не запустив ничего. Остаться на прежней
+    // версии терпимо, остаться вовсе без приложения — нет.
+    test('приложение запускается при любом исходе', () {
+      // Запуск стоит до проверки успеха — значит он безусловен. Внутри
+      // ветки «получилось» он и был, когда обновление оставляло человека с
+      // закрытым приложением.
+      for (final (script, launch, verdict) in [
+        (posixScript(), r'"$launch" >/dev/null', r'if [ "$replaced" -eq 1 ]'),
+        (
+          windowsScript(),
+          r'Start-Process -FilePath $launch',
+          r'if ($replaced)',
+        ),
+      ]) {
+        expect(script, contains(launch));
+        expect(script, contains(verdict));
+        expect(
+          script.indexOf(launch),
+          lessThan(script.indexOf(verdict)),
+          reason: 'запуск попал внутрь удачной ветки — после отката его нет',
+        );
+      }
+    });
+
+    // Помощник работает, когда приложения уже нет: рассказать о случившемся
+    // ему больше нечем, а «закрылось и не открылось» без единого следа —
+    // худшее, что может случиться с обновлением.
+    test('помощник пишет о каждом шаге', () {
+      for (final script in [posixScript(), windowsScript()]) {
+        expect(script, contains('/tmp/evaporate-update.log'));
+        expect(script, contains('не установлено, версия прежняя'));
+        expect(script, contains('приложение не закрылось'));
+      }
+    });
+
     test('на windows помощник не зовёт внешних команд', () {
       final script = windowsScript();
 
@@ -415,10 +451,38 @@ void main() {
         ),
         stagedRoot: r'C:\Temp\staged',
         pid: 1,
+        logPath: '/tmp/evaporate-update.log',
         platform: 'windows',
       );
 
       expect(script, contains(r"'C:\Users\D''Artagnan\Evaporate'"));
+    });
+  });
+
+  group('записи помощника', () {
+    // Помощник работает, когда приложения уже нет, и в общий журнал писать
+    // ему нечем. Не забери приложение его файл при следующем запуске —
+    // человек так и остался бы с «закрылось и не открылось» без объяснений.
+    test('переезжают в журнал приложения и файл убирается', () async {
+      final log = File(UpdateInstaller.logPath(tmp.path));
+      await log.writeAsString(
+        'обновление: начинаю\nобновление: не установлено, версия прежняя\n',
+      );
+      final appLog = AppLog(
+        path: p.join(tmp.path, 'app.log'),
+        previousPath: p.join(tmp.path, 'app.log.1'),
+      );
+      AppLog.instance = appLog;
+
+      await UpdateInstaller.collectLog(tmp.path);
+      await appLog.flush();
+
+      expect(await log.exists(), isFalse);
+      expect(await appLog.tail(), anyElement(contains('версия прежняя')));
+    });
+
+    test('отсутствие файла запуск не тревожит', () async {
+      await UpdateInstaller.collectLog(tmp.path);
     });
   });
 
