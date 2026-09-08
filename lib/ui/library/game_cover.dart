@@ -78,6 +78,15 @@ class GameCoverTile extends StatelessWidget {
   }
 
   Widget _tile(BuildContext context, DownloadTask? task, bool running) {
+    // Искры лежат вокруг плитки, а не внутри неё: внутри их срезала бы
+    // обрезка обложки, а видны они как раз в кайме за её краем.
+    return PortalSparks(
+      enabled: selected && portalEnabled,
+      child: _cover(context, task, running),
+    );
+  }
+
+  Widget _cover(BuildContext context, DownloadTask? task, bool running) {
     return NavTile(
       focusNode: focusNode,
       onTap: onOpen,
@@ -122,18 +131,13 @@ class GameCoverTile extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Искры идут поверх обложки, но под полосой загрузки и
-                  // значком состояния: они украшение, а не сообщение.
-                  PortalSparks(
-                    enabled: selected && portalEnabled,
-                    child: FoilSurface(
-                      // Капли — только у выбранной: они стоят кадров, а вся
-                      // сетка под дождём читалась бы хуже, чем одна плитка.
-                      child: CoverDrops(
-                        enabled: selected && dropsEnabled,
-                        coverPath: game.coverPath,
-                        child: _Art(game: game, underStrip: running),
-                      ),
+                  FoilSurface(
+                    // Капли — только у выбранной: они стоят кадров, а вся
+                    // сетка под дождём читалась бы хуже, чем одна плитка.
+                    child: CoverDrops(
+                      enabled: selected && dropsEnabled,
+                      coverPath: game.coverPath,
+                      child: _Art(game: game, underStrip: running),
                     ),
                   ),
                   if (running && task != null) _ProgressStrip(task: task),

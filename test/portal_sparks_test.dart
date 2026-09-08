@@ -1,5 +1,9 @@
 import 'package:evaporate/ui/library/portal_sparks.dart';
+
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Искры бегут по краю обложки бесконечно, поэтому проверять надо не
@@ -133,6 +137,103 @@ void main() {
 
       expect(find.text('обложка'), findsOneWidget);
       expect(find.byKey(const ValueKey('portal-sparks')), findsOneWidget);
+    });
+
+    // Жалоба, с которой всё началось: искр почти не видно, и те, что
+    // видно, лежат на самой обложке. Считаем зажжённые точки на снимке —
+    // отдельно в кайме вокруг и отдельно поверх обложки.
+    testWidgets('искры горят вокруг обложки, а не поверх неё', (tester) async {
+      const cover = Size(120, 180);
+      const halo = PortalSparkField.halo;
+      final key = GlobalKey();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: RepaintBoundary(
+              key: key,
+              // Чёрная подложка: иначе светлый фон сам считался бы
+              // «горящим», и проверка вокруг обложки ничего не значила бы.
+              child: ColoredBox(
+                color: const Color(0xFF000000),
+                child: SizedBox(
+                  width: cover.width + halo * 2,
+                  height: cover.height + halo * 2,
+                  child: Center(
+                    child: SizedBox(
+                      width: cover.width,
+                      height: cover.height,
+                      child: const PortalSparks(
+                        enabled: true,
+                        // Непрозрачная обложка: всё, что окажется под ней,
+                        // на снимок не попадёт — этого мы и добиваемся.
+                        child: ColoredBox(color: Color(0xFF101010)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 17));
+      }
+
+      late ByteData bytes;
+      late int width;
+      late int height;
+      await tester.runAsync(() async {
+        final boundary =
+            key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final image = await boundary.toImage();
+        width = image.width;
+        height = image.height;
+        bytes = (await image.toByteData())!;
+        image.dispose();
+      });
+
+      final ratio = width / (cover.width + halo * 2);
+      final inner = Rect.fromLTWH(
+        halo * ratio,
+        halo * ratio,
+        cover.width * ratio,
+        cover.height * ratio,
+      );
+      // Считаем не у самого шва: по краю обложки на снимке остаётся полоска
+      // сглаживания в пару точек, и она не «искры поверх картинки».
+      final artwork = inner.deflate(3);
+      var around = 0;
+      var over = 0;
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < width; x++) {
+          final i = (y * width + x) * 4;
+          // Обложка залита ровным тёмным, искры — заметно светлее.
+          final lit = bytes.getUint8(i) > 90 || bytes.getUint8(i + 1) > 70;
+          if (!lit) continue;
+          final point = Offset(x + 0.5, y + 0.5);
+          if (artwork.contains(point)) {
+            over++;
+          } else if (!inner.contains(point)) {
+            around++;
+          }
+        }
+      }
+
+      // Кайма вокруг обложки — пятнадцать тысяч точек, и треть её должна
+      // гореть. С прежней плотностью там едва набиралась сотня: искр
+      // «почти совсем не видно» — с этого всё и началось.
+      expect(
+        around,
+        greaterThan(2000),
+        reason: 'вокруг обложки почти ничего не горит — искр не видно',
+      );
+      expect(
+        over,
+        0,
+        reason: 'искры проступают поверх обложки, а должны быть под ней',
+      );
     });
 
     // Тот же урок, что и с волной: рисовальщик пересоздаётся при каждой

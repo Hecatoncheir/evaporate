@@ -16,8 +16,9 @@ class PortalSpark {
     required this.at,
     required this.speed,
     required this.drift,
+    required this.driftSpeed,
     required this.life,
-    required this.span,
+    required this.maxLife,
   });
 
   /// Доля пути по периметру, 0..1.
@@ -27,14 +28,19 @@ class PortalSpark {
   /// с одинаковой все искры выглядели бы спицами колеса.
   final double speed;
 
-  /// Насколько искра отходит наружу от контура, в точках.
+  /// Насколько искра отошла наружу от контура, в точках.
   double drift;
+
+  /// С какой скоростью отходит, в точках в секунду. Хранится отдельно от
+  /// самого сноса затем, что шлейф строится обратным ходом: где искра была
+  /// долю секунды назад, считается по её же скорости.
+  double driftSpeed;
 
   /// Сколько ей осталось, в секундах.
   double life;
 
-  /// Длина хвоста долей периметра — из неё рисуется штрих.
-  final double span;
+  /// Сколько было отпущено — по остатку от неё и гаснет хвост.
+  final double maxLife;
 }
 
 /// Кольцо искр вокруг обложки выбранной игры.
@@ -48,10 +54,15 @@ class PortalSparkField {
   /// Больше не нужно: искры живут секунды, и поток держится сменой, а не
   /// числом. Предел стоит затем, чтобы просадка кадров не наматывала их
   /// без конца.
-  static const maxCount = 220;
+  static const maxCount = 900;
 
-  /// Сколько рождается в секунду.
-  static const rate = 140.0;
+  /// Сколько рождается в секунду. Портал — это густо: редкий поток читается
+  /// не кольцом искр, а грязью на обложке.
+  static const rate = 600.0;
+
+  /// Насколько поле шире обложки. В этой полосе искры и видны — на самой
+  /// обложке они мешали бы её разглядывать.
+  static const halo = 22.0;
 
   final math.Random _random;
   final List<PortalSpark> sparks = [];
@@ -82,8 +93,9 @@ class PortalSparkField {
 
     for (final spark in sparks) {
       spark.at = (spark.at + spark.speed * step) % 1.0;
-      // Снос наружу замедляется — искра выдыхается, а не улетает.
-      spark.drift += spark.drift * step * 1.2 + step * 6;
+      spark.drift += spark.driftSpeed * step;
+      // Снос замедляется — искра выдыхается, а не улетает за экран.
+      spark.driftSpeed *= 1 - 1.6 * step;
       spark.life -= step;
     }
     sparks.removeWhere((spark) => spark.life <= 0);
@@ -91,15 +103,18 @@ class PortalSparkField {
     _budget += rate * step;
     while (_budget >= 1 && sparks.length < maxCount) {
       _budget -= 1;
+      final life = _rand(0.4, 1.3);
       sparks.add(
         PortalSpark(
           at: _random.nextDouble(),
           // Против часовой у трети — встречные искры не дают потоку
           // выглядеть нарисованной каруселью.
-          speed: _rand(0.25, 0.75) * (_random.nextDouble() < 0.3 ? -1 : 1),
-          drift: _rand(-1.5, 1.5),
-          life: _rand(0.35, 1.1),
-          span: _rand(0.004, 0.02),
+          speed: _rand(0.3, 0.95) * (_random.nextDouble() < 0.3 ? -1 : 1),
+          // Рождаются у самого края обложки и уходят наружу.
+          drift: _rand(-2, 2),
+          driftSpeed: _rand(6, halo * 1.6),
+          life: life,
+          maxLife: life,
         ),
       );
     }
@@ -136,6 +151,31 @@ class PortalSparkField {
     }
     return base + outward * drift;
   }
+
+  /// След искры: где она была на протяжении [seconds] до этого кадра.
+  ///
+  /// Считается обратным ходом по её же скорости, а не рисуется отрезком
+  /// наугад: у искры, идущей навстречу потоку и уносимой наружу, хвост
+  /// изгибается — из этого изгиба шлейф и читается шлейфом.
+  List<Offset> trail(
+    PortalSpark spark, {
+    double seconds = 0.13,
+    int steps = 7,
+  }) {
+    final points = <Offset>[];
+    for (var i = 0; i <= steps; i++) {
+      final back = seconds * i / steps;
+      // Хвост не уходит внутрь: искра пришла с кромки, а не из-под
+      // обложки, и упёршийся в кромку хвост читается именно так.
+      points.add(
+        pointAt(
+          spark.at - spark.speed * back,
+          math.max(0, spark.drift - spark.driftSpeed * back),
+        ),
+      );
+    }
+    return points;
+  }
 }
 
 /// Обёртка, рисующая искры поверх плитки.
@@ -160,14 +200,22 @@ class PortalSparksState extends State<PortalSparks> {
   Widget build(BuildContext context) {
     if (!widget.enabled) return widget.child;
 
+    const halo = PortalSparkField.halo;
     return DecorativeMotion(
       enabled: true,
       child: widget.child,
+      // Кайма выходит за плитку, поэтому обрезать нельзя: в ней-то искры и
+      // видны. Промежутка между обложками в сетке на неё хватает.
       builder: (context, clock, child) => Stack(
-        fit: StackFit.expand,
+        clipBehavior: Clip.none,
         children: [
-          child!,
-          Positioned.fill(
+          // Под обложкой: то, что попало на неё, скрыто, и остаётся ровно
+          // кольцо вокруг — а не рябь поверх картинки.
+          Positioned(
+            left: -halo,
+            top: -halo,
+            right: -halo,
+            bottom: -halo,
             child: IgnorePointer(
               child: RepaintBoundary(
                 child: CustomPaint(
@@ -181,6 +229,7 @@ class PortalSparksState extends State<PortalSparks> {
               ),
             ),
           ),
+          child!,
         ],
       ),
     );
@@ -197,21 +246,28 @@ class _PortalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    field.resize(size);
+    const halo = PortalSparkField.halo;
+    final inner = Size(size.width - halo * 2, size.height - halo * 2);
+    if (inner.isEmpty) return;
+
+    field.resize(inner);
     field.advance(clock.value - field.lastFrame);
     field.lastFrame = clock.value;
 
+    canvas.save();
+    // Контур считается по обложке, а слой шире её на кайму: снос наружу
+    // выносит искры именно туда, где им и место — вокруг, а не поверх.
+    canvas.translate(halo, halo);
+
     // Свечение по краю: без него искры висят в пустоте, а с ним читаются
     // как один горящий контур.
-    final rim = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = AppColors.portalRim.withValues(alpha: dark ? 0.5 : 0.35)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
-      rim,
+      RRect.fromRectAndRadius(Offset.zero & inner, const Radius.circular(8)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = AppColors.portalRim.withValues(alpha: dark ? 0.55 : 0.4)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
 
     final paint = Paint()
@@ -221,21 +277,22 @@ class _PortalPainter extends CustomPainter {
       ..blendMode = BlendMode.plus;
 
     for (final spark in field.sparks) {
-      final fade = spark.life.clamp(0.0, 1.0);
-      final head = field.pointAt(spark.at, spark.drift);
-      final tail = field.pointAt(
-        spark.at - spark.span * spark.speed.sign,
-        spark.drift * 0.4,
-      );
-      paint
-        ..color = Color.lerp(
-          AppColors.portalSpark,
-          AppColors.portalRim,
-          1 - fade,
-        )!.withValues(alpha: fade * (dark ? 0.9 : 0.7))
-        ..strokeWidth = 1.6 * fade + 0.4;
-      canvas.drawLine(tail, head, paint);
+      final fade = (spark.life / spark.maxLife).clamp(0.0, 1.0);
+      final points = field.trail(spark);
+      final hot = Color.lerp(AppColors.portalRim, AppColors.portalSpark, fade)!;
+
+      // Хвост гаснет к концу: голова яркая и толстая, дальше сходит на нет.
+      for (var i = 0; i < points.length - 1; i++) {
+        final along = 1 - i / (points.length - 1);
+        paint
+          ..color = hot.withValues(
+            alpha: fade * along * along * (dark ? 0.95 : 0.75),
+          )
+          ..strokeWidth = 0.5 + 1.9 * along * fade;
+        canvas.drawLine(points[i + 1], points[i], paint);
+      }
     }
+    canvas.restore();
   }
 
   @override
