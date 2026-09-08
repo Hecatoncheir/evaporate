@@ -375,6 +375,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   key: ValueKey(game.id),
                   game: game,
                   selected: game.id == selectedId,
+                  dropsEnabled: effects.libraryEffects && effects.dropsEnabled,
                   onOpen: () => nav.add(GameOpened(game.id)),
                   // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
                   // работать по той игре, на которую смотришь, не заходя внутрь.

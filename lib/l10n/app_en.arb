@@ -15,6 +15,8 @@
   "effectLiquidDistortion": "Liquid Distortion — elastic cards",
   "effectLiquidSelection": "Liquid selection transitions",
   "effectAmbient": "Light background colour flow",
+  "effectDrops": "Raindrops on the selected cover",
+  "effectDropsNote": "Covers only: the drops refract the artwork, and there is nothing to refract on a title plate",
   "effectInterfaceAnimations": "Section fade transitions",
   "libraryEffectsNote": "Magnetic particles, foil, tilting cards, waves and liquid selection transitions. Respects the system's reduced-motion setting.",
   "minimizeWindow": "Minimize window",

@@ -448,6 +448,20 @@ class SettingsPage extends StatelessWidget {
                           : null,
                     ),
                     SwitchListTile(
+                      key: const ValueKey('effects-drops-toggle'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(L.of(context).effectDrops),
+                      subtitle: Text(
+                        L.of(context).effectDropsNote,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      value: settings.dropsEnabled,
+                      onChanged: settings.libraryEffects
+                          ? (value) =>
+                                update(settings.copyWith(dropsEnabled: value))
+                          : null,
+                    ),
+                    SwitchListTile(
                       key: const ValueKey('effects-interfaceAnimations-toggle'),
                       contentPadding: EdgeInsets.zero,
                       title: Text(L.of(context).effectInterfaceAnimations),

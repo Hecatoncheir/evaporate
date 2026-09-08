@@ -15,6 +15,8 @@
   "effectLiquidDistortion": "Liquid Distortion — деформация карточек",
   "effectLiquidSelection": "Жидкие переходы выделения",
   "effectAmbient": "Переливы светлого фона",
+  "effectDrops": "Капли на обложке выбранной игры",
+  "effectDropsNote": "Только у игр с обложкой: капли искажают её, а искажать подложку с одним названием нечего",
   "effectInterfaceAnimations": "Плавная смена разделов",
   "libraryEffectsNote": "Магнитные частицы, foil, наклон карточек, волны и жидкие переходы выделения. Учитывает системное уменьшение анимации.",
   "minimizeWindow": "Свернуть окно",

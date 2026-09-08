@@ -28,6 +28,7 @@ class AppSettings extends Equatable {
     this.liquidSelectionEnabled = false,
     this.ambientEnabled = true,
     this.interfaceAnimationsEnabled = false,
+    this.dropsEnabled = false,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -88,6 +89,11 @@ class AppSettings extends Equatable {
   final bool ambientEnabled;
   final bool interfaceAnimationsEnabled;
 
+  /// Капли, стекающие по обложке выбранной игры. Единственный эффект на
+  /// шейдере: рисует его видеокарта, и на слабой машине лучше знать об этом
+  /// заранее, чем удивляться. Поэтому по умолчанию выключен.
+  final bool dropsEnabled;
+
   /// Масштаб интерфейса и размер обложек независимы друг от друга и
   /// переживают перезапуск.
   final double interfaceScale;
@@ -133,6 +139,7 @@ class AppSettings extends Equatable {
     bool? liquidSelectionEnabled,
     bool? ambientEnabled,
     bool? interfaceAnimationsEnabled,
+    bool? dropsEnabled,
     double? interfaceScale,
     double? libraryScale,
     Object? locale = _u,
@@ -164,6 +171,7 @@ class AppSettings extends Equatable {
       ambientEnabled: ambientEnabled ?? this.ambientEnabled,
       interfaceAnimationsEnabled:
           interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
+      dropsEnabled: dropsEnabled ?? this.dropsEnabled,
       interfaceScale: interfaceScale ?? this.interfaceScale,
       libraryScale: libraryScale ?? this.libraryScale,
       locale: locale == _u ? this.locale : locale as String?,
@@ -194,6 +202,7 @@ class AppSettings extends Equatable {
     'liquidSelectionEnabled': liquidSelectionEnabled,
     'ambientEnabled': ambientEnabled,
     'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
+    'dropsEnabled': dropsEnabled,
     'interfaceScale': interfaceScale,
     'libraryScale': libraryScale,
     if (locale != null) 'locale': locale,
@@ -227,6 +236,7 @@ class AppSettings extends Equatable {
     ambientEnabled: json['ambientEnabled'] as bool? ?? true,
     interfaceAnimationsEnabled:
         json['interfaceAnimationsEnabled'] as bool? ?? false,
+    dropsEnabled: json['dropsEnabled'] as bool? ?? false,
     interfaceScale: _scale(
       json['interfaceScale'],
       minInterfaceScale,
@@ -271,6 +281,7 @@ class AppSettings extends Equatable {
     liquidSelectionEnabled,
     ambientEnabled,
     interfaceAnimationsEnabled,
+    dropsEnabled,
     interfaceScale,
     libraryScale,
     locale,

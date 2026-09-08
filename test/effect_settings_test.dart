@@ -26,6 +26,7 @@ void main() {
       expect(settings.liquidSelectionEnabled, isFalse);
       expect(settings.ambientEnabled, isTrue);
       expect(settings.interfaceAnimationsEnabled, isFalse);
+      expect(settings.dropsEnabled, isFalse);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),
@@ -41,6 +42,7 @@ void main() {
       base.copyWith(liquidSelectionEnabled: true),
       base.copyWith(ambientEnabled: false),
       base.copyWith(interfaceAnimationsEnabled: true),
+      base.copyWith(dropsEnabled: true),
     ]) {
       expect(changed, isNot(base));
       final restored = AppSettings.fromJson(changed.toJson(), '/games');

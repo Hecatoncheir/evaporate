@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import 'cover_drops.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
@@ -22,6 +25,7 @@ class GameCoverTile extends StatelessWidget {
     super.key,
     required this.game,
     required this.selected,
+    this.dropsEnabled = false,
     required this.onOpen,
     required this.onFocused,
     this.focusNode,
@@ -31,6 +35,10 @@ class GameCoverTile extends StatelessWidget {
 
   /// Игра, к которой возвращаются, закрыв её страницу.
   final bool selected;
+
+  /// Капли на обложке выбранной игры. Приходит сверху вместе с остальными
+  /// эффектами: плитка о настройках не спрашивает.
+  final bool dropsEnabled;
   final VoidCallback onOpen;
   final VoidCallback onFocused;
   final FocusNode? focusNode;
@@ -110,7 +118,13 @@ class GameCoverTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   FoilSurface(
-                    child: _Art(game: game, underStrip: running),
+                    // Капли — только у выбранной: они стоят кадров, а вся
+                    // сетка под дождём читалась бы хуже, чем одна плитка.
+                    child: CoverDrops(
+                      enabled: selected && dropsEnabled,
+                      coverPath: game.coverPath,
+                      child: _Art(game: game, underStrip: running),
+                    ),
                   ),
                   if (running && task != null) _ProgressStrip(task: task),
                   if (!running) _StatusBadge(game: game),

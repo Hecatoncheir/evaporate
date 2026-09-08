@@ -35,6 +35,17 @@ Evaporate распространяется под лицензией MIT (см. 
 OFL допускает распространение шрифтов в составе программы и требует
 прикладывать текст лицензии — он приложен.
 
+### Шейдер капель
+
+`assets/shaders/drops.frag` — стекающие по обложке капли. Взят почти как
+есть; условия автора сохранены в самом файле, в шапке.
+
+- Лицензия: WTFPL — [«делай что хочешь»](http://www.wtfpl.net/about/)
+- Исходники: https://github.com/monster555/flutter_shady_weather_demo
+
+У репозитория, откуда он взят, своего файла лицензии нет, но у самого
+шейдера условия проставлены в тексте — их и соблюдаем.
+
 ## Библиотеки
 
 Зависимости из `pubspec.yaml` под своими лицензиями; полный список
@@ -78,6 +89,17 @@ They live in `assets/fonts/`, with their license texts beside them.
 
 The OFL permits bundling fonts with a program and requires the license text to
 be included — it is.
+
+### Raindrop shader
+
+`assets/shaders/drops.frag` draws the drops running down a cover. Taken
+almost as it was; the author's terms are kept in the file's own header.
+
+- License: WTFPL — ["do what the fuck you want"](http://www.wtfpl.net/about/)
+- Source: https://github.com/monster555/flutter_shady_weather_demo
+
+The repository it came from carries no license file of its own, but the
+shader states its terms in its text — those are the terms honoured here.
 
 ## Libraries
 
