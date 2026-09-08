@@ -424,23 +424,6 @@ void main() {
       expect(UpdateScript.command('x.sh', platform: 'linux'), ['sh', 'x.sh']);
     });
 
-    // Проверка на настоящем разборщике: скрипт пишется строкой, и опечатка
-    // в нём выяснилась бы только на чужой машине, посреди обновления.
-    // Идёт на сборке Windows — там PowerShell есть.
-    test('скрипт разбирается самим PowerShell', () async {
-      final file = File(p.join(tmp.path, 'probe.ps1'));
-      await file.writeAsString(windowsScript());
-
-      final read = "(Get-Content -Raw -LiteralPath '${file.path}')";
-      final result = await Process.run('powershell', [
-        '-NoProfile',
-        '-Command',
-        "[void][ScriptBlock]::Create($read)",
-      ]);
-
-      expect(result.exitCode, 0, reason: '${result.stderr}');
-    }, skip: Platform.isWindows ? null : 'PowerShell есть на Windows');
-
     // Путь может прийти с апострофом в имени пользователя, а строки в
     // PowerShell им же и закрываются.
     test('апостроф в пути не рвёт скрипт', () {
@@ -456,6 +439,57 @@ void main() {
       );
 
       expect(script, contains(r"'C:\Users\D''Artagnan\Evaporate'"));
+    });
+  });
+
+  group('файл помощника', () {
+    Future<File> written(String platform) async {
+      final installer = UpdateInstaller(
+        workDir: tmp.path,
+        layout: InstallLayout(
+          root: tmp.path,
+          executable: p.join(tmp.path, 'evaporate'),
+        ),
+        processId: 1,
+        platform: platform,
+        start: (executable, arguments) async => Process.start('true', const []),
+      );
+      await installer.apply(p.join(tmp.path, 'staged'));
+      return File(p.join(tmp.path, UpdateScript.fileName(platform: platform)));
+    }
+
+    // Windows PowerShell читает `.ps1` в системной кодировке, если файл не
+    // начинается с метки порядка байтов. На русской Windows кириллица в
+    // скрипте превращалась в мусор вместе с кавычками — и помощник не
+    // разбирался вовсе: приложение закрывалось и не открывалось.
+    test('скрипт для windows начинается с метки кодировки', () async {
+      final bytes = await (await written('windows')).readAsBytes();
+
+      expect(bytes.take(3), [0xEF, 0xBB, 0xBF]);
+    });
+
+    // Проверка на настоящем разборщике, и именно того файла, который кладёт
+    // установщик: скрипт пишется строкой, а опечатка или потерянная в
+    // кодировке кавычка выяснились бы иначе только на чужой машине, посреди
+    // обновления. Идёт на сборке Windows — там PowerShell есть.
+    test('скрипт разбирается самим PowerShell', () async {
+      final file = await written('windows');
+
+      final read = "(Get-Content -Raw -LiteralPath '${file.path}')";
+      final result = await Process.run('powershell', [
+        '-NoProfile',
+        '-Command',
+        "[void][ScriptBlock]::Create($read)",
+      ]);
+
+      expect(result.exitCode, 0, reason: '${result.stderr}');
+    }, skip: Platform.isWindows ? null : 'PowerShell есть на Windows');
+
+    // У `sh` наоборот: метка перед `#!` сделала бы файл незапускаемым.
+    test('скрипт для posix начинается с shebang', () async {
+      final bytes = await (await written('linux')).readAsBytes();
+
+      expect(bytes.take(2), '#!'.codeUnits);
     });
   });
 

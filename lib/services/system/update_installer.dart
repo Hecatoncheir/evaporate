@@ -23,13 +23,25 @@ class UpdateInstaller {
     @visibleForTesting
     Future<Process> Function(String executable, List<String> arguments)? start,
     @visibleForTesting int? processId,
+    @visibleForTesting String? platform,
   }) : _layout = layout ?? InstallLayout.current(),
        _start = start ?? _detached,
-       _pid = processId ?? pid;
+       _pid = processId ?? pid,
+       _os = platform ?? Platform.operatingSystem;
 
   /// Куда класть скрипт — папка данных приложения. Не рядом с установкой:
   /// её вот-вот заменят.
   final String workDir;
+
+  /// Содержимое файла помощника — со меткой порядка байтов или без.
+  ///
+  /// Windows PowerShell читает `.ps1` в системной кодировке, а не в UTF-8,
+  /// если файл не начинается с этой метки. На русской Windows кириллица в
+  /// скрипте превращалась в мусор вместе с кавычками, которыми закрыты
+  /// строки, — и помощник не разбирался вовсе. У `sh` наоборот: метка перед
+  /// `#!` сделала бы файл незапускаемым.
+  String _fileContents(String script) =>
+      _os == 'windows' ? '\uFEFF$script' : script;
 
   /// Куда помощник пишет о себе.
   ///
@@ -43,6 +55,7 @@ class UpdateInstaller {
   final InstallLayout? _layout;
   final Future<Process> Function(String, List<String>) _start;
   final int _pid;
+  final String _os;
 
   InstallLayout? get layout => _layout;
 
@@ -70,23 +83,26 @@ class UpdateInstaller {
       );
     }
 
-    final script = File(p.join(workDir, UpdateScript.fileName()));
+    final script = File(p.join(workDir, UpdateScript.fileName(platform: _os)));
     await script.parent.create(recursive: true);
     await script.writeAsString(
-      UpdateScript.build(
-        layout: target,
-        stagedRoot: stagedRoot,
-        pid: _pid,
-        logPath: logPath(workDir),
+      _fileContents(
+        UpdateScript.build(
+          layout: target,
+          stagedRoot: stagedRoot,
+          pid: _pid,
+          logPath: logPath(workDir),
+          platform: _os,
+        ),
       ),
       flush: true,
     );
-    if (!Platform.isWindows) {
+    if (_os != 'windows') {
       await Process.run('chmod', ['+x', script.path]);
     }
 
     AppLog.instance.write('обновление: запускаю замену из $stagedRoot');
-    final command = UpdateScript.command(script.path);
+    final command = UpdateScript.command(script.path, platform: _os);
     await _start(command.first, command.sublist(1));
   }
 
