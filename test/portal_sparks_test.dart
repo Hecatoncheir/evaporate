@@ -384,6 +384,7 @@ void main() {
       }
 
       late ByteData bytes;
+      late ByteData reference;
       late int width;
       late int height;
       await tester.runAsync(() async {
@@ -399,7 +400,33 @@ void main() {
         height = image.height;
         bytes = (await image.toByteData())!;
         image.dispose();
+        final codec = await ui.instantiateImageCodec(
+          await File('test/goldens/portal_sparks_reference.png').readAsBytes(),
+        );
+        final frame = await codec.getNextFrame();
+        expect(frame.image.width, width);
+        expect(frame.image.height, height);
+        reference = (await frame.image.toByteData())!;
+        frame.image.dispose();
+        codec.dispose();
       });
+
+      // Эталон снят с принятого эффекта до оптимизации. Сравниваем светящиеся
+      // пиксели, чтобы пустой чёрный фон не скрыл потерю искр. Небольшой
+      // допуск нужен для сглаживания повёрнутых спрайтов и округления длины.
+      var colorError = 0;
+      var compared = 0;
+      for (var i = 0; i < bytes.lengthInBytes; i += 4) {
+        if (bytes.getUint8(i) <= 70 && reference.getUint8(i) <= 70) continue;
+        for (var channel = 0; channel < 3; channel++) {
+          colorError +=
+              (bytes.getUint8(i + channel) - reference.getUint8(i + channel))
+                  .abs();
+          compared++;
+        }
+      }
+      expect(compared, greaterThan(0));
+      expect(colorError / compared, lessThan(22.5));
 
       final ratio = width / (cover.width + halo * 2);
       final inner = Rect.fromLTWH(

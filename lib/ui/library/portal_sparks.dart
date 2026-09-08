@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui' show PointMode;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -67,8 +67,9 @@ class PortalSparkField {
     if (size.isEmpty || !dt.isFinite || dt <= 0) return;
     final step = dt.clamp(0.0, 1 / 30);
     time += step;
+    final attenuation = math.exp(-drag * step);
     for (final spark in sparks) {
-      _move(spark, step);
+      _move(spark, step, attenuation);
     }
     final bounds = (Offset.zero & size).inflate(halo - 5);
     sparks.removeWhere(
@@ -108,9 +109,11 @@ class PortalSparkField {
     _budget = math.min(_budget, 1);
   }
 
-  void _move(PortalSpark spark, double dt) {
+  void _move(PortalSpark spark, double dt, [double? attenuation]) {
     spark.position += spark.velocity * dt;
-    spark.velocity = spark.velocity * math.exp(-drag * dt) + Offset(0, 20 * dt);
+    spark.velocity =
+        spark.velocity * (attenuation ?? math.exp(-drag * dt)) +
+        Offset(0, 20 * dt);
     spark.life -= dt;
   }
 
@@ -227,6 +230,7 @@ class PortalSparksState extends State<PortalSparks> {
   /// выделения. Искры начинали бы с чистого места и вспыхивали разом.
   @visibleForTesting
   final PortalSparkField field = PortalSparkField();
+  late final _renderer = _PortalRenderer();
 
   @override
   void didUpdateWidget(PortalSparks oldWidget) {
@@ -271,6 +275,7 @@ class PortalSparksState extends State<PortalSparks> {
                   painter: _PortalPainter(
                     clock: clock,
                     field: field,
+                    renderer: _renderer,
                     dark: context.colors.isDark,
                   ),
                 ),
@@ -285,11 +290,16 @@ class PortalSparksState extends State<PortalSparks> {
 }
 
 class _PortalPainter extends CustomPainter {
-  _PortalPainter({required this.clock, required this.field, required this.dark})
-    : super(repaint: clock);
+  _PortalPainter({
+    required this.clock,
+    required this.field,
+    required this.renderer,
+    required this.dark,
+  }) : super(repaint: clock);
 
   final ValueListenable<double> clock;
   final PortalSparkField field;
+  final _PortalRenderer renderer;
   final bool dark;
 
   @override
@@ -307,68 +317,220 @@ class _PortalPainter extends CustomPainter {
     // искры именно туда, где им и место — вокруг, а не поверх.
     canvas.translate(halo, halo);
 
-    // Кромка состоит из отдельных раскалённых штрихов. Сплошная
-    // размытая рамка давала ровный неоновый прямоугольник вместо искр.
-    const buckets = 6;
-    final lines = List.generate(buckets, (_) => <double>[]);
-    final perimeter = (inner.width + inner.height) * 2;
-    final segments = (perimeter / 1.4).ceil();
-    for (var i = 0; i < segments; i++) {
-      final at = i / segments;
-      final wave = math.sin(at * math.pi * 10 - field.time * 4.1);
-      final grain = math.sin(i * 2.399 + field.time * 19);
-      final intensity = (0.35 + wave * 0.35 + grain * 0.3).clamp(0.0, 1.0);
-      if (intensity < 0.22) continue;
-      final edge = field.edgeAt(at);
-      final head = edge.point + edge.outward * (1.4 + grain * 0.8);
-      final tail = head - edge.along * (0.6 + intensity * 2.4);
-      final bucket = (intensity * (buckets - 1)).round();
-      lines[bucket].addAll([tail.dx, tail.dy, head.dx, head.dy]);
-    }
-    for (final spark in field.sparks) {
-      final brightness = field.brightnessOf(spark);
-      if (brightness < 0.035) continue;
-      final bucket = math.min(buckets - 1, (brightness * buckets).floor());
-      final head = field.positionOf(spark);
-      final tail = field.tailOf(spark);
-      lines[bucket].addAll([tail.dx, tail.dy, head.dx, head.dy]);
-    }
-
-    for (var i = 0; i < buckets; i++) {
-      if (lines[i].isEmpty) continue;
-      final points = Float32List.fromList(lines[i]);
-      final heat = (i + 1) / buckets;
-      final blend = dark ? BlendMode.plus : BlendMode.srcOver;
-      // Слабый оранжевый ореол вокруг отдельных искр, затем резкая
-      // золотая сердцевина. Без общего размытия сохраняются тёмные просветы.
-      canvas.drawRawPoints(
-        PointMode.lines,
-        points,
-        Paint()
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 2.4 + heat
-          ..blendMode = blend
-          ..color = AppColors.portalRim.withValues(alpha: heat * 0.16)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
-      );
-      canvas.drawRawPoints(
-        PointMode.lines,
-        points,
-        Paint()
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 0.45 + heat * 0.75
-          ..blendMode = blend
-          ..color = Color.lerp(
-            AppColors.portalRim,
-            AppColors.portalSpark,
-            heat * heat,
-          )!.withValues(alpha: 0.15 + heat * 0.85),
-      );
-    }
+    renderer.paint(canvas, field, dark: dark);
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(_PortalPainter old) =>
-      old.clock != clock || old.dark != dark || old.field != field;
+      old.clock != clock ||
+      old.dark != dark ||
+      old.field != field ||
+      old.renderer != renderer;
+}
+
+/// Атлас один на приложение: неизменные штрихи и их ореолы растрируются
+/// один раз, а не размываются тысячами заново каждый кадр. Плотность,
+/// траектории и яркости симуляции при этом остаются прежними.
+class _PortalAtlas {
+  static const buckets = 6;
+  static const resolution = 3.0;
+  static const lengthStep = 0.25;
+  static const variants = 25;
+  static const padding = 7.0;
+  static const cellWidth = 20.0;
+  static const cellHeight = 14.0;
+  static const pixelWidth = cellWidth * resolution;
+  static const pixelHeight = cellHeight * resolution;
+  static final ui.Image image = _create();
+
+  static ui.Image _create() {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..scale(resolution);
+    for (var bucket = 0; bucket < buckets; bucket++) {
+      final heat = (bucket + 1) / buckets;
+      final glow = Paint()
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 2.4 + heat
+        ..color = AppColors.portalRim.withValues(alpha: heat * 0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+      final core = Paint()
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 0.45 + heat * 0.75
+        ..color = Color.lerp(
+          AppColors.portalRim,
+          AppColors.portalSpark,
+          heat * heat,
+        )!.withValues(alpha: 0.15 + heat * 0.85);
+      for (var variant = 0; variant < variants; variant++) {
+        final x = variant * cellWidth + padding;
+        final y = bucket * cellHeight + padding;
+        final length = variant * lengthStep;
+        canvas.drawLine(Offset(x, y), Offset(x + length, y), glow);
+        canvas.drawLine(
+          Offset(x, y + buckets * cellHeight),
+          Offset(x + length, y + buckets * cellHeight),
+          core,
+        );
+      }
+    }
+    final picture = recorder.endRecording();
+    try {
+      return picture.toImageSync(
+        (variants * pixelWidth).round(),
+        (buckets * 2 * pixelHeight).round(),
+      );
+    } finally {
+      picture.dispose();
+    }
+  }
+}
+
+/// Буферы живут вместе с карточкой и переиспользуются на каждом кадре.
+/// Вместо списков double и их копирования остаются только короткие views.
+class _SparkBatch {
+  Float32List _transforms = Float32List(256 * 4);
+  Float32List _glowRects = Float32List(256 * 4);
+  Float32List _coreRects = Float32List(256 * 4);
+  int length = 0;
+
+  void add(int bucket, double x0, double y0, double x1, double y1) {
+    if (length + 4 > _transforms.length) {
+      final capacity = _transforms.length * 2;
+      _transforms = Float32List(capacity)..setAll(0, _transforms);
+      _glowRects = Float32List(capacity)..setAll(0, _glowRects);
+      _coreRects = Float32List(capacity)..setAll(0, _coreRects);
+    }
+    final dx = x1 - x0;
+    final dy = y1 - y0;
+    final distance = math.sqrt(dx * dx + dy * dy);
+    if (distance < 0.0001) return;
+    final cosine = dx / distance / _PortalAtlas.resolution;
+    final sine = dy / distance / _PortalAtlas.resolution;
+    const inset = _PortalAtlas.padding * _PortalAtlas.resolution;
+    final variant = (distance / _PortalAtlas.lengthStep).round().clamp(
+      0,
+      _PortalAtlas.variants - 1,
+    );
+    final left = variant * _PortalAtlas.pixelWidth;
+    final top = bucket * _PortalAtlas.pixelHeight;
+    const coreOffset = _PortalAtlas.buckets * _PortalAtlas.pixelHeight;
+    final i = length;
+    _transforms[i] = cosine;
+    _transforms[i + 1] = sine;
+    _transforms[i + 2] = x0 - cosine * inset + sine * inset;
+    _transforms[i + 3] = y0 - sine * inset - cosine * inset;
+    _glowRects[i] = _coreRects[i] = left;
+    _glowRects[i + 1] = top;
+    _coreRects[i + 1] = top + coreOffset;
+    _glowRects[i + 2] = _coreRects[i + 2] = left + _PortalAtlas.pixelWidth;
+    _glowRects[i + 3] = top + _PortalAtlas.pixelHeight;
+    _coreRects[i + 3] = top + coreOffset + _PortalAtlas.pixelHeight;
+    length += 4;
+  }
+
+  void paint(Canvas canvas, Paint paint) {
+    if (length == 0) return;
+    final transforms = Float32List.sublistView(_transforms, 0, length);
+    // Порядок проходов такой же, как у исходного эффекта: ореолы корзины,
+    // затем её сердцевины. Это сохраняет смешение пересекающихся искр.
+    canvas.drawRawAtlas(
+      _PortalAtlas.image,
+      transforms,
+      Float32List.sublistView(_glowRects, 0, length),
+      null,
+      null,
+      null,
+      paint,
+    );
+    canvas.drawRawAtlas(
+      _PortalAtlas.image,
+      transforms,
+      Float32List.sublistView(_coreRects, 0, length),
+      null,
+      null,
+      null,
+      paint,
+    );
+  }
+}
+
+class _PortalRenderer {
+  final _batches = List.generate(_PortalAtlas.buckets, (_) => _SparkBatch());
+  final _paint = Paint()..filterQuality = FilterQuality.low;
+  Size _size = Size.zero;
+  Float64List _rim = Float64List(0);
+
+  void _resize(PortalSparkField field) {
+    if (_size == field.size) return;
+    _size = field.size;
+    final segments = ((_size.width + _size.height) * 2 / 1.4).ceil();
+    _rim = Float64List(segments * 10);
+    for (var i = 0; i < segments; i++) {
+      final at = i / segments;
+      final edge = field.edgeAt(at);
+      final j = i * 10;
+      _rim[j] = edge.point.dx;
+      _rim[j + 1] = edge.point.dy;
+      _rim[j + 2] = edge.outward.dx;
+      _rim[j + 3] = edge.outward.dy;
+      _rim[j + 4] = edge.along.dx;
+      _rim[j + 5] = edge.along.dy;
+      _rim[j + 6] = math.sin(at * math.pi * 10);
+      _rim[j + 7] = math.cos(at * math.pi * 10);
+      _rim[j + 8] = math.sin(i * 2.399);
+      _rim[j + 9] = math.cos(i * 2.399);
+    }
+  }
+
+  void paint(Canvas canvas, PortalSparkField field, {required bool dark}) {
+    _resize(field);
+    for (final batch in _batches) {
+      batch.length = 0;
+    }
+    // Геометрия контура постоянна. Формулы сложения синусов оставляют
+    // четыре тригонометрических вызова на кадр вместо двух на каждый штрих.
+    final waveSin = math.sin(field.time * 4.1);
+    final waveCos = math.cos(field.time * 4.1);
+    final grainSin = math.sin(field.time * 19);
+    final grainCos = math.cos(field.time * 19);
+    for (var i = 0; i < _rim.length; i += 10) {
+      final wave = _rim[i + 6] * waveCos - _rim[i + 7] * waveSin;
+      final grain = _rim[i + 8] * grainCos + _rim[i + 9] * grainSin;
+      final intensity = (0.35 + wave * 0.35 + grain * 0.3).clamp(0.0, 1.0);
+      if (intensity < 0.22) continue;
+      final x = _rim[i] + _rim[i + 2] * (1.4 + grain * 0.8);
+      final y = _rim[i + 1] + _rim[i + 3] * (1.4 + grain * 0.8);
+      final trail = 0.6 + intensity * 2.4;
+      final bucket = (intensity * (_PortalAtlas.buckets - 1)).round();
+      _batches[bucket].add(
+        bucket,
+        x - _rim[i + 4] * trail,
+        y - _rim[i + 5] * trail,
+        x,
+        y,
+      );
+    }
+    for (final spark in field.sparks) {
+      final brightness = field.brightnessOf(spark);
+      if (brightness < 0.035) continue;
+      final bucket = math.min(
+        _PortalAtlas.buckets - 1,
+        (brightness * _PortalAtlas.buckets).floor(),
+      );
+      final x = spark.position.dx;
+      final y = spark.position.dy;
+      _batches[bucket].add(
+        bucket,
+        x - spark.velocity.dx * spark.trail,
+        y - spark.velocity.dy * spark.trail,
+        x,
+        y,
+      );
+    }
+    _paint.blendMode = dark ? BlendMode.plus : BlendMode.srcOver;
+    for (final batch in _batches) {
+      batch.paint(canvas, _paint);
+    }
+  }
 }

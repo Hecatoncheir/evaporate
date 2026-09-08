@@ -29,7 +29,7 @@ void main() {
       expect(settings.ambientEnabled, isTrue);
       expect(settings.interfaceAnimationsEnabled, isFalse);
       expect(settings.dropsEnabled, isFalse);
-      expect(settings.portalEnabled, isFalse);
+      expect(settings.portalEnabled, isTrue);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),
@@ -46,7 +46,7 @@ void main() {
       base.copyWith(ambientEnabled: false),
       base.copyWith(interfaceAnimationsEnabled: true),
       base.copyWith(dropsEnabled: true),
-      base.copyWith(portalEnabled: true),
+      base.copyWith(portalEnabled: false),
     ]) {
       expect(changed, isNot(base));
       final restored = AppSettings.fromJson(changed.toJson(), '/games');
@@ -172,7 +172,6 @@ void main() {
         expect(atmosphere.field.particles, isEmpty);
         await toggle('particles');
         expect(atmosphere.field.particles, isNotEmpty);
-        await toggle('portal');
         expect(harness.settings.state.portalEnabled, isTrue);
         final sparks = find.byWidgetPredicate(
           (widget) => widget is PortalSparks && widget.enabled,
@@ -196,6 +195,12 @@ void main() {
               .id,
           secondGame,
         );
+        await toggle('portal');
+        expect(harness.settings.state.portalEnabled, isFalse);
+        expect(sparks, findsNothing);
+        await toggle('portal');
+        expect(harness.settings.state.portalEnabled, isTrue);
+        expect(sparks, findsOneWidget);
         await toggle('master');
         expect(atmosphere.field.particles, isEmpty);
         expect(atmosphere.isAnimating, isFalse);

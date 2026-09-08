@@ -29,7 +29,7 @@ class AppSettings extends Equatable {
     this.ambientEnabled = true,
     this.interfaceAnimationsEnabled = false,
     this.dropsEnabled = false,
-    this.portalEnabled = false,
+    this.portalEnabled = true,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -95,8 +95,8 @@ class AppSettings extends Equatable {
   /// заранее, чем удивляться. Поэтому по умолчанию выключен.
   final bool dropsEnabled;
 
-  /// Искры, бегущие по краю обложки выбранной игры. Как и капли, по
-  /// умолчанию выключены: движение у самой заметной плитки — дело вкуса.
+  /// Искры, бегущие по краю обложки выбранной игры. Включены по умолчанию;
+  /// при желании их можно выключить в настройках.
   final bool portalEnabled;
 
   /// Масштаб интерфейса и размер обложек независимы друг от друга и
@@ -245,7 +245,7 @@ class AppSettings extends Equatable {
     interfaceAnimationsEnabled:
         json['interfaceAnimationsEnabled'] as bool? ?? false,
     dropsEnabled: json['dropsEnabled'] as bool? ?? false,
-    portalEnabled: json['portalEnabled'] as bool? ?? false,
+    portalEnabled: json['portalEnabled'] as bool? ?? true,
     interfaceScale: _scale(
       json['interfaceScale'],
       minInterfaceScale,
