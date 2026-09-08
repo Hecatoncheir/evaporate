@@ -5,6 +5,8 @@
 
 ## [Не выпущено]
 
+## [0.25.0] — 2026-09-08
+
 ### Исправлено
 
 - Обновление больше не оставляет закрытое приложение. Помощник, который
@@ -896,6 +898,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.25.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.25.0
 [0.24.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.24.1
 [0.24.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.24.0
 [0.23.3]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.23.3
