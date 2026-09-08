@@ -30,6 +30,7 @@ void main() {
       expect(settings.interfaceAnimationsEnabled, isFalse);
       expect(settings.dropsEnabled, isFalse);
       expect(settings.portalEnabled, isTrue);
+      expect(settings.selectionFrameEnabled, isFalse);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),
@@ -47,6 +48,7 @@ void main() {
       base.copyWith(interfaceAnimationsEnabled: true),
       base.copyWith(dropsEnabled: true),
       base.copyWith(portalEnabled: false),
+      base.copyWith(selectionFrameEnabled: true),
     ]) {
       expect(changed, isNot(base));
       final restored = AppSettings.fromJson(changed.toJson(), '/games');
@@ -125,6 +127,34 @@ void main() {
     setUp(() async => tmp = await TestHarness.makeTempDir());
     tearDown(() => TestHarness.removeTempDir(tmp));
 
+    /// Переключатель эффекта нажимается там, где он живёт, — в настройках,
+    /// а проверяется на библиотеке, поэтому обратно возвращаемся сразу.
+    Future<void> toggleEffect(
+      WidgetTester tester,
+      TestHarness harness,
+      String name,
+    ) async {
+      harness.nav.add(const SectionSelected(3));
+      await frames(tester);
+      final target = find.byKey(ValueKey('effects-$name-toggle'));
+      await tester.scrollUntilVisible(
+        target,
+        350,
+        scrollable: find
+            .descendant(
+              of: find.byType(SettingsPage),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.ensureVisible(target);
+      await frames(tester);
+      await tester.tap(target);
+      await frames(tester);
+      harness.nav.add(const SectionSelected(0));
+      await frames(tester);
+    }
+
     testWidgets(
       'individual switches apply immediately and preserve choices under master',
       (tester) async {
@@ -140,27 +170,7 @@ void main() {
         expect(atmosphere.field.particles, isEmpty);
         expect(find.byKey(const ValueKey('detail-wave-paint')), findsOneWidget);
 
-        Future<void> toggle(String name) async {
-          harness.nav.add(const SectionSelected(3));
-          await frames(tester);
-          final target = find.byKey(ValueKey('effects-$name-toggle'));
-          await tester.scrollUntilVisible(
-            target,
-            350,
-            scrollable: find
-                .descendant(
-                  of: find.byType(SettingsPage),
-                  matching: find.byType(Scrollable),
-                )
-                .first,
-          );
-          await tester.ensureVisible(target);
-          await frames(tester);
-          await tester.tap(target);
-          await frames(tester);
-          harness.nav.add(const SectionSelected(0));
-          await frames(tester);
-        }
+        Future<void> toggle(String name) => toggleEffect(tester, harness, name);
 
         await toggle('particles');
         expect(harness.settings.state.particlesEnabled, isTrue);
@@ -216,5 +226,56 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets('the selection frame is off until asked for and then '
+        'outlives the master switch', (tester) async {
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      harness.addGame(title: 'Hades');
+      await tester.pumpWidget(harness.buildApp(motion: true));
+      await frames(tester);
+
+      // Рамка обведена вокруг обложки под фокусом, поэтому фокус ставится
+      // явно: без него у всех плиток кромка прозрачная.
+      Future<void> focusCover() async {
+        Focus.of(tester.element(find.text('Hades'))).requestFocus();
+        await frames(tester);
+      }
+
+      final frame = find.descendant(
+        of: find.byType(GameCoverTile),
+        matching: find.byWidgetPredicate((widget) {
+          if (widget is! AnimatedContainer) return false;
+          final decoration = widget.decoration;
+          final border = decoration is BoxDecoration ? decoration.border : null;
+          return border is Border && border.top.color.a > 0;
+        }),
+      );
+
+      await focusCover();
+      expect(harness.settings.state.selectionFrameEnabled, isFalse);
+      expect(frame, findsNothing);
+
+      await toggleEffect(tester, harness, 'selectionFrame');
+      await focusCover();
+      expect(harness.settings.state.selectionFrameEnabled, isTrue);
+      expect(frame, findsOneWidget);
+
+      await toggleEffect(tester, harness, 'selectionFrame');
+      await focusCover();
+      expect(frame, findsNothing);
+
+      await toggleEffect(tester, harness, 'selectionFrame');
+      await focusCover();
+      expect(frame, findsOneWidget);
+
+      // Рамка — не украшение, а указатель места в сетке: общий выключатель
+      // эффектов её не касается.
+      await toggleEffect(tester, harness, 'master');
+      await focusCover();
+      expect(harness.settings.state.libraryEffects, isFalse);
+      expect(frame, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

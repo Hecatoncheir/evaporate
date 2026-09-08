@@ -476,6 +476,22 @@ class SettingsPage extends StatelessWidget {
                           : null,
                     ),
                     SwitchListTile(
+                      key: const ValueKey('effects-selectionFrame-toggle'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(L.of(context).effectSelectionFrame),
+                      subtitle: Text(
+                        L.of(context).effectSelectionFrameNote,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      value: settings.selectionFrameEnabled,
+                      // Единственный переключатель в карточке, не запертый
+                      // общим выключателем: рамка показывает место в сетке,
+                      // а не украшает её, и зажигается по прямой просьбе.
+                      onChanged: (value) => update(
+                        settings.copyWith(selectionFrameEnabled: value),
+                      ),
+                    ),
+                    SwitchListTile(
                       key: const ValueKey('effects-interfaceAnimations-toggle'),
                       contentPadding: EdgeInsets.zero,
                       title: Text(L.of(context).effectInterfaceAnimations),

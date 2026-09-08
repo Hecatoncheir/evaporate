@@ -30,6 +30,7 @@ class AppSettings extends Equatable {
     this.interfaceAnimationsEnabled = false,
     this.dropsEnabled = false,
     this.portalEnabled = true,
+    this.selectionFrameEnabled = false,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -99,6 +100,17 @@ class AppSettings extends Equatable {
   /// при желании их можно выключить в настройках.
   final bool portalEnabled;
 
+  /// Рамка вокруг обложки, на которой стоит фокус.
+  ///
+  /// Выключена по умолчанию — в том числе в настройках, записанных до
+  /// появления переключателя: место в сетке и без неё показывает рост
+  /// обложки, а сама она спорит с рисунком.
+  ///
+  /// Общему выключателю эффектов не подчиняется: рамка — не украшение, а
+  /// указатель места для того, кто ходит клавиатурой или геймпадом, и
+  /// включают её осознанно.
+  final bool selectionFrameEnabled;
+
   /// Масштаб интерфейса и размер обложек независимы друг от друга и
   /// переживают перезапуск.
   final double interfaceScale;
@@ -146,6 +158,7 @@ class AppSettings extends Equatable {
     bool? interfaceAnimationsEnabled,
     bool? dropsEnabled,
     bool? portalEnabled,
+    bool? selectionFrameEnabled,
     double? interfaceScale,
     double? libraryScale,
     Object? locale = _u,
@@ -179,6 +192,8 @@ class AppSettings extends Equatable {
           interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
       dropsEnabled: dropsEnabled ?? this.dropsEnabled,
       portalEnabled: portalEnabled ?? this.portalEnabled,
+      selectionFrameEnabled:
+          selectionFrameEnabled ?? this.selectionFrameEnabled,
       interfaceScale: interfaceScale ?? this.interfaceScale,
       libraryScale: libraryScale ?? this.libraryScale,
       locale: locale == _u ? this.locale : locale as String?,
@@ -211,6 +226,7 @@ class AppSettings extends Equatable {
     'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
     'dropsEnabled': dropsEnabled,
     'portalEnabled': portalEnabled,
+    'selectionFrameEnabled': selectionFrameEnabled,
     'interfaceScale': interfaceScale,
     'libraryScale': libraryScale,
     if (locale != null) 'locale': locale,
@@ -246,6 +262,7 @@ class AppSettings extends Equatable {
         json['interfaceAnimationsEnabled'] as bool? ?? false,
     dropsEnabled: json['dropsEnabled'] as bool? ?? false,
     portalEnabled: json['portalEnabled'] as bool? ?? true,
+    selectionFrameEnabled: json['selectionFrameEnabled'] as bool? ?? false,
     interfaceScale: _scale(
       json['interfaceScale'],
       minInterfaceScale,
@@ -292,6 +309,7 @@ class AppSettings extends Equatable {
     interfaceAnimationsEnabled,
     dropsEnabled,
     portalEnabled,
+    selectionFrameEnabled,
     interfaceScale,
     libraryScale,
     locale,

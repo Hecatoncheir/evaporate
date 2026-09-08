@@ -28,6 +28,7 @@ class GameCoverTile extends StatelessWidget {
     required this.selected,
     this.dropsEnabled = false,
     this.portalEnabled = false,
+    this.frameEnabled = true,
     required this.onOpen,
     required this.onFocused,
     this.focusNode,
@@ -44,6 +45,10 @@ class GameCoverTile extends StatelessWidget {
 
   /// Искры по краю выбранной обложки.
   final bool portalEnabled;
+
+  /// Рамка вокруг обложки под фокусом. Выключается отдельно от эффектов:
+  /// без неё место в сетке показывает только рост обложки.
+  final bool frameEnabled;
   final VoidCallback onOpen;
   final VoidCallback onFocused;
   final FocusNode? focusNode;
@@ -92,6 +97,7 @@ class GameCoverTile extends StatelessWidget {
       margin: EdgeInsets.zero,
       borderRadius: 10,
       borderWidth: 2.5,
+      showFocusBorder: frameEnabled,
       focusedScale: 1.06,
       // Контур растёт вместе с фокусом, но остаётся снаружи ClipRRect.
       // Иначе увеличенная обложка закрывает самые яркие искры у кромки.
