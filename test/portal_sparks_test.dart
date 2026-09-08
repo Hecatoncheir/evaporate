@@ -61,9 +61,12 @@ void main() {
       final moved = sparks.sparks.where((spark) => spark.angular.abs() > 0.05);
 
       expect(moved.length / sparks.sparks.length, greaterThan(0.5));
-      // Почти все в одну сторону, иначе вращения не видно.
-      final forward = sparks.sparks.where((s) => s.angular > 0).length;
-      expect(forward / sparks.sparks.length, greaterThan(0.7));
+      // Два потока внахлёст: один заметно сильнее — иначе направления не
+      // видно, — но встречный не редкие одиночки, а настоящий поток.
+      final forward =
+          sparks.sparks.where((s) => s.angular > 0).length /
+          sparks.sparks.length;
+      expect(forward, inInclusiveRange(0.55, 0.85));
     });
 
     // Искрят, а не горят ровно: у каждой свой сдвиг мерцания, поэтому поле

@@ -53,11 +53,11 @@ class PortalSparkField {
   PortalSparkField({int seed = 17}) : _random = math.Random(seed);
 
   /// Предел на случай просадки кадров: сноп держится сменой, а не числом.
-  static const maxCount = 7000;
+  static const maxCount = 9000;
 
   /// Сколько искр срывается в секунду. Сварка — это густо: редкий сноп
   /// читается не искрами, а сором вокруг обложки.
-  static const rate = 9000.0;
+  static const rate = 14000.0;
 
   /// Насколько поле шире обложки. Дальше искры залетают на соседние
   /// обложки — там они не мешают, но и держать их там незачем.
@@ -76,7 +76,12 @@ class PortalSparkField {
 
   /// Длина следа искры в секундах: где она была только что. Короткая —
   /// иначе вместо искр выходят полосы.
-  static const trail = 0.04;
+  static const trail = 0.026;
+
+  /// Какая доля искр идёт против общего вращения. Не редкие одиночки, а
+  /// заметный встречный поток: два потока внахлёст читаются вихрем, один —
+  /// каруселью.
+  static const counterShare = 0.3;
 
   final math.Random _random;
   final List<PortalSpark> sparks = [];
@@ -128,7 +133,11 @@ class PortalSparkField {
           // Срываются по всей кромке разом: у сварки нет одной точки, из
           // которой всё летит.
           at: _random.nextDouble(),
-          angular: _rand(0.3, 0.9) * (_random.nextDouble() < 0.12 ? -1 : 1),
+          // Встречный поток чуть медленнее основного: сравняй их — и они
+          // сольются в мерцающее кольцо без направления.
+          angular: _random.nextDouble() < counterShare
+              ? -_rand(0.2, 0.6)
+              : _rand(0.35, 0.95),
           radius: _rand(0, 2),
           // Разброс смещён к малым скоростям: у сварки густо у шва и
           // редко по краям, а ровный разброс дал бы одинаковую пелену.
@@ -146,7 +155,9 @@ class PortalSparkField {
   double brightnessOf(PortalSpark spark) {
     final fade = (spark.life / spark.maxLife).clamp(0.0, 1.0);
     final blink = 0.55 + 0.45 * math.sin(time * flicker + spark.twinkle);
-    return math.pow(fade, 1.3) * blink;
+    // Гаснет круто: искра должна дотлевать быстро, иначе хвост поля
+    // размазывается в ровное зарево.
+    return math.pow(fade, 2.2).toDouble() * blink;
   }
 
   /// Где искра находится сейчас.
