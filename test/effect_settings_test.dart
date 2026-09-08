@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/ui/library/foil_card.dart';
+import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/library/library_atmosphere.dart';
+import 'package:evaporate/ui/library/portal_sparks.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -129,6 +131,7 @@ void main() {
         final harness = TestHarness(tmp);
         addTearDown(harness.dispose);
         harness.addGame(title: 'Hades');
+        final secondGame = harness.addGame(title: 'Tunic');
         await tester.pumpWidget(harness.buildApp(motion: true));
         await frames(tester);
         final atmosphere = tester.state<LibraryAtmosphereState>(
@@ -169,12 +172,41 @@ void main() {
         expect(atmosphere.field.particles, isEmpty);
         await toggle('particles');
         expect(atmosphere.field.particles, isNotEmpty);
+        await toggle('portal');
+        expect(harness.settings.state.portalEnabled, isTrue);
+        final sparks = find.byWidgetPredicate(
+          (widget) => widget is PortalSparks && widget.enabled,
+        );
+        expect(sparks, findsOneWidget);
+        // Искры находятся внутри масштабирования фокуса, поэтому кромка
+        // остаётся снаружи обложки при её увеличении.
+        expect(
+          find.ancestor(of: sparks, matching: find.byType(AnimatedScale)),
+          findsWidgets,
+        );
+        harness.nav.add(GameSelected(secondGame));
+        await frames(tester);
+        expect(sparks, findsOneWidget);
+        expect(
+          tester
+              .widget<GameCoverTile>(
+                find.ancestor(of: sparks, matching: find.byType(GameCoverTile)),
+              )
+              .game
+              .id,
+          secondGame,
+        );
         await toggle('master');
         expect(atmosphere.field.particles, isEmpty);
         expect(atmosphere.isAnimating, isFalse);
         expect(harness.settings.state.particlesEnabled, isTrue);
+        expect(harness.settings.state.portalEnabled, isTrue);
+        expect(sparks, findsNothing);
         await toggle('master');
         expect(atmosphere.field.particles, isNotEmpty);
+        expect(sparks, findsOneWidget);
+        await toggle('portal');
+        expect(sparks, findsNothing);
         expect(find.byKey(const ValueKey('detail-wave-paint')), findsNothing);
         expect(tester.takeException(), isNull);
       },

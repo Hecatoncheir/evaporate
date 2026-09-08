@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:evaporate/ui/library/portal_sparks.dart';
 import 'package:flutter/material.dart';
@@ -7,8 +9,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// От кромки обложки летит сноп искр, снесённых вбок вращением. Проверять
-/// тут надо не красоту, а то, что сноп остаётся снопом: заполняет кайму, а
-/// не жмётся к шву, мерцает вразнобой, не растёт без предела, не уходит в
+/// тут надо не красоту, а то, что искры летят свободно,
+/// мерцают вразнобой, не растут без предела, не уходят в
 /// NaN и переживает возвращение свёрнутого окна одним огромным шагом. Видно
 /// ли его вообще — отдельно, по снимку отрисовки.
 void main() {
@@ -44,29 +46,44 @@ void main() {
       run(sparks, frames: 90);
 
       final far = sparks.sparks
-          .where((spark) => spark.radius > PortalSparkField.halo / 2)
+          .where(
+            (spark) => !(Offset.zero & size)
+                .inflate(PortalSparkField.halo / 2)
+                .contains(spark.position),
+          )
           .length;
-      final near = sparks.sparks.where((spark) => spark.radius < 6).length;
+      final near = sparks.sparks
+          .where(
+            (spark) => (Offset.zero & size).inflate(6).contains(spark.position),
+          )
+          .length;
 
       expect(far, greaterThan(0), reason: 'ни одна не долетела до края каймы');
       expect(near, greaterThan(0), reason: 'у кромки пусто — шва не видно');
     });
 
-    // Вращение сносит искру вбок: без него веер расходился бы ровно по
-    // радиусам, а нужен закрученный.
-    test('искры сносит вбок вращением', () {
+    test('следы короткие, частицы летят свободно у угла', () {
       final sparks = field();
+      final spark = PortalSpark(
+        position: const Offset(199, -3),
+        velocity: const Offset(120, -20),
+        twinkle: 0,
+        life: 0.5,
+        maxLife: 0.5,
+        trail: 0.02,
+      );
+      sparks.sparks.add(spark);
+      sparks.advance(1 / 60);
+      expect(spark.position.dx, greaterThan(200));
+      expect(spark.position.dy, lessThan(-3));
+      expect(spark.velocity.dx, greaterThan(0));
       run(sparks, frames: 40);
-
-      final moved = sparks.sparks.where((spark) => spark.angular.abs() > 0.05);
-
-      expect(moved.length / sparks.sparks.length, greaterThan(0.5));
-      // Два потока внахлёст: один заметно сильнее — иначе направления не
-      // видно, — но встречный не редкие одиночки, а настоящий поток.
-      final forward =
-          sparks.sparks.where((s) => s.angular > 0).length /
-          sparks.sparks.length;
-      expect(forward, inInclusiveRange(0.55, 0.85));
+      for (final particle in sparks.sparks) {
+        expect(
+          (sparks.positionOf(particle) - sparks.tailOf(particle)).distance,
+          lessThan(6),
+        );
+      }
     });
 
     // Искрят, а не горят ровно: у каждой свой сдвиг мерцания, поэтому поле
@@ -92,7 +109,12 @@ void main() {
       run(sparks, frames: 300);
 
       for (final spark in sparks.sparks) {
-        expect(spark.radius, lessThanOrEqualTo(PortalSparkField.halo));
+        expect(
+          (Offset.zero & size)
+              .inflate(PortalSparkField.halo)
+              .contains(spark.position),
+          isTrue,
+        );
       }
     });
 
@@ -105,8 +127,8 @@ void main() {
       sparks.advance(5);
 
       for (final spark in sparks.sparks) {
-        expect(spark.at.isFinite, isTrue);
-        expect(spark.radius.isFinite, isTrue);
+        expect(spark.position.dx.isFinite, isTrue);
+        expect(spark.position.dy.isFinite, isTrue);
         expect(sparks.positionOf(spark).dx.isFinite, isTrue);
       }
     });
@@ -125,6 +147,25 @@ void main() {
         reason: 'старые искры остались — сноп перестал сменяться',
       );
     });
+
+    test(
+      'невалидный шаг не меняет поток, новый размер очищает старые искры',
+      () {
+        final sparks = field();
+        run(sparks, frames: 40);
+        final time = sparks.time;
+        final position = sparks.sparks.first.position;
+        for (final dt in [double.nan, double.infinity, -1.0, 0.0]) {
+          sparks.advance(dt);
+        }
+        expect(sparks.time, time);
+        expect(sparks.sparks.first.position, position);
+        sparks.resize(const Size(100, 150));
+        expect(sparks.sparks, isEmpty);
+        sparks.advance(1 / 60);
+        expect(sparks.sparks, isNotEmpty);
+      },
+    );
 
     test('без размера ничего не происходит', () {
       final sparks = PortalSparkField();
@@ -234,6 +275,72 @@ void main() {
       expect(find.byKey(const ValueKey('portal-sparks')), findsOneWidget);
     });
 
+    testWidgets('повторное включение запускает свежие искры сразу', (
+      tester,
+    ) async {
+      await show(tester, enabled: true);
+      for (var i = 0; i < 80; i++) {
+        await tester.pump(const Duration(milliseconds: 17));
+      }
+      final state = tester.state<PortalSparksState>(find.byType(PortalSparks));
+      final oldSparks = state.field.sparks.toSet();
+      await show(tester, enabled: false);
+      expect(state.field.sparks, isEmpty);
+      await show(tester, enabled: true);
+      await tester.pump(const Duration(milliseconds: 17));
+      expect(state.field.sparks, isNotEmpty);
+      expect(state.field.sparks.any(oldSparks.contains), isFalse);
+    });
+
+    testWidgets(
+      'сокращение движения убирает эффект, скрытая вкладка останавливает его',
+      (tester) async {
+        var reduced = false;
+        var visible = true;
+        Future<void> render() => tester.pumpWidget(
+          MaterialApp(
+            home: MediaQuery(
+              data: MediaQueryData(disableAnimations: reduced),
+              child: TickerMode(
+                enabled: visible,
+                child: const Center(
+                  child: SizedBox(
+                    width: 120,
+                    height: 180,
+                    child: PortalSparks(
+                      enabled: true,
+                      child: SizedBox.expand(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await render();
+        await tester.pump(const Duration(milliseconds: 170));
+        final state = tester.state<PortalSparksState>(
+          find.byType(PortalSparks),
+        );
+        expect(state.field.sparks, isNotEmpty);
+        visible = false;
+        await render();
+        final time = state.field.time;
+        await tester.pump(const Duration(seconds: 1));
+        expect(state.field.time, time);
+        visible = true;
+        reduced = true;
+        await render();
+        expect(find.byKey(const ValueKey('portal-sparks')), findsNothing);
+        expect(state.field.sparks, isEmpty);
+        reduced = false;
+        await render();
+        await tester.pump(const Duration(milliseconds: 17));
+        expect(state.field.sparks, isNotEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     // Жалоба, с которой всё началось: искр почти не видно, и те, что
     // видно, лежат на самой обложке. Считаем зажжённые точки на снимке —
     // отдельно в кайме вокруг и отдельно поверх обложки.
@@ -283,6 +390,11 @@ void main() {
         final boundary =
             key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         final image = await boundary.toImage();
+        final preview = Platform.environment['PORTAL_PREVIEW'];
+        if (preview != null) {
+          final png = await image.toByteData(format: ui.ImageByteFormat.png);
+          await File(preview).writeAsBytes(png!.buffer.asUint8List());
+        }
         width = image.width;
         height = image.height;
         bytes = (await image.toByteData())!;
@@ -326,14 +438,9 @@ void main() {
         }
       }
 
-      // Кайма вокруг обложки — двадцать пять тысяч точек, и пятая их часть
-      // должна гореть. С прежней плотностью там набиралась сотня: искр
-      // «почти совсем не видно» — с этого всё и началось.
-      expect(
-        around,
-        greaterThan(8000),
-        reason: 'вокруг обложки почти ничего не горит — искр не видно',
-      );
+      // Видны отдельные искры с тёмными просветами, а не сплошная
+      // пересвеченная рамка. Старая отрисовка зажигала более 8000 пикселей.
+      expect(around, inExclusiveRange(500, 6000));
       expect(
         over,
         0,
@@ -344,7 +451,7 @@ void main() {
       expect(
         closeIn,
         greaterThan(farOut * 2),
-        reason: 'искры размазаны ровно — у сварки густо у шва',
+        reason: 'у кромки должно быть гуще, чем на краю поля',
       );
     });
 

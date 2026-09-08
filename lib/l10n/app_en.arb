@@ -18,7 +18,7 @@
   "effectDrops": "Raindrops on the selected cover",
   "effectDropsNote": "Covers only: the drops refract the artwork, and there is nothing to refract on a title plate",
   "effectPortal": "Sparks around the selected cover",
-  "effectPortalNote": "A portal ring: sparks race along the border, drift outward and fade",
+  "effectPortalNote": "Doctor Strange–style golden sparks swirl around the selected card and fade away",
   "effectInterfaceAnimations": "Section fade transitions",
   "libraryEffectsNote": "Magnetic particles, foil, tilting cards, waves and liquid selection transitions. Respects the system's reduced-motion setting.",
   "minimizeWindow": "Minimize window",

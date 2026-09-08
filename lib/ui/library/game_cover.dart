@@ -78,15 +78,6 @@ class GameCoverTile extends StatelessWidget {
   }
 
   Widget _tile(BuildContext context, DownloadTask? task, bool running) {
-    // Искры лежат вокруг плитки, а не внутри неё: внутри их срезала бы
-    // обрезка обложки, а видны они как раз в кайме за её краем.
-    return PortalSparks(
-      enabled: selected && portalEnabled,
-      child: _cover(context, task, running),
-    );
-  }
-
-  Widget _cover(BuildContext context, DownloadTask? task, bool running) {
     return NavTile(
       focusNode: focusNode,
       onTap: onOpen,
@@ -102,47 +93,52 @@ class GameCoverTile extends StatelessWidget {
       borderRadius: 10,
       borderWidth: 2.5,
       focusedScale: 1.06,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(7.5),
-          boxShadow: [
-            BoxShadow(
-              // Тень своя, а не из темы: она отделяет обложку от фона, и в
-              // светлой теме нужна не меньше, чем в тёмной.
-              color: AppColors.coverShadow,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7.5),
-          child: AspectRatio(
-            aspectRatio: 2 / 3,
-            child: Semantics(
-              label: _spokenLabel(context, task),
-              // Плитка открывает игру, и сказать об этом надо явно: сама по
-              // себе она объявляется просто выделяемой областью.
-              button: true,
-              selected: selected,
-              // Значок состояния и название на подложке говорят то же самое:
-              // с ними одна плитка звучала бы тремя объявлениями.
-              excludeSemantics: true,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  FoilSurface(
-                    // Капли — только у выбранной: они стоят кадров, а вся
-                    // сетка под дождём читалась бы хуже, чем одна плитка.
-                    child: CoverDrops(
-                      enabled: selected && dropsEnabled,
-                      coverPath: game.coverPath,
-                      child: _Art(game: game, underStrip: running),
+      // Контур растёт вместе с фокусом, но остаётся снаружи ClipRRect.
+      // Иначе увеличенная обложка закрывает самые яркие искры у кромки.
+      child: PortalSparks(
+        enabled: selected && portalEnabled,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(7.5),
+            boxShadow: [
+              BoxShadow(
+                // Тень своя, а не из темы: она отделяет обложку от фона, и в
+                // светлой теме нужна не меньше, чем в тёмной.
+                color: AppColors.coverShadow,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7.5),
+            child: AspectRatio(
+              aspectRatio: 2 / 3,
+              child: Semantics(
+                label: _spokenLabel(context, task),
+                // Плитка открывает игру, и сказать об этом надо явно: сама по
+                // себе она объявляется просто выделяемой областью.
+                button: true,
+                selected: selected,
+                // Значок состояния и название на подложке говорят то же самое:
+                // с ними одна плитка звучала бы тремя объявлениями.
+                excludeSemantics: true,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    FoilSurface(
+                      // Капли — только у выбранной: они стоят кадров, а вся
+                      // сетка под дождём читалась бы хуже, чем одна плитка.
+                      child: CoverDrops(
+                        enabled: selected && dropsEnabled,
+                        coverPath: game.coverPath,
+                        child: _Art(game: game, underStrip: running),
+                      ),
                     ),
-                  ),
-                  if (running && task != null) _ProgressStrip(task: task),
-                  if (!running) _StatusBadge(game: game),
-                ],
+                    if (running && task != null) _ProgressStrip(task: task),
+                    if (!running) _StatusBadge(game: game),
+                  ],
+                ),
               ),
             ),
           ),

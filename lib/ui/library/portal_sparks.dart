@@ -7,89 +7,44 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../widgets/decorative_motion.dart';
 
-/// Искра сварки: летит от кромки наружу, снесённая вращением вбок, и
-/// мерцает, пока не погаснет.
+/// Искра покидает контур по касательной и дальше летит свободно.
+/// Привязка живой частицы к периметру заставляла её огибать углы карточки
+/// по рельсам и растягивала след в длинные прямоугольные полосы.
 class PortalSpark {
   PortalSpark({
-    required this.at,
-    required this.angular,
-    required this.radius,
-    required this.radial,
+    required this.position,
+    required this.velocity,
     required this.twinkle,
     required this.life,
     required this.maxLife,
+    required this.trail,
   });
 
-  /// Доля пути вдоль кромки, 0..1.
-  double at;
-
-  /// Оборотов вокруг обложки в секунду: это вращение и сносит искру вбок,
-  /// отчего веер закручивается, а не расходится по радиусам.
-  double angular;
-
-  /// На сколько отошла наружу от кромки, в точках.
-  double radius;
-
-  /// Скорость ухода наружу. Разброс её и делает веер широким: часть искр
-  /// гаснет у самой кромки, часть долетает до края каймы.
-  double radial;
-
-  /// Сдвиг мерцания. Без него все искры вспыхивали бы разом и поле дышало
-  /// бы целиком, вместо того чтобы искрить.
+  Offset position;
+  Offset velocity;
   final double twinkle;
-
   double life;
   final double maxLife;
+  final double trail;
 }
 
-/// Точка кромки: где она и куда от неё наружу.
 typedef PortalEdge = ({Offset point, Offset outward, Offset along});
 
-/// Сноп искр вокруг обложки выбранной игры.
-///
-/// Кромка повторяет контур обложки, а не окружность: обложка вытянута два к
-/// трём, и вписанный в неё круг оставил бы половину плитки пустой.
+/// Золотой вихрь по форме обложки: горячие участки кромки, короткие
+/// светящиеся следы и редкие угольки, вылетающие наружу.
 class PortalSparkField {
   PortalSparkField({int seed = 17}) : _random = math.Random(seed);
 
-  /// Предел на случай просадки кадров: сноп держится сменой, а не числом.
-  static const maxCount = 9000;
-
-  /// Сколько искр срывается в секунду. Сварка — это густо: редкий сноп
-  /// читается не искрами, а сором вокруг обложки.
-  static const rate = 14000.0;
-
-  /// Насколько поле шире обложки. Дальше искры залетают на соседние
-  /// обложки — там они не мешают, но и держать их там незачем.
-  static const halo = 56.0;
-
-  /// Сопротивление: доля скорости, теряемая за секунду. Небольшое —
-  /// искра должна успеть пересечь кайму, пока горит, а не встать у шва.
-  static const drag = 0.6;
-
-  /// Частота мерцания, оборотов в секунду.
-  static const flicker = 9.0;
-
-  /// Скругление кромки. Совпадает со скруглением обложки: сноп должен
-  /// повторять её форму, а не жить в своём прямоугольнике.
+  static const maxCount = 3600;
+  static const rate = 4400.0;
+  static const halo = 48.0;
   static const corner = 8.0;
-
-  /// Длина следа искры в секундах: где она была только что. Короткая —
-  /// иначе вместо искр выходят полосы.
-  static const trail = 0.026;
-
-  /// Какая доля искр идёт против общего вращения. Не редкие одиночки, а
-  /// заметный встречный поток: два потока внахлёст читаются вихрем, один —
-  /// каруселью.
-  static const counterShare = 0.3;
+  static const drag = 1.4;
 
   final math.Random _random;
   final List<PortalSpark> sparks = [];
   Size size = Size.zero;
   double time = 0;
-
-  /// Показание часов на прошлом кадре: шаг считается по разнице, а сами
-  /// часы общие и идут независимо от того, кто на них смотрит.
   double lastFrame = 0;
   double _budget = 0;
 
@@ -97,84 +52,77 @@ class PortalSparkField {
       min + _random.nextDouble() * (max - min);
 
   void resize(Size value) {
-    if (!value.isFinite || value.isEmpty) return;
+    if (!value.isFinite || value.isEmpty || value == size) return;
     size = value;
+    reset();
   }
 
-  /// Двигает сноп на [dt] секунд.
-  ///
-  /// Шаг ограничен сверху: после свёрнутого окна или просадки приходит
-  /// секунда разом, и без предела искры улетели бы неведомо куда.
+  void reset() {
+    sparks.clear();
+    _budget = 0;
+    lastFrame = 0;
+  }
+
   void advance(double dt) {
-    if (size.isEmpty) return;
+    if (size.isEmpty || !dt.isFinite || dt <= 0) return;
     final step = dt.clamp(0.0, 1 / 30);
     time += step;
-
-    final slow = math.max(0.0, 1 - drag * step);
     for (final spark in sparks) {
-      spark.at += spark.angular * step;
-      spark.radius += spark.radial * step;
-      spark.radial *= slow;
-      // Вбок искру сносит слабее по мере удаления: у кромки вращение
-      // тащит её заметно, дальше она летит почти по прямой.
-      spark.angular *= slow;
-      spark.life -= step;
+      _move(spark, step);
     }
-    // Долетевшую до края каймы гасим: держать её дальше значит светить по
-    // соседним обложкам, а обрывать на месте — упереть сноп в стенку.
-    sparks.removeWhere((spark) => spark.life <= 0 || spark.radius > halo);
+    final bounds = (Offset.zero & size).inflate(halo - 5);
+    sparks.removeWhere(
+      (spark) => spark.life <= 0 || !bounds.contains(spark.position),
+    );
 
-    _budget += rate * step;
+    // Плотность масштабируется с периметром: маленькая карточка не
+    // превращается в сплошное белое пятно от того же числа частиц.
+    _budget += rate * ((size.width + size.height) / 500).clamp(0.4, 1.8) * step;
     while (_budget >= 1 && sparks.length < maxCount) {
       _budget -= 1;
-      final life = _rand(0.35, 1.25);
-      sparks.add(
-        PortalSpark(
-          // Срываются по всей кромке разом: у сварки нет одной точки, из
-          // которой всё летит.
-          at: _random.nextDouble(),
-          // Встречный поток чуть медленнее основного: сравняй их — и они
-          // сольются в мерцающее кольцо без направления.
-          angular: _random.nextDouble() < counterShare
-              ? -_rand(0.2, 0.6)
-              : _rand(0.35, 0.95),
-          radius: _rand(0, 2),
-          // Разброс смещён к малым скоростям: у сварки густо у шва и
-          // редко по краям, а ровный разброс дал бы одинаковую пелену.
-          radial: 18 + 140 * math.pow(_random.nextDouble(), 1.05).toDouble(),
-          twinkle: _random.nextDouble() * math.pi * 2,
-          life: life,
-          maxLife: life,
-        ),
+      final double at;
+      if (_random.nextDouble() < 0.65) {
+        // Несколько движущихся очагов дают вспышки и разрывы, как у портала.
+        at = _random.nextInt(5) / 5 + time * 0.13 + _rand(-0.035, 0.035);
+      } else {
+        at = _random.nextDouble();
+      }
+      final edge = edgeAt(at);
+      final life = _rand(0.22, 0.72);
+      final speed = _rand(55, 160);
+      final spark = PortalSpark(
+        position: edge.point + edge.outward * _rand(0.5, 4.5),
+        velocity:
+            edge.along * speed +
+            edge.outward *
+                (10 + 85 * math.pow(_random.nextDouble(), 1.9).toDouble()),
+        twinkle: _rand(0, math.pi * 2),
+        life: life,
+        maxLife: life,
+        trail: _rand(0.008, 0.028),
       );
+      // Разное время рождения внутри кадра убирает одинаковые ряды искр.
+      _move(spark, _rand(0, step));
+      sparks.add(spark);
     }
-    if (_budget > rate) _budget = rate;
+    _budget = math.min(_budget, 1);
   }
 
-  /// Яркость искры сейчас: гаснет к концу жизни и мерцает.
+  void _move(PortalSpark spark, double dt) {
+    spark.position += spark.velocity * dt;
+    spark.velocity = spark.velocity * math.exp(-drag * dt) + Offset(0, 20 * dt);
+    spark.life -= dt;
+  }
+
   double brightnessOf(PortalSpark spark) {
     final fade = (spark.life / spark.maxLife).clamp(0.0, 1.0);
-    final blink = 0.55 + 0.45 * math.sin(time * flicker + spark.twinkle);
-    // Гаснет круто: искра должна дотлевать быстро, иначе хвост поля
-    // размазывается в ровное зарево.
-    return math.pow(fade, 2.2).toDouble() * blink;
+    final blink = 0.75 + 0.25 * math.sin(time * 43 + spark.twinkle);
+    return math.pow(fade, 1.35).toDouble() * blink;
   }
 
-  /// Где искра находится сейчас.
-  Offset positionOf(PortalSpark spark) => at(spark.at, spark.radius);
-
-  /// Где искра была [trail] секунд назад — начало её следа.
-  ///
-  /// Обратный ход считается в тех же координатах, вдоль кромки и наружу,
-  /// поэтому след у летящей вбок искры изгибается, а не тянется прямой.
+  Offset positionOf(PortalSpark spark) => spark.position;
   Offset tailOf(PortalSpark spark) =>
-      at(spark.at - spark.angular * trail, spark.radius - spark.radial * trail);
-
-  /// Точка в стольких долях пути вдоль кромки и стольких точках наружу.
-  Offset at(double along, double radius) {
-    final edge = edgeAt(along);
-    return edge.point + edge.outward * math.max(0, radius);
-  }
+      spark.position - spark.velocity * spark.trail;
 
   /// Точка кромки по доле пути [at] вдоль периметра.
   ///
@@ -281,8 +229,21 @@ class PortalSparksState extends State<PortalSparks> {
   final PortalSparkField field = PortalSparkField();
 
   @override
+  void didUpdateWidget(PortalSparks oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled != oldWidget.enabled) {
+      // DecorativeMotion создаёт новые часы при возвращении выделения.
+      // Старое показание иначе замораживает первый кадр прежнего потока.
+      field.reset();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!widget.enabled) return widget.child;
+    if (!widget.enabled || MediaQuery.disableAnimationsOf(context)) {
+      field.reset();
+      return widget.child;
+    }
 
     const halo = PortalSparkField.halo;
     return DecorativeMotion(
@@ -346,85 +307,62 @@ class _PortalPainter extends CustomPainter {
     // искры именно туда, где им и место — вокруг, а не поверх.
     canvas.translate(halo, halo);
 
-    // Мягкое свечение по кромке, а не обводка: широкое размытие и малая
-    // плотность, иначе читается нарисованной рамкой.
-    // Кольцо горит само: у сварки светится шов, а не только искры от него.
-    // Два прохода — широкое зарево и узкий раскалённый край.
-    final ring = RRect.fromRectAndRadius(
-      Offset.zero & inner,
-      const Radius.circular(8),
-    );
-    canvas
-      ..drawRRect(
-        ring,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
-          ..blendMode = BlendMode.plus
-          ..color = AppColors.portalRim.withValues(alpha: dark ? 0.4 : 0.3)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
-      )
-      ..drawRRect(
-        ring,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
-          ..blendMode = BlendMode.plus
-          ..color = AppColors.portalSpark.withValues(alpha: dark ? 0.7 : 0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-      );
-
-    // Тысячи искр — тысячи вызовов рисования, если делать их по одной.
-    // `drawRawPoints` кладёт целую пачку за раз, поэтому искры разложены по
-    // корзинам яркости: внутри корзины цвет и толщина общие.
-    //
-    // Считаем в два прохода, чтобы не растить списки: сперва сколько куда
-    // попадёт, потом заполняем массивы точной длины. При десяти тысячах
-    // искр в кадре растущий список стоил бы дороже самой отрисовки.
-    const buckets = 4;
-    final counts = List.filled(buckets, 0);
-    final bucketOf = <PortalSpark, int>{};
+    // Кромка состоит из отдельных раскалённых штрихов. Сплошная
+    // размытая рамка давала ровный неоновый прямоугольник вместо искр.
+    const buckets = 6;
+    final lines = List.generate(buckets, (_) => <double>[]);
+    final perimeter = (inner.width + inner.height) * 2;
+    final segments = (perimeter / 1.4).ceil();
+    for (var i = 0; i < segments; i++) {
+      final at = i / segments;
+      final wave = math.sin(at * math.pi * 10 - field.time * 4.1);
+      final grain = math.sin(i * 2.399 + field.time * 19);
+      final intensity = (0.35 + wave * 0.35 + grain * 0.3).clamp(0.0, 1.0);
+      if (intensity < 0.22) continue;
+      final edge = field.edgeAt(at);
+      final head = edge.point + edge.outward * (1.4 + grain * 0.8);
+      final tail = head - edge.along * (0.6 + intensity * 2.4);
+      final bucket = (intensity * (buckets - 1)).round();
+      lines[bucket].addAll([tail.dx, tail.dy, head.dx, head.dy]);
+    }
     for (final spark in field.sparks) {
       final brightness = field.brightnessOf(spark);
-      if (brightness <= 0.02) continue;
+      if (brightness < 0.035) continue;
       final bucket = math.min(buckets - 1, (brightness * buckets).floor());
-      bucketOf[spark] = bucket;
-      counts[bucket]++;
-    }
-
-    // По четыре числа на искру: начало следа и её нынешнее место.
-    final lines = [for (final count in counts) Float32List(count * 4)];
-    final filled = List.filled(buckets, 0);
-    for (final entry in bucketOf.entries) {
-      final bucket = entry.value;
-      final head = field.positionOf(entry.key);
-      final tail = field.tailOf(entry.key);
-      final i = filled[bucket]++ * 4;
-      lines[bucket][i] = tail.dx;
-      lines[bucket][i + 1] = tail.dy;
-      lines[bucket][i + 2] = head.dx;
-      lines[bucket][i + 3] = head.dy;
+      final head = field.positionOf(spark);
+      final tail = field.tailOf(spark);
+      lines[bucket].addAll([tail.dx, tail.dy, head.dx, head.dy]);
     }
 
     for (var i = 0; i < buckets; i++) {
-      if (counts[i] == 0) continue;
-      final brightness = (i + 0.5) / buckets;
+      if (lines[i].isEmpty) continue;
+      final points = Float32List.fromList(lines[i]);
+      final heat = (i + 1) / buckets;
+      final blend = dark ? BlendMode.plus : BlendMode.srcOver;
+      // Слабый оранжевый ореол вокруг отдельных искр, затем резкая
+      // золотая сердцевина. Без общего размытия сохраняются тёмные просветы.
       canvas.drawRawPoints(
-        // Отрезками, а не точками: искра тянет за собой след, и он же
-        // делает её видимой, не утолщая саму искру.
         PointMode.lines,
-        lines[i],
+        points,
         Paint()
           ..strokeCap = StrokeCap.round
-          ..strokeWidth = 0.55 + 1.05 * brightness
-          // Складываем свет, а не закрашиваем: сгущение искр должно
-          // разгораться, а не перекрывать само себя.
-          ..blendMode = BlendMode.plus
+          ..strokeWidth = 2.4 + heat
+          ..blendMode = blend
+          ..color = AppColors.portalRim.withValues(alpha: heat * 0.16)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+      );
+      canvas.drawRawPoints(
+        PointMode.lines,
+        points,
+        Paint()
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = 0.45 + heat * 0.75
+          ..blendMode = blend
           ..color = Color.lerp(
             AppColors.portalRim,
             AppColors.portalSpark,
-            brightness,
-          )!.withValues(alpha: brightness * (dark ? 1 : 0.85)),
+            heat * heat,
+          )!.withValues(alpha: 0.15 + heat * 0.85),
       );
     }
     canvas.restore();
