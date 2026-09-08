@@ -20,7 +20,7 @@ void main() {
     }
   }
 
-  group('поток искр', () {
+  group('разлёт искр', () {
     test('искры появляются и держатся в пределе', () {
       final sparks = field();
 
@@ -35,18 +35,63 @@ void main() {
       );
     });
 
+    // Ради этого всё и переделано: искра должна улетать от обложки, а не
+    // ползти вдоль её края. Привязанная к контуру, она рисовала дрожащую
+    // обводку вместо разлёта.
+    test('искры уходят от обложки, а не вдоль неё', () {
+      final sparks = field();
+      run(sparks, frames: 20);
+
+      final away = sparks.sparks.where((spark) {
+        final p = spark.position;
+        // Снаружи прямоугольника обложки — значит улетела.
+        return p.dx < 0 || p.dy < 0 || p.dx > size.width || p.dy > size.height;
+      });
+
+      expect(
+        away.length / sparks.sparks.length,
+        greaterThan(0.5),
+        reason: 'искры держатся кромки — это обводка, а не разлёт',
+      );
+    });
+
+    // Сопротивление и есть то, что удерживает разлёт в кайме: без него
+    // искры за свою жизнь улетали бы на сотни точек, к соседним обложкам.
+    test('разлёт остаётся в кайме', () {
+      final sparks = field();
+      run(sparks, frames: 300);
+
+      for (final spark in sparks.sparks) {
+        final p = spark.position;
+        expect(
+          p.dx,
+          inInclusiveRange(
+            -PortalSparkField.halo * 2,
+            size.width + PortalSparkField.halo * 2,
+          ),
+        );
+        expect(
+          p.dy,
+          inInclusiveRange(
+            -PortalSparkField.halo * 2,
+            size.height + PortalSparkField.halo * 2,
+          ),
+        );
+      }
+    });
+
     // Свёрнутое окно возвращается одним огромным шагом. Без предела искры
-    // проскочили бы через полконтура, и поток превратился бы в дрожь.
-    test('огромный шаг не рвёт поток', () {
+    // улетели бы неведомо куда одним кадром.
+    test('огромный шаг не рвёт разлёт', () {
       final sparks = field();
       run(sparks, frames: 30);
 
       sparks.advance(5);
 
       for (final spark in sparks.sparks) {
-        expect(spark.at, inInclusiveRange(0, 1));
-        expect(spark.at.isFinite, isTrue);
-        expect(spark.drift.isFinite, isTrue);
+        expect(spark.position.dx.isFinite, isTrue);
+        expect(spark.position.dy.isFinite, isTrue);
+        expect(spark.velocity.distance.isFinite, isTrue);
       }
     });
 
@@ -61,11 +106,11 @@ void main() {
       expect(
         sparks.sparks.where(born.contains),
         isEmpty,
-        reason: 'старые искры остались — поток перестал быть потоком',
+        reason: 'старые искры остались — разлёт перестал быть разлётом',
       );
     });
 
-    test('без размера поток стоит', () {
+    test('без размера разлёта нет', () {
       final sparks = PortalSparkField();
 
       run(sparks);
@@ -75,35 +120,38 @@ void main() {
     });
   });
 
-  group('точка на контуре', () {
+  group('кромка', () {
     test('обходит все четыре стороны', () {
       final sparks = field();
 
-      final top = sparks.pointAt(0.05, 0);
-      final right = sparks.pointAt(0.35, 0);
-      final bottom = sparks.pointAt(0.6, 0);
-      final left = sparks.pointAt(0.9, 0);
-
-      expect(top.dy, 0);
-      expect(right.dx, size.width);
-      expect(bottom.dy, size.height);
-      expect(left.dx, 0);
+      expect(sparks.edgeAt(0.05).point.dy, 0);
+      expect(sparks.edgeAt(0.35).point.dx, size.width);
+      expect(sparks.edgeAt(0.6).point.dy, size.height);
+      expect(sparks.edgeAt(0.9).point.dx, 0);
     });
 
-    // Доля пути считается по кругу: искра, ушедшая за единицу, продолжает
-    // с начала, а не срывается в угол.
+    // Доля пути считается по кругу: искра, ушедшая за единицу, срывается с
+    // того же места, а не из угла.
     test('путь замыкается', () {
       final sparks = field();
 
-      expect(sparks.pointAt(1.25, 0), sparks.pointAt(0.25, 0));
-      expect(sparks.pointAt(-0.75, 0), sparks.pointAt(0.25, 0));
+      expect(sparks.edgeAt(1.25).point, sparks.edgeAt(0.25).point);
+      expect(sparks.edgeAt(-0.75).point, sparks.edgeAt(0.25).point);
     });
 
-    test('снос уводит наружу, а не внутрь', () {
+    test('наружу — это наружу, а вдоль перпендикулярно ему', () {
       final sparks = field();
 
-      expect(sparks.pointAt(0.05, 4).dy, lessThan(0));
-      expect(sparks.pointAt(0.6, 4).dy, greaterThan(size.height));
+      for (final at in [0.05, 0.35, 0.6, 0.9]) {
+        final edge = sparks.edgeAt(at);
+        // Скалярное произведение перпендикуляров — ноль.
+        expect(
+          edge.outward.dx * edge.along.dx + edge.outward.dy * edge.along.dy,
+          0,
+        );
+      }
+      expect(sparks.edgeAt(0.05).outward, const Offset(0, -1));
+      expect(sparks.edgeAt(0.6).outward, const Offset(0, 1));
     });
   });
 
@@ -221,9 +269,10 @@ void main() {
         }
       }
 
-      // Кайма вокруг обложки — пятнадцать тысяч точек, и треть её должна
-      // гореть. С прежней плотностью там едва набиралась сотня: искр
+      // Кайма вокруг обложки — двадцать пять тысяч точек, и пятая их часть
+      // должна гореть. С прежней плотностью там набиралась сотня: искр
       // «почти совсем не видно» — с этого всё и началось.
+      // ignore: avoid_print
       expect(
         around,
         greaterThan(2000),
