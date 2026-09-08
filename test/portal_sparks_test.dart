@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Вокруг обложки идут по кругу головы, роняя за собой быстро гаснущий след.
-/// Проверять тут надо не красоту, а то, что след остаётся следом: тянется за
-/// головой, не растёт без предела, не уходит в NaN и переживает возвращение
-/// свёрнутого окна одним огромным шагом. Видно ли его вообще — отдельно, по
-/// снимку отрисовки.
+/// От кромки обложки летит сноп искр, снесённых вбок вращением. Проверять
+/// тут надо не красоту, а то, что сноп остаётся снопом: заполняет кайму, а
+/// не жмётся к шву, мерцает вразнобой, не растёт без предела, не уходит в
+/// NaN и переживает возвращение свёрнутого окна одним огромным шагом. Видно
+/// ли его вообще — отдельно, по снимку отрисовки.
 void main() {
   const size = Size(200, 300);
 
@@ -22,7 +22,7 @@ void main() {
     }
   }
 
-  group('головы и их след', () {
+  group('сноп искр', () {
     test('искры появляются и держатся в пределе', () {
       final sparks = field();
 
@@ -37,83 +37,65 @@ void main() {
       );
     });
 
-    // Искра должна отходить от кромки, а не лежать на ней: иначе вместо
-    // шлейфа выходит дрожащая обводка.
-    test('искры отходят от кромки', () {
-      final sparks = field();
-      run(sparks, frames: 30);
-
-      final away = sparks.sparks.where((spark) => spark.radius > 2);
-
-      expect(
-        away.length / sparks.sparks.length,
-        greaterThan(0.4),
-        reason: 'искры лежат на кромке — это обводка, а не шлейф',
-      );
-    });
-
-    // Вращение создают головы: их немного, живут они долго и идут по кругу.
-    test('головы обходят обложку по кругу', () {
-      final sparks = field();
-      final before = [for (final head in sparks.heads) head.at];
-
-      run(sparks, frames: 60);
-
-      for (var i = 0; i < sparks.heads.length; i++) {
-        expect(
-          sparks.heads[i].at - before[i],
-          greaterThan(0.1),
-          reason: 'голова стоит на месте — вращения не видно',
-        );
-      }
-    });
-
-    // Шлейф тянется за головой, а не появляется по всему кругу разом:
-    // искра рождается там, где голова была только что.
-    test('искры рождаются у голов, а не где придётся', () {
-      final sparks = field();
-      run(sparks, frames: 4);
-
-      for (final spark in sparks.sparks) {
-        final nearest = sparks.heads
-            .map((head) => (head.at - spark.at).abs() % 1.0)
-            .reduce(math.min);
-        expect(
-          nearest,
-          lessThan(0.05),
-          reason: 'искра появилась вдали от голов — это не шлейф',
-        );
-      }
-    });
-
-    // Искра должна погаснуть раньше, чем голова уедет далеко: иначе след
-    // растянется в сплошное кольцо и вращения не станет видно.
-    test('след короткий: искра гаснет, пока голова рядом', () {
+    // Веер должен быть широким: у сварки искры не жмутся к шву, а
+    // разлетаются на всю ширину каймы. Разброс скоростей это и даёт.
+    test('искры заполняют кайму, а не жмутся к кромке', () {
       final sparks = field();
       run(sparks, frames: 90);
 
-      for (final spark in sparks.sparks) {
-        final nearest = sparks.heads
-            .map((head) => (head.at - spark.at).abs() % 1.0)
-            .reduce(math.min);
-        expect(nearest, lessThan(0.3));
-      }
+      final far = sparks.sparks
+          .where((spark) => spark.radius > PortalSparkField.halo / 2)
+          .length;
+      final near = sparks.sparks.where((spark) => spark.radius < 6).length;
+
+      expect(far, greaterThan(0), reason: 'ни одна не долетела до края каймы');
+      expect(near, greaterThan(0), reason: 'у кромки пусто — шва не видно');
     });
 
-    // Сопротивление удерживает искры в кайме: без него они уходили бы к
-    // соседним обложкам.
+    // Вращение сносит искру вбок: без него веер расходился бы ровно по
+    // радиусам, а нужен закрученный.
+    test('искры сносит вбок вращением', () {
+      final sparks = field();
+      run(sparks, frames: 40);
+
+      final moved = sparks.sparks.where((spark) => spark.angular.abs() > 0.05);
+
+      expect(moved.length / sparks.sparks.length, greaterThan(0.5));
+      // Почти все в одну сторону, иначе вращения не видно.
+      final forward = sparks.sparks.where((s) => s.angular > 0).length;
+      expect(forward / sparks.sparks.length, greaterThan(0.7));
+    });
+
+    // Искрят, а не горят ровно: у каждой свой сдвиг мерцания, поэтому поле
+    // рябит, а не дышит целиком.
+    test('искры мерцают вразнобой', () {
+      final sparks = field();
+      run(sparks, frames: 30);
+
+      final bright = sparks.sparks.map(sparks.brightnessOf).toList();
+
+      expect(bright.every((b) => b >= 0 && b <= 1), isTrue);
+      // Разброс яркостей — то самое «искрит».
+      expect(
+        bright.reduce(math.max) - bright.reduce(math.min),
+        greaterThan(0.3),
+      );
+    });
+
+    // Сопротивление задаёт, куда искра долетит: предел ухода — её скорость,
+    // делённая на него. Без предела искры уходили бы к соседним обложкам.
     test('искры остаются в кайме', () {
       final sparks = field();
       run(sparks, frames: 300);
 
       for (final spark in sparks.sparks) {
-        expect(spark.radius, lessThan(PortalSparkField.halo));
+        expect(spark.radius, lessThanOrEqualTo(PortalSparkField.halo));
       }
     });
 
     // Свёрнутое окно возвращается одним огромным шагом. Без предела искры
     // улетели бы неведомо куда одним кадром.
-    test('огромный шаг не рвёт след', () {
+    test('огромный шаг не рвёт сноп', () {
       final sparks = field();
       run(sparks, frames: 30);
 
@@ -123,9 +105,6 @@ void main() {
         expect(spark.at.isFinite, isTrue);
         expect(spark.radius.isFinite, isTrue);
         expect(sparks.positionOf(spark).dx.isFinite, isTrue);
-      }
-      for (final head in sparks.heads) {
-        expect(sparks.positionOfHead(head).dx.isFinite, isTrue);
       }
     });
 
@@ -140,7 +119,7 @@ void main() {
       expect(
         sparks.sparks.where(born.contains),
         isEmpty,
-        reason: 'старые искры остались — след перестал быть следом',
+        reason: 'старые искры остались — сноп перестал сменяться',
       );
     });
 
@@ -286,8 +265,13 @@ void main() {
       // Считаем не у самого шва: по краю обложки на снимке остаётся полоска
       // сглаживания в пару точек, и она не «искры поверх картинки».
       final artwork = inner.deflate(3);
+      // Ближняя половина каймы и дальняя: у сварки густо у шва и редко по
+      // краям, и это видно счётом.
+      final near = inner.inflate(halo / 2);
       var around = 0;
       var over = 0;
+      var closeIn = 0;
+      var farOut = 0;
       for (var y = 0; y < height; y++) {
         for (var x = 0; x < width; x++) {
           final i = (y * width + x) * 4;
@@ -299,6 +283,11 @@ void main() {
             over++;
           } else if (!inner.contains(point)) {
             around++;
+            if (near.contains(point)) {
+              closeIn++;
+            } else {
+              farOut++;
+            }
           }
         }
       }
@@ -315,6 +304,13 @@ void main() {
         over,
         0,
         reason: 'искры проступают поверх обложки, а должны быть под ней',
+      );
+      // Половины каймы почти равны по площади, поэтому сравнивать счёт
+      // можно прямо: у ровной пелены они сошлись бы.
+      expect(
+        closeIn,
+        greaterThan(farOut * 2),
+        reason: 'искры размазаны ровно — у сварки густо у шва',
       );
     });
 
