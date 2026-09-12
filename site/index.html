@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#efede7" />
+    <meta
+      name="description"
+      content="Evaporate — спокойная библиотека игр, приватные загрузки и перенос сохранений между устройствами."
+    />
+    <title>Evaporate — игры остаются с вами</title>
+    <link rel="icon" href="assets/app-icon.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Перейти к содержимому</a>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Evaporate, на главную">
+        <img src="assets/app-icon.png" alt="" width="38" height="38" />
+        <span>EVAPORATE</span>
+      </a>
+      <nav aria-label="Основная навигация">
+        <a href="#features">Возможности</a>
+        <a href="#flow">Как работает</a>
+        <a class="nav-download" href="https://github.com/Hecatoncheir/evaporate/releases/latest">Скачать</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top">
+        <div class="hero-copy reveal">
+          <p class="eyebrow"><span></span> Личная библиотека игр</p>
+          <h1>Игры остаются<br />с вами.</h1>
+          <p class="hero-lead">
+            Запускайте, загружайте и переносите сохранения между компьютерами —
+            в одном спокойном десктопном приложении.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="https://github.com/Hecatoncheir/evaporate/releases/latest">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14" /></svg>
+              Скачать последний релиз
+            </a>
+            <a class="button secondary" href="https://github.com/Hecatoncheir/evaporate">
+              GitHub
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6" /></svg>
+            </a>
+          </div>
+          <p class="platforms">macOS · Windows · Linux</p>
+        </div>
+
+        <div class="console-wrap reveal" aria-label="Макет интерфейса Evaporate">
+          <div class="console-glow"></div>
+          <div class="console">
+            <div class="console-head">
+              <div class="wordmark">EVP<span>R</span>TE</div>
+              <div class="speaker" aria-hidden="true"></div>
+            </div>
+            <div class="display">
+              <div class="display-meta"><span>LIBRARY</span><span>04 / 12</span></div>
+              <div class="display-title">Continue<br />your story</div>
+              <div class="wave" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <div class="display-status"><b></b> SAVES SYNCED</div>
+            </div>
+            <div class="controls">
+              <button class="hardware-key active" type="button" aria-label="Библиотека выбрана"><span>01</span>LIBRARY</button>
+              <button class="hardware-key" type="button"><span>02</span>LOAD</button>
+              <button class="hardware-key" type="button"><span>03</span>SAVES</button>
+              <button class="hardware-key" type="button"><span>04</span>SETTINGS</button>
+              <button class="play-key" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 7 8 5-8 5Z" /></svg><span>PLAY</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="manifesto reveal" aria-label="Основная идея">
+        <p>Не магазин. Не подписка.</p>
+        <h2>Ваши игры, ваши файлы,<br />ваши правила.</h2>
+      </section>
+
+      <section class="features" id="features">
+        <article class="feature feature-wide reveal">
+          <div class="feature-number">01</div>
+          <div>
+            <p class="eyebrow">Библиотека</p>
+            <h3>Всё важное — на виду</h3>
+            <p>Обложки, статус, время в игре и быстрый запуск. Без витрины, рекламы и лишнего шума.</p>
+          </div>
+          <div class="mini-library" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+          </div>
+        </article>
+        <article class="feature reveal">
+          <div class="feature-number">02</div>
+          <div class="dial" aria-hidden="true"><span></span></div>
+          <p class="eyebrow">Загрузка</p>
+          <h3>Встроенный BitTorrent</h3>
+          <p>Magnet и .torrent, очередь, лимиты скорости и SOCKS5 — прямо рядом с игрой.</p>
+        </article>
+        <article class="feature dark reveal">
+          <div class="feature-number">03</div>
+          <div class="save-signal" aria-hidden="true"><i></i><i></i><i></i></div>
+          <p class="eyebrow">Сохранения</p>
+          <h3>Продолжайте на другом устройстве</h3>
+          <p>Evaporate находит пути, создаёт компактные снимки и безопасно восстанавливает прогресс.</p>
+        </article>
+      </section>
+
+      <section class="flow" id="flow">
+        <div class="flow-copy reveal">
+          <p class="eyebrow">Простой маршрут</p>
+          <h2>От файла до игры<br />за три шага.</h2>
+          <p>Добавьте источник, дождитесь загрузки и нажмите Play. Evaporate запомнит остальное.</p>
+        </div>
+        <ol class="steps reveal">
+          <li><span>01</span><div><b>Добавьте игру</b><small>Magnet, .torrent или уже установленную папку</small></div></li>
+          <li><span>02</span><div><b>Настройте один раз</b><small>Путь запуска, сохранения и параметры сети</small></div></li>
+          <li><span>03</span><div><b>Возвращайтесь играть</b><small>Библиотека и снимки прогресса всегда рядом</small></div></li>
+        </ol>
+      </section>
+
+      <section class="cta reveal">
+        <img src="assets/app-icon.png" alt="Иконка Evaporate" width="112" height="112" />
+        <p class="eyebrow">Open source · MIT</p>
+        <h2>Освободите место<br />для самой игры.</h2>
+        <a class="button primary" href="https://github.com/Hecatoncheir/evaporate/releases/latest">Скачать Evaporate</a>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand" href="#top"><img src="assets/app-icon.png" alt="" width="30" height="30" /><span>EVAPORATE</span></a>
+      <p>Сделано для личных библиотек.</p>
+      <a href="https://github.com/Hecatoncheir/evaporate">Исходный код</a>
+    </footer>
+  </body>
+</html>

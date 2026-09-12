@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE = ROOT / 'docs/branding/evaporate-icon-v3.png'
+SOURCE = ROOT / 'docs/branding/evaporate-icon-v4.png'
 
 
 def resize(source, target, size):
