@@ -160,13 +160,8 @@ class AppShell extends StatelessWidget {
                           ),
                         ),
                       ),
-                      SizedBox(height: compact ? 2 : 8),
-                      const GlassSurface(
-                        radius: 13,
-                        opacity: 0.7,
-                        shadow: false,
-                        child: _StatusBar(),
-                      ),
+                      SizedBox(height: compact ? 5 : 10),
+                      _StatusBar(compact: compact),
                     ],
                   ),
                 );
@@ -217,88 +212,281 @@ class _RailState extends State<_Rail> {
     );
 
     return SizedBox(
-      width: widget.compact ? 104 : 148,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: context.colors.railBackground.withValues(alpha: 0.28),
-          borderRadius: BorderRadius.circular(widget.compact ? 20 : 28),
+      width: widget.compact ? 78 : 194,
+      child: LiquidSelection(
+        key: const ValueKey('rail-liquid'),
+        targetKey: () => _targets[section],
+        color: context.colors.railIndicator,
+        radius: 18,
+        padding: const EdgeInsets.all(2),
+        enabled: context.select<SettingsBloc, bool>(
+          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
         ),
-        child: LiquidSelection(
-          key: const ValueKey('rail-liquid'),
-          targetKey: () => _targets[section],
-          color: context.colors.railIndicator,
-          radius: 24,
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-          enabled: context.select<SettingsBloc, bool>(
-            (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
-          ),
-          child: FocusTraversalGroup(
-            child: NavigationRail(
-              backgroundColor: AppColors.transparent,
-              indicatorColor: AppColors.transparent,
-              selectedIndex: section,
-              onDestinationSelected: (index) => nav.add(SectionSelected(index)),
-              labelType: NavigationRailLabelType.none,
-              leading: widget.compact
-                  ? null
-                  : Padding(
-                      padding: EdgeInsets.only(top: 14, bottom: 10),
-                      child: Column(
-                        children: [
-                          const HardwareGrille(),
-                          const SizedBox(height: 12),
-                          const AppMark(size: 32),
-                          SizedBox(height: 6),
-                          Text(
-                            'Evaporate',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
-                              color: context.colors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-              destinations: [
+        child: FocusTraversalGroup(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              widget.compact ? 8 : 12,
+              widget.compact ? 10 : 14,
+              widget.compact ? 8 : 12,
+              10,
+            ),
+            child: Column(
+              children: [
+                _RailHeader(compact: widget.compact),
+                SizedBox(height: widget.compact ? 18 : 24),
                 _destination(
                   key: _targets[0],
+                  index: '01',
+                  selected: section == 0,
                   icon: section == 0
                       ? Icons.grid_view_rounded
                       : Icons.grid_view_outlined,
                   label: L.of(context).library,
+                  onPressed: () => nav.add(const SectionSelected(0)),
                 ),
+                const SizedBox(height: 10),
                 _destination(
                   key: _targets[1],
+                  index: '02',
+                  selected: section == 1,
                   icon: section == 1
                       ? Icons.download_rounded
                       : Icons.download_outlined,
                   label: L.of(context).downloads,
                   badge: activeCount,
+                  onPressed: () => nav.add(const SectionSelected(1)),
                 ),
+                const SizedBox(height: 10),
                 _destination(
                   key: _targets[2],
+                  index: '03',
+                  selected: section == 2,
                   icon: section == 2 ? Icons.save_rounded : Icons.save_outlined,
                   label: L.of(context).saves,
+                  onPressed: () => nav.add(const SectionSelected(2)),
                 ),
+                const SizedBox(height: 10),
                 _destination(
                   key: _targets[3],
+                  index: '04',
+                  selected: section == 3,
                   icon: section == 3
                       ? Icons.settings_rounded
                       : Icons.settings_outlined,
                   label: L.of(context).settings,
+                  onPressed: () => nav.add(const SectionSelected(3)),
                 ),
+                const Spacer(),
+                _QuitButton(compact: widget.compact),
               ],
-              // Внизу и последней в обходе: закрыть приложение с геймпада
-              // иначе нечем — своя панель окна мышью и кнопкой в трее закрытие
-              // даёт, а стрелками до них не дойти.
-              trailing: Expanded(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _QuitButton(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _destination({
+    required GlobalKey key,
+    required String index,
+    required bool selected,
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    int badge = 0,
+  }) {
+    return _TactileNavKey(
+      key: key,
+      compact: widget.compact,
+      index: index,
+      selected: selected,
+      label: label,
+      onPressed: onPressed,
+      child: _ink(
+        Badge(
+          isLabelVisible: badge > 0,
+          label: Text('$badge'),
+          child: Icon(icon, size: widget.compact ? 21 : 20),
+        ),
+      ),
+    );
+  }
+}
+
+class _RailHeader extends StatelessWidget {
+  const _RailHeader({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    if (compact) return const AppMark(size: 34);
+    return Row(
+      children: [
+        const AppMark(size: 38),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'EVAPORATE',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                  color: context.colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const HardwareGrille(width: 112, height: 28),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TactileNavKey extends StatelessWidget {
+  const _TactileNavKey({
+    super.key,
+    required this.compact,
+    required this.index,
+    required this.selected,
+    required this.label,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final bool compact;
+  final String index;
+  final bool selected;
+  final String label;
+  final VoidCallback onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final radius = BorderRadius.circular(16);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Tooltip(
+        message: compact ? label : '',
+        child: AnimatedScale(
+          scale: selected ? 0.985 : 1,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            height: compact ? 54 : 58,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.transparent
+                  : colors.surfaceHigh.withValues(
+                      alpha: colors.isDark ? 0.52 : 0.74,
+                    ),
+              borderRadius: radius,
+              border: Border.all(
+                color: selected
+                    ? colors.textPrimary.withValues(alpha: 0.22)
+                    : colors.textPrimary.withValues(
+                        alpha: colors.isDark ? 0.1 : 0.32,
+                      ),
+              ),
+              boxShadow: selected
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: colors.isDark
+                            ? AppColors.hardwareShadowDark
+                            : AppColors.hardwareShadowLight,
+                        blurRadius: 8,
+                        offset: const Offset(4, 5),
+                      ),
+                      BoxShadow(
+                        color: colors.textPrimary.withValues(
+                          alpha: colors.isDark ? 0.04 : 0.14,
+                        ),
+                        blurRadius: 5,
+                        offset: const Offset(-2, -2),
+                      ),
+                    ],
+            ),
+            child: Material(
+              color: AppColors.transparent,
+              borderRadius: radius,
+              child: InkWell(
+                borderRadius: radius,
+                onTap: onPressed,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14),
+                  child: Row(
+                    mainAxisAlignment: compact
+                        ? MainAxisAlignment.center
+                        : MainAxisAlignment.start,
+                    children: [
+                      child,
+                      if (compact)
+                        SizedBox.shrink(
+                          child: ExcludeSemantics(child: Text(label)),
+                        ),
+                      if (!compact) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ).copyWith(
+                                  color: selected
+                                      ? colors.onSelection
+                                      : colors.textSecondary,
+                                ),
+                          ),
+                        ),
+                        Text(
+                          index,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.7,
+                            color: selected
+                                ? colors.onSelection.withValues(alpha: 0.56)
+                                : colors.textSecondary.withValues(alpha: 0.56),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected
+                                ? colors.primary
+                                : colors.outline.withValues(alpha: 0.48),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: colors.primary.withValues(
+                                        alpha: 0.52,
+                                      ),
+                                      blurRadius: 7,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -308,45 +496,6 @@ class _RailState extends State<_Rail> {
       ),
     );
   }
-
-  NavigationRailDestination _destination({
-    required GlobalKey key,
-    required IconData icon,
-    required String label,
-    int badge = 0,
-  }) {
-    return NavigationRailDestination(
-      icon: SizedBox(
-        key: key,
-        width: widget.compact ? 76 : 120,
-        height: 48,
-        child: _ink(
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Badge(
-                isLabelVisible: badge > 0,
-                label: Text('$badge'),
-                child: Icon(icon, size: 20),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      // Подпись уже входит в саму вертикальную капсулу. Отдельная label
-      // NavigationRail создала бы второй невидимый экземпляр текста.
-      label: const SizedBox.shrink(),
-    );
-  }
 }
 
 /// Выход из приложения — тем же путём, что и крестик окна.
@@ -354,26 +503,45 @@ class _RailState extends State<_Rail> {
 /// `windowManager.close()` не убивает процесс: закрытие перехвачено, и
 /// отложенные записи успевают лечь на диск, а движок загрузок — остановиться.
 class _QuitButton extends StatelessWidget {
-  const _QuitButton();
+  const _QuitButton({required this.compact});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final label = L.of(context).quitApp;
     return Tooltip(
       message: label,
-      child: TextButton(
+      child: OutlinedButton(
         key: const ValueKey('rail-quit'),
         onPressed: () => unawaited(windowManager.close()),
-        style: TextButton.styleFrom(
+        style: OutlinedButton.styleFrom(
           foregroundColor: context.colors.textSecondary,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          side: BorderSide(
+            color: context.colors.outline.withValues(alpha: 0.48),
+          ),
+          minimumSize: Size(compact ? 48 : 160, 44),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.power_settings_new, size: 22),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 11)),
+            const Icon(Icons.power_settings_new, size: 18),
+            if (compact)
+              SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
+            if (!compact) ...[
+              const SizedBox(width: 9),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -383,7 +551,9 @@ class _QuitButton extends StatelessWidget {
 
 /// Нижняя строка: подсказки управления, скорость обмена и состояние движка.
 class _StatusBar extends StatelessWidget {
-  const _StatusBar();
+  const _StatusBar({required this.compact});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -403,63 +573,130 @@ class _StatusBar extends StatelessWidget {
       ),
     };
 
-    return Container(
-      height: 30,
-      color: AppColors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ValueListenableBuilder<GamepadStatus>(
-                valueListenable: gamepad.status,
-                builder: (context, gamepadStatus, _) => ButtonHints(
-                  binding: settings.gamepad,
-                  gamepadConnected:
-                      settings.gamepad.enabled && gamepadStatus.hasDevice,
+    return SizedBox(
+      height: compact ? 40 : 46,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final readoutWidth = compact ? 230.0 : 330.0;
+          final hintWidth = (constraints.maxWidth - readoutWidth - 10).clamp(
+            180.0,
+            620.0,
+          );
+          return Row(
+            children: [
+              SizedBox(
+                width: hintWidth,
+                child: GlassSurface(
+                  radius: 14,
+                  opacity: 0.84,
+                  shadow: false,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ValueListenableBuilder<GamepadStatus>(
+                      valueListenable: gamepad.status,
+                      builder: (context, gamepadStatus, _) => ButtonHints(
+                        binding: settings.gamepad,
+                        gamepadConnected:
+                            settings.gamepad.enabled && gamepadStatus.hasDevice,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          Spacer(),
-          const SizedBox(width: 12),
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              status.message ??
-                  L
-                      .of(context)
-                      .engineStatus(
-                        engineStateLabel(L.of(context), status.state),
+              const Spacer(),
+              const SizedBox(width: 10),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: readoutWidth),
+                child: GlassSurface(
+                  radius: 14,
+                  opacity: 0.92,
+                  shadow: false,
+                  padding: const EdgeInsets.all(5),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: context.colors.railBackground.withValues(
+                        alpha: context.colors.isDark ? 0.92 : 0.7,
                       ),
-              style: TextStyle(fontSize: 12, color: color),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (stats.activeCount > 0) ...[
-            const SizedBox(width: 16),
-            Icon(Icons.arrow_downward, size: 13, color: context.colors.primary),
-            const SizedBox(width: 3),
-            Text(
-              speedLabel(L.of(context), stats.downloadSpeed),
-              style: const TextStyle(fontSize: 12),
-            ),
-            const SizedBox(width: 14),
-            Icon(
-              Icons.arrow_upward,
-              size: 13,
-              color: context.colors.textSecondary,
-            ),
-            const SizedBox(width: 3),
-            Text(
-              speedLabel(L.of(context), stats.uploadSpeed),
-              style: const TextStyle(fontSize: 12),
-            ),
-          ],
-        ],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: context.colors.outline.withValues(alpha: 0.42),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: color,
+                            boxShadow: [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.5),
+                                blurRadius: 7,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(icon, size: 14, color: color),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            status.message ??
+                                L
+                                    .of(context)
+                                    .engineStatus(
+                                      engineStateLabel(
+                                        L.of(context),
+                                        status.state,
+                                      ),
+                                    ),
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.25,
+                              color: color,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (!compact && stats.activeCount > 0) ...[
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.arrow_downward,
+                            size: 12,
+                            color: context.colors.primary,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            speedLabel(L.of(context), stats.downloadSpeed),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          const SizedBox(width: 9),
+                          Icon(
+                            Icons.arrow_upward,
+                            size: 12,
+                            color: context.colors.textSecondary,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            speedLabel(L.of(context), stats.uploadSpeed),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

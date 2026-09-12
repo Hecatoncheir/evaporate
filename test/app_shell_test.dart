@@ -225,8 +225,8 @@ void main() {
     await tester.pumpWidget(harness.buildApp());
     await tester.pumpAndSettle();
 
-    // Решётка — фирменная деталь полноразмерной панели; в узком окне место
-    // важнее декора, но все четыре подписанных раздела остаются доступны.
+    // Решётка и подписи — детали полноразмерной панели; в узком окне место
+    // важнее декора, но все четыре раздела остаются доступны скринридеру.
     expect(find.byType(HardwareGrille), findsNothing);
     for (final section in [
       'Библиотека',
@@ -234,7 +234,7 @@ void main() {
       'Сохранения',
       'Настройки',
     ]) {
-      expect(find.text(section), findsWidgets);
+      expect(find.bySemanticsLabel(section), findsOneWidget);
     }
     expect(tester.takeException(), isNull);
   });
