@@ -6,6 +6,7 @@ on:
     paths:
       - site/**
       - design/prototype-v2/**
+      - design/prototype-v3/**
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -27,15 +28,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/configure-pages@v5
-      - name: Prepare site and UI concept
+      - name: Prepare site and UI concepts
         run: |
-          mkdir -p _pages/concept-v2
+          mkdir -p _pages/concept-v2 _pages/concept-v3/assets
           cp -R site/. _pages/
           cp design/prototype-v2/index.html _pages/concept-v2/
           cp design/prototype-v2/styles.css _pages/concept-v2/
           cp design/prototype-v2/app.js _pages/concept-v2/
+          cp design/prototype-v3/index.html _pages/concept-v3/
+          cp design/prototype-v3/styles.css _pages/concept-v3/
+          cp design/prototype-v3/app.js _pages/concept-v3/
+          cp design/prototype-v3/assets/orbit-fall-hero.png _pages/concept-v3/assets/
           sed -i 's#../../assets/fonts/#../assets/#g' _pages/concept-v2/styles.css
           sed -i 's#../../assets/branding/app_icon.png#../assets/app-icon.png#g' _pages/concept-v2/index.html
+          sed -i 's#../../assets/fonts/#../assets/#g' _pages/concept-v3/styles.css
+          sed -i 's#../../assets/branding/app_icon.png#../assets/app-icon.png#g' _pages/concept-v3/index.html
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _pages

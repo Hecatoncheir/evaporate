@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Evaporate — UI concept 03</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">К содержимому</a>
+
+    <div class="app-frame">
+      <header class="topbar">
+        <button class="brand" data-route="library" aria-label="Открыть библиотеку">
+          <img src="../../assets/branding/app_icon.png" alt="" />
+          <span>EVAPORATE</span>
+        </button>
+
+        <nav class="nav" aria-label="Основная навигация">
+          <button class="nav-button is-active" data-route="library" aria-current="page">Библиотека</button>
+          <button class="nav-button" data-route="downloads">Загрузки <span class="badge">1</span></button>
+          <button class="nav-button" data-route="saves">Сохранения</button>
+        </nav>
+
+        <div class="actions">
+          <button class="search-button" id="search-button" aria-label="Открыть поиск">
+            <svg aria-hidden="true"><use href="#search"></use></svg><span>Поиск</span><kbd>/</kbd>
+          </button>
+          <button class="theme-button" id="theme-button" aria-label="Переключить тему" title="Переключить тему">
+            <svg class="sun" aria-hidden="true"><use href="#sun"></use></svg>
+            <svg class="moon" aria-hidden="true"><use href="#moon"></use></svg>
+          </button>
+          <button class="profile" aria-label="Профиль пользователя">VK<span></span></button>
+        </div>
+      </header>
+
+      <main id="content" tabindex="-1">
+        <section class="view is-active" data-view="library" aria-labelledby="library-title">
+          <div class="editorial-heading">
+            <p class="index">[ 03 / КОЛЛЕКЦИЯ ]</p>
+            <h1 id="library-title">Игры, которые<br />остаются <em>с вами</em></h1>
+            <p class="heading-note">Одна аккуратная библиотека для игр из разных магазинов. Без новостей и рекламы.</p>
+          </div>
+
+          <section class="hero" aria-labelledby="hero-title">
+            <img src="assets/orbit-fall-hero.png" alt="Путешественник и оранжевый вездеход у монументальных сооружений на другой планете" />
+            <div class="hero-shade"></div>
+            <div class="hero-copy">
+              <p class="eyebrow">СЕГОДНЯ · 20:42</p>
+              <h2 id="hero-title">ORBIT<br />FALL</h2>
+              <p>Тишина древней орбиты ждёт. Продолжите с последнего сигнала.</p>
+              <div class="hero-actions">
+                <button class="play-button" data-game="orbit"><svg aria-hidden="true"><use href="#play"></use></svg>Играть</button>
+                <button class="quiet-button" data-game="orbit">Открыть игру</button>
+              </div>
+            </div>
+            <div class="hero-status">
+              <span>ГЛАВА 06</span><strong>18 ч 42 мин</strong>
+              <div class="progress"><i style="width:72%"></i></div>
+              <small>Сохранено 8 минут назад</small>
+            </div>
+          </section>
+
+          <div class="content-grid">
+            <section class="collection" aria-labelledby="collection-title">
+              <div class="section-head">
+                <div><span>06 / ВСЕ ИГРЫ</span><h2 id="collection-title">Коллекция</h2></div>
+                <button class="text-button" id="filter-button">Установленные <svg aria-hidden="true"><use href="#chevron"></use></svg></button>
+              </div>
+              <div class="game-grid" id="game-grid">
+                <button class="game-card" data-title="Orbit Fall" data-game="orbit" data-installed="true">
+                  <span class="cover cover-orbit"><b>ORBIT<br />FALL</b><i>06</i></span>
+                  <span class="card-copy"><strong>Orbit Fall</strong><small>Сегодня · 18 ч 42 мин</small></span>
+                </button>
+                <button class="game-card" data-title="Signal from Europa" data-game="signal" data-installed="true">
+                  <span class="cover cover-signal"><b>SIGNAL<br />//09</b><i>09</i></span>
+                  <span class="card-copy"><strong>Signal from Europa</strong><small>Вчера · 8 ч 16 мин</small></span>
+                </button>
+                <button class="game-card" data-title="Sable Horizon" data-game="sable" data-installed="true">
+                  <span class="cover cover-sable"><b>SABLE<br />HORIZON</b><i>24</i></span>
+                  <span class="card-copy"><strong>Sable Horizon</strong><small>Установлена · 11,8 ГБ</small></span>
+                </button>
+                <button class="game-card" data-title="Hollow Signal" data-game="hollow" data-installed="false">
+                  <span class="cover cover-hollow"><b>HOLLOW<br />SIGNAL</b><i>12</i></span>
+                  <span class="card-copy"><strong>Hollow Signal</strong><small>В облаке</small></span>
+                </button>
+              </div>
+            </section>
+
+            <aside class="return-panel" aria-labelledby="return-title">
+              <div class="section-head compact"><div><span>БЫСТРЫЙ СТАРТ</span><h2 id="return-title">Вернуться</h2></div></div>
+              <button class="return-item" data-game="signal">
+                <span class="mini-cover cover-signal">09</span>
+                <span><strong>Signal from Europa</strong><small>Последний запуск вчера</small><i><b style="width:58%"></b></i></span>
+                <svg aria-hidden="true"><use href="#play"></use></svg>
+              </button>
+              <button class="return-item" data-game="sable">
+                <span class="mini-cover cover-sable">24</span>
+                <span><strong>Sable Horizon</strong><small>Глава 3 · Пустоши</small><i><b style="width:31%"></b></i></span>
+                <svg aria-hidden="true"><use href="#play"></use></svg>
+              </button>
+              <div class="library-stat"><strong>126</strong><span>часов в играх<br />за это лето</span></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view utility-view" data-view="downloads" aria-labelledby="downloads-title">
+          <div class="utility-heading"><p class="index">[ 01 / АКТИВНО ]</p><h1 id="downloads-title">Загрузки</h1><p>Всё, что происходит с файлами — без лишнего шума.</p></div>
+          <article class="transfer-card">
+            <div class="transfer-number">01</div>
+            <div class="transfer-cover cover-sable">24</div>
+            <div class="transfer-main"><span class="eyebrow">ОБНОВЛЕНИЕ</span><h2>Sable Horizon</h2><p>Новые территории и исправления · 4,8 из 7,2 ГБ</p><div class="progress"><i style="width:67%"></i></div></div>
+            <div class="transfer-speed"><strong>42,8</strong><span>МБ/С</span><small>≈ 58 секунд</small></div>
+            <button class="square-button" aria-label="Приостановить загрузку"><svg aria-hidden="true"><use href="#pause"></use></svg></button>
+          </article>
+          <div class="system-strip"><span><i></i> Сеть стабильна</span><span>Запись на диск <strong>118 МБ/С</strong></span><span>Следующая: Hollow Signal</span></div>
+        </section>
+
+        <section class="view utility-view" data-view="saves" aria-labelledby="saves-title">
+          <div class="utility-heading"><p class="index">[ ОБЛАКО / В ПОРЯДКЕ ]</p><h1 id="saves-title">Сохранения</h1><p>Прогресс синхронизирован. Можно продолжить на другом устройстве.</p></div>
+          <div class="save-layout">
+            <article class="sync-machine"><div class="sync-display"><span>СИНХРОНИЗИРОВАНО</span><strong>06</strong><small>игр</small></div><div class="sync-dial"><span></span></div><p><i></i> Последняя проверка 2 минуты назад</p><button class="quiet-button">Проверить сейчас</button></article>
+            <div class="save-list">
+              <article><span class="mini-cover cover-orbit">06</span><div><strong>Orbit Fall</strong><small>Сегодня, 20:42 · 38 МБ</small></div><em>АКТУАЛЬНО</em></article>
+              <article><span class="mini-cover cover-signal">09</span><div><strong>Signal from Europa</strong><small>Вчера, 23:18 · 12 МБ</small></div><em>АКТУАЛЬНО</em></article>
+              <article><span class="mini-cover cover-sable">24</span><div><strong>Sable Horizon</strong><small>4 сентября · 86 МБ</small></div><em>АКТУАЛЬНО</em></article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view detail-view" data-view="detail" aria-labelledby="detail-title">
+          <button class="back-button" data-route="library"><svg aria-hidden="true"><use href="#back"></use></svg>Библиотека</button>
+          <div class="detail-hero">
+            <img src="assets/orbit-fall-hero.png" alt="Пейзаж игры Orbit Fall" />
+            <div class="detail-overlay"></div>
+            <div class="detail-copy"><p class="eyebrow">ИССЛЕДОВАНИЕ · ОДИНОЧНАЯ ИГРА</p><h1 id="detail-title">ORBIT FALL</h1><p>Ваша экспедиция принимает сигнал от мира, который считался безжизненным. Спускайтесь к руинам, управляйте ровером и восстановите карту орбиты.</p><div><button class="play-button"><svg aria-hidden="true"><use href="#play"></use></svg>Играть</button><button class="quiet-button">Настройки</button></div></div>
+            <dl><div><dt>В ИГРЕ</dt><dd>18 ч 42 мин</dd></div><div><dt>ПРОГРЕСС</dt><dd>72%</dd></div><div><dt>ПОСЛЕДНИЙ ЗАПУСК</dt><dd>Сегодня</dd></div></dl>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="search-dialog" id="search-dialog">
+      <form method="dialog"><label><svg aria-hidden="true"><use href="#search"></use></svg><span class="sr-only">Поиск по играм</span><input id="search-input" type="search" placeholder="Название игры" autocomplete="off" /><kbd>ESC</kbd></label><div id="search-results"><p>Начните вводить название игры</p></div></form>
+    </dialog>
+
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+      <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+      <symbol id="moon" viewBox="0 0 24 24"><path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"/></symbol>
+      <symbol id="play" viewBox="0 0 24 24"><path d="m9 7 8 5-8 5Z"/></symbol>
+      <symbol id="pause" viewBox="0 0 24 24"><path d="M9 8v8M15 8v8"/></symbol>
+      <symbol id="chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+      <symbol id="back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    </svg>
+    <script src="app.js"></script>
+  </body>
+</html>
