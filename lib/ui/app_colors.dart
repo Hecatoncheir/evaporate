@@ -45,54 +45,45 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   bool get isDark => brightness == Brightness.dark;
 
-  /// Тёмная схема на палитре FFFCF2 / CCC5B9 / 403D39 / 252422 / EB5E28.
-  ///
-  /// Четыре цвета из пяти взяты как есть. Акцент осветлён на четыре процента
-  /// светлоты — тон и насыщенность те же: в исходном виде EB5E28 не дотягивал
-  /// до порога читаемости на подложке карточек, а им набрана метка статуса,
-  /// не только рамка. Сделать подложку темнее не вышло бы: она сравнялась бы
-  /// с фоном, и карточки перестали бы читаться как карточки.
-  ///
-  /// Хроматический цвет в палитре один, поэтому «запущена», «ошибка» и
-  /// «внимание» разведены поворотом тона от него же — семейство остаётся
-  /// тёплым, а состояния различаются.
+  /// Ночная пространственная схема: холодное стекло, ледяной фокус и
+  /// мятный цвет успешного состояния. Яркие эффекты библиотеки намеренно
+  /// остаются отдельным слоем и не спорят с хромом приложения.
   static const dark = EvaporatePalette(
     brightness: Brightness.dark,
-    background: Color(0xFF252422),
-    surface: Color(0xFF2E2C2A),
-    surfaceHigh: Color(0xFF403D39),
-    outline: Color(0xFF4B4740),
-    primary: Color(0xFFED6C3B),
-    onPrimary: Color(0xFF1A1815),
-    accent: Color(0xFFE8A87C),
-    danger: Color(0xFFF2685A),
-    warning: Color(0xFFDFAE4E),
-    textPrimary: Color(0xFFFFFCF2),
-    textSecondary: Color(0xFFCCC5B9),
-    railBackground: Color(0xFF1F1E1C),
-    railIndicator: Color(0xFFE8E1CF),
-    onSelection: Color(0xFF201B31),
+    background: Color(0xFF090D16),
+    surface: Color(0xFF141B27),
+    surfaceHigh: Color(0xFF202A3A),
+    outline: Color(0xFF46556B),
+    primary: Color(0xFFA7D8FF),
+    onPrimary: Color(0xFF07111C),
+    accent: Color(0xFF7FE3C2),
+    danger: Color(0xFFFF8B83),
+    warning: Color(0xFFFFD166),
+    textPrimary: Color(0xFFF7F9FD),
+    textSecondary: Color(0xFFB5C0D0),
+    railBackground: Color(0xFF0E1420),
+    railIndicator: Color(0xFFDCEEFF),
+    onSelection: Color(0xFF08121E),
   );
 
-  /// Бумажный кремовый фон и чернильный индиго из иконки. Яркие краски
-  /// используются в декоративном слое; их текстовые варианты затемнены
-  /// до контраста WCAG, чтобы переливы не мешали чтению.
+  /// Дневной вариант того же стекла: прохладный туман вместо белого листа,
+  /// графитовый текст и глубокие, а не неоновые, функциональные акценты.
   static const light = EvaporatePalette(
     brightness: Brightness.light,
-    background: Color(0xFFF7EFDD),
-    surface: Color(0xFFFFFAEF),
-    surfaceHigh: Color(0xFFF0E4D3),
-    outline: Color(0xFFCABBD0),
-    primary: Color(0xFFAD175E),
+    background: Color(0xFFE9EFF7),
+    surface: Color(0xFFF9FBFF),
+    surfaceHigh: Color(0xFFDFE8F3),
+    outline: Color(0xFF8493A8),
+    primary: Color(0xFF1767A7),
     onPrimary: Color(0xFFFFFFFF),
-    accent: Color(0xFF006E78),
-    danger: Color(0xFFB62D38),
-    warning: Color(0xFF805600),
-    textPrimary: Color(0xFF19162F),
-    textSecondary: Color(0xFF62566D),
-    railBackground: Color(0xFFF1E5D3),
-    railIndicator: Color(0xFF201B31),
-    onSelection: Color(0xFFE8E1CF),
+    accent: Color(0xFF00765E),
+    danger: Color(0xFFB22B36),
+    warning: Color(0xFF785100),
+    textPrimary: Color(0xFF101828),
+    textSecondary: Color(0xFF475467),
+    railBackground: Color(0xFFDCE6F1),
+    railIndicator: Color(0xFF173451),
+    onSelection: Color(0xFFF8FBFF),
   );
 
   @override
@@ -200,6 +191,12 @@ abstract final class AppColors {
   static const portalRim = Color(0xFFFF8A1F);
   static const windowCloseForeground = Colors.white;
   static const windowCloseBackground = Color(0xFFC42B1C);
+
+  // Рассеянный свет под стеклянными панелями. Это часть оформления окна,
+  // а не семантические цвета текста, поэтому значения общие для темы.
+  static const ambientBlue = Color(0xFF2B6FA8);
+  static const ambientViolet = Color(0xFF684C9E);
+  static const ambientMint = Color(0xFF2F8D7A);
 }
 
 const _darkWaveColors = [

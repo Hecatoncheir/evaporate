@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
+import 'spatial_surface.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Небольшая цветная метка статуса — используется в списке и в карточке игры.
@@ -61,9 +62,11 @@ class SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GlassSurface(
+        radius: 22,
+        opacity: context.colors.isDark ? 0.62 : 0.74,
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +116,7 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -15,6 +15,7 @@ import '../models/app_settings.dart';
 import '../models/game.dart';
 import '../services/download/download_engine.dart';
 import 'downloads/downloads_page.dart';
+import 'library/game_wave.dart';
 import 'library/library_page.dart';
 import 'saves/saves_page.dart';
 import 'settings/settings_page.dart';
@@ -25,6 +26,7 @@ import 'widgets/app_mark.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
 import 'widgets/liquid_selection.dart';
+import 'widgets/spatial_surface.dart';
 import '../l10n/app_localizations.dart';
 
 class AppShell extends StatelessWidget {
@@ -63,6 +65,12 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final nav = context.read<NavigationBloc>();
     final gamepad = context.read<GamepadService>();
+    final section = context.select<NavigationBloc, int>(
+      (bloc) => bloc.state.section,
+    );
+    final waveEnabled = context.select<SettingsBloc, bool>(
+      (bloc) => bloc.state.libraryEffects && bloc.state.wavesEnabled,
+    );
 
     return MultiBlocListener(
       listeners: [
@@ -88,40 +96,81 @@ class AppShell extends StatelessWidget {
         onSearch: () => nav.add(const SearchFocusRequested()),
         onBack: nav.closeOpenedGame,
         child: Scaffold(
-          body: Column(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    const _Rail(),
-                    const VerticalDivider(width: 1),
-                    Expanded(
-                      child: FocusTraversalGroup(
-                        child:
-                            BlocSelector<NavigationBloc, NavigationState, int>(
-                              selector: (state) => state.section,
-                              builder: (context, section) => FadeIndexedStack(
-                                index: section,
-                                enabled: context.select<SettingsBloc, bool>(
-                                  (b) =>
-                                      b.state.libraryEffects &&
-                                      b.state.interfaceAnimationsEnabled,
-                                ),
-                                children: const [
-                                  LibraryPage(),
-                                  DownloadsPage(),
-                                  SavesPage(),
-                                  SettingsPage(),
-                                ],
+          backgroundColor: AppColors.transparent,
+          body: SpatialBackdrop(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxHeight < 520;
+                return Padding(
+                  padding: compact
+                      ? const EdgeInsets.symmetric(horizontal: 6)
+                      : const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: GameWave(
+                          key: const ValueKey('library-wave'),
+                          enabled: section == 0 && waveEnabled,
+                          child: Row(
+                            children: [
+                              GlassSurface(
+                                radius: compact ? 20 : 28,
+                                opacity: context.colors.isDark ? 0.34 : 0.46,
+                                child: _Rail(compact: compact),
                               ),
-                            ),
+                              SizedBox(width: compact ? 6 : 12),
+                              Expanded(
+                                child: GlassSurface(
+                                  radius: compact ? 20 : 28,
+                                  opacity: context.colors.isDark ? 0.58 : 0.68,
+                                  child: FocusTraversalGroup(
+                                    child:
+                                        BlocSelector<
+                                          NavigationBloc,
+                                          NavigationState,
+                                          int
+                                        >(
+                                          selector: (state) => state.section,
+                                          builder: (context, section) =>
+                                              FadeIndexedStack(
+                                                index: section,
+                                                enabled: context
+                                                    .select<SettingsBloc, bool>(
+                                                      (b) =>
+                                                          b
+                                                              .state
+                                                              .libraryEffects &&
+                                                          b
+                                                              .state
+                                                              .interfaceAnimationsEnabled,
+                                                    ),
+                                                children: const [
+                                                  LibraryPage(),
+                                                  DownloadsPage(),
+                                                  SavesPage(),
+                                                  SettingsPage(),
+                                                ],
+                                              ),
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const _StatusBar(),
-            ],
+                      SizedBox(height: compact ? 2 : 8),
+                      const GlassSurface(
+                        radius: 13,
+                        opacity: 0.7,
+                        shadow: false,
+                        child: _StatusBar(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -139,7 +188,9 @@ class AppShell extends StatelessWidget {
 }
 
 class _Rail extends StatefulWidget {
-  const _Rail();
+  const _Rail({required this.compact});
+
+  final bool compact;
 
   @override
   State<_Rail> createState() => _RailState();
@@ -164,112 +215,133 @@ class _RailState extends State<_Rail> {
       (cubit) => cubit.state.activeTasks.length,
     );
 
-    return ColoredBox(
-      color: context.colors.railBackground,
-      child: LiquidSelection(
-        key: const ValueKey('rail-liquid'),
-        targetKey: () => _targets[section],
-        color: context.colors.railIndicator,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        enabled: context.select<SettingsBloc, bool>(
-          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+    return SizedBox(
+      width: widget.compact ? 104 : 148,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.colors.railBackground.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(widget.compact ? 20 : 28),
         ),
-        child: FocusTraversalGroup(
-          child: NavigationRail(
-            backgroundColor: AppColors.transparent,
-            indicatorColor: AppColors.transparent,
-            selectedIndex: section,
-            onDestinationSelected: (index) => nav.add(SectionSelected(index)),
-            labelType: NavigationRailLabelType.all,
-            leading: Padding(
-              padding: EdgeInsets.only(top: 16, bottom: 8),
-              child: Column(
-                children: [
-                  const AppMark(size: 32),
-                  SizedBox(height: 6),
-                  Text(
-                    'Evaporate',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            destinations: [
-              NavigationRailDestination(
-                icon: SizedBox(
-                  key: _targets[0],
-                  child: _ink(
-                    Icon(
-                      section == 0
-                          ? Icons.grid_view_rounded
-                          : Icons.grid_view_outlined,
-                    ),
-                  ),
-                ),
-                label: Text(L.of(context).library),
-              ),
-              NavigationRailDestination(
-                icon: SizedBox(
-                  key: _targets[1],
-                  child: Badge(
-                    isLabelVisible: activeCount > 0,
-                    label: Text('$activeCount'),
-                    child: _ink(
-                      Icon(
-                        section == 1
-                            ? Icons.download_rounded
-                            : Icons.download_outlined,
+        child: LiquidSelection(
+          key: const ValueKey('rail-liquid'),
+          targetKey: () => _targets[section],
+          color: context.colors.railIndicator,
+          radius: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+          enabled: context.select<SettingsBloc, bool>(
+            (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+          ),
+          child: FocusTraversalGroup(
+            child: NavigationRail(
+              backgroundColor: AppColors.transparent,
+              indicatorColor: AppColors.transparent,
+              selectedIndex: section,
+              onDestinationSelected: (index) => nav.add(SectionSelected(index)),
+              labelType: NavigationRailLabelType.none,
+              leading: widget.compact
+                  ? null
+                  : Padding(
+                      padding: EdgeInsets.only(top: 16, bottom: 8),
+                      child: Column(
+                        children: [
+                          const AppMark(size: 32),
+                          SizedBox(height: 6),
+                          Text(
+                            'Evaporate',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+              destinations: [
+                _destination(
+                  key: _targets[0],
+                  icon: section == 0
+                      ? Icons.grid_view_rounded
+                      : Icons.grid_view_outlined,
+                  label: L.of(context).library,
                 ),
-                label: Text(L.of(context).downloads),
-              ),
-              NavigationRailDestination(
-                icon: SizedBox(
+                _destination(
+                  key: _targets[1],
+                  icon: section == 1
+                      ? Icons.download_rounded
+                      : Icons.download_outlined,
+                  label: L.of(context).downloads,
+                  badge: activeCount,
+                ),
+                _destination(
                   key: _targets[2],
-                  child: _ink(
-                    Icon(
-                      section == 2 ? Icons.save_rounded : Icons.save_outlined,
-                    ),
-                  ),
+                  icon: section == 2 ? Icons.save_rounded : Icons.save_outlined,
+                  label: L.of(context).saves,
                 ),
-                label: Text(L.of(context).saves),
-              ),
-              NavigationRailDestination(
-                icon: SizedBox(
+                _destination(
                   key: _targets[3],
-                  child: _ink(
-                    Icon(
-                      section == 3
-                          ? Icons.settings_rounded
-                          : Icons.settings_outlined,
-                    ),
-                  ),
+                  icon: section == 3
+                      ? Icons.settings_rounded
+                      : Icons.settings_outlined,
+                  label: L.of(context).settings,
                 ),
-                label: Text(L.of(context).settings),
-              ),
-            ],
-            // Внизу и последней в обходе: закрыть приложение с геймпада
-            // иначе нечем — своя панель окна мышью и кнопкой в трее закрытие
-            // даёт, а стрелками до них не дойти.
-            trailing: Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _QuitButton(),
+              ],
+              // Внизу и последней в обходе: закрыть приложение с геймпада
+              // иначе нечем — своя панель окна мышью и кнопкой в трее закрытие
+              // даёт, а стрелками до них не дойти.
+              trailing: Expanded(
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _QuitButton(),
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  NavigationRailDestination _destination({
+    required GlobalKey key,
+    required IconData icon,
+    required String label,
+    int badge = 0,
+  }) {
+    return NavigationRailDestination(
+      icon: SizedBox(
+        key: key,
+        width: widget.compact ? 76 : 120,
+        height: 48,
+        child: _ink(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Badge(
+                isLabelVisible: badge > 0,
+                label: Text('$badge'),
+                child: Icon(icon, size: 20),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      // Подпись уже входит в саму вертикальную капсулу. Отдельная label
+      // NavigationRail создала бы второй невидимый экземпляр текста.
+      label: const SizedBox.shrink(),
     );
   }
 }
@@ -330,10 +402,7 @@ class _StatusBar extends StatelessWidget {
 
     return Container(
       height: 30,
-      decoration: BoxDecoration(
-        color: context.colors.railBackground,
-        border: Border(top: BorderSide(color: context.colors.outline)),
-      ),
+      color: AppColors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         children: [

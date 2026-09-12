@@ -21,12 +21,12 @@ import '../widgets/scale_control.dart';
 import '../widgets/liquid_selection.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/spatial_surface.dart';
 
 import 'add_game_dialog.dart';
 import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
 import 'game_detail.dart';
-import 'game_wave.dart';
 import 'library_atmosphere.dart';
 import 'foil_card.dart';
 import '../../l10n/app_localizations.dart';
@@ -178,47 +178,41 @@ class _LibraryPageState extends State<LibraryPage> {
               if (_scanning) return;
               _handleDrop(context, [for (final f in details.files) f.path]);
             },
-            child: GameWave(
-              key: const ValueKey('library-wave'),
-              enabled: effects.libraryEffects && effects.wavesEnabled,
-              child: LibraryAtmosphere(
-                enabled: effects.libraryEffects,
-                particlesEnabled: effects.particlesEnabled,
-                ambientEnabled: effects.ambientEnabled,
-                targetKey: () =>
-                    _tileKeys[_hoveredId ?? navState.selectedGameId],
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: games.isEmpty
-                          ? _empty(context, library.games.isEmpty)
-                          : LayoutBuilder(
-                              builder: (context, constraints) {
-                                final extent = 215 * scale;
-                                _columns =
-                                    ((constraints.maxWidth - 64) /
-                                            (extent + 36))
-                                        .ceil()
-                                        .clamp(1, 1000);
-                                final tileWidth =
-                                    (constraints.maxWidth -
-                                        64 -
-                                        36 * (_columns - 1)) /
-                                    _columns;
-                                _rowStride = tileWidth * 1.5 + 40;
-                                return _grid(
-                                  games,
-                                  navState.selectedGameId,
-                                  nav,
-                                  effects,
-                                  extent,
-                                );
-                              },
-                            ),
-                    ),
-                    if (_dragging) const Positioned.fill(child: _DropOverlay()),
-                  ],
-                ),
+            child: LibraryAtmosphere(
+              enabled: effects.libraryEffects,
+              particlesEnabled: effects.particlesEnabled,
+              ambientEnabled: effects.ambientEnabled,
+              targetKey: () => _tileKeys[_hoveredId ?? navState.selectedGameId],
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: games.isEmpty
+                        ? _empty(context, library.games.isEmpty)
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final extent = 215 * scale;
+                              _columns =
+                                  ((constraints.maxWidth - 64) / (extent + 36))
+                                      .ceil()
+                                      .clamp(1, 1000);
+                              final tileWidth =
+                                  (constraints.maxWidth -
+                                      64 -
+                                      36 * (_columns - 1)) /
+                                  _columns;
+                              _rowStride = tileWidth * 1.5 + 40;
+                              return _grid(
+                                games,
+                                navState.selectedGameId,
+                                nav,
+                                effects,
+                                extent,
+                              );
+                            },
+                          ),
+                  ),
+                  if (_dragging) const Positioned.fill(child: _DropOverlay()),
+                ],
               ),
             ),
           ),
@@ -336,14 +330,14 @@ class _LibraryPageState extends State<LibraryPage> {
         controller: _scroll,
         findChildIndexCallback: (key) =>
             key is ValueKey<String> ? indices[key.value] : null,
-        padding: const EdgeInsets.fromLTRB(32, 30, 32, 34),
+        padding: const EdgeInsets.fromLTRB(28, 24, 28, 34),
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
           // По ширине, а не по числу столбцов: обложка должна остаться
           // читаемой и в узком окне, и на весь экран телевизора.
           maxCrossAxisExtent: extent,
           childAspectRatio: 2 / 3,
-          crossAxisSpacing: 36,
-          mainAxisSpacing: 40,
+          crossAxisSpacing: 28,
+          mainAxisSpacing: 32,
         ),
         itemCount: games.length,
         itemBuilder: (context, index) {
@@ -636,75 +630,89 @@ class _Toolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.colors.outline)),
-      ),
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          _ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
-          SizedBox(
-            width: 210,
-            child: Actions(
-              actions: {
-                ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
-                  onInvoke: (_) {
-                    onReturnToGames();
-                    return null;
-                  },
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+      child: GlassSurface(
+        radius: 22,
+        opacity: context.colors.isDark ? 0.62 : 0.76,
+        shadow: false,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                l.library,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
                 ),
-              },
-              child: Shortcuts(
-                shortcuts: const {
-                  SingleActivator(LogicalKeyboardKey.arrowDown):
-                      ReturnToLibraryIntent(),
-                  SingleActivator(LogicalKeyboardKey.escape):
-                      ReturnToLibraryIntent(),
-                  SingleActivator(LogicalKeyboardKey.enter):
-                      ReturnToLibraryIntent(),
-                  SingleActivator(LogicalKeyboardKey.numpadEnter):
-                      ReturnToLibraryIntent(),
+              ),
+            ),
+            const SizedBox(width: 4),
+            _ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
+            SizedBox(
+              width: 210,
+              child: Actions(
+                actions: {
+                  ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
+                    onInvoke: (_) {
+                      onReturnToGames();
+                      return null;
+                    },
+                  ),
                 },
-                child: TextField(
-                  focusNode: searchFocus,
-                  onChanged: onQuery,
-                  // Enter в поиске уводит фокус в сетку — удобно и с клавиатуры,
-                  // и с геймпадной экранной клавиатуры.
-                  onSubmitted: (_) => onReturnToGames(),
-                  decoration: InputDecoration(
-                    hintText: l.searchHint,
-                    prefixIcon: const Icon(Icons.search, size: 18),
-                    isDense: true,
+                child: Shortcuts(
+                  shortcuts: const {
+                    SingleActivator(LogicalKeyboardKey.arrowDown):
+                        ReturnToLibraryIntent(),
+                    SingleActivator(LogicalKeyboardKey.escape):
+                        ReturnToLibraryIntent(),
+                    SingleActivator(LogicalKeyboardKey.enter):
+                        ReturnToLibraryIntent(),
+                    SingleActivator(LogicalKeyboardKey.numpadEnter):
+                        ReturnToLibraryIntent(),
+                  },
+                  child: TextField(
+                    focusNode: searchFocus,
+                    onChanged: onQuery,
+                    // Enter в поиске уводит фокус в сетку — удобно и с клавиатуры,
+                    // и с геймпадной экранной клавиатуры.
+                    onSubmitted: (_) => onReturnToGames(),
+                    decoration: InputDecoration(
+                      hintText: l.searchHint,
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      isDense: true,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          OutlinedButton.icon(
-            onPressed: onScan,
-            icon: const Icon(Icons.folder_open_outlined, size: 19),
-            label: Text(l.findInstalledGames),
-          ),
-          IconButton.filled(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add, size: 20),
-            tooltip: l.addGame,
-          ),
-          ScaleControl(
-            key: const ValueKey('library-scale'),
-            label: l.coverScale,
-            value: scale,
-            min: AppSettings.minLibraryScale,
-            max: AppSettings.maxLibraryScale,
-            step: 0.25,
-            onChanged: onScale,
-          ),
-        ],
+            const SizedBox(width: 6),
+            OutlinedButton.icon(
+              onPressed: onScan,
+              icon: const Icon(Icons.folder_open_outlined, size: 19),
+              label: Text(l.findInstalledGames),
+            ),
+            IconButton.filled(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add, size: 20),
+              tooltip: l.addGame,
+            ),
+            ScaleControl(
+              key: const ValueKey('library-scale'),
+              label: l.coverScale,
+              value: scale,
+              min: AppSettings.minLibraryScale,
+              max: AppSettings.maxLibraryScale,
+              step: 0.25,
+              onChanged: onScale,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -728,26 +736,38 @@ class _ShelfTabsState extends State<_ShelfTabs> {
   final _targets = {for (final shelf in _Shelf.values) shelf: GlobalKey()};
 
   @override
-  Widget build(BuildContext context) => LiquidSelection(
-    key: const ValueKey('shelf-liquid'),
-    targetKey: () => _targets[widget.shelf],
-    color: context.colors.selection,
-    padding: const EdgeInsets.only(right: -4),
-    enabled: context.select<SettingsBloc, bool>(
-      (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: context.colors.railBackground.withValues(alpha: 0.78),
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: context.colors.textPrimary.withValues(alpha: 0.1),
+      ),
     ),
-    child: Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        for (final value in _Shelf.values)
-          _ShelfButton(
-            key: _targets[value],
-            label: _label(L.of(context), value),
-            count: widget.counts[value] ?? 0,
-            active: value == widget.shelf,
-            onTap: () => widget.onShelf(value),
-          ),
-      ],
+    child: Padding(
+      padding: const EdgeInsets.all(3),
+      child: LiquidSelection(
+        key: const ValueKey('shelf-liquid'),
+        targetKey: () => _targets[widget.shelf],
+        color: context.colors.selection,
+        padding: const EdgeInsets.only(right: -4),
+        enabled: context.select<SettingsBloc, bool>(
+          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+        ),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            for (final value in _Shelf.values)
+              _ShelfButton(
+                key: _targets[value],
+                label: _label(L.of(context), value),
+                count: widget.counts[value] ?? 0,
+                active: value == widget.shelf,
+                onTap: () => widget.onShelf(value),
+              ),
+          ],
+        ),
+      ),
     ),
   );
 
@@ -783,7 +803,7 @@ class _ShelfButton extends StatelessWidget {
         style: TextButton.styleFrom(
           backgroundColor: AppColors.transparent,
           foregroundColor: active ? colors.onSelection : colors.textSecondary,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
@@ -826,19 +846,21 @@ class _GamePage extends StatelessWidget {
     final nav = context.read<NavigationBloc>();
     return Column(
       children: [
-        Container(
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: context.colors.outline)),
-          ),
-          padding: const EdgeInsets.fromLTRB(12, 8, 18, 8),
-          child: Row(
-            children: [
-              TextButton.icon(
-                onPressed: () => nav.add(const GameOpened(null)),
-                icon: const Icon(Icons.arrow_back, size: 18),
-                label: Text(L.of(context).backToLibrary),
-              ),
-            ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+          child: GlassSurface(
+            radius: 20,
+            shadow: false,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Row(
+              children: [
+                TextButton.icon(
+                  onPressed: () => nav.add(const GameOpened(null)),
+                  icon: const Icon(Icons.arrow_back, size: 18),
+                  label: Text(L.of(context).backToLibrary),
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
