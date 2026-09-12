@@ -100,7 +100,8 @@ class AppShell extends StatelessWidget {
           body: SpatialBackdrop(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final compact = constraints.maxHeight < 520;
+                final compact =
+                    constraints.maxWidth < 920 || constraints.maxHeight < 520;
                 return Padding(
                   padding: compact
                       ? const EdgeInsets.symmetric(horizontal: 6)
@@ -115,14 +116,14 @@ class AppShell extends StatelessWidget {
                             children: [
                               GlassSurface(
                                 radius: compact ? 20 : 28,
-                                opacity: context.colors.isDark ? 0.34 : 0.46,
+                                opacity: context.colors.isDark ? 0.9 : 0.96,
                                 child: _Rail(compact: compact),
                               ),
                               SizedBox(width: compact ? 6 : 12),
                               Expanded(
                                 child: GlassSurface(
                                   radius: compact ? 20 : 28,
-                                  opacity: context.colors.isDark ? 0.58 : 0.68,
+                                  opacity: context.colors.isDark ? 0.88 : 0.94,
                                   child: FocusTraversalGroup(
                                     child:
                                         BlocSelector<
@@ -241,9 +242,11 @@ class _RailState extends State<_Rail> {
               leading: widget.compact
                   ? null
                   : Padding(
-                      padding: EdgeInsets.only(top: 16, bottom: 8),
+                      padding: EdgeInsets.only(top: 14, bottom: 10),
                       child: Column(
                         children: [
+                          const HardwareGrille(),
+                          const SizedBox(height: 12),
                           const AppMark(size: 32),
                           SizedBox(height: 6),
                           Text(

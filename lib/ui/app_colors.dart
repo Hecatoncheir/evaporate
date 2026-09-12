@@ -45,45 +45,44 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   bool get isDark => brightness == Brightness.dark;
 
-  /// Ночная пространственная схема: холодное стекло, ледяной фокус и
-  /// мятный цвет успешного состояния. Яркие эффекты библиотеки намеренно
-  /// остаются отдельным слоем и не спорят с хромом приложения.
+  /// Ночная схема напоминает дисплей музыкального устройства: почти чёрный
+  /// графит, тёплая подсветка органов управления и холодный служебный сигнал.
   static const dark = EvaporatePalette(
     brightness: Brightness.dark,
-    background: Color(0xFF090D16),
-    surface: Color(0xFF141B27),
-    surfaceHigh: Color(0xFF202A3A),
-    outline: Color(0xFF46556B),
-    primary: Color(0xFFA7D8FF),
-    onPrimary: Color(0xFF07111C),
-    accent: Color(0xFF7FE3C2),
-    danger: Color(0xFFFF8B83),
-    warning: Color(0xFFFFD166),
-    textPrimary: Color(0xFFF7F9FD),
-    textSecondary: Color(0xFFB5C0D0),
-    railBackground: Color(0xFF0E1420),
-    railIndicator: Color(0xFFDCEEFF),
-    onSelection: Color(0xFF08121E),
+    background: Color(0xFF0B0D0E),
+    surface: Color(0xFF17191A),
+    surfaceHigh: Color(0xFF292C2D),
+    outline: Color(0xFF5D6263),
+    primary: Color(0xFFFF6842),
+    onPrimary: Color(0xFF240A03),
+    accent: Color(0xFF6AC9DE),
+    danger: Color(0xFFFF9184),
+    warning: Color(0xFFFFC65A),
+    textPrimary: Color(0xFFF5F3ED),
+    textSecondary: Color(0xFFBEC1BE),
+    railBackground: Color(0xFF111314),
+    railIndicator: Color(0xFFF0EEE8),
+    onSelection: Color(0xFF17191A),
   );
 
-  /// Дневной вариант того же стекла: прохладный туман вместо белого листа,
-  /// графитовый текст и глубокие, а не неоновые, функциональные акценты.
+  /// Дневная схема собрана как тёплый алюминиевый корпус: поверхности хорошо
+  /// отделены глубиной, а оранжевый остаётся единственным главным действием.
   static const light = EvaporatePalette(
     brightness: Brightness.light,
-    background: Color(0xFFE9EFF7),
-    surface: Color(0xFFF9FBFF),
-    surfaceHigh: Color(0xFFDFE8F3),
-    outline: Color(0xFF8493A8),
-    primary: Color(0xFF1767A7),
+    background: Color(0xFFDDDCD7),
+    surface: Color(0xFFF2F0EA),
+    surfaceHigh: Color(0xFFD0D2D0),
+    outline: Color(0xFF797E7F),
+    primary: Color(0xFFB82508),
     onPrimary: Color(0xFFFFFFFF),
-    accent: Color(0xFF00765E),
-    danger: Color(0xFFB22B36),
-    warning: Color(0xFF785100),
-    textPrimary: Color(0xFF101828),
-    textSecondary: Color(0xFF475467),
-    railBackground: Color(0xFFDCE6F1),
-    railIndicator: Color(0xFF173451),
-    onSelection: Color(0xFFF8FBFF),
+    accent: Color(0xFF005F73),
+    danger: Color(0xFFAD2430),
+    warning: Color(0xFF765000),
+    textPrimary: Color(0xFF17191A),
+    textSecondary: Color(0xFF4F5455),
+    railBackground: Color(0xFFC9CCCA),
+    railIndicator: Color(0xFF202324),
+    onSelection: Color(0xFFF7F5EF),
   );
 
   @override
@@ -192,11 +191,17 @@ abstract final class AppColors {
   static const windowCloseForeground = Colors.white;
   static const windowCloseBackground = Color(0xFFC42B1C);
 
-  // Рассеянный свет под стеклянными панелями. Это часть оформления окна,
+  // Рассеянный свет и металл под панелями. Это часть оформления корпуса,
   // а не семантические цвета текста, поэтому значения общие для темы.
-  static const ambientBlue = Color(0xFF2B6FA8);
-  static const ambientViolet = Color(0xFF684C9E);
-  static const ambientMint = Color(0xFF2F8D7A);
+  static const ambientOrange = Color(0xFFF04A22);
+  static const ambientSteel = Color(0xFF8E9698);
+  static const ambientCharcoal = Color(0xFF16191A);
+  static final hardwareShadowDark = Colors.black.withValues(alpha: 0.48);
+  static final hardwareShadowLight = const Color(0xFF777B7A)
+      .withValues(alpha: 0.3);
+  static final grilleHoleDark = Colors.black.withValues(alpha: 0.72);
+  static final grilleHoleLight = const Color(0xFF333738)
+      .withValues(alpha: 0.76);
 }
 
 const _darkWaveColors = [

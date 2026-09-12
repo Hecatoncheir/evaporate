@@ -32,8 +32,8 @@ void main() {
 
   group('читаемость', () {
     test('фон выделения использует точные цвета, текст контрастный', () {
-      expect(EvaporatePalette.light.selection, const Color(0xFF173451));
-      expect(EvaporatePalette.dark.selection, const Color(0xFFDCEEFF));
+      expect(EvaporatePalette.light.selection, const Color(0xFF202324));
+      expect(EvaporatePalette.dark.selection, const Color(0xFFF0EEE8));
       for (final palette in palettes.values) {
         expect(
           contrast(palette.onSelection, palette.selection),

@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/spatial_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -210,5 +211,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'раздел «$section»');
     }
+  });
+
+  testWidgets('узкое окно уплотняет аппаратную панель без переполнения', (
+    tester,
+  ) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    tester.view.physicalSize = const Size(820, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(harness.buildApp());
+    await tester.pumpAndSettle();
+
+    // Решётка — фирменная деталь полноразмерной панели; в узком окне место
+    // важнее декора, но все четыре подписанных раздела остаются доступны.
+    expect(find.byType(HardwareGrille), findsNothing);
+    for (final section in [
+      'Библиотека',
+      'Загрузки',
+      'Сохранения',
+      'Настройки',
+    ]) {
+      expect(find.text(section), findsWidgets);
+    }
+    expect(tester.takeException(), isNull);
   });
 }
