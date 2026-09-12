@@ -15,7 +15,7 @@ main{width:min(1500px,calc(100% - 48px));margin:0 auto;padding:55px 0 82px}.view
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* Верхняя панель: центральная навигация занимает только свободное место. */
-@media(min-width:1261px){.topbar{grid-template-columns:auto minmax(0,1fr) auto}.nav{justify-self:center}}
+@media(min-width:1261px){.topbar{grid-template-columns:auto minmax(0,1fr) auto}.nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}}
 @media(max-width:1500px) and (min-width:1261px){.search-button span,.search-button kbd{display:none}.search-button{width:42px;padding:0}}
 
 /* Поиск остаётся самостоятельной иконкой и не конкурирует с навигацией за ширину. */
