@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - site/**
+      - design/prototype-v2/**
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -26,9 +27,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/configure-pages@v5
+      - name: Prepare site and UI concept
+        run: |
+          mkdir -p _pages/concept-v2
+          cp -R site/. _pages/
+          cp design/prototype-v2/index.html _pages/concept-v2/
+          cp design/prototype-v2/styles.css _pages/concept-v2/
+          cp design/prototype-v2/app.js _pages/concept-v2/
+          sed -i 's#../../assets/fonts/#../assets/#g' _pages/concept-v2/styles.css
+          sed -i 's#../../assets/branding/app_icon.png#../assets/app-icon.png#g' _pages/concept-v2/index.html
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: _pages
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v4

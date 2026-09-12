@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Evaporate — UI concept 02</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">К содержимому</a>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <button class="brand" data-route="library" aria-label="Открыть библиотеку">
+          <img src="../../assets/branding/app_icon.png" alt="" />
+          <span class="brand-name">EVAPORATE</span>
+          <span class="brand-led" aria-hidden="true"></span>
+        </button>
+
+        <nav class="primary-nav" aria-label="Основная навигация">
+          <button class="nav-tab is-active" data-route="library" aria-current="page">
+            <svg aria-hidden="true"><use href="#icon-library"></use></svg>
+            <span>Библиотека</span>
+          </button>
+          <button class="nav-tab" data-route="activity">
+            <svg aria-hidden="true"><use href="#icon-activity"></use></svg>
+            <span>Загрузки</span>
+            <span class="nav-count">1</span>
+          </button>
+          <button class="nav-tab" data-route="saves">
+            <svg aria-hidden="true"><use href="#icon-save"></use></svg>
+            <span>Сохранения</span>
+          </button>
+        </nav>
+
+        <div class="top-actions">
+          <button class="engine-pill" data-route="activity" aria-label="Движок загрузок готов">
+            <span class="status-light"></span>
+            <span>Готов</span>
+          </button>
+          <button class="icon-button" aria-label="Настройки" title="Настройки">
+            <svg aria-hidden="true"><use href="#icon-settings"></use></svg>
+          </button>
+          <button class="avatar-button" aria-label="Профиль пользователя">VK</button>
+        </div>
+      </header>
+
+      <main id="content" tabindex="-1">
+        <section class="view is-active" data-view="library" aria-labelledby="library-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">ВАША КОЛЛЕКЦИЯ · 6 ИГР</p>
+              <h1 id="library-title">Во что сыграем?</h1>
+            </div>
+            <button class="primary-button" id="add-game">
+              <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+              Добавить игру
+            </button>
+          </div>
+
+          <div class="library-tools" role="search">
+            <label class="search-field">
+              <svg aria-hidden="true"><use href="#icon-search"></use></svg>
+              <span class="sr-only">Поиск по библиотеке</span>
+              <input id="game-search" type="search" placeholder="Найти игру" autocomplete="off" />
+              <kbd>/</kbd>
+            </label>
+            <div class="filter-group" aria-label="Фильтр библиотеки">
+              <button class="filter-button is-active" data-filter="all">Все <span>6</span></button>
+              <button class="filter-button" data-filter="installed">Установлены <span>4</span></button>
+              <button class="filter-button" data-filter="recent">Недавние <span>3</span></button>
+            </div>
+            <button class="icon-button view-toggle" aria-label="Изменить вид" title="Изменить вид">
+              <svg aria-hidden="true"><use href="#icon-grid"></use></svg>
+            </button>
+          </div>
+
+          <section class="continue-section" aria-labelledby="continue-title">
+            <div class="section-label">
+              <h2 id="continue-title">Продолжить</h2>
+              <span>Последний запуск сегодня</span>
+            </div>
+            <button class="continue-card" data-game="signal">
+              <div class="continue-art cover-signal" aria-hidden="true">
+                <span class="cover-mark">SIGNAL//09</span>
+              </div>
+              <div class="continue-copy">
+                <span class="platform-tag">WINDOWS</span>
+                <h3>Signal from Europa</h3>
+                <p>Исследование · 18 ч 24 мин</p>
+                <div class="progress-line"><span style="width: 64%"></span></div>
+              </div>
+              <span class="resume-button" aria-hidden="true">
+                <svg><use href="#icon-play"></use></svg>
+              </span>
+            </button>
+          </section>
+
+          <section class="all-games" aria-labelledby="all-games-title">
+            <div class="section-label">
+              <h2 id="all-games-title">Все игры</h2>
+              <span id="result-count">6 в библиотеке</span>
+            </div>
+
+            <div class="game-grid" id="game-grid">
+              <button class="game-card" data-title="Mansions of Madness" data-status="installed" data-game="mansions">
+                <span class="cover cover-mansions"><span class="cover-title">MANSIONS<br />OF MADNESS</span></span>
+                <span class="game-meta"><strong>Mansions of Madness</strong><small>Установлена · 32,4 ГБ</small></span>
+              </button>
+              <button class="game-card" data-title="Signal from Europa" data-status="recent installed" data-game="signal">
+                <span class="cover cover-signal"><span class="cover-title">SIGNAL//09</span></span>
+                <span class="game-meta"><strong>Signal from Europa</strong><small>Сегодня · 18 ч 24 мин</small></span>
+              </button>
+              <button class="game-card" data-title="Sable Horizon" data-status="installed" data-game="sable">
+                <span class="cover cover-sable"><span class="cover-title">SABLE<br />HORIZON</span></span>
+                <span class="game-meta"><strong>Sable Horizon</strong><small>Установлена · 11,8 ГБ</small></span>
+              </button>
+              <button class="game-card" data-title="Hollow Signal" data-status="recent" data-game="hollow">
+                <span class="cover cover-hollow"><span class="cover-title">HOLLOW<br />SIGNAL</span></span>
+                <span class="game-meta"><strong>Hollow Signal</strong><small>3 дня назад · 7 ч</small></span>
+              </button>
+              <button class="game-card" data-title="Red Sector" data-status="installed" data-game="red">
+                <span class="cover cover-red"><span class="cover-title">RED<br />SECTOR</span></span>
+                <span class="game-meta"><strong>Red Sector</strong><small>Установлена · 26,1 ГБ</small></span>
+              </button>
+              <button class="game-card" data-title="Aster Vale" data-status="recent" data-game="aster">
+                <span class="cover cover-aster"><span class="cover-title">ASTER<br />VALE</span></span>
+                <span class="game-meta"><strong>Aster Vale</strong><small>Вчера · 12 ч</small></span>
+              </button>
+            </div>
+            <div class="empty-state" id="empty-state" hidden>
+              <svg aria-hidden="true"><use href="#icon-search"></use></svg>
+              <h3>Такой игры здесь нет</h3>
+              <p>Проверьте запрос или покажите всю библиотеку.</p>
+              <button class="secondary-button" id="reset-search">Сбросить поиск</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="detail" aria-labelledby="detail-title">
+          <button class="back-button" data-route="library">
+            <svg aria-hidden="true"><use href="#icon-arrow-left"></use></svg>
+            Библиотека
+          </button>
+          <div class="detail-layout">
+            <div class="detail-cover cover-mansions" id="detail-cover">
+              <span class="cover-title" id="detail-cover-title">MANSIONS<br />OF MADNESS</span>
+            </div>
+            <div class="detail-content">
+              <p class="eyebrow">УСТАНОВЛЕНА · WINDOWS</p>
+              <h1 id="detail-title">Mansions of Madness</h1>
+              <p class="detail-description">Мрачное исследование старого дома, где каждая дверь меняет историю. Все файлы игры и сохранения готовы.</p>
+              <div class="detail-actions">
+                <button class="primary-button play-button">
+                  <svg aria-hidden="true"><use href="#icon-play"></use></svg>
+                  Играть
+                </button>
+                <button class="secondary-button">Открыть папку</button>
+                <button class="icon-button" aria-label="Другие действия" title="Другие действия">
+                  <svg aria-hidden="true"><use href="#icon-more"></use></svg>
+                </button>
+              </div>
+              <dl class="game-facts">
+                <div><dt>В игре</dt><dd>32 ч 18 мин</dd></div>
+                <div><dt>Последний запуск</dt><dd>9 сентября</dd></div>
+                <div><dt>Размер</dt><dd>32,4 ГБ</dd></div>
+              </dl>
+              <div class="detail-panels">
+                <button class="info-panel" data-route="saves">
+                  <span class="panel-icon"><svg><use href="#icon-save"></use></svg></span>
+                  <span><strong>Сохранения защищены</strong><small>3 снимка · последний сегодня в 18:42</small></span>
+                  <svg class="chevron"><use href="#icon-chevron"></use></svg>
+                </button>
+                <div class="info-panel static">
+                  <span class="panel-icon"><svg><use href="#icon-folder"></use></svg></span>
+                  <span><strong>Файлы проверены</strong><small>Ошибка не обнаружена · 32,4 ГБ</small></span>
+                  <span class="status-light"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view="activity" aria-labelledby="activity-title">
+          <div class="page-heading">
+            <div><p class="eyebrow">ДВИЖОК ГОТОВ</p><h1 id="activity-title">Загрузки</h1></div>
+            <button class="secondary-button">Открыть папку загрузок</button>
+          </div>
+          <article class="download-card">
+            <div class="download-art cover-red"><span class="cover-title">RED<br />SECTOR</span></div>
+            <div class="download-main">
+              <div class="download-title"><div><span class="platform-tag">ЗАГРУЗКА</span><h2>Red Sector</h2></div><strong>68%</strong></div>
+              <div class="progress-line large"><span style="width:68%"></span></div>
+              <div class="download-stats"><span>8,4 МБ/с</span><span>Осталось 11 мин</span><span>17,8 из 26,1 ГБ</span></div>
+            </div>
+            <button class="transport-button" aria-label="Приостановить загрузку"><svg><use href="#icon-pause"></use></svg></button>
+          </article>
+          <div class="activity-grid">
+            <section class="flat-panel"><div class="section-label"><h2>Дальше</h2><span>1 игра</span></div><div class="queue-row"><div class="mini-cover cover-aster"></div><div><strong>Aster Vale</strong><small>14,2 ГБ · начнётся автоматически</small></div><button class="icon-button" aria-label="Убрать из очереди"><svg><use href="#icon-close"></use></svg></button></div></section>
+            <section class="flat-panel"><div class="section-label"><h2>Сеть</h2><span>За последние 10 минут</span></div><div class="network-readout"><div><small>Получение</small><strong>8,4 <em>МБ/с</em></strong></div><div><small>Отдача</small><strong>1,2 <em>МБ/с</em></strong></div></div><div class="signal-chart" aria-label="Скорость загрузки стабильна"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></section>
+          </div>
+        </section>
+
+        <section class="view" data-view="saves" aria-labelledby="saves-title">
+          <div class="page-heading">
+            <div><p class="eyebrow">ЛОКАЛЬНОЕ ХРАНИЛИЩЕ · 1,8 ГБ</p><h1 id="saves-title">Сохранения</h1></div>
+            <button class="primary-button"><svg aria-hidden="true"><use href="#icon-upload"></use></svg>Перенести библиотеку</button>
+          </div>
+          <div class="save-summary">
+            <div><span class="summary-number">6</span><span>игр защищено</span></div>
+            <div><span class="summary-number">38</span><span>снимков</span></div>
+            <div><span class="summary-number">3</span><span>устройства</span></div>
+            <div class="summary-health"><span class="status-light"></span><strong>Всё сохранено</strong><small>Последняя проверка 2 мин назад</small></div>
+          </div>
+          <section class="snapshot-list" aria-labelledby="snapshots-title">
+            <div class="section-label"><h2 id="snapshots-title">Последние снимки</h2><button class="text-button">Управление хранилищем</button></div>
+            <button class="snapshot-row"><span class="mini-cover cover-signal"></span><span class="snapshot-game"><strong>Signal from Europa</strong><small>Автоматический снимок после выхода</small></span><span class="snapshot-device">Этот Mac</span><time>Сегодня, 18:42</time><svg><use href="#icon-chevron"></use></svg></button>
+            <button class="snapshot-row"><span class="mini-cover cover-mansions"></span><span class="snapshot-game"><strong>Mansions of Madness</strong><small>3 изменённых файла · 84 МБ</small></span><span class="snapshot-device">Этот Mac</span><time>Вчера, 23:10</time><svg><use href="#icon-chevron"></use></svg></button>
+            <button class="snapshot-row"><span class="mini-cover cover-sable"></span><span class="snapshot-game"><strong>Sable Horizon</strong><small>Загружено с другого устройства</small></span><span class="snapshot-device">Игровой ПК</span><time>8 сентября</time><svg><use href="#icon-chevron"></use></svg></button>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="icon-library" viewBox="0 0 24 24"><path d="M4 5.5h6v6H4zM14 5.5h6v6h-6zM4 15.5h6v3H4zM14 15.5h6v3h-6z" /></symbol>
+      <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14" /></symbol>
+      <symbol id="icon-save" viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 20v-6h8v6" /></symbol>
+      <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></symbol>
+      <symbol id="icon-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" /></symbol>
+      <symbol id="icon-play" viewBox="0 0 24 24"><path d="m9 6 9 6-9 6z" /></symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 6v12M16 6v12" /></symbol>
+      <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7M8 12h12" /></symbol>
+      <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></symbol>
+      <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></symbol>
+      <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z" /></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 20h14" /></symbol>
+    </svg>
+    <script src="app.js"></script>
+  </body>
+</html>
