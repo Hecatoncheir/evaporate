@@ -40,15 +40,10 @@ class ActionPanel extends StatelessWidget {
             Row(children: _buildRow(context, busy)),
             if (task != null && task!.state != DownloadState.complete) ...[
               const SizedBox(height: 16),
-              // Тот же живой график, что на экране загрузок. Страница игры —
-              // место, куда приходят посмотреть именно на эту игру, и
-              // отсылать отсюда на соседний экран ради вопроса «как идёт»
-              // значит заставлять человека держать в голове два места.
-              //
-              // Ключ по задаче: история скоростей живёт в самом виджете, и
-              // без ключа она перетекла бы от одной игры к другой при
-              // перелистывании страниц.
-              DownloadActivity(key: ValueKey(task!.id), task: task!),
+              // Без графика: он уехал подложкой под заголовок страницы, и
+              // рисовать его здесь второй раз незачем. История у них общая
+              // — её держит `DownloadHistoryScope` вокруг всей страницы.
+              DownloadActivity(task: task!, showChart: false),
               const SizedBox(height: 10),
               DownloadSummary(task: task!),
             ],

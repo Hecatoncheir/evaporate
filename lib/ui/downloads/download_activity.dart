@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/download_history_cubit.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
@@ -7,72 +9,109 @@ import '../labels.dart';
 import '../theme.dart';
 import '../widgets/animated_progress.dart';
 
-/// Живой график и основные показатели одной загрузки.
+/// Держит историю скоростей и кормит её задачей.
 ///
-/// Движок присылает снимок примерно раз в секунду. История намеренно живёт
-/// только в виджете: это данные для представления, их незачем сохранять между
-/// запусками приложения или подмешивать в состояние самого торрент-клиента.
-class DownloadActivity extends StatefulWidget {
-  const DownloadActivity({super.key, required this.task});
+/// Внутрь ставят и график, и показания: на странице игры они разъезжаются
+/// по разным местам — график ложится подложкой под обложку с названием, а
+/// показания стоят у клавиш, — но история у них обязана быть одна.
+class DownloadHistoryScope extends StatefulWidget {
+  const DownloadHistoryScope({
+    super.key,
+    required this.task,
+    required this.child,
+  });
+
+  final DownloadTask task;
+  final Widget child;
+
+  @override
+  State<DownloadHistoryScope> createState() => _DownloadHistoryScopeState();
+}
+
+class _DownloadHistoryScopeState extends State<DownloadHistoryScope> {
+  late final DownloadHistoryCubit _history = DownloadHistoryCubit(widget.task);
+
+  @override
+  void didUpdateWidget(covariant DownloadHistoryScope oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _history.sample(widget.task, oldWidget.task);
+  }
+
+  @override
+  void dispose() {
+    _history.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      BlocProvider.value(value: _history, child: widget.child);
+}
+
+/// Один только график — без показаний вокруг.
+///
+/// Нужен странице игры: там он ложится подложкой под обложку, название и
+/// описание. Точные числа по нему не читают, он отвечает на вопрос «идёт ли
+/// и ровно ли идёт», и от фона этого довольно.
+class DownloadChart extends StatelessWidget {
+  const DownloadChart({super.key, required this.task, this.height = 116});
 
   final DownloadTask task;
 
-  @override
-  State<DownloadActivity> createState() => _DownloadActivityState();
-}
-
-class _DownloadActivityState extends State<DownloadActivity> {
-  static const _historyLength = 60;
-
-  final List<_SpeedSample> _history = [];
-  late DateTime _sampledAt;
-  late int _completedBytes;
-
-  @override
-  void initState() {
-    super.initState();
-    _sampledAt = DateTime.now();
-    _completedBytes = widget.task.completedBytes;
-    _history.add(_SpeedSample(download: widget.task.downloadSpeed, disk: 0));
-  }
-
-  @override
-  void didUpdateWidget(covariant DownloadActivity oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final task = widget.task;
-    if (task.downloadSpeed == oldWidget.task.downloadSpeed &&
-        task.completedBytes == oldWidget.task.completedBytes &&
-        task.state == oldWidget.task.state) {
-      return;
-    }
-
-    final now = DateTime.now();
-    final elapsedUs = now.difference(_sampledAt).inMicroseconds;
-    final delta = task.completedBytes - _completedBytes;
-    final diskSpeed = elapsedUs <= 0 || delta <= 0
-        ? 0
-        : (delta * Duration.microsecondsPerSecond / elapsedUs).round();
-    _history.add(
-      _SpeedSample(
-        download: task.state == DownloadState.paused ? 0 : task.downloadSpeed,
-        disk: task.state == DownloadState.paused ? 0 : diskSpeed,
-      ),
-    );
-    if (_history.length > _historyLength) _history.removeAt(0);
-    _sampledAt = now;
-    _completedBytes = task.completedBytes;
-  }
+  /// `null` — занять всё, что дали. Так график становится подложкой под
+  /// заголовком страницы игры, высоту которой задаёт текст, а не он.
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
-    final task = widget.task;
+    final l = L.of(context);
+    return Semantics(
+      label: l.speedChart,
+      value: speedLabel(l, task.downloadSpeed),
+      image: true,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: BlocBuilder<DownloadHistoryCubit, List<SpeedSample>>(
+          builder: (context, history) => CustomPaint(
+            painter: _SpeedChartPainter(
+              samples: history,
+              networkColor: context.colors.primary,
+              diskColor: context.colors.accent,
+              gridColor: context.colors.outline,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Показания одной загрузки: скорость, пик, диск, отдача — и сколько
+/// скачано из скольких.
+///
+/// График сюда входит не всегда: на странице игры он уехал подложкой под
+/// заголовок, и рисовать его ещё раз здесь незачем.
+class DownloadActivity extends StatelessWidget {
+  const DownloadActivity({
+    super.key,
+    required this.task,
+    this.showChart = true,
+  });
+
+  final DownloadTask task;
+  final bool showChart;
+
+  @override
+  Widget build(BuildContext context) {
+    final task = this.task;
     final l = L.of(context);
     final indeterminate = task.isMetadata || task.totalBytes == 0;
-    final peak = _history.fold<int>(
-      task.downloadSpeed,
-      (value, sample) => sample.download > value ? sample.download : value,
-    );
-    final disk = _history.last.disk;
+    // Историю читаем из общего Cubit: на странице игры по ней же рисуется
+    // подложка под заголовком, и расходиться этим двум нельзя.
+    final history = context.watch<DownloadHistoryCubit>();
+    final peak = history.peakOf(task);
+    final disk = history.diskSpeed;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,24 +146,10 @@ class _DownloadActivityState extends State<DownloadActivity> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        Semantics(
-          label: l.speedChart,
-          value: speedLabel(l, task.downloadSpeed),
-          image: true,
-          child: SizedBox(
-            height: 116,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _SpeedChartPainter(
-                samples: List.unmodifiable(_history),
-                networkColor: context.colors.primary,
-                diskColor: context.colors.accent,
-                gridColor: context.colors.outline,
-              ),
-            ),
-          ),
-        ),
+        if (showChart) ...[
+          const SizedBox(height: 14),
+          DownloadChart(task: task),
+        ],
         const SizedBox(height: 14),
         Row(
           children: [
@@ -220,13 +245,6 @@ class _Metric extends StatelessWidget {
   }
 }
 
-class _SpeedSample {
-  const _SpeedSample({required this.download, required this.disk});
-
-  final int download;
-  final int disk;
-}
-
 class _SpeedChartPainter extends CustomPainter {
   const _SpeedChartPainter({
     required this.samples,
@@ -235,7 +253,7 @@ class _SpeedChartPainter extends CustomPainter {
     required this.gridColor,
   });
 
-  final List<_SpeedSample> samples;
+  final List<SpeedSample> samples;
   final Color networkColor;
   final Color diskColor;
   final Color gridColor;
@@ -252,7 +270,7 @@ class _SpeedChartPainter extends CustomPainter {
     }
 
     final values = samples.isEmpty
-        ? const [_SpeedSample(download: 0, disk: 0)]
+        ? const [SpeedSample(download: 0, disk: 0)]
         : samples;
     var maximum = 1;
     for (final sample in values) {
@@ -260,12 +278,12 @@ class _SpeedChartPainter extends CustomPainter {
       if (sample.disk > maximum) maximum = sample.disk;
     }
 
-    final slot = size.width / _DownloadActivityState._historyLength;
+    final slot = size.width / DownloadHistoryCubit.length;
     final barPaint = Paint()
       ..color = networkColor.withValues(alpha: 0.62)
       ..strokeWidth = (slot * 0.62).clamp(1.0, 5.0)
       ..strokeCap = StrokeCap.round;
-    final offset = _DownloadActivityState._historyLength - values.length;
+    final offset = DownloadHistoryCubit.length - values.length;
     for (var i = 0; i < values.length; i++) {
       final height = values[i].download / maximum * (size.height - 4);
       final x = (offset + i + 0.5) * slot;

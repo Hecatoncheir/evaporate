@@ -182,14 +182,17 @@ void main() {
             home: MediaQuery(
               data: const MediaQueryData(disableAnimations: true),
               child: Scaffold(
-                body: ActionPanel(
-                  game: Game(
-                    id: 'g1',
-                    title: 'Качается',
-                    addedAt: DateTime.now(),
-                    status: GameStatus.downloading,
-                  ),
+                body: DownloadHistoryScope(
                   task: task,
+                  child: ActionPanel(
+                    game: Game(
+                      id: 'g1',
+                      title: 'Качается',
+                      addedAt: DateTime.now(),
+                      status: GameStatus.downloading,
+                    ),
+                    task: task,
+                  ),
                 ),
               ),
             ),
@@ -199,8 +202,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DownloadActivity), findsOneWidget);
-      // Полоса ровно одна: у графика своя, и вторая заставила бы человека
-      // честно выяснять, чем они различаются.
+      // График сюда не входит: он уехал подложкой под заголовок страницы.
+      expect(find.byType(DownloadChart), findsNothing);
+      // Полоса ровно одна: две подряд заставили бы человека честно
+      // выяснять, чем они различаются.
       expect(find.byType(AnimatedProgress), findsOneWidget);
       // А то, чего у графика нет, осталось: сколько ждать и с кем обмен.
       expect(find.textContaining('осталось'), findsOneWidget);

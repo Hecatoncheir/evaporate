@@ -12,7 +12,14 @@ void main() {
     supportedLocales: L.supportedLocales,
     locale: const Locale('ru'),
     home: Scaffold(
-      body: SizedBox(width: 720, child: DownloadActivity(task: task)),
+      body: SizedBox(
+        width: 720,
+        // Историю держит область: график и показания читают её сообща.
+        child: DownloadHistoryScope(
+          task: task,
+          child: DownloadActivity(task: task),
+        ),
+      ),
     ),
   );
 
@@ -57,7 +64,13 @@ void main() {
         supportedLocales: L.supportedLocales,
         locale: const Locale('ru'),
         home: const Scaffold(
-          body: SizedBox(width: 300, child: DownloadActivity(task: task)),
+          body: SizedBox(
+            width: 300,
+            child: DownloadHistoryScope(
+              task: task,
+              child: DownloadActivity(task: task),
+            ),
+          ),
         ),
       ),
     );

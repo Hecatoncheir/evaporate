@@ -112,7 +112,11 @@ class TaskCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            DownloadActivity(key: ValueKey(task.id), task: task),
+            DownloadHistoryScope(
+              key: ValueKey(task.id),
+              task: task,
+              child: DownloadActivity(task: task),
+            ),
             const SizedBox(height: 12),
             DefaultTextStyle(
               style: TextStyle(
