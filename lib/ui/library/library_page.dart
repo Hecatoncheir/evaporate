@@ -149,58 +149,59 @@ class _LibraryPageState extends State<LibraryPage> {
       builder: (context, constraints) {
         final roomy = constraints.maxHeight >= 760;
         final showHeading = constraints.maxHeight >= 360;
-        return Column(
-          children: [
-            if (showHeading)
-              _ConceptLibraryHeading(
-                compact: !roomy,
-                scale: scale,
-                onScale: (value) {
-                  final settings = context.read<SettingsBloc>();
-                  settings.add(
-                    SettingsChanged(
-                      settings.state.copyWith(libraryScale: value),
-                    ),
-                  );
+        return LibraryAtmosphere(
+          enabled: effects.libraryEffects,
+          particlesEnabled: effects.particlesEnabled,
+          ambientEnabled: effects.ambientEnabled,
+          targetKey: () => _tileKeys[_hoveredId ?? navState.selectedGameId],
+          child: Column(
+            children: [
+              if (showHeading)
+                _ConceptLibraryHeading(
+                  compact: !roomy,
+                  scale: scale,
+                  onScale: (value) {
+                    final settings = context.read<SettingsBloc>();
+                    settings.add(
+                      SettingsChanged(
+                        settings.state.copyWith(libraryScale: value),
+                      ),
+                    );
+                  },
+                ),
+              if (games.isNotEmpty && roomy)
+                _FeaturedGame(
+                  game: games.first,
+                  onOpen: () => nav.add(GameOpened(games.first.id)),
+                  onPrimary: () => _primaryGameAction(context, games.first),
+                ),
+              _Toolbar(
+                shelf: _shelf,
+                counts: {
+                  for (final shelf in _Shelf.values)
+                    shelf: _onShelf(found, shelf).length,
                 },
+                onShelf: (value) => setState(() => _shelf = value),
+                searchFocus: nav.searchFocus,
+                onReturnToGames: () => _returnToGames(games, nav),
+                onQuery: (value) => setState(() => _query = value),
+                onScan: () => _scanFolder(context),
+                onAdd: () => _addGame(context),
               ),
-            if (games.isNotEmpty && roomy)
-              _FeaturedGame(
-                game: games.first,
-                onOpen: () => nav.add(GameOpened(games.first.id)),
-                onPrimary: () => _primaryGameAction(context, games.first),
-              ),
-            _Toolbar(
-              shelf: _shelf,
-              counts: {
-                for (final shelf in _Shelf.values)
-                  shelf: _onShelf(found, shelf).length,
-              },
-              onShelf: (value) => setState(() => _shelf = value),
-              searchFocus: nav.searchFocus,
-              onReturnToGames: () => _returnToGames(games, nav),
-              onQuery: (value) => setState(() => _query = value),
-              onScan: () => _scanFolder(context),
-              onAdd: () => _addGame(context),
-            ),
-            Expanded(
-              child: DropTarget(
-                onDragEntered: (_) {
-                  if (!_scanning) setState(() => _dragging = true);
-                },
-                onDragExited: (_) => setState(() => _dragging = false),
-                onDragDone: (details) {
-                  setState(() => _dragging = false);
-                  // Пока открыто окно поиска, брошенное принадлежит ему.
-                  if (_scanning) return;
-                  _handleDrop(context, [for (final f in details.files) f.path]);
-                },
-                child: LibraryAtmosphere(
-                  enabled: effects.libraryEffects,
-                  particlesEnabled: effects.particlesEnabled,
-                  ambientEnabled: effects.ambientEnabled,
-                  targetKey: () =>
-                      _tileKeys[_hoveredId ?? navState.selectedGameId],
+              Expanded(
+                child: DropTarget(
+                  onDragEntered: (_) {
+                    if (!_scanning) setState(() => _dragging = true);
+                  },
+                  onDragExited: (_) => setState(() => _dragging = false),
+                  onDragDone: (details) {
+                    setState(() => _dragging = false);
+                    // Пока открыто окно поиска, брошенное принадлежит ему.
+                    if (_scanning) return;
+                    _handleDrop(context, [
+                      for (final f in details.files) f.path,
+                    ]);
+                  },
                   child: Stack(
                     children: [
                       Positioned.fill(
@@ -236,8 +237,8 @@ class _LibraryPageState extends State<LibraryPage> {
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
