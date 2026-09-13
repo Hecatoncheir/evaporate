@@ -292,10 +292,20 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     Emitter<DownloadsState> emit,
   ) async {
     final taskId = event.game.downloadTaskId;
+    // Задачу надо запомнить до снятия: после `remove` движок о ней забудет,
+    // а именно она знает, где лежит скачанное.
+    final task = taskId == null ? null : engine.taskById(taskId);
     try {
       if (taskId != null) await engine.remove(taskId);
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+    }
+    if (event.deleteFiles && task != null) {
+      try {
+        await deleteDownloaded(task, root: settings.state.installDir);
+      } on Object catch (error) {
+        emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      }
     }
     library.add(
       GameUpdated(
@@ -472,6 +482,36 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       );
     } finally {
       _finalizing.remove(game.id);
+    }
+  }
+
+  /// Убирает с диска то, что задача успела скачать.
+  ///
+  /// **Папку сносим только внутри корня загрузок и только не сам корень.**
+  /// У раздачи из одного файла, лежащего в корне, [deriveInstallDir]
+  /// возвращает этот самый корень — снести его значило бы унести всю
+  /// библиотеку игр заодно с этой. Поэтому такой случай разбирается
+  /// пофайлово: убираем ровно то, что задача назвала своим, и ничего
+  /// сверх.
+  /// Открыто и статично ради проверки: ошибка здесь стоит чужих файлов, а
+  /// корень передаётся снаружи — значит, тесту не нужны ни движок, ни
+  /// настройки, только временная папка.
+  @visibleForTesting
+  static Future<void> deleteDownloaded(
+    DownloadTask task, {
+    required String root,
+  }) async {
+    final dir = deriveInstallDir(task);
+    // `isWithin` на равных путях даёт false — это здесь и нужно.
+    if (dir != null && p.isWithin(root, dir)) {
+      final directory = Directory(dir);
+      if (await directory.exists()) await directory.delete(recursive: true);
+      return;
+    }
+    for (final path in task.files) {
+      if (!p.isWithin(root, path)) continue;
+      final file = File(path);
+      if (await file.exists()) await file.delete();
     }
   }
 

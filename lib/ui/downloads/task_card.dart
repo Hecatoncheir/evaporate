@@ -9,6 +9,7 @@ import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
+import 'cancel_dialog.dart';
 import 'download_activity.dart';
 
 /// Отмена спрашивает, как и на странице игры.
@@ -17,17 +18,22 @@ import 'download_activity.dart';
 /// кусков теряются, а игра уходит из «качается» обратно в «не
 /// установлена». Файлы при этом остаются, но продолжить с того же места
 /// одним нажатием уже нельзя.
-Future<void> _cancel(BuildContext context, Game game) async {
+Future<void> _cancel(BuildContext context, Game game, DownloadTask task) async {
   final downloads = context.read<DownloadsBloc>();
-  final ok = await confirm(
+  final choice = await askCancel(
     context,
     title: L.of(context).cancelDownloadQuestion,
     message: L.of(context).cancelDownloadNote,
     confirmLabel: L.of(context).cancelDownload,
-    destructive: true,
+    task: task,
   );
-  if (!ok) return;
-  downloads.add(DownloadCancelRequested(game));
+  if (choice == null) return;
+  downloads.add(
+    DownloadCancelRequested(
+      game,
+      deleteFiles: choice == CancelChoice.withFiles,
+    ),
+  );
 }
 
 class TaskCard extends StatelessWidget {
@@ -92,7 +98,7 @@ class TaskCard extends StatelessWidget {
                     ),
                   const SizedBox(width: 6),
                   IconAction(
-                    onPressed: () => _cancel(context, game!),
+                    onPressed: () => _cancel(context, game!, task),
                     icon: Icons.close,
                     tooltip: L.of(context).cancelDownload,
                     danger: true,

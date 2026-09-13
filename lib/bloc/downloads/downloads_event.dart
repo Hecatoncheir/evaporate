@@ -59,12 +59,16 @@ final class DownloadResumeRequested extends DownloadsEvent {
 }
 
 final class DownloadCancelRequested extends DownloadsEvent {
-  const DownloadCancelRequested(this.game);
+  const DownloadCancelRequested(this.game, {this.deleteFiles = false});
 
   final Game game;
 
+  /// Убрать заодно и скачанное. По умолчанию нет: снятая задача оставляет
+  /// файлы на диске, и человек вправе к ним вернуться.
+  final bool deleteFiles;
+
   @override
-  List<Object?> get props => [game.id];
+  List<Object?> get props => [game.id, deleteFiles];
 }
 
 /// Сохранить `.torrent` игры туда, куда указал пользователь.

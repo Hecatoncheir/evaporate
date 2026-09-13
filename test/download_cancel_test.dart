@@ -79,10 +79,83 @@ void main() {
       reason: 'снятие задачи не делают по одному нажатию',
     );
 
+    // «Оставить», а не «Отмена»: рядом стоит «Отменить», и две клавиши,
+    // читающиеся одинаково, — худший вид вопроса.
+    expect(find.text('Отмена'), findsNothing);
+    expect(find.text('Оставить'), findsOneWidget);
+
     // Передумали — и ничего не случилось.
-    await tester.tap(find.text('Отмена'));
+    await tester.tap(find.text('Оставить'));
     await tester.pumpAndSettle();
     expect(find.text('Отменить загрузку?'), findsNothing);
+  });
+
+  testWidgets('скачавшей задаче предлагают стереть файлы, пустой — нет', (
+    tester,
+  ) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    await tester.pump();
+
+    Future<void> open(DownloadTask task) async {
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: harness.settings),
+            BlocProvider.value(value: harness.library),
+            BlocProvider.value(value: harness.downloads),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            locale: const Locale('ru'),
+            theme: EvaporateTheme.dark(),
+            home: MediaQuery(
+              data: const MediaQueryData(disableAnimations: true),
+              child: Scaffold(
+                body: TaskCard(
+                  task: task,
+                  game: Game(
+                    id: 'g1',
+                    title: 'Игра',
+                    addedAt: DateTime.now(),
+                    status: GameStatus.downloading,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Отменить'));
+      await tester.pumpAndSettle();
+    }
+
+    await open(
+      const DownloadTask(
+        id: 't1',
+        name: 'Что-то скачано',
+        state: DownloadState.active,
+        totalBytes: 1000,
+        completedBytes: 400,
+      ),
+    );
+    expect(find.text('Удалить совсем вместе с файлами'), findsOneWidget);
+    await tester.tap(find.text('Оставить'));
+    await tester.pumpAndSettle();
+
+    // Задаче, не скачавшей ни байта, стирать нечего — и предлагать нечего.
+    await open(
+      const DownloadTask(
+        id: 't2',
+        name: 'Ещё не начата',
+        state: DownloadState.waiting,
+        totalBytes: 1000,
+      ),
+    );
+    expect(find.text('Удалить совсем вместе с файлами'), findsNothing);
+    expect(find.text('Отменить загрузку?'), findsOneWidget);
   });
 
   // Клавиша та же и делает то же самое, а очередь — не черновик, человек её
