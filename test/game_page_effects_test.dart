@@ -9,6 +9,7 @@ import 'package:evaporate/ui/library/game_wave.dart';
 import 'package:evaporate/ui/library/play_button.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/decorative_motion.dart';
+import 'package:evaporate/ui/widgets/common.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -42,8 +43,8 @@ void main() {
       );
       await show();
       await frames(tester, 30);
-      final button = find.byType(FilledButton);
-      expect(tester.widget<FilledButton>(button).style, isNull);
+      final button = find.byType(LauncherActionButton);
+      expect(tester.widget<LauncherActionButton>(button).onPressed, isNotNull);
       expect(find.byType(DecorativeMotion), findsNothing);
       Focus.of(tester.element(find.text('Играть'))).requestFocus();
       await tester.pump();
@@ -53,7 +54,7 @@ void main() {
       enabled = false;
       await show();
       await tester.pumpAndSettle();
-      expect(tester.widget<FilledButton>(button).onPressed, isNull);
+      expect(tester.widget<LauncherActionButton>(button).onPressed, isNull);
       await tester.tap(button);
       await tester.pump();
       expect(taps, 1);

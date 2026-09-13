@@ -416,12 +416,12 @@ class _ActionPanel extends StatelessWidget {
     final canDownload =
         source != null && source.kind != GameSourceKind.localFolder;
     return [
-      FilledButton.icon(
+      LauncherActionButton(
         onPressed: canDownload
             ? () => downloads.add(DownloadRequested(game: game, source: source))
             : null,
-        icon: const Icon(Icons.download_rounded, size: 18),
-        label: Text(L.of(context).download),
+        icon: Icons.download_rounded,
+        label: L.of(context).download,
       ),
       const SizedBox(width: 10),
       OutlinedButton.icon(

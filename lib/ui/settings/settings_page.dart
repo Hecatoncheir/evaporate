@@ -69,10 +69,27 @@ class SettingsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                L.of(context).settings,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                L.of(context).conceptSettingsLabel,
+                style: TextStyle(
+                  color: context.colors.primary,
+                  fontFamily: EvaporateTheme.monoFontFamily,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 6),
+              Text(
+                L.of(context).settings,
+                style: const TextStyle(
+                  fontFamily: EvaporateTheme.displayFontFamily,
+                  fontSize: 42,
+                  height: 0.95,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1.8,
+                ),
+              ),
+              const SizedBox(height: 24),
               SectionCard(
                 title: L.of(context).displayScale,
                 icon: Icons.zoom_in,

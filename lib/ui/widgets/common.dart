@@ -6,6 +6,83 @@ import '../theme.dart';
 import 'spatial_surface.dart';
 import '../../l10n/app_localizations.dart';
 
+/// Главное действие лаунчера: компактная зелёная клавиша с лёгким объёмом.
+/// Она намеренно почти прямоугольная — как кнопка Download из референса.
+class LauncherActionButton extends StatelessWidget {
+  const LauncherActionButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.45,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.launcherGreenTop,
+                AppColors.launcherGreenBottom,
+              ],
+            ),
+            border: Border.all(color: AppColors.launcherGreenBorder),
+            borderRadius: BorderRadius.circular(3),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.coverTextShadow.withValues(alpha: 0.28),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: AppColors.transparent,
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(3),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 116, minHeight: 42),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 18, color: AppColors.launcherButtonText),
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: AppColors.launcherButtonText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Небольшая цветная метка статуса — используется в списке и в карточке игры.
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status, this.compact = false});
@@ -65,7 +142,7 @@ class SectionCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: GlassSurface(
-        radius: 22,
+        radius: 12,
         opacity: context.colors.isDark ? 0.62 : 0.74,
         padding: const EdgeInsets.all(18),
         child: Column(

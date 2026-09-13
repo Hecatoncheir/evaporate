@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/common.dart';
 import 'package:evaporate/ui/widgets/spatial_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,8 +83,8 @@ void main() {
     expect(find.text('Снимки сохранений'), findsOneWidget);
     expect(find.text('Файлы игры'), findsOneWidget);
     // Без указанного исполняемого файла «Играть» должна быть недоступна.
-    final playButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Играть'),
+    final playButton = tester.widget<LauncherActionButton>(
+      find.widgetWithText(LauncherActionButton, 'Играть'),
     );
     expect(playButton.onPressed, isNull);
   });
@@ -124,13 +126,13 @@ void main() {
     expect(find.text('Сохранить .torrent'), findsOneWidget);
   });
 
-  testWidgets('строка состояния сообщает, что движок не запущен', (
-    tester,
-  ) async {
+  testWidgets('экран загрузок сообщает, что движок не запущен', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
 
     await harness.pump(tester);
+    harness.nav.add(const SectionSelected(1));
+    await tester.pumpAndSettle();
 
     expect(find.textContaining('Движок загрузок'), findsOneWidget);
   });

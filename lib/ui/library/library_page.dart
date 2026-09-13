@@ -19,6 +19,7 @@ import '../../models/app_settings.dart';
 import '../../input/input_scope.dart';
 import '../widgets/scale_control.dart';
 import '../widgets/liquid_selection.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/spatial_surface.dart';
@@ -144,81 +145,123 @@ class _LibraryPageState extends State<LibraryPage> {
 
     if (opened != null) return _GamePage(game: opened);
 
-    return Column(
-      children: [
-        _Toolbar(
-          shelf: _shelf,
-          counts: {
-            for (final shelf in _Shelf.values)
-              shelf: _onShelf(found, shelf).length,
-          },
-          onShelf: (value) => setState(() => _shelf = value),
-          searchFocus: nav.searchFocus,
-          onReturnToGames: () => _returnToGames(games, nav),
-          scale: scale,
-          onScale: (value) {
-            final settings = context.read<SettingsBloc>();
-            settings.add(
-              SettingsChanged(settings.state.copyWith(libraryScale: value)),
-            );
-          },
-          onQuery: (value) => setState(() => _query = value),
-          onScan: () => _scanFolder(context),
-          onAdd: () => _addGame(context),
-        ),
-        Expanded(
-          child: DropTarget(
-            onDragEntered: (_) {
-              if (!_scanning) setState(() => _dragging = true);
-            },
-            onDragExited: (_) => setState(() => _dragging = false),
-            onDragDone: (details) {
-              setState(() => _dragging = false);
-              // Пока открыто окно поиска, брошенное принадлежит ему.
-              if (_scanning) return;
-              _handleDrop(context, [for (final f in details.files) f.path]);
-            },
-            child: LibraryAtmosphere(
-              enabled: effects.libraryEffects,
-              particlesEnabled: effects.particlesEnabled,
-              ambientEnabled: effects.ambientEnabled,
-              targetKey: () => _tileKeys[_hoveredId ?? navState.selectedGameId],
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: games.isEmpty
-                        ? _empty(context, library.games.isEmpty)
-                        : LayoutBuilder(
-                            builder: (context, constraints) {
-                              final extent = 215 * scale;
-                              _columns =
-                                  ((constraints.maxWidth - 64) / (extent + 36))
-                                      .ceil()
-                                      .clamp(1, 1000);
-                              final tileWidth =
-                                  (constraints.maxWidth -
-                                      64 -
-                                      36 * (_columns - 1)) /
-                                  _columns;
-                              _rowStride = tileWidth * 1.5 + 40;
-                              return _grid(
-                                games,
-                                navState.selectedGameId,
-                                nav,
-                                effects,
-                                extent,
-                              );
-                            },
-                          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final roomy = constraints.maxHeight >= 760;
+        final showHeading = constraints.maxHeight >= 360;
+        return Column(
+          children: [
+            if (showHeading)
+              _ConceptLibraryHeading(
+                compact: !roomy,
+                scale: scale,
+                onScale: (value) {
+                  final settings = context.read<SettingsBloc>();
+                  settings.add(
+                    SettingsChanged(
+                      settings.state.copyWith(libraryScale: value),
+                    ),
+                  );
+                },
+              ),
+            if (games.isNotEmpty && roomy)
+              _FeaturedGame(
+                game: games.first,
+                onOpen: () => nav.add(GameOpened(games.first.id)),
+                onPrimary: () => _primaryGameAction(context, games.first),
+              ),
+            _Toolbar(
+              shelf: _shelf,
+              counts: {
+                for (final shelf in _Shelf.values)
+                  shelf: _onShelf(found, shelf).length,
+              },
+              onShelf: (value) => setState(() => _shelf = value),
+              searchFocus: nav.searchFocus,
+              onReturnToGames: () => _returnToGames(games, nav),
+              onQuery: (value) => setState(() => _query = value),
+              onScan: () => _scanFolder(context),
+              onAdd: () => _addGame(context),
+            ),
+            Expanded(
+              child: DropTarget(
+                onDragEntered: (_) {
+                  if (!_scanning) setState(() => _dragging = true);
+                },
+                onDragExited: (_) => setState(() => _dragging = false),
+                onDragDone: (details) {
+                  setState(() => _dragging = false);
+                  // Пока открыто окно поиска, брошенное принадлежит ему.
+                  if (_scanning) return;
+                  _handleDrop(context, [for (final f in details.files) f.path]);
+                },
+                child: LibraryAtmosphere(
+                  enabled: effects.libraryEffects,
+                  particlesEnabled: effects.particlesEnabled,
+                  ambientEnabled: effects.ambientEnabled,
+                  targetKey: () =>
+                      _tileKeys[_hoveredId ?? navState.selectedGameId],
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: games.isEmpty
+                            ? _empty(context, library.games.isEmpty)
+                            : LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final extent = 215 * scale;
+                                  _columns =
+                                      ((constraints.maxWidth - 64) /
+                                              (extent + 36))
+                                          .ceil()
+                                          .clamp(1, 1000);
+                                  final tileWidth =
+                                      (constraints.maxWidth -
+                                          64 -
+                                          36 * (_columns - 1)) /
+                                      _columns;
+                                  _rowStride = tileWidth * 1.5 + 40;
+                                  return _grid(
+                                    games,
+                                    navState.selectedGameId,
+                                    nav,
+                                    effects,
+                                    extent,
+                                  );
+                                },
+                              ),
+                      ),
+                      if (_dragging)
+                        const Positioned.fill(child: _DropOverlay()),
+                    ],
                   ),
-                  if (_dragging) const Positioned.fill(child: _DropOverlay()),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
+  }
+
+  void _primaryGameAction(BuildContext context, Game game) {
+    final library = context.read<LibraryBloc>();
+    final downloads = context.read<DownloadsBloc>();
+    switch (game.status) {
+      case GameStatus.running:
+        library.add(GameStopRequested(game));
+      case GameStatus.downloading:
+        downloads.add(DownloadPauseRequested(game));
+      case GameStatus.paused:
+        downloads.add(DownloadResumeRequested(game));
+      case GameStatus.installed:
+        if (game.canLaunch) library.add(GameLaunchRequested(game));
+      case GameStatus.notInstalled:
+      case GameStatus.error:
+        final source = game.source;
+        if (source != null && source.kind != GameSourceKind.localFolder) {
+          downloads.add(DownloadRequested(game: game, source: source));
+        }
+    }
   }
 
   /// Сброшенное в окно: папка становится установленной игрой, `.torrent` —
@@ -324,7 +367,7 @@ class _LibraryPageState extends State<LibraryPage> {
       targetKey: () => _tileKeys[_hoveredId ?? selectedId],
       enabled: effects.libraryEffects && effects.liquidSelectionEnabled,
       color: context.colors.selection,
-      radius: 16,
+      radius: 12,
       padding: const EdgeInsets.all(7),
       child: GridView.builder(
         controller: _scroll,
@@ -534,6 +577,292 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 }
 
+class _ConceptLibraryHeading extends StatelessWidget {
+  const _ConceptLibraryHeading({
+    required this.compact,
+    required this.scale,
+    required this.onScale,
+  });
+
+  final bool compact;
+  final double scale;
+  final ValueChanged<double> onScale;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(28, compact ? 18 : 24, 28, compact ? 4 : 12),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                L.of(context).conceptLibraryLabel,
+                style: TextStyle(
+                  color: context.colors.primary,
+                  fontFamily: EvaporateTheme.monoFontFamily,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                compact
+                    ? L.of(context).conceptLibraryHeadlineCompact
+                    : L.of(context).conceptLibraryHeadline,
+                maxLines: compact ? 1 : 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.colors.textPrimary,
+                  fontFamily: EvaporateTheme.displayFontFamily,
+                  fontSize: compact ? 25 : 38,
+                  height: 0.92,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: compact ? -1 : -2.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (compact) ...[
+          const SizedBox(width: 16),
+          ScaleControl(
+            key: const ValueKey('library-scale'),
+            label: L.of(context).coverScale,
+            value: scale,
+            min: AppSettings.minLibraryScale,
+            max: AppSettings.maxLibraryScale,
+            step: 0.25,
+            onChanged: onScale,
+          ),
+        ],
+        if (!compact) ...[
+          const SizedBox(width: 32),
+          Container(
+            width: 310,
+            padding: const EdgeInsets.only(left: 22),
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: context.colors.outline.withValues(alpha: 0.48),
+                ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  L.of(context).conceptLibraryDescription,
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ScaleControl(
+                  key: const ValueKey('library-scale'),
+                  label: L.of(context).coverScale,
+                  value: scale,
+                  min: AppSettings.minLibraryScale,
+                  max: AppSettings.maxLibraryScale,
+                  step: 0.25,
+                  onChanged: onScale,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+class _FeaturedGame extends StatelessWidget {
+  const _FeaturedGame({
+    required this.game,
+    required this.onOpen,
+    required this.onPrimary,
+  });
+
+  final Game game;
+  final VoidCallback onOpen;
+  final VoidCallback onPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final playable = game.status != GameStatus.installed || game.canLaunch;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 8),
+      child: SizedBox(
+        height: 238,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                'assets/branding/orbit_fall_hero.png',
+                fit: BoxFit.cover,
+                alignment: const Alignment(0.2, 0.46),
+                filterQuality: FilterQuality.medium,
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      AppColors.heroShadeStrong,
+                      AppColors.heroShadeMiddle,
+                      AppColors.heroShadeClear,
+                    ],
+                    stops: [0, 0.48, 0.82],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 26,
+                top: 22,
+                bottom: 22,
+                width: 430,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      L
+                          .of(context)
+                          .conceptFeaturedContinue(
+                            game.lastPlayed == null
+                                ? L.of(context).featuredReady
+                                : L.of(context).featuredRecent,
+                          ),
+                      style: const TextStyle(
+                        color: AppColors.heroEyebrow,
+                        fontFamily: EvaporateTheme.monoFontFamily,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      game.title.toUpperCase(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.coverText,
+                        fontFamily: EvaporateTheme.displayFontFamily,
+                        fontSize: 38,
+                        height: 0.88,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -2,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      game.description?.trim().isNotEmpty == true
+                          ? game.description!
+                          : L.of(context).featuredFallbackDescription,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.heroBody,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        LauncherActionButton(
+                          onPressed: playable ? onPrimary : null,
+                          icon:
+                              game.status == GameStatus.notInstalled ||
+                                  game.status == GameStatus.error
+                              ? Icons.download_rounded
+                              : Icons.play_arrow_rounded,
+                          label: _primaryLabel(context, game),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton(
+                          onPressed: onOpen,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.coverText,
+                            side: BorderSide(
+                              color: AppColors.coverText.withValues(
+                                alpha: 0.38,
+                              ),
+                            ),
+                            minimumSize: const Size(112, 42),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(L.of(context).openGame),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                right: 20,
+                bottom: 18,
+                child: Container(
+                  width: 198,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.heroPanel,
+                    border: Border.all(color: AppColors.coverProgressTrack),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        L.of(context).inGame,
+                        style: TextStyle(
+                          color: AppColors.coverText.withValues(alpha: 0.6),
+                          fontFamily: EvaporateTheme.monoFontFamily,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        formatDurationLabel(L.of(context), game.playtime),
+                        style: const TextStyle(
+                          color: AppColors.coverText,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _primaryLabel(BuildContext context, Game game) =>
+      switch (game.status) {
+        GameStatus.running => L.of(context).stop,
+        GameStatus.downloading => L.of(context).pause,
+        GameStatus.paused => L.of(context).resume,
+        GameStatus.installed => L.of(context).play,
+        GameStatus.notInstalled || GameStatus.error => L.of(context).download,
+      };
+}
+
 /// Подсказка поверх сетки, пока над окном что-то держат.
 ///
 /// Молчаливый приёмник — худший из возможных: пользователь не знает ни что
@@ -593,7 +922,7 @@ class DottedBorderBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: context.colors.accent, width: 2),
       ),
       child: Center(child: child),
@@ -612,8 +941,6 @@ class _Toolbar extends StatelessWidget {
     required this.onScan,
     required this.onAdd,
     required this.onReturnToGames,
-    required this.scale,
-    required this.onScale,
   });
 
   final _Shelf shelf;
@@ -624,94 +951,143 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onScan;
   final VoidCallback onAdd;
   final VoidCallback onReturnToGames;
-  final double scale;
-  final ValueChanged<double> onScale;
 
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
+    final filters = KeyedSubtree(
+      key: const ValueKey('library-filter-group'),
+      child: _ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
+    );
+    final actions = KeyedSubtree(
+      key: const ValueKey('library-actions-group'),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: onScan,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            icon: const Icon(Icons.folder_open_outlined, size: 19),
+            label: Text(l.findInstalledGames),
+          ),
+          OutlinedButton.icon(
+            onPressed: onAdd,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+            icon: const Icon(Icons.add, size: 19),
+            label: Text(l.addGame),
+          ),
+        ],
+      ),
+    );
+    final search = SizedBox(
+      key: const ValueKey('library-search'),
+      width: 144,
+      height: 48,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.colors.railBackground.withValues(alpha: 0.78),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: context.colors.textPrimary.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: Actions(
+            actions: {
+              ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
+                onInvoke: (_) {
+                  onReturnToGames();
+                  return null;
+                },
+              ),
+            },
+            child: Shortcuts(
+              shortcuts: const {
+                SingleActivator(LogicalKeyboardKey.arrowDown):
+                    ReturnToLibraryIntent(),
+                SingleActivator(LogicalKeyboardKey.escape):
+                    ReturnToLibraryIntent(),
+                SingleActivator(LogicalKeyboardKey.enter):
+                    ReturnToLibraryIntent(),
+                SingleActivator(LogicalKeyboardKey.numpadEnter):
+                    ReturnToLibraryIntent(),
+              },
+              child: TextField(
+                focusNode: searchFocus,
+                onChanged: onQuery,
+                onSubmitted: (_) => onReturnToGames(),
+                decoration: InputDecoration(
+                  hintText: l.searchHint,
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  filled: false,
+                  isDense: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
       child: GlassSurface(
-        radius: 22,
-        opacity: context.colors.isDark ? 0.62 : 0.76,
+        radius: 12,
+        opacity: context.colors.isDark ? 0.72 : 0.84,
         shadow: false,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                l.library,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            _ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
-            SizedBox(
-              width: 210,
-              child: Actions(
-                actions: {
-                  ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
-                    onInvoke: (_) {
-                      onReturnToGames();
-                      return null;
-                    },
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth >= 1340) {
+              return Row(
+                children: [
+                  filters,
+                  const Spacer(),
+                  actions,
+                  const Spacer(),
+                  search,
+                ],
+              );
+            }
+            if (constraints.maxWidth >= 760) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      filters,
+                      const SizedBox(width: 16),
+                      Expanded(child: search),
+                    ],
                   ),
-                },
-                child: Shortcuts(
-                  shortcuts: const {
-                    SingleActivator(LogicalKeyboardKey.arrowDown):
-                        ReturnToLibraryIntent(),
-                    SingleActivator(LogicalKeyboardKey.escape):
-                        ReturnToLibraryIntent(),
-                    SingleActivator(LogicalKeyboardKey.enter):
-                        ReturnToLibraryIntent(),
-                    SingleActivator(LogicalKeyboardKey.numpadEnter):
-                        ReturnToLibraryIntent(),
-                  },
-                  child: TextField(
-                    focusNode: searchFocus,
-                    onChanged: onQuery,
-                    // Enter в поиске уводит фокус в сетку — удобно и с клавиатуры,
-                    // и с геймпадной экранной клавиатуры.
-                    onSubmitted: (_) => onReturnToGames(),
-                    decoration: InputDecoration(
-                      hintText: l.searchHint,
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      isDense: true,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            OutlinedButton.icon(
-              onPressed: onScan,
-              icon: const Icon(Icons.folder_open_outlined, size: 19),
-              label: Text(l.findInstalledGames),
-            ),
-            IconButton.filled(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 20),
-              tooltip: l.addGame,
-            ),
-            ScaleControl(
-              key: const ValueKey('library-scale'),
-              label: l.coverScale,
-              value: scale,
-              min: AppSettings.minLibraryScale,
-              max: AppSettings.maxLibraryScale,
-              step: 0.25,
-              onChanged: onScale,
-            ),
-          ],
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.center, child: actions),
+                ],
+              );
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(alignment: Alignment.centerLeft, child: filters),
+                const SizedBox(height: 8),
+                SizedBox(width: double.infinity, child: search),
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.center, child: actions),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -739,7 +1115,7 @@ class _ShelfTabsState extends State<_ShelfTabs> {
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       color: context.colors.railBackground.withValues(alpha: 0.78),
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(12),
       border: Border.all(
         color: context.colors.textPrimary.withValues(alpha: 0.1),
       ),
@@ -750,7 +1126,7 @@ class _ShelfTabsState extends State<_ShelfTabs> {
         key: const ValueKey('shelf-liquid'),
         targetKey: () => _targets[widget.shelf],
         color: context.colors.selection,
-        padding: const EdgeInsets.only(right: -4),
+        radius: 8,
         enabled: context.select<SettingsBloc, bool>(
           (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
         ),
@@ -803,10 +1179,10 @@ class _ShelfButton extends StatelessWidget {
         style: TextButton.styleFrom(
           backgroundColor: AppColors.transparent,
           foregroundColor: active ? colors.onSelection : colors.textSecondary,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
+          minimumSize: const Size(0, 42),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: LiquidSelectionInk(
           normalColor: colors.textSecondary,
@@ -849,7 +1225,7 @@ class _GamePage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
           child: GlassSurface(
-            radius: 20,
+            radius: 12,
             shadow: false,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             child: Row(

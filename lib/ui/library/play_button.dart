@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/common.dart';
+
 /// Обычная кнопка запуска в цветах темы, без декоративных эффектов.
 class PlayButton extends StatelessWidget {
   const PlayButton({super.key, required this.label, required this.onPressed});
@@ -7,9 +9,9 @@ class PlayButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context) => FilledButton.icon(
+  Widget build(BuildContext context) => LauncherActionButton(
     onPressed: onPressed,
-    icon: const Icon(Icons.play_arrow_rounded, size: 20),
-    label: Text(label),
+    icon: Icons.play_arrow_rounded,
+    label: label,
   );
 }

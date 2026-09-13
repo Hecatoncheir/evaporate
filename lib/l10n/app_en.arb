@@ -512,5 +512,25 @@
   "windowOnStart": "Window on launch",
   "windowRemembered": "As you left it",
   "wipeBeforeUnpack": "Empty the folders before unpacking",
-  "wipeNote": "Otherwise files from the snapshot just overwrite same-named ones"
+  "wipeNote": "Otherwise files from the snapshot just overwrite same-named ones",
+  "conceptDownloadsLabel": "[ 01 / ACTIVE ]",
+  "conceptSavesLabel": "[ CLOUD / SYNC ]",
+  "conceptSettingsLabel": "[ SYSTEM / SETTINGS ]",
+  "conceptLibraryLabel": "[ 03 / COLLECTION ]",
+  "conceptLibraryHeadline": "GAMES THAT STAY WITH YOU",
+  "conceptLibraryHeadlineCompact": "Games that stay with you",
+  "conceptLibraryDescription": "One tidy library for games from every source. No news and no ads.",
+  "conceptFeaturedContinue": "CONTINUE · {freshness}",
+  "@conceptFeaturedContinue": {
+    "placeholders": {
+      "freshness": {"type": "String"}
+    }
+  },
+  "featuredReady": "READY",
+  "featuredRecent": "RECENT",
+  "featuredFallbackDescription": "Continue from your latest save or open the game page.",
+  "openGame": "Open game",
+  "inGame": "IN GAME",
+  "lightThemeAction": "Light theme",
+  "darkThemeAction": "Dark theme"
 }

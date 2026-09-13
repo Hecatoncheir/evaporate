@@ -39,13 +39,46 @@ class DownloadsPage extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                L.of(context).downloads,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                L.of(context).conceptDownloadsLabel,
+                style: TextStyle(
+                  color: context.colors.primary,
+                  fontFamily: EvaporateTheme.monoFontFamily,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Text(
+                    L.of(context).downloads,
+                    style: const TextStyle(
+                      fontFamily: EvaporateTheme.displayFontFamily,
+                      fontSize: 42,
+                      height: 0.95,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.8,
+                    ),
+                  ),
+                  const Spacer(),
+                  _EngineStatusChip(status: downloads.engine),
+                  const SizedBox(width: 10),
+                  if (downloads.engine.state == EngineState.failed)
+                    OutlinedButton.icon(
+                      onPressed: () => context.read<DownloadsBloc>().add(
+                        const DownloadEngineRestartRequested(),
+                      ),
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: Text(L.of(context).restartEngine),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 7),
               Text(
                 L.of(context).concurrentAtOnce(maxConcurrent),
                 style: TextStyle(
@@ -53,15 +86,6 @@ class DownloadsPage extends StatelessWidget {
                   color: context.colors.textSecondary,
                 ),
               ),
-              const Spacer(),
-              if (downloads.engine.state == EngineState.failed)
-                OutlinedButton.icon(
-                  onPressed: () => context.read<DownloadsBloc>().add(
-                    const DownloadEngineRestartRequested(),
-                  ),
-                  icon: const Icon(Icons.refresh, size: 16),
-                  label: Text(L.of(context).restartEngine),
-                ),
             ],
           ),
         ),
@@ -458,6 +482,62 @@ class _Hint extends StatelessWidget {
           color: context.colors.textSecondary,
           height: 1.5,
         ),
+      ),
+    );
+  }
+}
+
+class _EngineStatusChip extends StatelessWidget {
+  const _EngineStatusChip({required this.status});
+
+  final EngineStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status.state) {
+      EngineState.ready => context.colors.accent,
+      EngineState.starting => context.colors.warning,
+      EngineState.failed => context.colors.danger,
+      EngineState.stopped => context.colors.textSecondary,
+    };
+    final icon = switch (status.state) {
+      EngineState.ready => Icons.check_circle_outline_rounded,
+      EngineState.starting => Icons.hourglass_empty_rounded,
+      EngineState.failed => Icons.error_outline_rounded,
+      EngineState.stopped => Icons.stop_circle_outlined,
+    };
+    final label =
+        status.message ??
+        L
+            .of(context)
+            .engineStatus(engineStateLabel(L.of(context), status.state));
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 38, maxWidth: 270),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        border: Border.all(color: color.withValues(alpha: 0.42)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

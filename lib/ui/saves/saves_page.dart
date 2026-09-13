@@ -41,10 +41,27 @@ class _SavesPageState extends State<SavesPage> {
       padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
       children: [
         Text(
-          L.of(context).saves,
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          L.of(context).conceptSavesLabel,
+          style: TextStyle(
+            color: context.colors.primary,
+            fontFamily: EvaporateTheme.monoFontFamily,
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.1,
+          ),
         ),
         const SizedBox(height: 6),
+        Text(
+          L.of(context).saves,
+          style: const TextStyle(
+            fontFamily: EvaporateTheme.displayFontFamily,
+            fontSize: 42,
+            height: 0.95,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1.8,
+          ),
+        ),
+        const SizedBox(height: 8),
         Text(
           L.of(context).savesIntro,
           style: TextStyle(

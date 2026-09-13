@@ -1244,5 +1244,25 @@
   "windowOnStart": "Окно при запуске",
   "windowRemembered": "Как закрыли",
   "wipeBeforeUnpack": "Очистить папки перед распаковкой",
-  "wipeNote": "Иначе файлы из снимка просто перезапишут одноимённые"
+  "wipeNote": "Иначе файлы из снимка просто перезапишут одноимённые",
+  "conceptDownloadsLabel": "[ 01 / АКТИВНО ]",
+  "conceptSavesLabel": "[ ОБЛАКО / СИНХРОНИЗАЦИЯ ]",
+  "conceptSettingsLabel": "[ СИСТЕМА / ПАРАМЕТРЫ ]",
+  "conceptLibraryLabel": "[ 03 / КОЛЛЕКЦИЯ ]",
+  "conceptLibraryHeadline": "ИГРЫ, КОТОРЫЕ ОСТАЮТСЯ С ВАМИ",
+  "conceptLibraryHeadlineCompact": "Игры, которые остаются с вами",
+  "conceptLibraryDescription": "Одна аккуратная библиотека для игр из разных источников. Без новостей и рекламы.",
+  "conceptFeaturedContinue": "ПРОДОЛЖИТЬ · {freshness}",
+  "@conceptFeaturedContinue": {
+    "placeholders": {
+      "freshness": {"type": "String"}
+    }
+  },
+  "featuredReady": "ГОТОВО",
+  "featuredRecent": "НЕДАВНО",
+  "featuredFallbackDescription": "Продолжите с последнего сохранения или откройте страницу игры.",
+  "openGame": "Открыть игру",
+  "inGame": "В ИГРЕ",
+  "lightThemeAction": "Светлая тема",
+  "darkThemeAction": "Тёмная тема"
 }

@@ -463,7 +463,14 @@ void main() {
         );
         await mouse.removePointer();
         await frames(tester, 40);
-        Focus.of(tester.element(find.text('ABZU'))).requestFocus();
+        Focus.of(
+          tester.element(
+            find.descendant(
+              of: find.byType(GameCoverTile),
+              matching: find.text('ABZU'),
+            ),
+          ),
+        ).requestFocus();
         await frames(tester, 12);
         final previousSelection = harness.nav.state.selectedGameId;
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);

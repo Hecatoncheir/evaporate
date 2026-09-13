@@ -92,7 +92,7 @@ class EvaporateTheme {
         color: p.surface.withValues(alpha: p.isDark ? 0.78 : 0.84),
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: p.outline.withValues(alpha: 0.62)),
         ),
       ),
@@ -104,15 +104,15 @@ class EvaporateTheme {
           vertical: 12,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: p.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: p.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: p.primary),
         ),
         labelStyle: TextStyle(color: p.textSecondary),
@@ -121,9 +121,7 @@ class EvaporateTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           textStyle: const TextStyle(
             fontFamily: fontFamily,
             fontWeight: FontWeight.w600,
@@ -136,9 +134,7 @@ class EvaporateTheme {
           foregroundColor: p.textPrimary,
           side: BorderSide(color: p.outline),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -179,7 +175,7 @@ class EvaporateTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: p.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: p.outline),
         ),
       ),

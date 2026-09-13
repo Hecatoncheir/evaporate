@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../bloc/downloads/downloads_bloc.dart';
 import '../bloc/library/library_bloc.dart';
@@ -97,76 +99,114 @@ class AppShell extends StatelessWidget {
         onBack: nav.closeOpenedGame,
         child: Scaffold(
           backgroundColor: AppColors.transparent,
-          body: SpatialBackdrop(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact =
-                    constraints.maxWidth < 920 || constraints.maxHeight < 520;
-                return Padding(
-                  padding: compact
-                      ? const EdgeInsets.symmetric(horizontal: 6)
-                      : const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: GameWave(
-                          key: const ValueKey('library-wave'),
-                          enabled: section == 0 && waveEnabled,
-                          child: Row(
-                            children: [
-                              GlassSurface(
-                                radius: compact ? 20 : 28,
-                                opacity: context.colors.isDark ? 0.9 : 0.96,
-                                child: _Rail(compact: compact),
-                              ),
-                              SizedBox(width: compact ? 6 : 12),
-                              Expanded(
-                                child: GlassSurface(
-                                  radius: compact ? 20 : 28,
-                                  opacity: context.colors.isDark ? 0.88 : 0.94,
-                                  child: FocusTraversalGroup(
-                                    child:
-                                        BlocSelector<
-                                          NavigationBloc,
-                                          NavigationState,
-                                          int
-                                        >(
-                                          selector: (state) => state.section,
-                                          builder: (context, section) =>
-                                              FadeIndexedStack(
-                                                index: section,
-                                                enabled: context
-                                                    .select<SettingsBloc, bool>(
-                                                      (b) =>
-                                                          b
-                                                              .state
-                                                              .libraryEffects &&
-                                                          b
-                                                              .state
-                                                              .interfaceAnimationsEnabled,
-                                                    ),
-                                                children: const [
-                                                  LibraryPage(),
-                                                  DownloadsPage(),
-                                                  SavesPage(),
-                                                  SettingsPage(),
-                                                ],
-                                              ),
-                                        ),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                'assets/branding/frost_world_background.png',
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+              ),
+              ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                  child: ColoredBox(
+                    color: context.colors.isDark
+                        ? AppColors.frostDark
+                        : AppColors.frostLight,
+                  ),
+                ),
+              ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 980;
+                  final shortViewport = constraints.maxHeight < 520;
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      compact ? 6 : 10,
+                      compact ? 6 : 10,
+                      compact ? 6 : 10,
+                      0,
+                    ),
+                    child: Column(
+                      children: [
+                        _ConceptTopBar(compact: compact),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: context.colors.surface.withValues(
+                                  alpha: context.colors.isDark ? 0.82 : 0.76,
+                                ),
+                                border: Border.all(
+                                  color: context.colors.outline.withValues(
+                                    alpha: 0.45,
                                   ),
                                 ),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            ],
+                              child: GameWave(
+                                key: const ValueKey('library-wave'),
+                                enabled: section == 0 && waveEnabled,
+                                child: FocusTraversalGroup(
+                                  child:
+                                      BlocSelector<
+                                        NavigationBloc,
+                                        NavigationState,
+                                        int
+                                      >(
+                                        selector: (state) => state.section,
+                                        builder: (context, section) =>
+                                            FadeIndexedStack(
+                                              index: section,
+                                              enabled: context
+                                                  .select<SettingsBloc, bool>(
+                                                    (b) =>
+                                                        b
+                                                            .state
+                                                            .libraryEffects &&
+                                                        b
+                                                            .state
+                                                            .interfaceAnimationsEnabled,
+                                                  ),
+                                              children: const [
+                                                LibraryPage(),
+                                                DownloadsPage(),
+                                                SavesPage(),
+                                                SettingsPage(),
+                                              ],
+                                            ),
+                                      ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(height: compact ? 5 : 10),
-                      _StatusBar(compact: compact),
-                    ],
-                  ),
-                );
-              },
-            ),
+                        if (compact) ...[
+                          const SizedBox(height: 8),
+                          const _ConceptNavigation(compact: true),
+                        ],
+                        if (!shortViewport) ...[
+                          const SizedBox(height: 6),
+                        SizedBox(
+                          height: 40,
+                          child: OverflowBox(
+                            maxWidth: constraints.maxWidth,
+                            child: SizedBox(
+                              width: constraints.maxWidth,
+                              child: const _AppFooter(),
+                            ),
+                          ),
+                        ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -180,6 +220,259 @@ class AppShell extends StatelessWidget {
     } else {
       showInfo(context, notice.message);
     }
+  }
+}
+
+/// Верхняя панель концепции: бренд и действия стоят по краям, а разделы —
+/// ровно по центру доступной ширины. В узком окне разделы переезжают вниз.
+class _ConceptTopBar extends StatelessWidget {
+  const _ConceptTopBar({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsBloc>().state;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      height: 64,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Row(
+            children: [
+              const AppMark(size: 36),
+              if (!compact) ...[
+                const SizedBox(width: 10),
+                Text(
+                  'EVAPORATE',
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontFamily: EvaporateTheme.monoFontFamily,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              _TopAction(
+                tooltip: L.of(context).searchHint,
+                icon: Icons.search_rounded,
+                onPressed: () => context.read<NavigationBloc>().add(
+                  const SearchFocusRequested(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _TopAction(
+                tooltip: dark
+                    ? L.of(context).lightThemeAction
+                    : L.of(context).darkThemeAction,
+                icon: dark
+                    ? Icons.dark_mode_outlined
+                    : Icons.light_mode_outlined,
+                onPressed: () {
+                  context.read<SettingsBloc>().add(
+                    SettingsChanged(
+                      settings.copyWith(
+                        themeMode: dark ? ThemeMode.light : ThemeMode.dark,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+              _TopAction(
+                key: const ValueKey('rail-quit'),
+                tooltip: L.of(context).quitApp,
+                hiddenLabel: L.of(context).quitApp,
+                icon: Icons.power_settings_new_rounded,
+                onPressed: () => unawaited(windowManager.close()),
+              ),
+            ],
+          ),
+          if (!compact) const _ConceptNavigation(compact: false),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopAction extends StatelessWidget {
+  const _TopAction({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.hiddenLabel,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String? hiddenLabel;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onPressed,
+    icon: Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(icon, size: 20),
+        if (hiddenLabel case final label?)
+          SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
+      ],
+    ),
+    style: IconButton.styleFrom(
+      minimumSize: const Size(42, 42),
+      backgroundColor: context.colors.surfaceHigh.withValues(alpha: 0.62),
+      foregroundColor: context.colors.textSecondary,
+      side: BorderSide(color: context.colors.outline.withValues(alpha: 0.45)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+  );
+}
+
+class _ConceptNavigation extends StatefulWidget {
+  const _ConceptNavigation({required this.compact});
+
+  final bool compact;
+
+  @override
+  State<_ConceptNavigation> createState() => _ConceptNavigationState();
+}
+
+class _ConceptNavigationState extends State<_ConceptNavigation> {
+  final _targets = List.generate(4, (_) => GlobalKey());
+
+  @override
+  Widget build(BuildContext context) {
+    final section = context.select<NavigationBloc, int>(
+      (bloc) => bloc.state.section,
+    );
+    final count = context.select<DownloadsBloc, int>(
+      (bloc) => bloc.state.activeTasks.length,
+    );
+    final labels = [
+      L.of(context).library,
+      L.of(context).downloads,
+      L.of(context).saves,
+      L.of(context).settings,
+    ];
+    const icons = [
+      Icons.grid_view_outlined,
+      Icons.download_rounded,
+      Icons.save_rounded,
+      Icons.settings_rounded,
+    ];
+    return Container(
+      key: ValueKey(
+        widget.compact ? 'concept-navigation-compact' : 'concept-navigation',
+      ),
+      height: widget.compact ? 54 : 50,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.colors.railBackground,
+        border: Border.all(
+          color: context.colors.outline.withValues(alpha: 0.42),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.coverTextShadow.withValues(
+              alpha: context.colors.isDark ? 0.2 : 0.1,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: LiquidSelection(
+        key: const ValueKey('rail-liquid'),
+        targetKey: () => _targets[section],
+        color: context.colors.selection,
+        radius: 8,
+        enabled: context.select<SettingsBloc, bool>(
+          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(labels.length, (index) {
+            final selected = section == index;
+            return Padding(
+              padding: EdgeInsets.only(
+                right: index == labels.length - 1 ? 0 : 3,
+              ),
+              child: TextButton(
+                key: _targets[index],
+                onPressed: () =>
+                    context.read<NavigationBloc>().add(SectionSelected(index)),
+                // ignore: sort_child_properties_last
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      LiquidSelectionInk(
+                        normalColor: context.colors.textSecondary,
+                        selectedColor: context.colors.onSelection,
+                        child: Icon(icons[index], size: 17),
+                      ),
+                      if (!widget.compact ||
+                          MediaQuery.sizeOf(context).width > 560) ...[
+                        const SizedBox(width: 8),
+                        Text(labels[index]),
+                      ],
+                      if (index == 1 && count > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          constraints: const BoxConstraints(minWidth: 18),
+                          height: 18,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          decoration: BoxDecoration(
+                            color: context.colors.primary,
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              color: context.colors.onPrimary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  minimumSize: Size(widget.compact ? 50 : 104, 42),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.compact ? 10 : 14,
+                  ),
+                  foregroundColor: selected
+                      ? context.colors.onSelection
+                      : context.colors.textSecondary,
+                  backgroundColor: AppColors.transparent,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  alignment: Alignment.center,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
   }
 }
 
@@ -217,7 +510,7 @@ class _RailState extends State<_Rail> {
         key: const ValueKey('rail-liquid'),
         targetKey: () => _targets[section],
         color: context.colors.railIndicator,
-        radius: 18,
+        radius: 12,
         padding: const EdgeInsets.all(2),
         enabled: context.select<SettingsBloc, bool>(
           (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
@@ -369,7 +662,7 @@ class _TactileNavKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final radius = BorderRadius.circular(16);
+    final radius = BorderRadius.circular(12);
     return Semantics(
       button: true,
       selected: selected,
@@ -523,7 +816,7 @@ class _QuitButton extends StatelessWidget {
           minimumSize: Size(compact ? 48 : 160, 44),
           padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         child: Row(
@@ -549,9 +842,117 @@ class _QuitButton extends StatelessWidget {
   }
 }
 
+class _AppFooter extends StatelessWidget {
+  const _AppFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsBloc>().state;
+    final gamepad = context.read<GamepadService>();
+    return Container(
+      height: 40,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        color: context.colors.railBackground.withValues(alpha: 0.84),
+        border: Border(
+          top: BorderSide(
+            color: context.colors.outline.withValues(alpha: 0.28),
+          ),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 760;
+          return Row(
+            children: [
+              if (!compact)
+                Text(
+                  '© 2026 EVAPORATE',
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
+                    fontFamily: EvaporateTheme.monoFontFamily,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+              if (!compact) const SizedBox(width: 24),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ValueListenableBuilder<GamepadStatus>(
+                    valueListenable: gamepad.status,
+                    builder: (context, status, _) => ButtonHints(
+                      binding: settings.gamepad,
+                      gamepadConnected:
+                          settings.gamepad.enabled && status.hasDevice,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 18),
+              _FooterLink(
+                label: 'GITHUB',
+                onPressed: () => unawaited(
+                  launchUrl(
+                    Uri.parse('https://github.com/Hecatoncheir/evaporate'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 12,
+                color: context.colors.outline.withValues(alpha: 0.5),
+              ),
+              _FooterLink(
+                label: 'RELEASES',
+                onPressed: () => unawaited(
+                  launchUrl(
+                    Uri.parse(
+                      'https://github.com/Hecatoncheir/evaporate/releases',
+                    ),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FooterLink extends StatelessWidget {
+  const _FooterLink({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: onPressed,
+    style: TextButton.styleFrom(
+      foregroundColor: context.colors.textSecondary,
+      minimumSize: const Size(64, 40),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      textStyle: const TextStyle(
+        fontFamily: EvaporateTheme.monoFontFamily,
+        fontSize: 9,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.7,
+      ),
+    ),
+    child: Text(label),
+  );
+}
+
 /// Нижняя строка: подсказки управления, скорость обмена и состояние движка.
-class _StatusBar extends StatelessWidget {
-  const _StatusBar({required this.compact});
+class DownloadStatusBar extends StatelessWidget {
+  const DownloadStatusBar({super.key, required this.compact});
 
   final bool compact;
 
@@ -587,7 +988,7 @@ class _StatusBar extends StatelessWidget {
               SizedBox(
                 width: hintWidth,
                 child: GlassSurface(
-                  radius: 14,
+                  radius: 12,
                   opacity: 0.84,
                   shadow: false,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -609,7 +1010,7 @@ class _StatusBar extends StatelessWidget {
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: readoutWidth),
                 child: GlassSurface(
-                  radius: 14,
+                  radius: 12,
                   opacity: 0.92,
                   shadow: false,
                   padding: const EdgeInsets.all(5),

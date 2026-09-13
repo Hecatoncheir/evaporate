@@ -183,6 +183,18 @@ abstract final class AppColors {
   static const coverProgressTrack = Colors.white24;
   static const foilHighlight = Colors.white;
   static const waveHighlight = Colors.white;
+  static const heroShadeStrong = Color(0xED090B0C);
+  static const heroShadeMiddle = Color(0x70090B0C);
+  static const heroShadeClear = Color(0x08090B0C);
+  static const heroEyebrow = Color(0xFFFF8158);
+  static const heroBody = Color(0xFFD7D9D6);
+  static const heroPanel = Color(0xC9181A1B);
+  static const launcherGreenTop = Color(0xFF91C438);
+  static const launcherGreenBottom = Color(0xFF5F9517);
+  static const launcherGreenBorder = Color(0xFF436F0E);
+  static const launcherButtonText = Colors.white;
+  static const frostDark = Color(0xB80B0D0E);
+  static const frostLight = Color(0x9EF2F0EA);
 
   // Портал горит своим огнём, а не цветом темы: он один и тот же на светлой
   // и на тёмной подложке — как искры и должны выглядеть.

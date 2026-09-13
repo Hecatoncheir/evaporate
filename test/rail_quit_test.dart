@@ -36,7 +36,7 @@ void main() {
     }
   }
 
-  testWidgets('кнопка выхода есть в боковой панели и закрывает окно', (
+  testWidgets('кнопка выхода есть в верхней панели и закрывает окно', (
     tester,
   ) async {
     final harness = TestHarness(tmp);
@@ -56,7 +56,7 @@ void main() {
     expect(calls, contains('close'));
   });
 
-  // Кнопка нужна была ровно затем, чтобы до неё доходили стрелки.
+  // Кнопка остаётся доступной с геймпада в строке действий верхней панели.
   testWidgets('до кнопки выхода можно дойти геймпадом', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
@@ -69,7 +69,7 @@ void main() {
 
     var reached = false;
     for (var step = 0; step < 12 && !reached; step++) {
-      await harness.tapButton(tester, GamepadButton.dpadDown);
+      await harness.tapButton(tester, GamepadButton.dpadRight);
       final context = primaryFocus?.context;
       reached =
           context != null &&
