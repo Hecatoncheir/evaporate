@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_shutdown.dart';
@@ -87,11 +89,19 @@ class WindowStateSaver with WindowListener {
 /// записи на диск до него не доходят. Тем же путём уходит и «Выход» из трея:
 /// два способа выйти — одно завершение.
 class WindowCloseHandler with WindowListener {
-  WindowCloseHandler(this._shutdown, {WindowManager? window})
-    : _window = window ?? windowManager;
+  WindowCloseHandler(
+    this._shutdown, {
+    WindowManager? window,
+    @visibleForTesting void Function(int code)? exitProcess,
+    @visibleForTesting String? platform,
+  }) : _window = window ?? windowManager,
+       _exit = exitProcess ?? exit,
+       _os = platform ?? Platform.operatingSystem;
 
   final AppShutdown _shutdown;
   final WindowManager _window;
+  final void Function(int code) _exit;
+  final String _os;
 
   Future<void> attach() async {
     _window.addListener(this);
@@ -101,8 +111,24 @@ class WindowCloseHandler with WindowListener {
   @override
   void onWindowClose() => unawaited(quit());
 
+  /// Дописывает несделанное и заканчивает процесс.
+  ///
+  /// На Windows — своими руками, а не разрушением окна. Штатный путь
+  /// (`destroy()` — это `PostQuitMessage`) разбирает движок Flutter, пока в
+  /// него ещё стучатся чужие потоки: опрос геймпада, уведомления, задачи
+  /// движка загрузок. Процесс от этого падает внутри `flutter_windows.dll`
+  /// по одному и тому же адресу, и человек видит это окном «программа
+  /// перестала работать» после каждого закрытия.
+  ///
+  /// Терять тут нечего: всё, что должно лечь на диск, уже легло — шаги
+  /// завершения отработали строкой выше, и именно ради них закрытие
+  /// перехвачено. Разбирать движок после этого не нужно никому.
   Future<void> quit() async {
     await _shutdown.run();
+    if (_os == 'windows') {
+      _exit(0);
+      return;
+    }
     await _window.destroy();
   }
 }

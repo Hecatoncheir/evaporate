@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:evaporate/services/system/app_shutdown.dart';
+import 'package:evaporate/services/system/managed_window.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -78,5 +80,58 @@ void main() {
 
     expect(calls, 1);
     expect(shutdown.isStarted, isTrue);
+  });
+
+  group('конец процесса', () {
+    const channel = MethodChannel('window_manager');
+
+    List<String> watchWindow() {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final calls = <String>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call.method);
+        return null;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      return calls;
+    }
+
+    // Штатное разрушение окна на Windows роняет процесс внутри
+    // flutter_windows.dll: движок разбирают, пока в него ещё стучатся
+    // опрос геймпада, уведомления и задачи движка загрузок. Человек видел
+    // «программа перестала работать» после каждого закрытия.
+    test('на Windows процесс заканчивается сам, без разрушения окна', () async {
+      final calls = watchWindow();
+      final done = <String>[];
+      final codes = <int>[];
+
+      await WindowCloseHandler(
+        AppShutdown([() async => done.add('записи легли')]),
+        exitProcess: codes.add,
+        platform: 'windows',
+      ).quit();
+
+      expect(done, ['записи легли']);
+      expect(codes, [0]);
+      expect(calls, isNot(contains('destroy')));
+    });
+
+    // На остальных системах разбор проходит без приключений, и обрывать
+    // его незачем: там окно закрывают, как и полагается.
+    test('на macOS окно закрывается штатно', () async {
+      final calls = watchWindow();
+      final codes = <int>[];
+
+      await WindowCloseHandler(
+        AppShutdown(const []),
+        exitProcess: codes.add,
+        platform: 'macos',
+      ).quit();
+
+      expect(calls, contains('destroy'));
+      expect(codes, isEmpty);
+    });
   });
 }
