@@ -68,6 +68,13 @@ class AnimatedProgress extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: FractionallySizedBox(
                   widthFactor: animated,
+                  // Высоту тянем на всю: без неё `DecoratedBox` без ребёнка
+                  // схлопывается в ноль — заливки не видно вовсе, а видна
+                  // одна пустая дорожка. Ровно так полоса и выглядела с тех
+                  // пор, как её собрали из градиента вместо готового
+                  // индикатора: в дереве заполнение честные 34%, а на
+                  // экране — ничего.
+                  heightFactor: 1,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       // Переход от служебного цвета к фирменному: у полосы
