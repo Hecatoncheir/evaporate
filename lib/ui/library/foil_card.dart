@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
+import '../widgets/window_visibility.dart';
 
 /// Перспектива, голографический перелив и упругая деформация — три
 /// независимых эффекта, каждый со своим выключателем в настройках.
@@ -35,16 +36,14 @@ class FoilCardState extends State<FoilCard>
   final _motion = _FoilMotion();
   late final Ticker _ticker = createTicker(_tick);
   Duration? _previous;
-  bool _foreground = true;
+  bool _visible = true;
   bool get isAnimating => _ticker.isActive && !_ticker.muted;
   Matrix4 get perspective => _motion.perspective;
 
   @override
   void initState() {
     super.initState();
-    _foreground =
-        WidgetsBinding.instance.lifecycleState == null ||
-        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _visible = isWindowVisible(WidgetsBinding.instance.lifecycleState);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -78,7 +77,7 @@ class FoilCardState extends State<FoilCard>
     final run =
         enabled &&
         !reduced &&
-        _foreground &&
+        _visible &&
         TickerMode.valuesOf(context).enabled &&
         (ModalRoute.isCurrentOf(context) ?? true) &&
         (widget.active || _motion.strength > 0);
@@ -110,7 +109,7 @@ class FoilCardState extends State<FoilCard>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _foreground = state == AppLifecycleState.resumed;
+    _visible = isWindowVisible(state);
     _syncMotion();
   }
 

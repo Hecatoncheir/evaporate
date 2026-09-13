@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'window_visibility.dart';
+
 /// Часы перерисовки: гонят кадры анимации, ни разу не пересобирая то,
 /// что под ними нарисовано.
 class DecorativeMotion extends StatefulWidget {
@@ -24,16 +26,14 @@ class DecorativeMotionState extends State<DecorativeMotion>
   final _time = ValueNotifier(0.0);
   late final Ticker _ticker = createTicker(_tick);
   Duration? _previous;
-  bool _foreground = true;
+  bool _visible = true;
   bool get isAnimating => _ticker.isActive && !_ticker.muted;
   double get time => _time.value;
 
   @override
   void initState() {
     super.initState();
-    _foreground =
-        WidgetsBinding.instance.lifecycleState == null ||
-        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _visible = isWindowVisible(WidgetsBinding.instance.lifecycleState);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -54,7 +54,7 @@ class DecorativeMotionState extends State<DecorativeMotion>
     final run =
         widget.enabled &&
         !reduced &&
-        _foreground &&
+        _visible &&
         TickerMode.valuesOf(context).enabled &&
         (ModalRoute.isCurrentOf(context) ?? true);
     if (run && !_ticker.isActive) {
@@ -83,7 +83,7 @@ class DecorativeMotionState extends State<DecorativeMotion>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _foreground = state == AppLifecycleState.resumed;
+    _visible = isWindowVisible(state);
     _sync();
   }
 

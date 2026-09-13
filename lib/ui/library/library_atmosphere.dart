@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
+import '../widgets/window_visibility.dart';
 import 'particle_field.dart';
 
 /// Одна ограниченная симуляция и один слой перерисовки. Сетка обложек —
@@ -37,7 +38,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
   final _viewport = GlobalKey();
   late final Ticker _ticker = createTicker(_tick);
   Duration? _previous;
-  bool _foreground = true;
+  bool _visible = true;
   bool _motion = false;
   double _ambientTime = 0;
   bool get isAnimating => _ticker.isActive && !_ticker.muted;
@@ -68,7 +69,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
         !MediaQuery.disableAnimationsOf(context) &&
         (ModalRoute.isCurrentOf(context) ?? true) &&
         TickerMode.valuesOf(context).enabled &&
-        _foreground;
+        _visible;
     if (_motion && !_ticker.isActive) {
       _previous = null;
       _ticker.start();
@@ -81,7 +82,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _foreground = state == AppLifecycleState.resumed;
+    _visible = isWindowVisible(state);
     _syncMotion();
   }
 

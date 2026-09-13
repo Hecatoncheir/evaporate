@@ -106,12 +106,20 @@ void main() {
       );
       expect(motion.time, greaterThan(1));
       expect(builds, 1);
+      // Окно без фокуса остаётся на экране, и волна по нему идёт дальше.
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await frames(tester, 2);
+      expect(motion.isAnimating, isTrue);
+      final unfocused = motion.time;
+      await frames(tester, 10);
+      expect(motion.time, greaterThan(unfocused));
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
       await frames(tester, 2);
       expect(motion.isAnimating, isFalse);
       final paused = motion.time;
       await frames(tester, 10);
       expect(motion.time, paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await frames(tester, 2);
       expect(motion.isAnimating, isTrue);
@@ -185,7 +193,11 @@ void main() {
     expect(motions.every((s) => s.isAnimating), isTrue);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await frames(tester, 2);
+    expect(motions.every((s) => s.isAnimating), isTrue);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await frames(tester, 2);
     expect(motions.every((s) => !s.isAnimating), isTrue);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await frames(tester, 2);
     expect(motions.every((s) => s.isAnimating), isTrue);

@@ -519,9 +519,13 @@ void main() {
         harness.nav.add(const SectionCycled(-1));
         await frames(tester, 12);
         expect(state.isAnimating, isTrue);
+        // Ушедший фокус окна не гасит фон: окно всё ещё перед глазами.
         tester.binding.handleAppLifecycleStateChanged(
           AppLifecycleState.inactive,
         );
+        await frames(tester, 2);
+        expect(state.isAnimating, isTrue);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
         await frames(tester, 2);
         expect(state.isAnimating, isFalse);
         expect(
@@ -529,6 +533,9 @@ void main() {
               .stateList<FoilCardState>(find.byType(FoilCard))
               .any((s) => s.isAnimating),
           isFalse,
+        );
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
         );
         tester.binding.handleAppLifecycleStateChanged(
           AppLifecycleState.resumed,

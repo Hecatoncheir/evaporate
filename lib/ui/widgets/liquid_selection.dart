@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'window_visibility.dart';
+
 /// Слой выделения поверх удерживаемого содержимого: перетекает только
 /// заливка, а подписи, обложки и области нажатия остаются на месте.
 ///
@@ -43,7 +45,7 @@ class LiquidSelectionState extends State<LiquidSelection>
   GlobalKey? _identity;
   Rect? _from, _to;
   bool _queued = false;
-  bool _foreground = true;
+  bool _visible = true;
   bool _allowed = false;
 
   bool get isAnimating => _animation.isAnimating;
@@ -52,9 +54,7 @@ class LiquidSelectionState extends State<LiquidSelection>
   @override
   void initState() {
     super.initState();
-    _foreground =
-        WidgetsBinding.instance.lifecycleState == null ||
-        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _visible = isWindowVisible(WidgetsBinding.instance.lifecycleState);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -73,7 +73,7 @@ class LiquidSelectionState extends State<LiquidSelection>
   void _sync() {
     _allowed =
         widget.enabled &&
-        _foreground &&
+        _visible &&
         !MediaQuery.disableAnimationsOf(context) &&
         TickerMode.valuesOf(context).enabled &&
         (ModalRoute.isCurrentOf(context) ?? true);
@@ -83,7 +83,7 @@ class LiquidSelectionState extends State<LiquidSelection>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _foreground = state == AppLifecycleState.resumed;
+    _visible = isWindowVisible(state);
     _sync();
   }
 

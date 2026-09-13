@@ -103,6 +103,16 @@ void main() {
         const Rect.fromLTWH(200, 0, 100, 60),
       );
       expect(selection.currentState!.isAnimating, isFalse);
+      // Окно без фокуса видно по-прежнему, и капля обязана доехать.
+      selected = 1;
+      await show();
+      expect(selection.currentState!.isAnimating, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await show();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(selection.currentState!.isAnimating, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
       for (var gate = 0; gate < 4; gate++) {
         selected = (selected + 1) % 3;
         await show();
@@ -115,8 +125,13 @@ void main() {
           case 2:
             enabled = false;
           case 3:
+            // Свернуть окно можно только через потерю фокуса: так его
+            // состояния меняются и в жизни.
             tester.binding.handleAppLifecycleStateChanged(
               AppLifecycleState.inactive,
+            );
+            tester.binding.handleAppLifecycleStateChanged(
+              AppLifecycleState.hidden,
             );
         }
         await show();
@@ -125,6 +140,9 @@ void main() {
         reduced = false;
         visible = true;
         enabled = true;
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
         tester.binding.handleAppLifecycleStateChanged(
           AppLifecycleState.resumed,
         );
