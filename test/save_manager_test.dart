@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -651,6 +652,47 @@ void main() {
       for (final blob in second.blobs) {
         expect(manager.store.fileFor(blob.hash).existsSync(), isTrue);
       }
+    });
+
+    // Bloc обрабатывает события параллельно: `SnapshotDeleted` от соседней
+    // игры спокойно приходит посреди автоснимка после выхода. Снимка в
+    // состоянии библиотеки в этот миг ещё нет, а значит, нет и живых ссылок
+    // на его содержимое — и уборка уносила его целиком, не сказав ни слова.
+    // Снимок оставался в библиотеке с правильным числом файлов и размером,
+    // а нечитаемым оказывался в тот день, когда понадобился.
+    test('уборка не трогает содержимое снимка, который ещё снимают', () async {
+      final saves = await writeSaves('на лету', {
+        'slot.sav': 'прогресс',
+        'meta.json': '{"level":3}',
+      });
+
+      // Работу держим открытой до отмашки, а не надеемся обогнать её
+      // таймером: середина снятия должна быть середина, а не как повезёт.
+      final release = Completer<void>();
+      final taken = Completer<SaveSnapshot>();
+      final work = manager.store.guard(() async {
+        taken.complete(await snapshotOf(saves, 'g1'));
+        await release.future;
+      });
+
+      final snapshot = await taken.future;
+      final freed = await manager.collectGarbage(const []);
+
+      expect(freed, 0);
+      for (final blob in snapshot.blobs) {
+        expect(
+          manager.store.fileFor(blob.hash).existsSync(),
+          isTrue,
+          reason: 'содержимое ${blob.name} унесла уборка',
+        );
+      }
+
+      // Защита держится ровно столько, сколько идёт работа: как только она
+      // закончена, бесхозное содержимое уходит по общим правилам.
+      release.complete();
+      await work;
+      await manager.collectGarbage(const []);
+      expect(blobsOnDisk(), 0);
     });
 
     test('уборка без единого живого снимка выносит всё', () async {

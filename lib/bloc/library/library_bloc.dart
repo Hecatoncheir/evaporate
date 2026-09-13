@@ -637,6 +637,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         note: event.note,
       );
 
+      // Снимок заносим в библиотеку сразу, до выгрузки наружу: пока его нет
+      // в состоянии, на его содержимое не ссылается никто, а уборка от
+      // соседнего события бесхозное содержимое уносит. Выгрузка же идёт
+      // секундами, а то и не задаётся вовсе — держать ради неё снимок
+      // незаписанным значит рисковать им ради необязательного удобства.
+      emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
+
       if (settings.state.autoExportToSync &&
           settings.state.syncFolder != null) {
         try {
@@ -649,7 +656,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
       emit(
         state.copyWith(
-          snapshots: _withSnapshot(snapshot),
           busy: _withBusy(key, false),
           notice: silent
               ? state.notice

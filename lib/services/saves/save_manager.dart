@@ -125,7 +125,18 @@ class SaveManager {
   /// Предохранитель от «указал папку игры целиком вместо папки сейвов».
   static const _maxSnapshotBytes = 4 * 1024 * 1024 * 1024;
 
+  /// Снимает сейвы игры.
+  ///
+  /// Под [SnapshotStore.guard], как и всё, что кладёт содержимое в
+  /// хранилище: пока снимок собирается, ссылаться на его файлы некому, и
+  /// уборка от соседнего события унесла бы их у него из-под рук.
   Future<SaveSnapshot> createSnapshot(
+    Game game, {
+    SnapshotOrigin origin = SnapshotOrigin.manual,
+    String? note,
+  }) => store.guard(() => _createSnapshot(game, origin: origin, note: note));
+
+  Future<SaveSnapshot> _createSnapshot(
     Game game, {
     SnapshotOrigin origin = SnapshotOrigin.manual,
     String? note,
@@ -331,11 +342,29 @@ class SaveManager {
   ///
   /// Сопоставление правил идёт сначала по id, затем по метке — так сейв,
   /// снятый на Windows, ложится в macOS-путь той же игры.
+  ///
+  /// Отметка [SnapshotStore.guard] накрывает не только снятие резервной
+  /// копии, но и заливку файлов: копия готова раньше, чем о ней узнает
+  /// библиотека, и всё это время она — единственный путь назад.
   Future<RestoreReport> restoreSnapshot({
     required Game game,
     required SaveSnapshot snapshot,
     bool backupCurrent = true,
     bool wipeTarget = false,
+  }) => store.guard(
+    () => _restoreSnapshot(
+      game: game,
+      snapshot: snapshot,
+      backupCurrent: backupCurrent,
+      wipeTarget: wipeTarget,
+    ),
+  );
+
+  Future<RestoreReport> _restoreSnapshot({
+    required Game game,
+    required SaveSnapshot snapshot,
+    required bool backupCurrent,
+    required bool wipeTarget,
   }) async {
     // Снимок из хранилища по содержимому своего архива не имеет, поэтому
     // собираем временный. Разбирать его дальше будет тот же самый код:
@@ -536,7 +565,10 @@ class SaveManager {
   }
 
   /// Забирает пакет в хранилище приложения и привязывает к игре.
-  Future<SaveSnapshot> importPackage(String path, {required Game game}) async {
+  Future<SaveSnapshot> importPackage(String path, {required Game game}) =>
+      store.guard(() => _importPackage(path, game: game));
+
+  Future<SaveSnapshot> _importPackage(String path, {required Game game}) async {
     final info = await inspectPackage(path);
     final id = _uuid.v4();
 

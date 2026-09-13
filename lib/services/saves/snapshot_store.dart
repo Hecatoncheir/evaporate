@@ -50,6 +50,41 @@ class SnapshotStore {
   /// Куда складывать содержимое — `AppPaths.blobsDir`.
   final String root;
 
+  /// Содержимое, записанное незакрытой работой, и сколько таких работ идёт.
+  ///
+  /// Разбирать, чьё именно содержимое, незачем: пока идёт хоть одна работа,
+  /// уборка подождёт всё записанное разом, а с концом последней список
+  /// забывается целиком.
+  final _pinned = <String>{};
+  var _busy = 0;
+
+  /// Работа, во время которой уборка не вправе трогать записанное.
+  ///
+  /// Снимок становится живым не тогда, когда его файлы легли на диск, а
+  /// когда библиотека занесёт его в состояние. Между этими мгновениями
+  /// проходит ещё и запись остальных файлов снимка, а при восстановлении —
+  /// заливка сейвов из пакета: минуты, в которые ссылок на свежее
+  /// содержимое нет ни у кого. Уборка, запущенная в этот промежуток,
+  /// честно сочла бы его мусором и унесла — а снимок остался бы в
+  /// библиотеке с правильным числом файлов и размером, но нечитаемым.
+  /// Узнают об этом, когда он понадобится, то есть в худший момент.
+  ///
+  /// Промежуток этот не выдуманный: Bloc обрабатывает события параллельно,
+  /// и `SnapshotDeleted` от соседней игры спокойно приходит посреди
+  /// автоснимка после выхода.
+  ///
+  /// Времени тут не место: по возрасту файла «библиотека ещё не успела о
+  /// нём узнать» не отличить от «библиотека знает, и он больше не нужен».
+  /// Знает об этом только тот, кто работу ведёт, — он и отмечается.
+  Future<T> guard<T>(Future<T> Function() body) async {
+    _busy++;
+    try {
+      return await body();
+    } finally {
+      if (--_busy == 0) _pinned.clear();
+    }
+  }
+
   /// Двухбуквенная приставка каталога.
   ///
   /// Десятки тысяч файлов в одной папке — беда для любой файловой системы,
@@ -77,22 +112,26 @@ class SnapshotStore {
     final digest = await sha256.bind(source.openRead()).first;
     final hash = digest.toString();
     final size = await source.length();
-    final target = fileFor(hash);
-
-    if (!await target.exists()) {
-      await _write(target, () => source.openRead());
-    }
+    await _keep(hash, () => source.openRead());
     return SnapshotBlob(name: name, hash: hash, size: size);
   }
 
   /// Кладёт готовое содержимое, уже прочитанное в память.
   Future<SnapshotBlob> putBytes(String name, List<int> bytes) async {
     final hash = sha256.convert(bytes).toString();
-    final target = fileFor(hash);
-    if (!await target.exists()) {
-      await _write(target, () => Stream<List<int>>.value(bytes));
-    }
+    await _keep(hash, () => Stream<List<int>>.value(bytes));
     return SnapshotBlob(name: name, hash: hash, size: bytes.length);
+  }
+
+  /// Отметку [guard] ставим **до** проверки существования, а не после
+  /// записи: уже лежавшее содержимое нуждается в защите не меньше нового.
+  /// Иначе уборка, начатая между проверкой и возвратом, унесла бы файл, на
+  /// который снимок только что собрался сослаться, — а писать его заново
+  /// никто уже не станет, ведь он был на месте.
+  Future<void> _keep(String hash, Stream<List<int>> Function() open) async {
+    if (_busy > 0) _pinned.add(hash);
+    final target = fileFor(hash);
+    if (!await target.exists()) await _write(target, open);
   }
 
   Future<void> _write(File target, Stream<List<int>> Function() open) async {
@@ -130,6 +169,14 @@ class SnapshotStore {
   /// целиком. Возвращает, сколько байт освободилось, — это единственный
   /// способ показать человеку, что уборка вообще что-то дала.
   Future<int> collect(Set<String> alive) async {
+    // Пока идёт работа со снимками, уборка не начинается вовсе. Список
+    // живых ссылок ей собрали до того, как работа закончится, и он заведомо
+    // неполон: обход идёт не мгновенно, работа может закончиться на его
+    // середине, и дальше мы шагали бы по файлам уже с устаревшим списком.
+    // Отказаться дешевле, чем угадывать: уборок будет ещё много, а
+    // унесённое содержимое снимка не вернуть.
+    if (_busy > 0) return 0;
+
     final dir = Directory(root);
     if (!await dir.exists()) return 0;
 
@@ -137,12 +184,25 @@ class SnapshotStore {
     await for (final entity in dir.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final name = p.basename(entity.path);
-      // Временные файлы чужой оборвавшейся записи убираем заодно.
-      final orphanTemp = name.endsWith('.tmp');
-      if (!orphanTemp && alive.contains(name)) continue;
+      if (name.endsWith('.tmp')) {
+        // Временные файлы чужой оборвавшейся записи убираем заодно — но не
+        // тогда, когда работа началась уже посреди обхода: этот файл не
+        // брошенный, его прямо сейчас наполняют.
+        if (_busy > 0) continue;
+      } else if (alive.contains(name) || _pinned.contains(name)) {
+        // [_pinned] — про ту же начавшуюся посреди обхода работу: она
+        // отмечается до того, как проверит наличие файла, и потому успевает
+        // защитить даже то, что лежало здесь до неё.
+        continue;
+      }
       try {
-        freed += await entity.length();
+        // Размер засчитываем после удаления, а не до: занятый файл удалить
+        // не выйдет, и отчёт о сотнях освобождённых мегабайт, которых на
+        // диске не прибавилось, — это ложь в единственном числе, которое
+        // человек отсюда и увидит.
+        final size = await entity.length();
         await entity.delete();
+        freed += size;
       } on FileSystemException {
         // Файл мог исчезнуть сам — уборка не повод падать.
       }
