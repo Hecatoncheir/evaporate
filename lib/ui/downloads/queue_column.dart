@@ -6,6 +6,7 @@ import '../../bloc/library/library_bloc.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
 import 'task_card.dart';
 
@@ -191,13 +192,15 @@ class QueuedCard extends StatelessWidget {
               ),
             ),
             if (game != null)
-              IconButton(
+              // Та же клавиша, что на карточке задачи: действие одно и то
+              // же, и выглядеть на одном экране по-разному ему незачем.
+              IconAction(
                 onPressed: () => context.read<DownloadsBloc>().add(
                   DownloadCancelRequested(game!),
                 ),
-                icon: const Icon(Icons.close, size: 16),
+                icon: Icons.close,
                 tooltip: L.of(context).removeFromQueue,
-                visualDensity: VisualDensity.compact,
+                danger: true,
               ),
           ],
         ),

@@ -7,6 +7,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
 import 'download_activity.dart';
 
@@ -57,27 +58,26 @@ class TaskCard extends StatelessWidget {
                 if (game != null) ...[
                   const SizedBox(width: 8),
                   if (task.state == DownloadState.paused)
-                    IconButton(
+                    IconAction(
                       onPressed: () =>
                           downloads.add(DownloadResumeRequested(game!)),
-                      icon: const Icon(Icons.play_arrow, size: 17),
+                      icon: Icons.play_arrow,
                       tooltip: L.of(context).resume,
-                      visualDensity: VisualDensity.compact,
                     )
                   else
-                    IconButton(
+                    IconAction(
                       onPressed: () =>
                           downloads.add(DownloadPauseRequested(game!)),
-                      icon: const Icon(Icons.pause, size: 17),
+                      icon: Icons.pause,
                       tooltip: L.of(context).pause,
-                      visualDensity: VisualDensity.compact,
                     ),
-                  IconButton(
+                  const SizedBox(width: 6),
+                  IconAction(
                     onPressed: () =>
                         downloads.add(DownloadCancelRequested(game!)),
-                    icon: const Icon(Icons.close, size: 17),
+                    icon: Icons.close,
                     tooltip: L.of(context).cancelDownload,
-                    visualDensity: VisualDensity.compact,
+                    danger: true,
                   ),
                 ],
               ],
