@@ -1,16 +1,13 @@
 import 'dart:async';
 
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
-import '../../services/launch/drop_import.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
 import '../../models/game.dart';
@@ -19,6 +16,7 @@ import '../widgets/liquid_selection.dart';
 import '../widgets/rise_in.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/game_drop_target.dart';
 
 import 'add_game_dialog.dart';
 import 'game_cover.dart';
@@ -26,7 +24,6 @@ import 'scan_folder_dialog.dart';
 import 'library_atmosphere.dart';
 import 'foil_card.dart';
 import '../../l10n/app_localizations.dart';
-import 'drop_overlay.dart';
 import 'featured_game.dart';
 import 'game_page.dart';
 import 'library_heading.dart';
@@ -60,11 +57,9 @@ class _LibraryPageState extends State<LibraryPage> {
   String? _hoveredId;
 
   /// Над окном что-то держат. Пока это так, показываем, что сюда можно.
-  bool _dragging = false;
 
   /// Разбор сброшенного идёт с обращениями к диску, и второй сброс поверх
   /// первого наплодил бы дубли.
-  bool _importing = false;
 
   /// Открыто окно поиска установленных игр.
   bool _scanning = false;
@@ -199,52 +194,33 @@ class _LibraryPageState extends State<LibraryPage> {
                 onAdd: () => _addGame(context),
               ),
               Expanded(
-                child: DropTarget(
-                  onDragEntered: (_) {
-                    if (!_scanning) setState(() => _dragging = true);
-                  },
-                  onDragExited: (_) => setState(() => _dragging = false),
-                  onDragDone: (details) {
-                    setState(() => _dragging = false);
-                    // Пока открыто окно поиска, брошенное принадлежит ему.
-                    if (_scanning) return;
-                    _handleDrop(context, [
-                      for (final f in details.files) f.path,
-                    ]);
-                  },
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: games.isEmpty
-                            ? _empty(context, library.games.isEmpty)
-                            : LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final extent = 215 * scale;
-                                  _columns =
-                                      ((constraints.maxWidth - 64) /
-                                              (extent + 36))
-                                          .ceil()
-                                          .clamp(1, 1000);
-                                  final tileWidth =
-                                      (constraints.maxWidth -
-                                          64 -
-                                          36 * (_columns - 1)) /
-                                      _columns;
-                                  _rowStride = tileWidth * 1.5 + 40;
-                                  return _grid(
-                                    games,
-                                    navState.selectedGameId,
-                                    nav,
-                                    effects,
-                                    extent,
-                                  );
-                                },
-                              ),
-                      ),
-                      if (_dragging)
-                        const Positioned.fill(child: DropOverlay()),
-                    ],
-                  ),
+                // Пока открыто окно поиска, брошенное принадлежит ему.
+                child: GameDropTarget(
+                  enabled: !_scanning,
+                  child: games.isEmpty
+                      ? _empty(context, library.games.isEmpty)
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final extent = 215 * scale;
+                            _columns =
+                                ((constraints.maxWidth - 64) / (extent + 36))
+                                    .ceil()
+                                    .clamp(1, 1000);
+                            final tileWidth =
+                                (constraints.maxWidth -
+                                    64 -
+                                    36 * (_columns - 1)) /
+                                _columns;
+                            _rowStride = tileWidth * 1.5 + 40;
+                            return _grid(
+                              games,
+                              navState.selectedGameId,
+                              nav,
+                              effects,
+                              extent,
+                            );
+                          },
+                        ),
                 ),
               ),
             ],
@@ -280,91 +256,6 @@ class _LibraryPageState extends State<LibraryPage> {
   ///
   /// Magnet-ссылку сюда не притащить: системы отдают её не файлом, и до
   /// приложения она не доезжает. Для неё есть «Добавить игру».
-  Future<void> _handleDrop(BuildContext context, List<String> paths) async {
-    if (_importing || paths.isEmpty) return;
-    setState(() => _importing = true);
-
-    // До первого await: после него context трогать нельзя.
-    final l = L.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final library = context.read<LibraryBloc>();
-    final downloads = context.read<DownloadsBloc>();
-    final nav = context.read<NavigationBloc>();
-
-    try {
-      final candidates = await DropImport.inspect(paths);
-      var added = 0;
-      var queued = 0;
-      String? lastId;
-
-      for (final candidate in candidates) {
-        if (candidate.kind == DropKind.unsupported) continue;
-
-        final id = const Uuid().v4();
-        library.add(
-          GameAdded(
-            id: id,
-            title: candidate.title,
-            source: candidate.source,
-            installDir: candidate.kind == DropKind.folder
-                ? candidate.path
-                : null,
-            executablePath: candidate.executablePath,
-            status: candidate.kind == DropKind.folder
-                ? GameStatus.installed
-                : GameStatus.notInstalled,
-          ),
-        );
-        added++;
-        lastId = id;
-
-        if (candidate.kind == DropKind.torrent) {
-          if (await _startDownload(library, downloads, id, candidate.source)) {
-            queued++;
-          }
-        }
-      }
-
-      if (added == 0) {
-        messenger.showSnackBar(SnackBar(content: Text(l.dropNothing)));
-        return;
-      }
-      if (lastId != null) nav.add(GameSelected(lastId));
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            queued == 0
-                ? l.dropAdded(added)
-                : '${l.dropAdded(added)}, ${l.dropQueued(queued)}',
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _importing = false);
-    }
-  }
-
-  /// Событие добавления обрабатывается асинхронно, поэтому перед запуском
-  /// загрузки дожидаемся, пока игра действительно появится в состоянии.
-  ///
-  /// Возвращает `false`, когда движок не готов: игра всё равно добавлена,
-  /// и загрузку можно запустить руками позже.
-  Future<bool> _startDownload(
-    LibraryBloc library,
-    DownloadsBloc downloads,
-    String id,
-    GameSource source,
-  ) async {
-    if (!downloads.state.engine.isReady) return false;
-    var game = library.state.gameById(id);
-    game ??= (await library.stream.firstWhere(
-      (state) => state.gameById(id) != null,
-    )).gameById(id);
-    if (game == null) return false;
-    downloads.add(DownloadRequested(game: game, source: source));
-    return true;
-  }
-
   Widget _grid(
     List<Game> games,
     String? selectedId,

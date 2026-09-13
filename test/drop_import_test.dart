@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:flutter/services.dart';
 import 'package:evaporate/services/launch/drop_import.dart';
@@ -184,6 +185,51 @@ void main() {
       expect(games.single.status, GameStatus.installed);
       expect(games.single.installDir, folder);
       expect(games.single.executablePath, isNotNull);
+    });
+
+    // Разделы живут в `IndexedStack` все разом, и приёмник теперь стоит на
+    // двух из них. Невидимый обязан молчать — иначе один брошенный файл
+    // заводил бы две игры, и человек увидел бы своего «Ведьмака» дважды.
+    testWidgets('сброс принимает только видимый раздел, а не оба сразу', (
+      tester,
+    ) async {
+      final harness = TestHarness(uiTmp);
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      await tester.runAsync(() async {
+        await drop(tester, [folder]);
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      });
+      await tester.pumpAndSettle();
+
+      expect(
+        harness.library.state.games,
+        hasLength(1),
+        reason: 'приёмники библиотеки и загрузок не должны сработать оба',
+      );
+    });
+
+    testWidgets('на экране загрузок сброшенное тоже принимают', (tester) async {
+      final harness = TestHarness(uiTmp);
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      // Уходим на «Загрузки» — там приёмник и должен ожить.
+      harness.nav.add(const SectionSelected(1));
+      await tester.pumpAndSettle();
+
+      await tester.runAsync(() async {
+        await drop(tester, [folder]);
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      });
+      await tester.pumpAndSettle();
+
+      final games = harness.library.state.games;
+      expect(games, hasLength(1));
+      expect(games.single.title, 'Сброшенная игра');
+      // И раздел не меняется: задача появляется здесь же, на загрузках.
+      expect(harness.nav.state.section, 1);
     });
 
     testWidgets('посторонний файл не заводит игру', (tester) async {

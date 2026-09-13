@@ -8,6 +8,7 @@ import '../../models/download_task.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
+import '../widgets/game_drop_target.dart';
 import '../widgets/readout_panel.dart';
 import '../../l10n/app_localizations.dart';
 import 'available_games.dart';
@@ -62,61 +63,72 @@ class DownloadsPage extends StatelessWidget {
         // перетаскиванием из библиотеки.
         final roomForSources = box.maxHeight >= 360;
         return Center(
-          // Как и на сохранениях: за этой границей карточка задачи
-          // превращается в полосу, а график скорости — в обои.
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1340),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Heading(status: downloads.engine),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
-                  child: _readout(
-                    context,
-                    stats: downloads.stats,
-                    active: active.length,
-                    queued: queued.length,
-                    maxConcurrent: maxConcurrent,
-                  ),
-                ),
-                if (downloads.engine.state == EngineState.failed)
+          // Приёмник тот же, что в библиотеке: `.torrent` ложится в очередь,
+          // папка становится установленной игрой. Человек бросает файл
+          // туда, где сейчас смотрит, а смотрит он на загрузки чаще, чем на
+          // сетку обложек, когда речь о раздаче.
+          //
+          // Страницу добавленной игры при этом не открываем: задача
+          // появляется прямо здесь, и уводить с неё незачем.
+          child: GameDropTarget(
+            selectAfterDrop: false,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1340),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Heading(status: downloads.engine),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
-                    child: EngineFailure(message: downloads.engine.message),
+                    child: _readout(
+                      context,
+                      stats: downloads.stats,
+                      active: active.length,
+                      queued: queued.length,
+                      maxConcurrent: maxConcurrent,
+                    ),
                   ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              SizedBox(width: _sourcesWidth, child: sources),
-                              VerticalDivider(
-                                width: 1,
-                                color: context.colors.outline,
-                              ),
-                              Expanded(child: queue),
-                            ],
-                          )
-                        : !roomForSources
-                        ? queue
-                        : Column(
-                            children: [
-                              // В узком окне источники остаются сверху
-                              // полосой. Доли, а не фиксированная высота:
-                              // при крупном масштабе интерфейса в
-                              // минимальном окне полоса не влезала и
-                              // выдавливала очередь за край.
-                              Flexible(flex: 2, child: sources),
-                              Divider(height: 1, color: context.colors.outline),
-                              Flexible(flex: 5, child: queue),
-                            ],
-                          ),
+                  if (downloads.engine.state == EngineState.failed)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+                      child: EngineFailure(message: downloads.engine.message),
+                    ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: wide
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(width: _sourcesWidth, child: sources),
+                                VerticalDivider(
+                                  width: 1,
+                                  color: context.colors.outline,
+                                ),
+                                Expanded(child: queue),
+                              ],
+                            )
+                          : !roomForSources
+                          ? queue
+                          : Column(
+                              children: [
+                                // В узком окне источники остаются сверху
+                                // полосой. Доли, а не фиксированная высота:
+                                // при крупном масштабе интерфейса в
+                                // минимальном окне полоса не влезала и
+                                // выдавливала очередь за край.
+                                Flexible(flex: 2, child: sources),
+                                Divider(
+                                  height: 1,
+                                  color: context.colors.outline,
+                                ),
+                                Flexible(flex: 5, child: queue),
+                              ],
+                            ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
