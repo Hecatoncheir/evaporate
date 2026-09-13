@@ -83,6 +83,10 @@ void main() {
     // читающиеся одинаково, — худший вид вопроса.
     expect(find.text('Отмена'), findsNothing);
     expect(find.text('Оставить'), findsOneWidget);
+    // И «Отменить» рядом с «Удалить совсем вместе с файлами» тоже нет:
+    // два ответа читаются парой, от меньшего к большему.
+    expect(find.widgetWithText(FilledButton, 'Удалить'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Отменить'), findsNothing);
 
     // Передумали — и ничего не случилось.
     await tester.tap(find.text('Оставить'));
@@ -142,6 +146,11 @@ void main() {
       ),
     );
     expect(find.text('Удалить совсем вместе с файлами'), findsOneWidget);
+    // У каждого ответа свой значок: слова у них похожи, и глазу нужна
+    // зацепка помимо чтения.
+    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.delete_forever_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.remove_circle_outline), findsOneWidget);
     await tester.tap(find.text('Оставить'));
     await tester.pumpAndSettle();
 

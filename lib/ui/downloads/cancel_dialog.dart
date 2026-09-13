@@ -27,7 +27,8 @@ Future<CancelChoice?> askCancel(
   required String title,
   required String message,
   required String confirmLabel,
-  required DownloadTask task,
+  required IconData confirmIcon,
+  required DownloadTask? task,
 }) {
   return showDialog<CancelChoice>(
     context: context,
@@ -40,27 +41,34 @@ Future<CancelChoice?> askCancel(
         style: const TextStyle(height: 1.5),
       ),
       actions: [
-        TextButton(
+        // Значки здесь не украшение: три ответа подряд различаются одними
+        // словами, а слова у них похожи — «Удалить» и «Удалить совсем».
+        // Глазу нужна зацепка помимо чтения.
+        TextButton.icon(
           onPressed: () => Navigator.pop(context),
-          child: Text(L.of(context).keepDownload),
+          icon: const Icon(Icons.arrow_back_rounded, size: 17),
+          label: Text(L.of(context).keepDownload),
         ),
         // Только когда стирать и правда есть что: у задачи, не начавшей
         // качать, выбор «вместе с файлами» — предложение ни о чём.
         if (hasDownloadedFiles(task))
-          TextButton(
+          TextButton.icon(
             onPressed: () => Navigator.pop(context, CancelChoice.withFiles),
             style: TextButton.styleFrom(foregroundColor: context.colors.danger),
-            child: Text(L.of(context).cancelWithFiles),
+            icon: const Icon(Icons.delete_forever_rounded, size: 18),
+            label: Text(L.of(context).cancelWithFiles),
           ),
-        FilledButton(
+        FilledButton.icon(
           onPressed: () => Navigator.pop(context, CancelChoice.task),
-          child: Text(confirmLabel),
+          icon: Icon(confirmIcon, size: 18),
+          label: Text(confirmLabel),
         ),
       ],
     ),
   );
 }
 
-/// Есть ли что стирать: задача могла ещё ни байта не скачать.
-bool hasDownloadedFiles(DownloadTask task) =>
-    task.completedBytes > 0 || task.files.isNotEmpty;
+/// Есть ли что стирать: задача могла ещё ни байта не скачать, а на странице
+/// игры её может не оказаться вовсе.
+bool hasDownloadedFiles(DownloadTask? task) =>
+    task != null && (task.completedBytes > 0 || task.files.isNotEmpty);

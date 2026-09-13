@@ -746,6 +746,7 @@
   "cancel": "Отмена",
   "cancelDownload": "Отменить",
   "cancelDownloadNote": "Задача будет снята. Уже скачанные файлы останутся на диске.",
+  "cancelDownloadConfirm": "Удалить",
   "keepDownload": "Оставить",
   "cancelWithFiles": "Удалить совсем вместе с файлами",
   "cancelFilesNote": "Скачанное будет стёрто с диска безвозвратно.",

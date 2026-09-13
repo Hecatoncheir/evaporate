@@ -26,6 +26,7 @@ Future<void> _removeFromQueue(
     title: L.of(context).removeFromQueueQuestion,
     message: L.of(context).removeFromQueueNote,
     confirmLabel: L.of(context).removeFromQueue,
+    confirmIcon: Icons.playlist_remove_rounded,
     task: task,
   );
   if (choice == null) return;

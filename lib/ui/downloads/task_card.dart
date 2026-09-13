@@ -24,7 +24,12 @@ Future<void> _cancel(BuildContext context, Game game, DownloadTask task) async {
     context,
     title: L.of(context).cancelDownloadQuestion,
     message: L.of(context).cancelDownloadNote,
-    confirmLabel: L.of(context).cancelDownload,
+    // «Удалить», а не «Отменить»: рядом стоит «Удалить совсем вместе с
+    // файлами», и два ответа должны читаться парой, от меньшего к
+    // большему. Подсказка на самой клавише остаётся «Отменить» — там, в
+    // ряду с паузой, это точное слово.
+    confirmLabel: L.of(context).cancelDownloadConfirm,
+    confirmIcon: Icons.remove_circle_outline,
     task: task,
   );
   if (choice == null) return;

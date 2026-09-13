@@ -90,6 +90,7 @@
   "cancel": "Cancel",
   "cancelDownload": "Cancel",
   "cancelDownloadNote": "The task will be dropped. Files already downloaded stay on disk.",
+  "cancelDownloadConfirm": "Delete",
   "keepDownload": "Keep",
   "cancelWithFiles": "Delete along with the files",
   "cancelFilesNote": "Everything downloaded is erased from the disk for good.",

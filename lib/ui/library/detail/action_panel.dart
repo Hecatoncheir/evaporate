@@ -10,6 +10,7 @@ import '../../../models/game.dart';
 import '../../../services/launch/executable_finder.dart';
 import '../../labels.dart';
 import '../../theme.dart';
+import '../../downloads/cancel_dialog.dart';
 import '../../widgets/common.dart';
 import '../play_button.dart';
 import '../../widgets/animated_progress.dart';
@@ -190,17 +191,25 @@ class ActionPanel extends StatelessWidget {
     ];
   }
 
+  /// Тот же вопрос, что на экране загрузок: действие одно и то же, и
+  /// спрашивать о нём по-разному в двух местах незачем.
   Future<void> _cancelDownload(BuildContext context) async {
     final downloads = context.read<DownloadsBloc>();
-    final ok = await confirm(
+    final choice = await askCancel(
       context,
       title: L.of(context).cancelDownloadQuestion,
       message: L.of(context).cancelDownloadNote,
-      confirmLabel: L.of(context).cancelDownload,
-      destructive: true,
+      confirmLabel: L.of(context).cancelDownloadConfirm,
+      confirmIcon: Icons.remove_circle_outline,
+      task: task,
     );
-    if (!ok) return;
-    downloads.add(DownloadCancelRequested(game));
+    if (choice == null) return;
+    downloads.add(
+      DownloadCancelRequested(
+        game,
+        deleteFiles: choice == CancelChoice.withFiles,
+      ),
+    );
   }
 
   Future<void> _pickInstallDir(BuildContext context) async {
