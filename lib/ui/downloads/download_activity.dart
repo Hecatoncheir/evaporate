@@ -272,10 +272,18 @@ class _SpeedChartPainter extends CustomPainter {
     final values = samples.isEmpty
         ? const [SpeedSample(download: 0, disk: 0)]
         : samples;
+    // Шкалу задаёт **только сеть**. Общая на два ряда губила то, ради чего
+    // график и нужен: движок сообщает скачанное рывками, и посчитанная из
+    // них скорость диска то ноль, то всплеск в сотню раз выше сетевой.
+    // Один такой всплеск прижимал ровные 67 Б/с сети к шести десятым
+    // пикселя — столбцы превращались в точки у самого низа.
+    //
+    // Линия диска остаётся на той же шкале и при всплеске упирается в
+    // верх: это читается как «диск успевает с запасом», а больше от неё
+    // здесь ничего и не спрашивают — точные числа стоят рядом показанием.
     var maximum = 1;
     for (final sample in values) {
       if (sample.download > maximum) maximum = sample.download;
-      if (sample.disk > maximum) maximum = sample.disk;
     }
 
     final slot = size.width / DownloadHistoryCubit.length;
@@ -298,7 +306,8 @@ class _SpeedChartPainter extends CustomPainter {
     final path = Path();
     for (var i = 0; i < values.length; i++) {
       final x = (offset + i + 0.5) * slot;
-      final y = size.height - values[i].disk / maximum * (size.height - 4);
+      final y = (size.height - values[i].disk / maximum * (size.height - 4))
+          .clamp(2.0, size.height);
       if (i == 0) {
         path.moveTo(x, y);
       } else {
