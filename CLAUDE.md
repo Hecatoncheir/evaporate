@@ -55,9 +55,13 @@ macOS и Windows с `fail-fast: false`.
 
 **Покрытие — порог, а не отчёт.** Снимается один раз, на ubuntu, уходит в
 сводку прогона и в артефакт `coverage-<sha>`, но `tool/check_coverage.dart`
-при недоборе валит прогон: 58% на весь код без генерации, 75% на
-`lib/core` + `lib/models` + `lib/services`, 85% на `save_manager.dart` с
-`restore_transaction.dart`. Локально то же:
+при недоборе валит прогон: 74% на весь код без генерации, 77% на
+`lib/core` + `lib/models` + `lib/services`, 88% на `save_manager.dart` с
+`restore_transaction.dart`. **Числа держат на два-три пункта ниже
+достигнутого и поднимают следом за ним**: вровень придвинутый порог валит
+прогон на любой мелочи и кончается тем, что его опускают, а отставший
+вдвое не ловит ничего — можно выкинуть треть тестов, и прогон смолчит.
+Локально то же:
 
 ```bash
 flutter test --coverage && dart tool/check_coverage.dart

@@ -48,12 +48,21 @@ Map<String, Map<int, int>> parseCoverage(String lcov) {
 void main(List<String> arguments) {
   final path = arguments.isEmpty ? 'coverage/lcov.info' : arguments.single;
   final files = parseCoverage(File(path).readAsStringSync());
+  // Пороги стоят на два-три пункта ниже достигнутого, а не вровень с ним:
+  // вплотную придвинутый порог валит прогон на любой мелочи — добавленной
+  // ветке, новом файле чуть жиже остальных, — и кончается это тем, что его
+  // опускают, то есть перестают им пользоваться. Запаса хватает на
+  // обычные колебания и не хватает на настоящий откат.
+  //
+  // Растут они следом за покрытием: добрали — подняли. Иначе однажды
+  // оказывается, что порог вдвое ниже того, что есть, и можно выкинуть
+  // треть тестов, не заметив этого на прогоне.
   final scopes =
       <({String label, double minimum, bool Function(String) includes})>[
-        (label: 'Весь код (без генерации)', minimum: 58, includes: (_) => true),
+        (label: 'Весь код (без генерации)', minimum: 74, includes: (_) => true),
         (
           label: 'Ядро, модели и сервисы',
-          minimum: 75,
+          minimum: 77,
           includes: (path) => [
             'lib/core/',
             'lib/models/',
@@ -62,7 +71,7 @@ void main(List<String> arguments) {
         ),
         (
           label: 'Менеджер сохранений',
-          minimum: 85,
+          minimum: 88,
           includes: (path) =>
               path == 'lib/services/saves/save_manager.dart' ||
               path == 'lib/services/saves/restore_transaction.dart',
