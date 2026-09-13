@@ -77,18 +77,41 @@ void main() {
     String? sums,
     bool sumsFail = false,
     String? platform,
+    List<int>? askedFrom,
+    bool ignoresRange = false,
   }) => UpdateDownload(
     workDir: tmp.path,
     platform: platform ?? archivePlatform(),
     fetch: (uri, onProgress) async {
-      if (uri.path.endsWith('SHA256SUMS')) {
-        if (sumsFail) throw const SocketException('нет связи');
-        return utf8.encode(sums ?? '${sha256.convert(bytes)}  $name\n');
+      // Целиком читаются только суммы: сборка идёт мимо памяти, на диск.
+      if (!uri.path.endsWith('SHA256SUMS')) {
+        throw StateError('в память запрошено лишнее: $uri');
       }
+      if (sumsFail) throw const SocketException('нет связи');
+      return utf8.encode(sums ?? '${sha256.convert(bytes)}  $name\n');
+    },
+    download: (uri, target, from, onProgress) async {
+      askedFrom?.add(from);
+      // Сервер, умеющий докачку, дошлёт хвост; не умеющий ответит целым
+      // файлом, и прежний кусок надо выбросить, а не дополнить им.
+      final resumes = from > 0 && !ignoresRange;
+      await target.writeAsBytes(
+        resumes ? bytes.sublist(from) : bytes,
+        mode: resumes ? FileMode.append : FileMode.writeOnly,
+        flush: true,
+      );
       onProgress(bytes.length, bytes.length);
-      return bytes;
     },
   );
+
+  /// Недокачанный кусок в том виде, в каком его оставляет обрыв связи.
+  Future<File> halfDownloaded(String name, List<int> bytes, int have) async {
+    final dir = Directory(p.join(tmp.path, 'updates', '9.9.9'));
+    await dir.create(recursive: true);
+    final part = File(p.join(dir.path, '$name.part'));
+    await part.writeAsBytes(bytes.sublist(0, have), flush: true);
+    return part;
+  }
 
   // Имя архива для своей системы приходит из релиза, а какое оно — знает
   // сборка. Тест берёт то же, что и приложение.
@@ -97,6 +120,67 @@ void main() {
       : 'evaporate-9.9.9-macos.zip';
 
   group('подготовка обновления', () {
+    // Полсотни мегабайт по плохому каналу обрываются регулярно. Без
+    // продолжения каждая попытка начиналась бы с нуля — то есть на таком
+    // канале не заканчивалась бы никогда.
+    test('оборванная загрузка продолжается с места обрыва', () async {
+      const name = 'evaporate-9.9.9-windows-setup.exe';
+      final bytes = utf8.encode('установщик целиком, все его байты');
+      await halfDownloaded(name, bytes, 10);
+      final askedFrom = <int>[];
+
+      final setup = await downloadOf(
+        name: name,
+        bytes: bytes,
+        platform: 'windows',
+        askedFrom: askedFrom,
+      ).prepare(releaseWith(name: name, bytes: bytes));
+
+      expect(askedFrom, [10]);
+      expect(File(setup).readAsBytesSync(), bytes);
+    });
+
+    // Докачку сервер поддерживать не обязан: не умеет — отвечает целым
+    // файлом, и склеить его с прежним куском значило бы получить мусор
+    // полуторной длины.
+    test(
+      'сервер без докачки отдаёт файл целиком, и кусок не склеивается',
+      () async {
+        const name = 'evaporate-9.9.9-windows-setup.exe';
+        final bytes = utf8.encode('установщик целиком, все его байты');
+        await halfDownloaded(name, bytes, 10);
+
+        final setup = await downloadOf(
+          name: name,
+          bytes: bytes,
+          platform: 'windows',
+          ignoresRange: true,
+        ).prepare(releaseWith(name: name, bytes: bytes));
+
+        expect(File(setup).readAsBytesSync(), bytes);
+      },
+    );
+
+    // Докачка чинит обрыв связи, а не подмену байтов: продолжив испорченный
+    // кусок, сумма не сойдётся уже никогда, и обновление встало бы намертво.
+    test('не сошедшийся кусок не остаётся лежать', () async {
+      const name = 'evaporate-9.9.9-windows-setup.exe';
+      final bytes = utf8.encode('установщик');
+      final part = await halfDownloaded(name, bytes, 4);
+
+      await expectLater(
+        downloadOf(
+          name: name,
+          bytes: bytes,
+          platform: 'windows',
+          sums: '${'0' * 64}  $name',
+        ).prepare(releaseWith(name: name, bytes: bytes)),
+        throwsA(isA<UpdateException>()),
+      );
+
+      expect(part.existsSync(), isFalse);
+    });
+
     test('архив скачивается, проверяется и распаковывается', () async {
       // tar.gz на Linux собирать сложнее, а проверяем мы не упаковщик.
       final name = Platform.isLinux
@@ -539,6 +623,78 @@ void main() {
       );
       expect(
         File(p.join(tmp.path, 'evaporate-update.ps1')).existsSync(),
+        isFalse,
+      );
+    });
+
+    // Приложение живо в тот миг, когда запускает установщик: закрыться
+    // раньше значило бы, что запускать его уже некому. Файлы работающего
+    // приложения Windows заменить не даёт, поэтому установщику передают
+    // номер процесса — дождаться выхода.
+    test('setup получает номер процесса, чтобы дождаться выхода', () async {
+      final setup = File(p.join(tmp.path, 'evaporate-9.9.9-windows-setup.exe'));
+      await setup.writeAsBytes(const [1]);
+      await File(p.join(tmp.path, 'unins000.exe')).writeAsBytes(const [1]);
+      final started = <List<String>>[];
+      final installer = UpdateInstaller(
+        workDir: tmp.path,
+        layout: InstallLayout(
+          root: tmp.path,
+          executable: p.join(tmp.path, 'evaporate.exe'),
+        ),
+        processId: 4242,
+        platform: 'windows',
+        start: (executable, arguments) async {
+          started.add([executable, ...arguments]);
+          return dummyProcess();
+        },
+      );
+
+      await installer.apply(setup.path);
+
+      expect(started.single, contains('/WAITPID=4242'));
+      expect(
+        started.single,
+        contains('/LOG=${UpdateInstaller.setupLogPath(tmp.path)}'),
+      );
+    });
+
+    // Ждать установщик умеет не сам по себе: это дописано в installer.iss,
+    // и потерять одну из половин ничего не стоит — приложение передаст
+    // номер процесса, а установщик о нём не спросит.
+    test('installer.iss умеет ждать переданный номер процесса', () {
+      final iss = File('windows/installer.iss').readAsStringSync();
+
+      expect(iss, contains('/WAITPID='));
+      expect(iss, contains('WaitForSingleObject'));
+      expect(iss, contains('function InitializeSetup'));
+    });
+
+    // Установка могла сорваться: файл занят, прав не хватило, диск полон.
+    // Раньше об этом не оставалось ни следа — человек видел прежнюю версию
+    // и гадал.
+    test('отказ установщика попадает в журнал приложения', () async {
+      await File(UpdateInstaller.setupLogPath(tmp.path)).writeAsString(
+        [
+          '2026-09-13 14:48:10.000   Starting the installation process.',
+          '2026-09-13 14:48:11.000   Setup aborted: файл занят другим',
+          '2026-09-13 14:48:11.000   Deinitializing setup.',
+        ].join(Platform.lineTerminator),
+      );
+      final appLog = AppLog(
+        path: p.join(tmp.path, 'app.log'),
+        previousPath: p.join(tmp.path, 'app.log.1'),
+      );
+      AppLog.instance = appLog;
+
+      await UpdateInstaller.collectLog(tmp.path);
+      await appLog.flush();
+
+      final written = (await appLog.tail()).join(Platform.lineTerminator);
+      expect(written, contains('Setup aborted'));
+      expect(written, isNot(contains('Starting the installation')));
+      expect(
+        File(UpdateInstaller.setupLogPath(tmp.path)).existsSync(),
         isFalse,
       );
     });

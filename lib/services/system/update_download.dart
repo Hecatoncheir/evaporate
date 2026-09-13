@@ -58,18 +58,36 @@ class UpdateDownload {
     String? platform,
     Future<List<int>> Function(Uri uri, void Function(int, int) onProgress)?
     fetch,
+    Future<void> Function(
+      Uri uri,
+      File target,
+      int from,
+      void Function(int received, int total) onProgress,
+    )?
+    download,
   }) : _platform = platform ?? currentPlatformKey(),
-       _fetch = fetch ?? _httpFetch;
+       _fetch = fetch ?? _httpFetch,
+       _download = download ?? _httpDownload;
 
   /// Куда складывать скачанное — папка данных приложения.
   final String workDir;
   final String _platform;
 
+  /// Мелочь вроде `SHA256SUMS` — её проще прочитать целиком.
   final Future<List<int>> Function(
     Uri uri,
     void Function(int received, int total) onProgress,
   )
   _fetch;
+
+  /// Сама сборка — десятки мегабайт, и она пишется прямо на диск.
+  final Future<void> Function(
+    Uri uri,
+    File target,
+    int from,
+    void Function(int received, int total) onProgress,
+  )
+  _download;
 
   /// Готовит обновление и возвращает setup или корень распакованной сборки.
   Future<String> prepare(
@@ -98,41 +116,56 @@ class UpdateDownload {
       throw const UpdateException('Для этой системы файла в релизе нет');
     }
 
+    // Папку версии не чистим: в ней мог остаться недокачанный кусок, и
+    // вся затея докачки в том, чтобы продолжить его, а не начать заново.
     final dir = Directory(p.join(workDir, 'updates', release.version));
-    if (await dir.exists()) await dir.delete(recursive: true);
     await dir.create(recursive: true);
+
+    final target = File(p.join(dir.path, asset.name));
+    // Пока файл не проверен, он лежит под своим именем с хвостом: целым
+    // считается только переименованный, и оборванная загрузка не выдаёт
+    // себя за готовое обновление.
+    final part = File('${target.path}.part');
 
     onProgress?.call(
       UpdateProgress(phase: UpdatePhase.downloading, total: asset.sizeBytes),
     );
-    final bytes = await _fetch(
-      Uri.parse(asset.url),
-      (received, total) => onProgress?.call(
-        UpdateProgress(
-          phase: UpdatePhase.downloading,
-          received: received,
-          total: total > 0 ? total : asset.sizeBytes,
+
+    final done = await part.exists() ? await part.length() : 0;
+    // Уже целый кусок не перекачиваем — ему осталась только проверка.
+    if (asset.sizeBytes <= 0 || done < asset.sizeBytes) {
+      await _download(
+        Uri.parse(asset.url),
+        part,
+        done,
+        (received, total) => onProgress?.call(
+          UpdateProgress(
+            phase: UpdatePhase.downloading,
+            received: received,
+            total: total > 0 ? total : asset.sizeBytes,
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.verifying));
-    await _verify(release, asset, bytes);
+    await _verify(release, asset, part);
+    if (await target.exists()) await target.delete();
+    await part.rename(target.path);
 
     // На Windows ничего не распаковываем: Inno Setup сам заменит
     // файлы после закрытия приложения. Запускаем его напрямую,
     // чтобы PowerShell не был промежуточным процессом.
     if (_platform == 'windows') {
-      final setup = File(p.join(dir.path, asset.name));
-      await setup.writeAsBytes(bytes, flush: true);
       onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
-      return setup.path;
+      return target.path;
     }
 
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.unpacking));
     final staged = Directory(p.join(dir.path, 'staged'));
+    if (await staged.exists()) await staged.delete(recursive: true);
     await staged.create(recursive: true);
-    await _unpack(asset.name, bytes, staged.path);
+    await _unpack(asset.name, await target.readAsBytes(), staged.path);
 
     final root = await _rootOf(staged);
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
@@ -143,15 +176,14 @@ class UpdateDownload {
   ///
   /// Сумма не защищает от подменённого источника — она приходит оттуда же,
   /// — но ловит оборванную и побитую загрузку, а это самое частое.
-  Future<void> _verify(
-    Release release,
-    ReleaseAsset archive,
-    List<int> bytes,
-  ) async {
-    if (archive.sizeBytes > 0 && bytes.length != archive.sizeBytes) {
-      throw UpdateException(
-        'Скачано ${bytes.length} байт вместо ${archive.sizeBytes}',
-      );
+  Future<void> _verify(Release release, ReleaseAsset archive, File file) async {
+    // Не сошлось — недокачанное выбрасываем. Иначе следующая попытка
+    // продолжила бы с середины испорченного файла и не сошлась бы уже
+    // никогда: докачка чинит обрыв связи, а не подмену байтов.
+    final size = await file.length();
+    if (archive.sizeBytes > 0 && size != archive.sizeBytes) {
+      await file.delete();
+      throw UpdateException('Скачано $size байт вместо ${archive.sizeBytes}');
     }
 
     final sums = release.checksums;
@@ -167,8 +199,11 @@ class UpdateDownload {
 
     final expected = _sumFor(String.fromCharCodes(raw), archive.name);
     if (expected == null) return;
-    final actual = sha256.convert(bytes).toString();
+    // Считаем по потоку: сборка весит десятки мегабайт, и держать её в
+    // памяти целиком незачем.
+    final actual = (await sha256.bind(file.openRead()).first).toString();
     if (actual != expected) {
+      await file.delete();
       throw const UpdateException(
         'Контрольная сумма не сошлась: файл скачался повреждённым',
       );
@@ -264,6 +299,90 @@ class UpdateDownload {
     final dirs = entries.whereType<Directory>().toList();
     if (dirs.length == 1 && entries.length == 1) return dirs.single.path;
     return staged.path;
+  }
+
+  /// Качает файл в [target], продолжая с байта [from].
+  ///
+  /// Докачка нужна не ради экономии трафика: полсотни мегабайт по плохому
+  /// каналу обрываются регулярно, а без продолжения каждая попытка
+  /// начинается с нуля — то есть на таком канале не заканчивается никогда.
+  static Future<void> _httpDownload(
+    Uri uri,
+    File target,
+    int from,
+    void Function(int, int) onProgress,
+  ) async {
+    final client = directHttpClient()
+      ..connectionTimeout = const Duration(seconds: 20);
+    try {
+      final response = await _open(client, uri, from);
+      // Просим больше, чем файл занимает: значит он уже весь у нас, и
+      // сказать об этом должна проверка суммы, а не отказ загрузки.
+      if (response.statusCode == HttpStatus.requestedRangeNotSatisfiable) {
+        await response.drain<void>();
+        return;
+      }
+      // Докачку сервер поддерживать не обязан: не умеет — отвечает целым
+      // файлом и кодом 200, и тогда прежний кусок надо выбросить, а не
+      // дописать к нему второй.
+      final resumed = response.statusCode == HttpStatus.partialContent;
+      if (!resumed && response.statusCode != HttpStatus.ok) {
+        throw UpdateException('Сервер ответил ${response.statusCode}');
+      }
+
+      var received = resumed ? from : 0;
+      final total = response.contentLength > 0
+          ? response.contentLength + received
+          : 0;
+      final sink = target.openWrite(
+        mode: resumed ? FileMode.append : FileMode.writeOnly,
+      );
+      var reported = DateTime.now();
+      try {
+        await for (final chunk in response) {
+          sink.add(chunk);
+          received += chunk.length;
+          final now = DateTime.now();
+          if (now.difference(reported) < const Duration(milliseconds: 100)) {
+            continue;
+          }
+          reported = now;
+          onProgress(received, total);
+        }
+      } finally {
+        await sink.close();
+      }
+      onProgress(received, total);
+    } on SocketException catch (error) {
+      throw UpdateException('Нет связи: ${error.message}');
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Запрос с продолжением и переадресациями.
+  ///
+  /// Диапазон переезжает вместе с запросом: GitHub уводит на своё
+  /// хранилище, и докачивать предстоит уже там.
+  static Future<HttpClientResponse> _open(
+    HttpClient client,
+    Uri uri,
+    int from,
+  ) async {
+    var target = uri;
+    for (var hop = 0; hop <= 5; hop++) {
+      final request = await client.getUrl(target);
+      if (from > 0) {
+        request.headers.set(HttpHeaders.rangeHeader, 'bytes=$from-');
+      }
+      final response = await request.close();
+      if (!response.isRedirect) return response;
+      final location = response.headers.value(HttpHeaders.locationHeader);
+      if (location == null) return response;
+      await response.drain<void>();
+      target = target.resolve(location);
+    }
+    throw const UpdateException('Слишком много переадресаций');
   }
 
   static Future<List<int>> _httpFetch(

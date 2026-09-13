@@ -78,9 +78,61 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; \
   Flags: nowait postinstall skipifsilent
 ; При самообновлении setup запускается напрямую с /RELAUNCH:
 ; после тихой установки он сам открывает новую версию.
-Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RelaunchRequested
+Filename: "{app}\{#AppExe}"; Flags: nowait runasoriginaluser; \
+  Check: RelaunchRequested
 
 [Code]
+{ Ждать выхода приложения приходится через Windows API: сам установщик
+  такого не умеет, а заменить файлы работающего процесса Windows не даёт. }
+function OpenProcess(Access: LongWord; Inherit: BOOL; ProcessId: LongWord):
+  LongWord; external 'OpenProcess@kernel32.dll stdcall';
+function WaitForSingleObject(Handle: LongWord; Milliseconds: LongWord):
+  LongWord; external 'WaitForSingleObject@kernel32.dll stdcall';
+function CloseHandle(Handle: LongWord): BOOL;
+  external 'CloseHandle@kernel32.dll stdcall';
+
+{ Номер процесса, который просил себя дождаться, или ноль. }
+function CallerPid: Integer;
+var
+  I: Integer;
+  Value: String;
+begin
+  Result := 0;
+  for I := 1 to ParamCount do
+  begin
+    Value := ParamStr(I);
+    if Pos('/WAITPID=', Uppercase(Value)) = 1 then
+      Result := StrToIntDef(Copy(Value, 10, Length(Value) - 9), 0);
+  end;
+end;
+
+{ Приложение запускает установщик перед тем, как закрыться само: иначе
+  запустить его было бы уже некому. Пока приложение живо, заменить его
+  файлы нельзя, и установка срывалась молча — человек видел прежнюю
+  версию и ни слова о том, почему.
+
+  Тридцать секунд, а не пять: у приложения свой бюджет на дописывание
+  несделанного, и уложиться в пять оно не обязано. }
+function WaitForCaller: Boolean;
+var
+  Pid: Integer;
+  Handle: LongWord;
+begin
+  Result := True;
+  Pid := CallerPid;
+  if Pid <= 0 then Exit;
+  { SYNCHRONIZE. Ноль значит, что процесса уже нет, — ждать нечего. }
+  Handle := OpenProcess($00100000, False, Pid);
+  if Handle = 0 then Exit;
+  WaitForSingleObject(Handle, 30000);
+  CloseHandle(Handle);
+end;
+
+function InitializeSetup: Boolean;
+begin
+  Result := WaitForCaller;
+end;
+
 function RelaunchRequested: Boolean;
 var
   I: Integer;

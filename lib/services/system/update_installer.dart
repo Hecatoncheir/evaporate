@@ -40,6 +40,10 @@ class UpdateInstaller {
   static String logPath(String workDir) =>
       p.join(workDir, 'evaporate-update.log');
 
+  /// Куда о себе пишет установщик Windows.
+  static String setupLogPath(String workDir) =>
+      p.join(workDir, 'evaporate-update-setup.log');
+
   final InstallLayout? _layout;
   final Future<Process> Function(String, List<String>) _start;
   final int _pid;
@@ -89,9 +93,16 @@ class UpdateInstaller {
       if (p.extension(stagedRoot).toLowerCase() != '.exe') {
         throw const UpdateException('Установщик Windows не найден');
       }
-      final log = p.join(workDir, 'evaporate-update-setup.log');
       AppLog.instance.write('обновление: запускаю setup $stagedRoot');
-      await _start(stagedRoot, [...windowsSetupArguments, '/LOG=$log']);
+      // Свой номер процесса передаём затем, чтобы установщик дождался
+      // нашего выхода: файлы работающего приложения Windows заменить не
+      // даёт, а закрыться раньше его запуска мы не можем — запускать
+      // установщик было бы уже некому.
+      await _start(stagedRoot, [
+        ...windowsSetupArguments,
+        '/WAITPID=$_pid',
+        '/LOG=${setupLogPath(workDir)}',
+      ]);
       return;
     }
 
@@ -124,14 +135,64 @@ class UpdateInstaller {
   static Future<void> collectLog(String workDir) async {
     final file = File(logPath(workDir));
     try {
-      if (!await file.exists()) return;
-      for (final line in (await file.readAsString()).split('\n')) {
-        if (line.trim().isNotEmpty) AppLog.instance.write(line.trim());
+      // Проверка на месте, а не выходом из метода: журнал помощника и
+      // журнал установщика — разные файлы, и отсутствие первого не
+      // повод не забрать второй.
+      if (await file.exists()) {
+        for (final line in (await file.readAsString()).split('\n')) {
+          if (line.trim().isNotEmpty) AppLog.instance.write(line.trim());
+        }
+        await file.delete();
       }
-      await file.delete();
     } on Object {
       // Записи помощника — не то, ради чего стоит ронять запуск.
     }
+    await _collectSetupLog(workDir);
+  }
+
+  /// Забирает из журнала установщика Windows то, ради чего его просили
+  /// писать.
+  ///
+  /// Целиком он не нужен — это сотни строк о каждом файле. Нужны строки об
+  /// отказе: без них неудавшееся обновление выглядело так — окно
+  /// закрылось, новая версия не появилась, и ни следа почему.
+  static Future<void> _collectSetupLog(String workDir) async {
+    final file = File(setupLogPath(workDir));
+    try {
+      if (!await file.exists()) return;
+      final failures = (await file.readAsLines()).where(_looksLikeFailure);
+      for (final line in failures.take(_setupLogLimit)) {
+        AppLog.instance.write('обновление: ${line.trim()}');
+      }
+      await file.delete();
+    } on Object {
+      // Журнал установщика — не то, ради чего стоит ронять запуск.
+    }
+  }
+
+  /// Сколько строк об отказе забирать: дальше первого десятка это уже не
+  /// диагноз, а поток — установщик повторяет одно и то же о каждом файле.
+  static const _setupLogLimit = 10;
+
+  /// Похожа ли строка на сообщение об отказе.
+  ///
+  /// Язык журнала — системный, поэтому слова берём на обоих: у одного
+  /// человека там `Setup aborted`, у другого «Установка прервана».
+  static bool _looksLikeFailure(String line) {
+    const markers = [
+      'aborted',
+      'exception',
+      'denied',
+      'cannot',
+      'failed',
+      'error',
+      'прерван',
+      'отказ',
+      'ошибк',
+      'не удалось',
+    ];
+    final lower = line.toLowerCase();
+    return markers.any(lower.contains);
   }
 
   /// Отдельным процессом и без привязки к нашему: он обязан пережить наш
