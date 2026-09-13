@@ -178,4 +178,46 @@ void main() {
       Platform.isWindows ? isNotNull : isEmpty,
     );
   });
+
+  // `InstallLocation` заполняет установщик, а не Windows, и половина кладёт
+  // путь в кавычках, как в командной строке. С кавычками это не путь, и
+  // папка по нему не находится никогда.
+  test('путь в кавычках читается как путь', () async {
+    final found = await WindowsInstalls.installed(
+      checkExists: false,
+      run: reg(
+        dump([
+          {
+            'DisplayName': 'Гавань в кавычках',
+            'InstallLocation': r'"C:\Games\Гавань"',
+          },
+        ]),
+      ),
+    );
+
+    expect(found.single.installDir, r'C:\Games\Гавань');
+  });
+
+  // Кавычку установщик иногда открывает и не закрывает. Такую не снять как
+  // обрамление, а Windows на путь, начинающийся с кавычки, отвечает не «нет
+  // такой папки», а ошибкой — и обход, наткнувшись на одну такую запись, до
+  // остальных не доходил вовсе.
+  test('испорченная запись не уносит с собой остальные', () async {
+    final found = await WindowsInstalls.installed(
+      run: reg(
+        dump([
+          {
+            'DisplayName': 'Запись с мусором',
+            'InstallLocation': r'"C:\Games\Гавань',
+          },
+          {
+            'DisplayName': 'Настоящая папка',
+            'InstallLocation': Directory.systemTemp.path,
+          },
+        ]),
+      ),
+    );
+
+    expect(found.map((entry) => entry.name), contains('Настоящая папка'));
+  });
 }

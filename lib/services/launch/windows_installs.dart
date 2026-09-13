@@ -77,7 +77,7 @@ class WindowsInstalls {
       if (result.exitCode != 0) continue;
 
       for (final entry in _parse('${result.stdout}')) {
-        if (checkExists && !await Directory(entry.installDir).exists()) {
+        if (checkExists && !await _exists(entry.installDir)) {
           continue;
         }
         found.putIfAbsent(p.normalize(entry.installDir).toLowerCase(), () {
@@ -89,6 +89,34 @@ class WindowsInstalls {
     final list = found.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return list;
+  }
+
+  /// Есть ли такая папка.
+  ///
+  /// Отдельно от `Directory.exists`, потому что путь из реестра бывает и
+  /// вовсе не путём: на строку с недопустимыми для имени символами Windows
+  /// отвечает не «нет такой папки», а ошибкой. Обход, дошедший до одной
+  /// испорченной записи, дальше не шёл вовсе — а испорченная запись значит
+  /// ровно то же, что и несуществующая папка: эту пропускаем, читаем
+  /// следующую.
+  static Future<bool> _exists(String path) async {
+    try {
+      return await Directory(path).exists();
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  /// Снимает кавычки с пути.
+  ///
+  /// `InstallLocation` пишет установщик, а не Windows, и пишет как придётся:
+  /// половина кладёт путь в кавычках, как в командной строке. `"C:\Games\X"`
+  /// — не путь, и папка по нему не находится никогда.
+  static String _unquoted(String value) {
+    final trimmed = value.trim();
+    if (trimmed.length < 2) return trimmed;
+    if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return trimmed;
+    return trimmed.substring(1, trimmed.length - 1).trim();
   }
 
   /// Разбирает вывод `reg query ... /s`.
@@ -128,9 +156,9 @@ class WindowsInstalls {
   static RegistryInstall? _entryOf(Map<String, String> values) {
     if (values['systemcomponent'] == '0x1') return null;
     final name = values['displayname'];
-    final location = values['installlocation'];
+    final location = _unquoted(values['installlocation'] ?? '');
     if (name == null || name.isEmpty) return null;
-    if (location == null || location.isEmpty) return null;
+    if (location.isEmpty) return null;
 
     final lower = location.toLowerCase().replaceAll('/', r'\');
     for (final skip in _systemPaths) {
