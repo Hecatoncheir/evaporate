@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,25 +15,22 @@ import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
 import '../../models/game.dart';
 import '../../models/app_settings.dart';
-import '../../input/input_scope.dart';
-import '../widgets/scale_control.dart';
 import '../widgets/liquid_selection.dart';
-import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../widgets/spatial_surface.dart';
 
 import 'add_game_dialog.dart';
 import 'game_cover.dart';
 import 'scan_folder_dialog.dart';
-import 'game_detail.dart';
 import 'library_atmosphere.dart';
 import 'foil_card.dart';
 import '../../l10n/app_localizations.dart';
-
-/// Вкладки поверх сетки. Раскладывают библиотеку без остатка: игра ровно в
-/// одной из двух, и суммы сходятся с «Все».
-enum _Shelf { all, installed, notInstalled }
+import 'drop_overlay.dart';
+import 'featured_game.dart';
+import 'game_page.dart';
+import 'library_heading.dart';
+import 'shelf.dart';
+import 'toolbar.dart';
 
 /// Библиотека: сетка вертикальных обложек, поверх неё — страница игры.
 ///
@@ -51,7 +46,7 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   String _query = '';
-  _Shelf _shelf = _Shelf.all;
+  Shelf _shelf = Shelf.all;
   final Map<String, GlobalKey> _tileKeys = {};
   final Map<String, FocusNode> _tileFocus = {};
 
@@ -150,7 +145,7 @@ class _LibraryPageState extends State<LibraryPage> {
     _repairSelection(nav, navState, games, opened);
     _restoreFocusOnClose(navState, games);
 
-    if (opened != null) return _GamePage(game: opened);
+    if (opened != null) return GamePage(game: opened);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -164,7 +159,7 @@ class _LibraryPageState extends State<LibraryPage> {
           child: Column(
             children: [
               if (showHeading)
-                _ConceptLibraryHeading(
+                ConceptLibraryHeading(
                   compact: !roomy,
                   scale: scale,
                   onScale: (value) {
@@ -177,15 +172,15 @@ class _LibraryPageState extends State<LibraryPage> {
                   },
                 ),
               if (featured != null && roomy)
-                _FeaturedGame(
+                FeaturedGame(
                   game: featured,
                   onOpen: () => nav.add(GameOpened(featured.id)),
                   onPrimary: () => _primaryGameAction(context, featured),
                 ),
-              _Toolbar(
+              LibraryToolbar(
                 shelf: _shelf,
                 counts: {
-                  for (final shelf in _Shelf.values)
+                  for (final shelf in Shelf.values)
                     shelf: _onShelf(found, shelf).length,
                 },
                 onShelf: (value) => setState(() => _shelf = value),
@@ -239,7 +234,7 @@ class _LibraryPageState extends State<LibraryPage> {
                               ),
                       ),
                       if (_dragging)
-                        const Positioned.fill(child: _DropOverlay()),
+                        const Positioned.fill(child: DropOverlay()),
                     ],
                   ),
                 ),
@@ -496,10 +491,10 @@ class _LibraryPageState extends State<LibraryPage> {
     return filtered;
   }
 
-  static List<Game> _onShelf(List<Game> games, _Shelf shelf) => switch (shelf) {
-    _Shelf.all => games,
+  static List<Game> _onShelf(List<Game> games, Shelf shelf) => switch (shelf) {
+    Shelf.all => games,
     // Запущенная игра установлена по определению, качающаяся — ещё нет.
-    _Shelf.installed =>
+    Shelf.installed =>
       games
           .where(
             (g) =>
@@ -507,7 +502,7 @@ class _LibraryPageState extends State<LibraryPage> {
                 g.status == GameStatus.running,
           )
           .toList(),
-    _Shelf.notInstalled =>
+    Shelf.notInstalled =>
       games
           .where(
             (g) =>
@@ -582,685 +577,5 @@ class _LibraryPageState extends State<LibraryPage> {
     final nav = context.read<NavigationBloc>();
     final addedId = await showAddGameDialog(context);
     if (addedId != null && mounted) nav.add(GameSelected(addedId));
-  }
-}
-
-class _ConceptLibraryHeading extends StatelessWidget {
-  const _ConceptLibraryHeading({
-    required this.compact,
-    required this.scale,
-    required this.onScale,
-  });
-
-  final bool compact;
-  final double scale;
-  final ValueChanged<double> onScale;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(28, compact ? 18 : 24, 28, compact ? 4 : 12),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                L.of(context).conceptLibraryLabel,
-                style: TextStyle(
-                  color: context.colors.primary,
-                  fontFamily: EvaporateTheme.monoFontFamily,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const SizedBox(height: 7),
-              Text(
-                compact
-                    ? L.of(context).conceptLibraryHeadlineCompact
-                    : L.of(context).conceptLibraryHeadline,
-                maxLines: compact ? 1 : 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontFamily: EvaporateTheme.displayFontFamily,
-                  fontSize: compact ? 25 : 38,
-                  height: 0.92,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: compact ? -1 : -2.1,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (compact) ...[
-          const SizedBox(width: 16),
-          ScaleControl(
-            key: const ValueKey('library-scale'),
-            label: L.of(context).coverScale,
-            value: scale,
-            min: AppSettings.minLibraryScale,
-            max: AppSettings.maxLibraryScale,
-            step: 0.25,
-            onChanged: onScale,
-          ),
-        ],
-        if (!compact) ...[
-          const SizedBox(width: 32),
-          Container(
-            width: 310,
-            padding: const EdgeInsets.only(left: 22),
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: context.colors.outline.withValues(alpha: 0.48),
-                ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  L.of(context).conceptLibraryDescription,
-                  style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: 12.5,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ScaleControl(
-                  key: const ValueKey('library-scale'),
-                  label: L.of(context).coverScale,
-                  value: scale,
-                  min: AppSettings.minLibraryScale,
-                  max: AppSettings.maxLibraryScale,
-                  step: 0.25,
-                  onChanged: onScale,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    ),
-  );
-}
-
-class _FeaturedGame extends StatelessWidget {
-  const _FeaturedGame({
-    required this.game,
-    required this.onOpen,
-    required this.onPrimary,
-  });
-
-  final Game game;
-  final VoidCallback onOpen;
-  final VoidCallback onPrimary;
-
-  @override
-  Widget build(BuildContext context) {
-    final playable = game.status != GameStatus.installed || game.canLaunch;
-    final coverPath = game.coverPath;
-    final fallback = Image.asset(
-      'assets/branding/orbit_fall_hero.png',
-      key: const ValueKey('featured-game-background-fallback'),
-      fit: BoxFit.cover,
-      alignment: const Alignment(0.2, 0.46),
-      filterQuality: FilterQuality.medium,
-    );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 8, 28, 8),
-      child: SizedBox(
-        height: 238,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (coverPath == null)
-                fallback
-              else
-                Image.file(
-                  File(coverPath),
-                  key: const ValueKey('featured-game-background'),
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  filterQuality: FilterQuality.medium,
-                  errorBuilder: (context, error, stackTrace) => fallback,
-                ),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      AppColors.heroShadeStrong,
-                      AppColors.heroShadeMiddle,
-                      AppColors.heroShadeClear,
-                    ],
-                    stops: [0, 0.48, 0.82],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 26,
-                top: 22,
-                bottom: 22,
-                width: 430,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      L
-                          .of(context)
-                          .conceptFeaturedContinue(
-                            game.lastPlayed == null
-                                ? L.of(context).featuredReady
-                                : L.of(context).featuredRecent,
-                          ),
-                      style: const TextStyle(
-                        color: AppColors.heroEyebrow,
-                        fontFamily: EvaporateTheme.monoFontFamily,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      game.title.toUpperCase(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.coverText,
-                        fontFamily: EvaporateTheme.displayFontFamily,
-                        fontSize: 38,
-                        height: 0.88,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -2,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      game.description?.trim().isNotEmpty == true
-                          ? game.description!
-                          : L.of(context).featuredFallbackDescription,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.heroBody,
-                        fontSize: 12,
-                        height: 1.35,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        LauncherActionButton(
-                          onPressed: playable ? onPrimary : null,
-                          icon:
-                              game.status == GameStatus.notInstalled ||
-                                  game.status == GameStatus.error
-                              ? Icons.download_rounded
-                              : Icons.play_arrow_rounded,
-                          label: _primaryLabel(context, game),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: onOpen,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.coverText,
-                            side: BorderSide(
-                              color: AppColors.coverText.withValues(
-                                alpha: 0.38,
-                              ),
-                            ),
-                            minimumSize: const Size(112, 42),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Text(L.of(context).openGame),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                right: 20,
-                bottom: 18,
-                child: Container(
-                  width: 198,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.heroPanel,
-                    border: Border.all(color: AppColors.coverProgressTrack),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        L.of(context).inGame,
-                        style: TextStyle(
-                          color: AppColors.coverText.withValues(alpha: 0.6),
-                          fontFamily: EvaporateTheme.monoFontFamily,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        formatDurationLabel(L.of(context), game.playtime),
-                        style: const TextStyle(
-                          color: AppColors.coverText,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static String _primaryLabel(BuildContext context, Game game) =>
-      switch (game.status) {
-        GameStatus.running => L.of(context).stop,
-        GameStatus.downloading => L.of(context).pause,
-        GameStatus.paused => L.of(context).resume,
-        GameStatus.installed => L.of(context).play,
-        GameStatus.notInstalled || GameStatus.error => L.of(context).download,
-      };
-}
-
-/// Подсказка поверх сетки, пока над окном что-то держат.
-///
-/// Молчаливый приёмник — худший из возможных: пользователь не знает ни что
-/// сюда можно, ни что случится, и проверяет это на своей библиотеке.
-class _DropOverlay extends StatelessWidget {
-  const _DropOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    return IgnorePointer(
-      child: Container(
-        color: context.colors.background.withValues(alpha: 0.86),
-        padding: const EdgeInsets.all(24),
-        child: DottedBorderBox(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.download_for_offline_outlined,
-                size: 44,
-                color: context.colors.accent,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                l.dropRelease,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: context.colors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${l.dropHintFolder} • ${l.dropHintTorrent}',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: context.colors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Рамка, показывающая границу приёмника.
-class DottedBorderBox extends StatelessWidget {
-  const DottedBorderBox({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.colors.accent, width: 2),
-      ),
-      child: Center(child: child),
-    );
-  }
-}
-
-/// Верхняя строка: полки с числами, поиск и добавление.
-class _Toolbar extends StatelessWidget {
-  const _Toolbar({
-    required this.shelf,
-    required this.counts,
-    required this.onShelf,
-    required this.searchFocus,
-    required this.onQuery,
-    required this.onScan,
-    required this.onAdd,
-    required this.onReturnToGames,
-  });
-
-  final _Shelf shelf;
-  final Map<_Shelf, int> counts;
-  final ValueChanged<_Shelf> onShelf;
-  final FocusNode searchFocus;
-  final ValueChanged<String> onQuery;
-  final VoidCallback onScan;
-  final VoidCallback onAdd;
-  final VoidCallback onReturnToGames;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    final filters = KeyedSubtree(
-      key: const ValueKey('library-filter-group'),
-      child: _ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
-    );
-    final actions = KeyedSubtree(
-      key: const ValueKey('library-actions-group'),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          OutlinedButton.icon(
-            onPressed: onScan,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-            icon: const Icon(Icons.folder_open_outlined, size: 19),
-            label: Text(l.findInstalledGames),
-          ),
-          OutlinedButton.icon(
-            onPressed: onAdd,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-            icon: const Icon(Icons.add, size: 19),
-            label: Text(l.addGame),
-          ),
-        ],
-      ),
-    );
-    final search = SizedBox(
-      key: const ValueKey('library-search'),
-      width: 144,
-      height: 48,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: context.colors.railBackground.withValues(alpha: 0.78),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: context.colors.textPrimary.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 3, right: 3, bottom: 0, left: 3),
-          child: Actions(
-            actions: {
-              ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
-                onInvoke: (_) {
-                  onReturnToGames();
-                  return null;
-                },
-              ),
-            },
-            child: Shortcuts(
-              shortcuts: const {
-                SingleActivator(LogicalKeyboardKey.arrowDown):
-                    ReturnToLibraryIntent(),
-                SingleActivator(LogicalKeyboardKey.escape):
-                    ReturnToLibraryIntent(),
-                SingleActivator(LogicalKeyboardKey.enter):
-                    ReturnToLibraryIntent(),
-                SingleActivator(LogicalKeyboardKey.numpadEnter):
-                    ReturnToLibraryIntent(),
-              },
-              child: TextField(
-                focusNode: searchFocus,
-                onChanged: onQuery,
-                onSubmitted: (_) => onReturnToGames(),
-                decoration: InputDecoration(
-                  hintText: l.searchHint,
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  filled: false,
-                  isDense: true,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
-      child: GlassSurface(
-        radius: 12,
-        opacity: context.colors.isDark ? 0.72 : 0.84,
-        shadow: false,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth >= 1340) {
-              return Row(
-                children: [
-                  filters,
-                  const Spacer(),
-                  actions,
-                  const Spacer(),
-                  search,
-                ],
-              );
-            }
-            if (constraints.maxWidth >= 760) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  filters,
-                  const SizedBox(width: 6),
-                  Expanded(child: actions),
-                  const SizedBox(width: 6),
-                  search,
-                ],
-              );
-            }
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(alignment: Alignment.centerLeft, child: filters),
-                const SizedBox(height: 8),
-                SizedBox(width: double.infinity, child: search),
-                const SizedBox(height: 8),
-                Align(alignment: Alignment.center, child: actions),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _ShelfTabs extends StatefulWidget {
-  const _ShelfTabs({
-    required this.shelf,
-    required this.counts,
-    required this.onShelf,
-  });
-  final _Shelf shelf;
-  final Map<_Shelf, int> counts;
-  final ValueChanged<_Shelf> onShelf;
-
-  @override
-  State<_ShelfTabs> createState() => _ShelfTabsState();
-}
-
-class _ShelfTabsState extends State<_ShelfTabs> {
-  final _targets = {for (final shelf in _Shelf.values) shelf: GlobalKey()};
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: context.colors.railBackground.withValues(alpha: 0.78),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: context.colors.textPrimary.withValues(alpha: 0.1),
-      ),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(3),
-      child: LiquidSelection(
-        key: const ValueKey('shelf-liquid'),
-        targetKey: () => _targets[widget.shelf],
-        color: context.colors.selection,
-        radius: 8,
-        enabled: context.select<SettingsBloc, bool>(
-          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
-        ),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            for (final value in _Shelf.values)
-              _ShelfButton(
-                key: _targets[value],
-                label: _label(L.of(context), value),
-                count: widget.counts[value] ?? 0,
-                active: value == widget.shelf,
-                onTap: () => widget.onShelf(value),
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  static String _label(L l, _Shelf shelf) => switch (shelf) {
-    _Shelf.all => l.tabAll,
-    _Shelf.installed => l.tabInstalled,
-    _Shelf.notInstalled => l.tabNotInstalled,
-  };
-}
-
-/// Полка с числом рядом — как вкладки в библиотеке Steam.
-class _ShelfButton extends StatelessWidget {
-  const _ShelfButton({
-    super.key,
-    required this.label,
-    required this.count,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(
-          backgroundColor: AppColors.transparent,
-          foregroundColor: active ? colors.onSelection : colors.textSecondary,
-          minimumSize: const Size(0, 42),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child: LiquidSelectionInk(
-          normalColor: colors.textSecondary,
-          selectedColor: colors.onSelection,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(width: 7),
-              Text(
-                '$count',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Страница игры поверх сетки: заголовок с возвратом и карточка под ним.
-class _GamePage extends StatelessWidget {
-  const _GamePage({required this.game});
-
-  final Game game;
-
-  @override
-  Widget build(BuildContext context) {
-    final nav = context.read<NavigationBloc>();
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
-          child: GlassSurface(
-            radius: 12,
-            shadow: false,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Row(
-              children: [
-                TextButton.icon(
-                  onPressed: () => nav.add(const GameOpened(null)),
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  label: Text(L.of(context).backToLibrary),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: GameDetail(key: ValueKey(game.id), game: game),
-        ),
-      ],
-    );
   }
 }

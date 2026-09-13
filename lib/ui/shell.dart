@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../bloc/downloads/downloads_bloc.dart';
 import '../bloc/library/library_bloc.dart';
@@ -30,6 +29,9 @@ import 'widgets/fade_indexed_stack.dart';
 import 'widgets/liquid_selection.dart';
 import 'widgets/spatial_surface.dart';
 import '../l10n/app_localizations.dart';
+import 'shell/app_footer.dart';
+import 'shell/navigation.dart';
+import 'shell/top_bar.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
@@ -130,7 +132,7 @@ class AppShell extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _ConceptTopBar(compact: compact),
+                        ConceptTopBar(compact: compact),
                         const SizedBox(height: 10),
                         Expanded(
                           child: ClipRRect(
@@ -186,7 +188,7 @@ class AppShell extends StatelessWidget {
                         ),
                         if (compact) ...[
                           const SizedBox(height: 8),
-                          const _ConceptNavigation(compact: true),
+                          const ConceptNavigation(compact: true),
                         ],
                         if (!shortViewport) ...[
                           const SizedBox(height: 6),
@@ -196,7 +198,7 @@ class AppShell extends StatelessWidget {
                               maxWidth: constraints.maxWidth,
                               child: SizedBox(
                                 width: constraints.maxWidth,
-                                child: const _AppFooter(),
+                                child: const AppFooter(),
                               ),
                             ),
                           ),
@@ -220,259 +222,6 @@ class AppShell extends StatelessWidget {
     } else {
       showInfo(context, notice.message);
     }
-  }
-}
-
-/// Верхняя панель концепции: бренд и действия стоят по краям, а разделы —
-/// ровно по центру доступной ширины. В узком окне разделы переезжают вниз.
-class _ConceptTopBar extends StatelessWidget {
-  const _ConceptTopBar({required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final settings = context.watch<SettingsBloc>().state;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return SizedBox(
-      height: 64,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Row(
-            children: [
-              const AppMark(size: 36),
-              if (!compact) ...[
-                const SizedBox(width: 10),
-                Text(
-                  'EVAPORATE',
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontFamily: EvaporateTheme.monoFontFamily,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.4,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              _TopAction(
-                tooltip: L.of(context).searchHint,
-                icon: Icons.search_rounded,
-                onPressed: () => context.read<NavigationBloc>().add(
-                  const SearchFocusRequested(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              _TopAction(
-                tooltip: dark
-                    ? L.of(context).lightThemeAction
-                    : L.of(context).darkThemeAction,
-                icon: dark
-                    ? Icons.dark_mode_outlined
-                    : Icons.light_mode_outlined,
-                onPressed: () {
-                  context.read<SettingsBloc>().add(
-                    SettingsChanged(
-                      settings.copyWith(
-                        themeMode: dark ? ThemeMode.light : ThemeMode.dark,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              _TopAction(
-                key: const ValueKey('rail-quit'),
-                tooltip: L.of(context).quitApp,
-                hiddenLabel: L.of(context).quitApp,
-                icon: Icons.power_settings_new_rounded,
-                onPressed: () => unawaited(windowManager.close()),
-              ),
-            ],
-          ),
-          if (!compact) const _ConceptNavigation(compact: false),
-        ],
-      ),
-    );
-  }
-}
-
-class _TopAction extends StatelessWidget {
-  const _TopAction({
-    super.key,
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-    this.hiddenLabel,
-  });
-
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback onPressed;
-  final String? hiddenLabel;
-
-  @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: tooltip,
-    onPressed: onPressed,
-    icon: Stack(
-      alignment: Alignment.center,
-      children: [
-        Icon(icon, size: 20),
-        if (hiddenLabel case final label?)
-          SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
-      ],
-    ),
-    style: IconButton.styleFrom(
-      minimumSize: const Size(42, 42),
-      backgroundColor: context.colors.surfaceHigh.withValues(alpha: 0.62),
-      foregroundColor: context.colors.textSecondary,
-      side: BorderSide(color: context.colors.outline.withValues(alpha: 0.45)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  );
-}
-
-class _ConceptNavigation extends StatefulWidget {
-  const _ConceptNavigation({required this.compact});
-
-  final bool compact;
-
-  @override
-  State<_ConceptNavigation> createState() => _ConceptNavigationState();
-}
-
-class _ConceptNavigationState extends State<_ConceptNavigation> {
-  final _targets = List.generate(4, (_) => GlobalKey());
-
-  @override
-  Widget build(BuildContext context) {
-    final section = context.select<NavigationBloc, int>(
-      (bloc) => bloc.state.section,
-    );
-    final count = context.select<DownloadsBloc, int>(
-      (bloc) => bloc.state.activeTasks.length,
-    );
-    final labels = [
-      L.of(context).library,
-      L.of(context).downloads,
-      L.of(context).saves,
-      L.of(context).settings,
-    ];
-    const icons = [
-      Icons.grid_view_outlined,
-      Icons.download_rounded,
-      Icons.save_rounded,
-      Icons.settings_rounded,
-    ];
-    return Container(
-      key: ValueKey(
-        widget.compact ? 'concept-navigation-compact' : 'concept-navigation',
-      ),
-      height: widget.compact ? 54 : 50,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: context.colors.railBackground,
-        border: Border.all(
-          color: context.colors.outline.withValues(alpha: 0.42),
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.coverTextShadow.withValues(
-              alpha: context.colors.isDark ? 0.2 : 0.1,
-            ),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: LiquidSelection(
-        key: const ValueKey('rail-liquid'),
-        targetKey: () => _targets[section],
-        color: context.colors.selection,
-        radius: 8,
-        enabled: context.select<SettingsBloc, bool>(
-          (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(labels.length, (index) {
-            final selected = section == index;
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == labels.length - 1 ? 0 : 3,
-              ),
-              child: TextButton(
-                key: _targets[index],
-                onPressed: () =>
-                    context.read<NavigationBloc>().add(SectionSelected(index)),
-                // ignore: sort_child_properties_last
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      LiquidSelectionInk(
-                        normalColor: context.colors.textSecondary,
-                        selectedColor: context.colors.onSelection,
-                        child: Icon(icons[index], size: 17),
-                      ),
-                      if (!widget.compact ||
-                          MediaQuery.sizeOf(context).width > 560) ...[
-                        const SizedBox(width: 8),
-                        Text(labels[index]),
-                      ],
-                      if (index == 1 && count > 0) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          constraints: const BoxConstraints(minWidth: 18),
-                          height: 18,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                          decoration: BoxDecoration(
-                            color: context.colors.primary,
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: Text(
-                            '$count',
-                            style: TextStyle(
-                              color: context.colors.onPrimary,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  minimumSize: Size(widget.compact ? 50 : 104, 42),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: widget.compact ? 10 : 14,
-                  ),
-                  foregroundColor: selected
-                      ? context.colors.onSelection
-                      : context.colors.textSecondary,
-                  backgroundColor: AppColors.transparent,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  alignment: Alignment.center,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
   }
 }
 
@@ -840,114 +589,6 @@ class _QuitButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AppFooter extends StatelessWidget {
-  const _AppFooter();
-
-  @override
-  Widget build(BuildContext context) {
-    final settings = context.watch<SettingsBloc>().state;
-    final gamepad = context.read<GamepadService>();
-    return Container(
-      height: 40,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        color: context.colors.railBackground.withValues(alpha: 0.84),
-        border: Border(
-          top: BorderSide(
-            color: context.colors.outline.withValues(alpha: 0.28),
-          ),
-        ),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 760;
-          return Row(
-            children: [
-              if (!compact)
-                Text(
-                  '© 2026 EVAPORATE',
-                  style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontFamily: EvaporateTheme.monoFontFamily,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.7,
-                  ),
-                ),
-              if (!compact) const SizedBox(width: 24),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ValueListenableBuilder<GamepadStatus>(
-                    valueListenable: gamepad.status,
-                    builder: (context, status, _) => ButtonHints(
-                      binding: settings.gamepad,
-                      gamepadConnected:
-                          settings.gamepad.enabled && status.hasDevice,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 18),
-              _FooterLink(
-                label: 'GITHUB',
-                onPressed: () => unawaited(
-                  launchUrl(
-                    Uri.parse('https://github.com/Hecatoncheir/evaporate'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 12,
-                color: context.colors.outline.withValues(alpha: 0.5),
-              ),
-              _FooterLink(
-                label: 'RELEASES',
-                onPressed: () => unawaited(
-                  launchUrl(
-                    Uri.parse(
-                      'https://github.com/Hecatoncheir/evaporate/releases',
-                    ),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _FooterLink extends StatelessWidget {
-  const _FooterLink({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-    onPressed: onPressed,
-    style: TextButton.styleFrom(
-      foregroundColor: context.colors.textSecondary,
-      minimumSize: const Size(64, 40),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      textStyle: const TextStyle(
-        fontFamily: EvaporateTheme.monoFontFamily,
-        fontSize: 9,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0.7,
-      ),
-    ),
-    child: Text(label),
-  );
 }
 
 /// Нижняя строка: подсказки управления, скорость обмена и состояние движка.

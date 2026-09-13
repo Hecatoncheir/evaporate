@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+
+import '../../l10n/app_localizations.dart';
+import '../../models/window_start_mode.dart';
+import '../theme.dart';
+
+/// Выбор языка интерфейса.
+class LanguagePicker extends StatelessWidget {
+  const LanguagePicker({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  /// null — брать язык системы.
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    return Row(
+      children: [
+        SizedBox(
+          width: 220,
+          child: Text(l.language, style: const TextStyle(fontSize: 13)),
+        ),
+        Expanded(
+          child: SegmentedButton<String>(
+            segments: [
+              ButtonSegment(value: '', label: Text(l.languageSystem)),
+              ButtonSegment(value: 'ru', label: Text(l.languageRussian)),
+              ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
+            ],
+            selected: {value ?? ''},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) {
+              final code = selection.first;
+              onChanged(code.isEmpty ? null : code);
+            },
+            style: const ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(
+                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.fontFamily,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Каким открывать окно при запуске.
+class WindowStartPicker extends StatelessWidget {
+  const WindowStartPicker({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final WindowStartMode value;
+  final ValueChanged<WindowStartMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 220,
+          child: Text(
+            L.of(context).windowOnStart,
+            style: TextStyle(fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: SegmentedButton<WindowStartMode>(
+            segments: [
+              ButtonSegment(
+                value: WindowStartMode.remembered,
+                icon: Icon(Icons.crop_din, size: 17),
+                label: Text(L.of(context).windowRemembered),
+              ),
+              ButtonSegment(
+                value: WindowStartMode.maximized,
+                icon: Icon(Icons.fullscreen, size: 17),
+                label: Text(L.of(context).windowMaximized),
+              ),
+              ButtonSegment(
+                value: WindowStartMode.minimized,
+                icon: Icon(Icons.expand_more, size: 17),
+                label: Text(L.of(context).windowMinimized),
+              ),
+            ],
+            selected: {value},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) => onChanged(selection.first),
+            style: const ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(
+                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.fontFamily,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ThemePicker extends StatelessWidget {
+  const ThemePicker({super.key, required this.value, required this.onChanged});
+
+  final ThemeMode value;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 220,
+          child: Text(
+            L.of(context).appearance,
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+        Expanded(
+          child: SegmentedButton<ThemeMode>(
+            segments: [
+              ButtonSegment(
+                value: ThemeMode.system,
+                icon: Icon(Icons.brightness_auto_outlined, size: 17),
+                label: Text(L.of(context).themeSystem),
+              ),
+              ButtonSegment(
+                value: ThemeMode.light,
+                icon: Icon(Icons.light_mode_outlined, size: 17),
+                label: Text(L.of(context).themeLight),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                icon: Icon(Icons.dark_mode_outlined, size: 17),
+                label: Text(L.of(context).themeDark),
+              ),
+            ],
+            selected: {value},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) => onChanged(selection.first),
+            style: ButtonStyle(
+              textStyle: WidgetStatePropertyAll(
+                TextStyle(
+                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.fontFamily,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

@@ -1,0 +1,95 @@
+import 'package:flutter/material.dart';
+
+import '../../services/download/download_engine.dart';
+import '../labels.dart';
+import '../theme.dart';
+import '../../l10n/app_localizations.dart';
+
+class EngineStatusChip extends StatelessWidget {
+  const EngineStatusChip({super.key, required this.status});
+
+  final EngineStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status.state) {
+      EngineState.ready => context.colors.accent,
+      EngineState.starting => context.colors.warning,
+      EngineState.failed => context.colors.danger,
+      EngineState.stopped => context.colors.textSecondary,
+    };
+    final icon = switch (status.state) {
+      EngineState.ready => Icons.check_circle_outline_rounded,
+      EngineState.starting => Icons.hourglass_empty_rounded,
+      EngineState.failed => Icons.error_outline_rounded,
+      EngineState.stopped => Icons.stop_circle_outlined,
+    };
+    final label =
+        status.message ??
+        L
+            .of(context)
+            .engineStatus(engineStateLabel(L.of(context), status.state));
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 38, maxWidth: 270),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        border: Border.all(color: color.withValues(alpha: 0.42)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EngineFailure extends StatelessWidget {
+  const EngineFailure({super.key, this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.colors.danger.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: context.colors.danger.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 18, color: context.colors.danger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message ?? L.of(context).engineStopped,
+              style: TextStyle(color: context.colors.danger, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

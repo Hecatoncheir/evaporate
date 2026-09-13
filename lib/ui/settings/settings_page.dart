@@ -8,7 +8,6 @@ import '../../bloc/library/library_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
-import '../../models/window_start_mode.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
@@ -19,6 +18,9 @@ import 'gamepad_settings.dart';
 import 'log_card.dart';
 import 'notification_settings.dart';
 import 'proxy_settings_card.dart';
+import 'path_setting.dart';
+import 'pickers.dart';
+import 'speed_field.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -143,7 +145,7 @@ class SettingsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _PathSetting(
+                    PathSetting(
                       label: L.of(context).gamesFolder,
                       value: settings.installDir,
                       onPick: () async {
@@ -180,7 +182,7 @@ class SettingsPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    _SpeedField(
+                    SpeedField(
                       label: L.of(context).limitDownload,
                       value: settings.limits.download,
                       onChanged: (value) => update(
@@ -189,7 +191,7 @@ class SettingsPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _SpeedField(
+                    SpeedField(
                       label: L.of(context).limitUpload,
                       value: settings.limits.upload,
                       hint: L.of(context).limitUploadNote,
@@ -199,7 +201,7 @@ class SettingsPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _SpeedField(
+                    SpeedField(
                       label: L.of(context).seedRatio,
                       value: settings.limits.seedRatio,
                       unit: L.of(context).seedRatioUnit,
@@ -210,7 +212,7 @@ class SettingsPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _SpeedField(
+                    SpeedField(
                       label: L.of(context).limitWhilePlaying,
                       value: settings.limits.whilePlaying,
                       hint: L.of(context).limitPlayingNote,
@@ -287,7 +289,7 @@ class SettingsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _PathSetting(
+                    PathSetting(
                       label: L.of(context).syncFolder,
                       value: settings.syncFolder ?? L.of(context).notSet,
                       onPick: () async {
@@ -311,19 +313,19 @@ class SettingsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _LanguagePicker(
+                    LanguagePicker(
                       value: settings.locale,
                       onChanged: (code) =>
                           update(settings.copyWith(locale: code)),
                     ),
                     const SizedBox(height: 10),
-                    _ThemePicker(
+                    ThemePicker(
                       value: settings.themeMode,
                       onChanged: (mode) =>
                           update(settings.copyWith(themeMode: mode)),
                     ),
                     const SizedBox(height: 10),
-                    _WindowStartPicker(
+                    WindowStartPicker(
                       value: settings.windowStart,
                       onChanged: (mode) =>
                           update(settings.copyWith(windowStart: mode)),
@@ -553,295 +555,4 @@ class _ListTraversal extends ReadingOrderTraversalPolicy {
         TraversalDirection.left ||
         TraversalDirection.right => super.inDirection(currentNode, direction),
       };
-}
-
-/// Выбор оформления.
-///
-/// Три кнопки, а не переключатель: «как в системе» — не середина между
-/// светлой и тёмной, а отдельный вариант, и выпадающим списком его пришлось
-/// бы искать.
-/// Поле скорости в килобайтах в секунду. Пустое значение и ноль означают
-/// «без ограничения» — так понятнее, чем отдельная галочка рядом с числом.
-class _SpeedField extends StatefulWidget {
-  const _SpeedField({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-    this.hint,
-    this.unit,
-  });
-
-  final String label;
-  final int value;
-  final String? hint;
-
-  /// Единица измерения. По умолчанию килобайты в секунду —
-  /// поле задумывалось для скорости, но порог раздачи считается
-  /// в сотых долях.
-  final String? unit;
-  final ValueChanged<int> onChanged;
-
-  @override
-  State<_SpeedField> createState() => _SpeedFieldState();
-}
-
-class _SpeedFieldState extends State<_SpeedField> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.value > 0 ? '${widget.value}' : '',
-  );
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit(String raw) {
-    final parsed = int.tryParse(raw.trim()) ?? 0;
-    widget.onChanged(parsed > 0 ? parsed : 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 220,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(widget.label, style: const TextStyle(fontSize: 13)),
-            ),
-          ),
-          SizedBox(
-            width: 130,
-            child: TextField(
-              controller: _controller,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: L.of(context).unlimitedShort,
-                suffixText: widget.unit ?? L.of(context).kilobytesPerSecond,
-              ),
-              onSubmitted: _submit,
-              onTapOutside: (_) => _submit(_controller.text),
-            ),
-          ),
-          if (widget.hint != null)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 12, top: 12),
-                child: Text(
-                  widget.hint!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Выбор языка интерфейса.
-class _LanguagePicker extends StatelessWidget {
-  const _LanguagePicker({required this.value, required this.onChanged});
-
-  /// null — брать язык системы.
-  final String? value;
-  final ValueChanged<String?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    return Row(
-      children: [
-        SizedBox(
-          width: 220,
-          child: Text(l.language, style: const TextStyle(fontSize: 13)),
-        ),
-        Expanded(
-          child: SegmentedButton<String>(
-            segments: [
-              ButtonSegment(value: '', label: Text(l.languageSystem)),
-              ButtonSegment(value: 'ru', label: Text(l.languageRussian)),
-              ButtonSegment(value: 'en', label: Text(l.languageEnglish)),
-            ],
-            selected: {value ?? ''},
-            showSelectedIcon: false,
-            onSelectionChanged: (selection) {
-              final code = selection.first;
-              onChanged(code.isEmpty ? null : code);
-            },
-            style: const ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Каким открывать окно при запуске.
-class _WindowStartPicker extends StatelessWidget {
-  const _WindowStartPicker({required this.value, required this.onChanged});
-
-  final WindowStartMode value;
-  final ValueChanged<WindowStartMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 220,
-          child: Text(
-            L.of(context).windowOnStart,
-            style: TextStyle(fontSize: 13),
-          ),
-        ),
-        Expanded(
-          child: SegmentedButton<WindowStartMode>(
-            segments: [
-              ButtonSegment(
-                value: WindowStartMode.remembered,
-                icon: Icon(Icons.crop_din, size: 17),
-                label: Text(L.of(context).windowRemembered),
-              ),
-              ButtonSegment(
-                value: WindowStartMode.maximized,
-                icon: Icon(Icons.fullscreen, size: 17),
-                label: Text(L.of(context).windowMaximized),
-              ),
-              ButtonSegment(
-                value: WindowStartMode.minimized,
-                icon: Icon(Icons.expand_more, size: 17),
-                label: Text(L.of(context).windowMinimized),
-              ),
-            ],
-            selected: {value},
-            showSelectedIcon: false,
-            onSelectionChanged: (selection) => onChanged(selection.first),
-            style: const ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ThemePicker extends StatelessWidget {
-  const _ThemePicker({required this.value, required this.onChanged});
-
-  final ThemeMode value;
-  final ValueChanged<ThemeMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 220,
-          child: Text(
-            L.of(context).appearance,
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-        Expanded(
-          child: SegmentedButton<ThemeMode>(
-            segments: [
-              ButtonSegment(
-                value: ThemeMode.system,
-                icon: Icon(Icons.brightness_auto_outlined, size: 17),
-                label: Text(L.of(context).themeSystem),
-              ),
-              ButtonSegment(
-                value: ThemeMode.light,
-                icon: Icon(Icons.light_mode_outlined, size: 17),
-                label: Text(L.of(context).themeLight),
-              ),
-              ButtonSegment(
-                value: ThemeMode.dark,
-                icon: Icon(Icons.dark_mode_outlined, size: 17),
-                label: Text(L.of(context).themeDark),
-              ),
-            ],
-            selected: {value},
-            showSelectedIcon: false,
-            onSelectionChanged: (selection) => onChanged(selection.first),
-            style: ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PathSetting extends StatelessWidget {
-  const _PathSetting({
-    required this.label,
-    required this.value,
-    required this.onPick,
-    this.onClear,
-  });
-
-  final String label;
-  final String value;
-  final VoidCallback onPick;
-  final VoidCallback? onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 220,
-          child: Text(label, style: const TextStyle(fontSize: 13)),
-        ),
-        Expanded(
-          child: SelectableText(
-            value,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              color: context.colors.textSecondary,
-            ),
-          ),
-        ),
-        TextButton(onPressed: onPick, child: Text(L.of(context).change)),
-        if (onClear != null)
-          IconButton(
-            onPressed: onClear,
-            icon: const Icon(Icons.close, size: 16),
-            tooltip: L.of(context).clear,
-            visualDensity: VisualDensity.compact,
-          ),
-      ],
-    );
-  }
 }
