@@ -452,8 +452,9 @@ exports the palette; themed colours use `context.colors`, while fixed colours
 use `AppColors` and palette functions. A test rejects colour definitions
 elsewhere in the application.
 
-Three fonts, all bundled rather than fetched at runtime: Nunito Sans for the
-interface, Nunito for headings, JetBrains Mono for paths and sizes. They are
+Three fonts, all bundled rather than fetched at runtime: Golos Text for the
+interface, Unbounded for headings and primary keys, JetBrains Mono for paths,
+sizes and readouts. All three were drawn with Cyrillic from the start; they are
 variable fonts, one file per family. The new imagegen-created icon uses cream
 and midnight indigo with three vivid multicolor vapor ribbons forming the
 Evaporate mark, offset-color outlines, and a textured print finish.

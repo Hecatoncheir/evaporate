@@ -28,8 +28,8 @@ Evaporate распространяется под лицензией MIT (см. 
 
 | Шрифт | Лицензия | Файл лицензии |
 |---|---|---|
-| Nunito | SIL Open Font License 1.1 | `assets/fonts/OFL-Nunito.txt` |
-| Nunito Sans | SIL Open Font License 1.1 | `assets/fonts/OFL-NunitoSans.txt` |
+| Unbounded | SIL Open Font License 1.1 | `assets/fonts/OFL-Unbounded.txt` |
+| Golos Text | SIL Open Font License 1.1 | `assets/fonts/OFL-GolosText.txt` |
 | JetBrains Mono | SIL Open Font License 1.1 | `assets/fonts/OFL-JetBrainsMono.txt` |
 
 OFL допускает распространение шрифтов в составе программы и требует
@@ -83,8 +83,8 @@ They live in `assets/fonts/`, with their license texts beside them.
 
 | Font | License | License file |
 |---|---|---|
-| Nunito | SIL Open Font License 1.1 | `assets/fonts/OFL-Nunito.txt` |
-| Nunito Sans | SIL Open Font License 1.1 | `assets/fonts/OFL-NunitoSans.txt` |
+| Unbounded | SIL Open Font License 1.1 | `assets/fonts/OFL-Unbounded.txt` |
+| Golos Text | SIL Open Font License 1.1 | `assets/fonts/OFL-GolosText.txt` |
 | JetBrains Mono | SIL Open Font License 1.1 | `assets/fonts/OFL-JetBrainsMono.txt` |
 
 The OFL permits bundling fonts with a program and requires the license text to

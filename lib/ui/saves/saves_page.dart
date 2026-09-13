@@ -10,12 +10,23 @@ import '../../bloc/library/library_bloc.dart';
 import '../../models/bulk_report.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../labels.dart';
+import '../library/saves/save_tag.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Общий экран переноса сохранений: папка синхронизации, пакеты с других
-/// устройств и все снимки библиотеки в одном списке.
+/// Общий экран переноса сохранений: состояние хранилища, папка синхронизации,
+/// пакеты с других устройств и все снимки библиотеки в одном списке.
+///
+/// Читается сверху вниз как прибор: сначала **показания** — сколько снимков,
+/// сколько занято, когда снимали последний раз, — и только потом органы
+/// управления. Раньше те же числа были рассыпаны по углам карточек, и
+/// ответа на главный вопрос «всё ли у меня сохранено» экран не давал.
+///
+/// Действия и хронология разведены по колонкам: выгрузка и папка
+/// синхронизации — слева, список снимков — справа. В одну колонку они
+/// выстраиваются только в узком окне: растянутый на всю ширину список из
+/// трёх строк выглядит пустым экраном.
 class SavesPage extends StatefulWidget {
   const SavesPage({super.key});
 
@@ -36,41 +47,13 @@ class _SavesPageState extends State<SavesPage> {
       }
     }
     entries.sort((a, b) => b.$2.createdAt.compareTo(a.$2.createdAt));
+    final stored = entries.fold<int>(0, (sum, e) => sum + e.$2.sizeBytes);
+    final configured = library.games
+        .where((g) => g.saveProfile.isConfigured)
+        .length;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+    final actions = Column(
       children: [
-        Text(
-          L.of(context).conceptSavesLabel,
-          style: TextStyle(
-            color: context.colors.primary,
-            fontFamily: EvaporateTheme.monoFontFamily,
-            fontSize: 9,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.1,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          L.of(context).saves,
-          style: const TextStyle(
-            fontFamily: EvaporateTheme.displayFontFamily,
-            fontSize: 42,
-            height: 0.95,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -1.8,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          L.of(context).savesIntro,
-          style: TextStyle(
-            color: context.colors.textSecondary,
-            height: 1.5,
-            fontSize: 13,
-          ),
-        ),
-        const SizedBox(height: 20),
         const _BulkTransferCard(),
         _SyncFolderCard(
           folder: settings.syncFolder,
@@ -81,30 +64,53 @@ class _SavesPageState extends State<SavesPage> {
               context.read<LibraryBloc>().add(const SyncFolderScanRequested()),
           onApply: _apply,
         ),
-        SectionCard(
-          title: L.of(context).allSnapshots,
-          icon: Icons.history,
-          trailing: Text(
-            '${entries.length}',
-            style: TextStyle(color: context.colors.textSecondary),
-          ),
-          child: entries.isEmpty
-              ? Text(
-                  L.of(context).noSnapshotsYet,
-                  style: TextStyle(
-                    color: context.colors.textSecondary,
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                )
-              : Column(
+      ],
+    );
+    final history = _SnapshotsCard(entries: entries);
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        final wide = box.maxWidth >= 1080;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+          children: [
+            Center(
+              // Шире некуда: строка описания за этой границей перестаёт
+              // читаться, а карточки превращаются в полосы.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1340),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final (game, snapshot) in entries)
-                      _SnapshotRow(game: game, snapshot: snapshot),
+                    const _Heading(),
+                    const SizedBox(height: 20),
+                    _SavesReadout(
+                      snapshots: entries.length,
+                      stored: stored,
+                      games: configured,
+                      last: entries.isEmpty ? null : entries.first.$2.createdAt,
+                    ),
+                    const SizedBox(height: 18),
+                    if (wide)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(width: 430, child: actions),
+                          const SizedBox(width: 18),
+                          Expanded(child: history),
+                        ],
+                      )
+                    else ...[
+                      actions,
+                      history,
+                    ],
                   ],
                 ),
-        ),
-      ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -195,6 +201,222 @@ class _SavesPageState extends State<SavesPage> {
       ),
     );
   }
+}
+
+class _Heading extends StatelessWidget {
+  const _Heading();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        L.of(context).conceptSavesLabel,
+        style: TextStyle(
+          color: context.colors.primary,
+          fontFamily: EvaporateTheme.monoFontFamily,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.6,
+        ),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        L.of(context).saves.toUpperCase(),
+        style: const TextStyle(
+          fontFamily: EvaporateTheme.displayFontFamily,
+          fontSize: 34,
+          height: 1.0,
+          fontWeight: FontWeight.w800,
+          // Заглавными и с разрядом: широкий шрифт держит название раздела
+          // как надпись на корпусе, а прижатые заглавные слипаются.
+          letterSpacing: 1.4,
+        ),
+      ),
+      const SizedBox(height: 8),
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Text(
+          L.of(context).savesIntro,
+          style: TextStyle(
+            color: context.colors.textSecondary,
+            height: 1.5,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+/// Показания хранилища снимков: одна панель, разделённая на ячейки.
+///
+/// Именно панель, а не четыре карточки: это одно показание в четырёх
+/// графах, и разъехавшиеся карточки читались бы как четыре разных блока.
+class _SavesReadout extends StatelessWidget {
+  const _SavesReadout({
+    required this.snapshots,
+    required this.stored,
+    required this.games,
+    required this.last,
+  });
+
+  final int snapshots;
+  final int stored;
+  final int games;
+  final DateTime? last;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final l = L.of(context);
+    final cells = [
+      _ReadoutCell(label: l.savesStatSnapshots, value: '$snapshots'),
+      _ReadoutCell(label: l.savesStatSize, value: formatBytes(stored)),
+      _ReadoutCell(label: l.savesStatGames, value: '$games'),
+      _ReadoutCell(
+        label: l.savesStatLast,
+        value: last == null ? l.savesStatNever : formatDateTime(last!),
+        // Дата длиннее числа и в тот же кегль не влезает.
+        compact: true,
+        dim: last == null,
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.railBackground.withValues(
+          alpha: colors.isDark ? 0.7 : 0.6,
+        ),
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
+      ),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          // В узком окне четыре графы не встают в строку — тогда по две.
+          if (box.maxWidth < 680) {
+            return Column(
+              children: [
+                Row(
+                  children: [_cell(cells[0]), _bar(context), _cell(cells[1])],
+                ),
+                Divider(height: 1, thickness: 1, color: colors.outline),
+                Row(
+                  children: [_cell(cells[2]), _bar(context), _cell(cells[3])],
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              for (var i = 0; i < cells.length; i++) ...[
+                if (i > 0) _bar(context),
+                _cell(cells[i]),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _cell(_ReadoutCell cell) => Expanded(child: cell);
+
+  Widget _bar(BuildContext context) =>
+      Container(width: 1, height: 54, color: context.colors.outline);
+}
+
+class _ReadoutCell extends StatelessWidget {
+  const _ReadoutCell({
+    required this.label,
+    required this.value,
+    this.compact = false,
+    this.dim = false,
+  });
+
+  final String label;
+  final String value;
+  final bool compact;
+  final bool dim;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontFamily: EvaporateTheme.monoFontFamily,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: dim ? colors.textSecondary : colors.textPrimary,
+              fontFamily: EvaporateTheme.monoFontFamily,
+              fontSize: compact ? 14 : 21,
+              height: 1,
+              fontWeight: FontWeight.w700,
+              // Табличные цифры: показание не должно дёргаться, когда
+              // меняется одна цифра.
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Хронология: все снимки библиотеки, свежие сверху.
+class _SnapshotsCard extends StatelessWidget {
+  const _SnapshotsCard({required this.entries});
+
+  final List<(Game, SaveSnapshot)> entries;
+
+  @override
+  Widget build(BuildContext context) => SectionCard(
+    title: L.of(context).allSnapshots,
+    icon: Icons.history,
+    trailing: Text(
+      '${entries.length}',
+      style: TextStyle(
+        color: context.colors.textSecondary,
+        fontFamily: EvaporateTheme.monoFontFamily,
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    child: entries.isEmpty
+        ? Text(
+            L.of(context).noSnapshotsYet,
+            style: TextStyle(
+              color: context.colors.textSecondary,
+              fontSize: 13,
+              height: 1.5,
+            ),
+          )
+        : Column(
+            children: [
+              for (final (game, snapshot) in entries)
+                _SnapshotRow(game: game, snapshot: snapshot),
+            ],
+          ),
+  );
 }
 
 class _SyncFolderCard extends StatelessWidget {
@@ -304,7 +526,7 @@ class _PackageRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: context.colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
         border: Border.all(color: context.colors.outline),
       ),
       child: Row(
@@ -357,71 +579,145 @@ class _PackageRow extends StatelessWidget {
   }
 }
 
-class _SnapshotRow extends StatelessWidget {
+/// Строка снимка: чья игра, когда снят, чем снят — и что с ним можно сделать.
+///
+/// Под курсором строка подсвечивается: действия у неё по краю, и без
+/// подсветки в длинном списке легко нажать «удалить» у соседнего снимка.
+class _SnapshotRow extends StatefulWidget {
   const _SnapshotRow({required this.game, required this.snapshot});
 
   final Game game;
   final SaveSnapshot snapshot;
 
   @override
-  Widget build(BuildContext context) {
-    final library = context.read<LibraryBloc>();
+  State<_SnapshotRow> createState() => _SnapshotRowState();
+}
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: context.colors.outline),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  game.title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+class _SnapshotRowState extends State<_SnapshotRow> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final snapshot = widget.snapshot;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: context.motion.fast,
+        curve: EvaporateMotion.ease,
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.fromLTRB(12, 9, 6, 9),
+        decoration: BoxDecoration(
+          color: _hovered
+              ? Color.lerp(colors.surfaceHigh, colors.primary, 0.08)
+              : colors.surfaceHigh,
+          borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+          border: Border.all(
+            color: _hovered
+                ? colors.primary.withValues(alpha: 0.5)
+                : colors.outline,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.game.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SaveTag(
+                        text: snapshotOriginLabel(
+                          L.of(context),
+                          snapshot.origin,
+                        ),
+                        color: snapshot.origin == SnapshotOrigin.imported
+                            ? colors.primary
+                            : colors.textSecondary,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${formatDateTime(snapshot.createdAt)} · '
-                  '${snapshotOriginLabel(L.of(context), snapshot.origin)} · '
-                  '${snapshot.deviceName} · '
-                  '${formatBytes(snapshot.sizeBytes)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.colors.textSecondary,
+                  const SizedBox(height: 4),
+                  Text(
+                    '${formatDateTime(snapshot.createdAt)} · '
+                    '${snapshot.deviceName} · '
+                    '${formatBytes(snapshot.sizeBytes)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: colors.textSecondary,
+                      fontFamily: EvaporateTheme.monoFontFamily,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          IconButton(
-            tooltip: L.of(context).exportFile,
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.ios_share, size: 17),
-            onPressed: () async {
-              final suggested =
-                  safeFileName(snapshot.gameTitle) + SaveSnapshot.fileExtension;
-              final location = await getSaveLocation(suggestedName: suggested);
-              if (location == null) return;
-              library.add(
-                SnapshotExportRequested(
-                  snapshot: snapshot,
-                  destination: location.path,
-                ),
-              );
-            },
-          ),
-        ],
+            IconButton(
+              tooltip: L.of(context).exportFile,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.ios_share, size: 17),
+              onPressed: _export,
+            ),
+            IconButton(
+              tooltip: L.of(context).delete,
+              visualDensity: VisualDensity.compact,
+              // Тревожный цвет — только под курсором: ряд постоянно красных
+              // корзин в списке читается как список ошибок.
+              color: _hovered ? colors.danger : colors.textSecondary,
+              icon: const Icon(Icons.delete_outline, size: 17),
+              onPressed: _delete,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _export() async {
+    final library = context.read<LibraryBloc>();
+    final suggested =
+        safeFileName(widget.snapshot.gameTitle) + SaveSnapshot.fileExtension;
+    final location = await getSaveLocation(suggestedName: suggested);
+    if (location == null) return;
+    library.add(
+      SnapshotExportRequested(
+        snapshot: widget.snapshot,
+        destination: location.path,
+      ),
+    );
+  }
+
+  /// Удаление необратимо, поэтому спрашиваем — и называем в вопросе саму
+  /// игру: в общем списке снимков разных игр одной даты недостаточно.
+  Future<void> _delete() async {
+    final library = context.read<LibraryBloc>();
+    final ok = await confirm(
+      context,
+      title: L.of(context).deleteSnapshotQuestion,
+      message:
+          '${widget.game.title}\n'
+          '${L.of(context).deleteSnapshotNote(formatDateTime(widget.snapshot.createdAt))}',
+      confirmLabel: L.of(context).delete,
+      destructive: true,
+    );
+    if (!ok) return;
+    library.add(SnapshotDeleted(widget.snapshot));
   }
 }
 
@@ -528,10 +824,6 @@ class _BulkTransferCard extends StatelessWidget {
     final busy = context.select<LibraryBloc, bool>(
       (bloc) => bloc.state.isBusy(LibraryBloc.bulkKey),
     );
-    final configured = context.select<LibraryBloc, int>(
-      (bloc) =>
-          bloc.state.games.where((g) => g.saveProfile.isConfigured).length,
-    );
     final report = context.select<LibraryBloc, BulkReport?>(
       (bloc) => bloc.state.bulkReport,
     );
@@ -539,19 +831,15 @@ class _BulkTransferCard extends StatelessWidget {
     return SectionCard(
       title: L.of(context).bulkTransfer,
       icon: Icons.swap_horiz,
+      // Сколько игр с путями — теперь в показаниях сверху, и повторять это
+      // число в углу карточки незачем.
       trailing: busy
           ? const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Text(
-              L.of(context).gamesWithPaths(configured),
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textSecondary,
-              ),
-            ),
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

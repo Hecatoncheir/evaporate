@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'motion.dart';
 export 'app_colors.dart';
+export 'motion.dart';
 
 /// Короткий доступ к палитре: `context.colors.textSecondary`.
 extension EvaporateColors on BuildContext {
@@ -13,16 +15,26 @@ extension EvaporateColors on BuildContext {
 class EvaporateTheme {
   const EvaporateTheme._();
 
-  /// Основной шрифт интерфейса: нейтральный, хорошо читается в плотных
-  /// списках, где текста много и он мелкий.
-  static const fontFamily = 'Nunito Sans';
+  /// Основной шрифт интерфейса. Golos Text рисовали под кириллицу, а не
+  /// добавляли её позже: в плотных списках с путями и названиями игр это
+  /// видно сразу — у латиницы и кириллицы одинаковый ритм.
+  static const fontFamily = 'Golos Text';
 
-  /// Заголовки набираются округлым Nunito: он мягче и отделяет заголовок
-  /// от текста лучше, чем один только размер.
-  static const displayFontFamily = 'Nunito';
+  /// Заголовки и главные клавиши. Unbounded широкий и геометричный: он
+  /// звучит как надпись на корпусе, а не как текст абзаца, и поэтому
+  /// отделяет заголовок от содержимого сильнее, чем один только размер.
+  static const displayFontFamily = 'Unbounded';
 
   /// Пути, размеры и прочее, что читают глазами по знакам, а не словами.
   static const monoFontFamily = 'JetBrains Mono';
+
+  /// Геометрия корпуса. Радиусы малые и одни на обе схемы: округлость —
+  /// это про яркость не больше, чем толщина рамки, и разные углы в двух
+  /// темах читались бы как два разных приложения.
+  static const radiusShell = 8.0;
+  static const radiusPanel = 6.0;
+  static const radiusControl = 4.0;
+  static const radiusChip = 3.0;
 
   static ThemeData dark() => _build(EvaporatePalette.dark);
 
@@ -33,14 +45,27 @@ class EvaporateTheme {
         ? ThemeData.dark(useMaterial3: true)
         : ThemeData.light(useMaterial3: true);
 
+    /// Заголовок: широкое начертание, плотные строки и **положительный**
+    /// разряд. У широкого шрифта прижатые друг к другу буквы выглядят
+    /// слипшимися, поэтому здесь разряд добавляют, а не убирают.
+    TextStyle? display(TextStyle? from, double tracking) => from?.copyWith(
+      fontFamily: displayFontFamily,
+      color: p.textPrimary,
+      fontWeight: FontWeight.w800,
+      height: 1.02,
+      letterSpacing: tracking,
+    );
+
     return base.copyWith(
-      extensions: [p],
+      extensions: [p, EvaporateMotion.standard],
       scaffoldBackgroundColor: p.background,
       colorScheme: ColorScheme(
         brightness: p.brightness,
-        primary: p.primary,
+        // В схему уходит заливочный цвет: Material красит им фон кнопки,
+        // а не набирает им текст.
+        primary: p.primaryFill,
         onPrimary: p.onPrimary,
-        secondary: p.accent,
+        secondary: p.accentFill,
         onSecondary: p.onPrimary,
         surface: p.surface,
         onSurface: p.textPrimary,
@@ -58,41 +83,21 @@ class EvaporateTheme {
           )
           .copyWith(
             // Заголовкам — второе семейство: разница в начертании работает
-            // там, где разница в размере уже исчерпана.
-            displayLarge: base.textTheme.displayLarge?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
-            displayMedium: base.textTheme.displayMedium?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
-            displaySmall: base.textTheme.displaySmall?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
-            headlineLarge: base.textTheme.headlineLarge?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
-            headlineMedium: base.textTheme.headlineMedium?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
-            headlineSmall: base.textTheme.headlineSmall?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
-            titleLarge: base.textTheme.titleLarge?.copyWith(
-              fontFamily: displayFontFamily,
-              color: p.textPrimary,
-            ),
+            // там, где разница в размере уже исчерпана. Разряд убывает с
+            // размером — крупному кеглю его нужно меньше.
+            displayLarge: display(base.textTheme.displayLarge, 1.2),
+            displayMedium: display(base.textTheme.displayMedium, 1.0),
+            displaySmall: display(base.textTheme.displaySmall, 0.9),
+            headlineLarge: display(base.textTheme.headlineLarge, 0.8),
+            headlineMedium: display(base.textTheme.headlineMedium, 0.7),
+            headlineSmall: display(base.textTheme.headlineSmall, 0.6),
+            titleLarge: display(base.textTheme.titleLarge, 0.5),
           ),
       cardTheme: CardThemeData(
-        color: p.surface.withValues(alpha: p.isDark ? 0.78 : 0.84),
+        color: p.surface.withValues(alpha: p.isDark ? 0.82 : 0.9),
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(radiusPanel),
           side: BorderSide(color: p.outline.withValues(alpha: 0.62)),
         ),
       ),
@@ -104,16 +109,16 @@ class EvaporateTheme {
           vertical: 12,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(radiusControl),
           borderSide: BorderSide(color: p.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(radiusControl),
           borderSide: BorderSide(color: p.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: p.primary),
+          borderRadius: BorderRadius.circular(radiusControl),
+          borderSide: BorderSide(color: p.primary, width: 1.5),
         ),
         labelStyle: TextStyle(color: p.textSecondary),
         hintStyle: TextStyle(color: p.textSecondary),
@@ -121,11 +126,14 @@ class EvaporateTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusControl),
+          ),
           textStyle: const TextStyle(
-            fontFamily: fontFamily,
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
+            fontFamily: displayFontFamily,
+            fontWeight: FontWeight.w700,
+            fontSize: 13.5,
+            letterSpacing: 0.3,
           ),
         ),
       ),
@@ -134,7 +142,9 @@ class EvaporateTheme {
           foregroundColor: p.textPrimary,
           side: BorderSide(color: p.outline),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radiusControl),
+          ),
         ),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -175,7 +185,7 @@ class EvaporateTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: p.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(radiusPanel),
           side: BorderSide(color: p.outline),
         ),
       ),
@@ -183,9 +193,13 @@ class EvaporateTheme {
         backgroundColor: p.surfaceHigh,
         contentTextStyle: TextStyle(color: p.textPrimary),
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusControl),
+          side: BorderSide(color: p.outline),
+        ),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: p.primary,
+        color: p.primaryFill,
         linearTrackColor: p.outline,
       ),
       listTileTheme: ListTileThemeData(
@@ -195,7 +209,7 @@ class EvaporateTheme {
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: p.surfaceHigh,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(radiusChip),
           border: Border.all(color: p.outline),
         ),
         textStyle: TextStyle(color: p.textPrimary, fontSize: 12),

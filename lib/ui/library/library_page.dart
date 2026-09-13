@@ -16,6 +16,7 @@ import '../../services/launch/scan_session.dart';
 import '../../models/game.dart';
 import '../../models/app_settings.dart';
 import '../widgets/liquid_selection.dart';
+import '../widgets/rise_in.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
@@ -174,6 +175,8 @@ class _LibraryPageState extends State<LibraryPage> {
               if (featured != null && roomy)
                 FeaturedGame(
                   game: featured,
+                  sweepEnabled:
+                      effects.libraryEffects && effects.heroSweepEnabled,
                   onOpen: () => nav.add(GameOpened(featured.id)),
                   onPrimary: () => _primaryGameAction(context, featured),
                 ),
@@ -370,7 +373,7 @@ class _LibraryPageState extends State<LibraryPage> {
       targetKey: () => _tileKeys[_hoveredId ?? selectedId],
       enabled: effects.libraryEffects && effects.liquidSelectionEnabled,
       color: context.colors.selection,
-      radius: 12,
+      radius: EvaporateTheme.radiusPanel,
       padding: const EdgeInsets.all(7),
       child: GridView.builder(
         controller: _scroll,
@@ -388,6 +391,8 @@ class _LibraryPageState extends State<LibraryPage> {
         itemCount: games.length,
         itemBuilder: (context, index) {
           final game = games[index];
+          final motion = context.motion;
+          final hovered = _hoveredId == game.id;
           return MouseRegion(
             key: ValueKey(game.id),
             onEnter: (_) => setState(() => _hoveredId = game.id),
@@ -396,35 +401,55 @@ class _LibraryPageState extends State<LibraryPage> {
                 setState(() => _hoveredId = null);
               }
             },
-            child: KeyedSubtree(
-              key: _tileKeys.putIfAbsent(
-                game.id,
-                () => GlobalKey(debugLabel: game.id),
-              ),
-              child: FoilCard(
-                active: (_hoveredId ?? selectedId) == game.id,
-                enabled: effects.libraryEffects,
-                foilEnabled: effects.foilEnabled,
-                tiltEnabled: effects.cardTiltEnabled,
-                distortionEnabled: effects.liquidDistortionEnabled,
-                child: GameCoverTile(
-                  focusNode: _tileFocus.putIfAbsent(
+            child: RiseIn(
+              enabled:
+                  effects.libraryEffects && effects.interfaceAnimationsEnabled,
+              // Очередь всхода — только для первого экрана. Дальше ленивая
+              // сетка строит плитки по мере прокрутки, и задержка означала
+              // бы, что домотанное появляется через полсекунды после того,
+              // как человек до него домотал.
+              delay: index < motion.staggerLimit
+                  ? motion.staggerAt(index)
+                  : Duration.zero,
+              child: AnimatedContainer(
+                duration: motion.fast,
+                curve: EvaporateMotion.ease,
+                // Обложка приподнимается под курсором: в сетке одинаковых
+                // прямоугольников это самый заметный способ показать, где
+                // рука, — заметнее рамки.
+                transform: Matrix4.translationValues(0, hovered ? -7 : 0, 0),
+                child: KeyedSubtree(
+                  key: _tileKeys.putIfAbsent(
                     game.id,
-                    () => FocusNode(debugLabel: 'game:${game.id}'),
+                    () => GlobalKey(debugLabel: game.id),
                   ),
-                  key: ValueKey(game.id),
-                  game: game,
-                  selected: game.id == selectedId,
-                  dropsEnabled: effects.libraryEffects && effects.dropsEnabled,
-                  portalEnabled:
-                      effects.libraryEffects && effects.portalEnabled,
-                  // Рамка живёт мимо общего выключателя эффектов: она
-                  // показывает, где ты в сетке, а не украшает её.
-                  frameEnabled: effects.selectionFrameEnabled,
-                  onOpen: () => nav.add(GameOpened(game.id)),
-                  // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
-                  // работать по той игре, на которую смотришь, не заходя внутрь.
-                  onFocused: () => nav.add(GameSelected(game.id)),
+                  child: FoilCard(
+                    active: (_hoveredId ?? selectedId) == game.id,
+                    enabled: effects.libraryEffects,
+                    foilEnabled: effects.foilEnabled,
+                    tiltEnabled: effects.cardTiltEnabled,
+                    distortionEnabled: effects.liquidDistortionEnabled,
+                    child: GameCoverTile(
+                      focusNode: _tileFocus.putIfAbsent(
+                        game.id,
+                        () => FocusNode(debugLabel: 'game:${game.id}'),
+                      ),
+                      key: ValueKey(game.id),
+                      game: game,
+                      selected: game.id == selectedId,
+                      dropsEnabled:
+                          effects.libraryEffects && effects.dropsEnabled,
+                      portalEnabled:
+                          effects.libraryEffects && effects.portalEnabled,
+                      // Рамка живёт мимо общего выключателя эффектов: она
+                      // показывает, где ты в сетке, а не украшает её.
+                      frameEnabled: effects.selectionFrameEnabled,
+                      onOpen: () => nav.add(GameOpened(game.id)),
+                      // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
+                      // работать по той игре, на которую смотришь, не заходя внутрь.
+                      onFocused: () => nav.add(GameSelected(game.id)),
+                    ),
+                  ),
                 ),
               ),
             ),

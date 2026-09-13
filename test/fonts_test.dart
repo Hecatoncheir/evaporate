@@ -24,8 +24,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    await loadFont('Nunito', 'assets/fonts/Nunito.ttf');
-    await loadFont('Nunito Sans', 'assets/fonts/NunitoSans.ttf');
+    await loadFont('Unbounded', 'assets/fonts/Unbounded.ttf');
+    await loadFont('Golos Text', 'assets/fonts/GolosText.ttf');
     await loadFont('JetBrains Mono', 'assets/fonts/JetBrainsMono.ttf');
   });
 
@@ -33,7 +33,7 @@ void main() {
   // fontWeight. Если нет, весь интерфейс отрисуется одним начертанием, а
   // заметить это по коду невозможно — только по ширине набранной строки.
   group('вариативные шрифты слушаются веса', () {
-    for (final family in ['Nunito', 'Nunito Sans']) {
+    for (final family in ['Unbounded', 'Golos Text']) {
       test('$family меняет начертание вслед за весом', () {
         const text = 'Испарение сохранений 123';
 
@@ -99,15 +99,15 @@ void main() {
     });
 
     test('семейства не перепутаны местами', () {
-      expect(EvaporateTheme.fontFamily, 'Nunito Sans');
-      expect(EvaporateTheme.displayFontFamily, 'Nunito');
+      expect(EvaporateTheme.fontFamily, 'Golos Text');
+      expect(EvaporateTheme.displayFontFamily, 'Unbounded');
       expect(EvaporateTheme.monoFontFamily, 'JetBrains Mono');
     });
   });
 
   group('шрифты действительно подключены', () {
     test('кириллица набирается, а не отдаёт пустые квадраты', () {
-      const style = TextStyle(fontFamily: 'Nunito', fontSize: 30);
+      const style = TextStyle(fontFamily: 'Unbounded', fontSize: 30);
 
       // У служебного шрифта все знаки одной ширины, у настоящего — нет.
       expect(widthOf('ш', style), isNot(closeTo(widthOf('і', style), 0.5)));
@@ -117,7 +117,7 @@ void main() {
       const text = 'Evaporate';
       final sans = widthOf(
         text,
-        const TextStyle(fontFamily: 'Nunito Sans', fontSize: 30),
+        const TextStyle(fontFamily: 'Golos Text', fontSize: 30),
       );
       final mono = widthOf(
         text,

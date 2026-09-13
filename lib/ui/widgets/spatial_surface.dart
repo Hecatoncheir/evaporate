@@ -21,9 +21,9 @@ class SpatialBackdrop extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.ambientSteel.withValues(alpha: dark ? 0.14 : 0.32),
+            AppColors.ambientCool.withValues(alpha: dark ? 0.14 : 0.32),
             context.colors.background,
-            AppColors.ambientCharcoal.withValues(alpha: dark ? 0.36 : 0.12),
+            AppColors.ambientDeep.withValues(alpha: dark ? 0.36 : 0.12),
           ],
           stops: const [0, 0.52, 1],
         ),
@@ -41,9 +41,7 @@ class SpatialBackdrop extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.ambientOrange.withValues(
-                      alpha: dark ? 0.16 : 0.12,
-                    ),
+                    AppColors.ambientWarm.withValues(alpha: dark ? 0.16 : 0.12),
                     AppColors.transparent,
                   ],
                 ),

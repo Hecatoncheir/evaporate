@@ -121,12 +121,12 @@ flutter:
 
   # Шрифты вариативные: один файл на всё семейство вместо десятка начертаний.
   fonts:
-    - family: Nunito
+    - family: Unbounded
       fonts:
-        - asset: assets/fonts/Nunito.ttf
-    - family: Nunito Sans
+        - asset: assets/fonts/Unbounded.ttf
+    - family: Golos Text
       fonts:
-        - asset: assets/fonts/NunitoSans.ttf
+        - asset: assets/fonts/GolosText.ttf
     - family: JetBrains Mono
       fonts:
         - asset: assets/fonts/JetBrainsMono.ttf

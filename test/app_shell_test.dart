@@ -38,16 +38,16 @@ void main() {
 
     await harness.pump(tester);
 
-    await tester.tap(find.text('Загрузки'));
+    await tester.tap(find.text('ЗАГРУЗКИ').first);
     await tester.pumpAndSettle();
     expect(find.text('Сейчас скачивается'), findsOneWidget);
     expect(find.text('Дальше в очереди'), findsOneWidget);
 
-    await tester.tap(find.text('Сохранения'));
+    await tester.tap(find.text('СОХРАНЕНИЯ').first);
     await tester.pumpAndSettle();
     expect(find.text('Папка синхронизации'), findsOneWidget);
 
-    await tester.tap(find.text('Настройки'));
+    await tester.tap(find.text('НАСТРОЙКИ').first);
     await tester.pumpAndSettle();
     expect(find.text('Масштаб'), findsOneWidget);
     expect(find.text('Управление'), findsOneWidget);
@@ -208,7 +208,7 @@ void main() {
 
     await harness.pump(tester, theme: EvaporateTheme.light());
 
-    for (final section in ['Загрузки', 'Сохранения', 'Настройки']) {
+    for (final section in ['ЗАГРУЗКИ', 'СОХРАНЕНИЯ', 'НАСТРОЙКИ']) {
       await tester.tap(find.text(section).first);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'раздел «$section»');

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
+import '../widgets/pulse_dot.dart';
 import '../../l10n/app_localizations.dart';
 
 class EngineStatusChip extends StatelessWidget {
@@ -36,12 +37,22 @@ class EngineStatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
         border: Border.all(color: color.withValues(alpha: 0.42)),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
+          // Светодиод мигает, только пока движок поднимается или сломан:
+          // ровно горящая точка рядом со словом «готов» ничего не добавляет.
+          PulseDot(
+            color: color,
+            size: 6,
+            alive:
+                status.state == EngineState.starting ||
+                status.state == EngineState.failed,
+          ),
+          const SizedBox(width: 3),
+          Icon(icon, size: 15, color: color),
           const SizedBox(width: 7),
           Flexible(
             child: Text(
@@ -73,7 +84,7 @@ class EngineFailure extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: context.colors.danger.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         border: Border.all(
           color: context.colors.danger.withValues(alpha: 0.35),
         ),

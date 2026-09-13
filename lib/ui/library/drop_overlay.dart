@@ -63,7 +63,7 @@ class DottedBorderBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         border: Border.all(color: context.colors.accent, width: 2),
       ),
       child: Center(child: child),

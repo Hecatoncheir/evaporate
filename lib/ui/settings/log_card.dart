@@ -112,7 +112,9 @@ class _LogCardState extends State<LogCard> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: context.colors.surfaceHigh,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(
+                    EvaporateTheme.radiusControl,
+                  ),
                   border: Border.all(color: context.colors.outline),
                 ),
                 // Снизу вверх: важно последнее, а не первое.

@@ -8,6 +8,12 @@ import '../theme.dart';
 import '../widgets/liquid_selection.dart';
 import '../../l10n/app_localizations.dart';
 
+/// Разделы приложения: четыре клавиши в одной обойме и плашка выбранного,
+/// которая переезжает между ними.
+///
+/// Клавиши **одной ширины**, хотя подписи разной длины. Так плашка едет
+/// ровным шагом, ряд читается как один орган управления, а не как четыре
+/// кнопки подряд, и при смене языка обойма не меняет размер.
 class ConceptNavigation extends StatefulWidget {
   const ConceptNavigation({super.key, required this.compact});
 
@@ -22,6 +28,7 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final section = context.select<NavigationBloc, int>(
       (bloc) => bloc.state.section,
     );
@@ -40,33 +47,33 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
       Icons.save_rounded,
       Icons.settings_rounded,
     ];
+    final width = widget.compact ? 56.0 : 130.0;
+
     return Container(
       key: ValueKey(
         widget.compact ? 'concept-navigation-compact' : 'concept-navigation',
       ),
-      height: widget.compact ? 54 : 50,
-      padding: const EdgeInsets.all(4),
+      height: widget.compact ? 52 : 48,
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: context.colors.railBackground,
-        border: Border.all(
-          color: context.colors.outline.withValues(alpha: 0.42),
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: colors.railBackground,
+        border: Border.all(color: colors.outline),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         boxShadow: [
+          // Ночью обойма лежит в мягкой тени, днём — на коротком жёстком
+          // торце: один и тот же приём выглядел бы на светлом грязью.
           BoxShadow(
-            color: AppColors.coverTextShadow.withValues(
-              alpha: context.colors.isDark ? 0.2 : 0.1,
-            ),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: colors.shadow,
+            blurRadius: colors.isDark ? 22 : 8,
+            offset: Offset(0, colors.isDark ? 10 : 2),
           ),
         ],
       ),
       child: LiquidSelection(
         key: const ValueKey('rail-liquid'),
         targetKey: () => _targets[section],
-        color: context.colors.selection,
-        radius: 8,
+        color: colors.selection,
+        radius: EvaporateTheme.radiusChip,
         enabled: context.select<SettingsBloc, bool>(
           (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
         ),
@@ -74,10 +81,8 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
           mainAxisSize: MainAxisSize.min,
           children: List.generate(labels.length, (index) {
             final selected = section == index;
-            return Padding(
-              padding: EdgeInsets.only(
-                right: index == labels.length - 1 ? 0 : 3,
-              ),
+            return SizedBox(
+              width: width,
               child: TextButton(
                 key: _targets[index],
                 onPressed: () =>
@@ -89,61 +94,98 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       LiquidSelectionInk(
-                        normalColor: context.colors.textSecondary,
-                        selectedColor: context.colors.onSelection,
-                        child: Icon(icons[index], size: 17),
+                        normalColor: colors.textSecondary,
+                        selectedColor: colors.onSelection,
+                        child: Icon(icons[index], size: 16),
                       ),
                       if (!widget.compact ||
                           MediaQuery.sizeOf(context).width > 560) ...[
                         const SizedBox(width: 8),
-                        Text(labels[index]),
-                      ],
-                      if (index == 1 && count > 0) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          constraints: const BoxConstraints(minWidth: 18),
-                          height: 18,
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 5),
-                          decoration: BoxDecoration(
-                            color: context.colors.primary,
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: Text(
-                            '$count',
-                            style: TextStyle(
-                              color: context.colors.onPrimary,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                        // Заглавными: короткая подпись на корпусе, а не
+                        // слово в предложении. Диктору при этом достаётся
+                        // обычное слово — часть читалок разбирает капс по
+                        // буквам, как сокращение.
+                        Flexible(
+                          child: Semantics(
+                            label: labels[index],
+                            child: ExcludeSemantics(
+                              child: Text(
+                                labels[index].toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.fade,
+                                softWrap: false,
+                              ),
                             ),
                           ),
                         ),
+                      ],
+                      if (index == 1 && count > 0) ...[
+                        const SizedBox(width: 6),
+                        _QueueBadge(count: count, selected: selected),
                       ],
                     ],
                   ),
                 ),
                 style: TextButton.styleFrom(
-                  minimumSize: Size(widget.compact ? 50 : 104, 42),
+                  minimumSize: Size(width, 42),
                   padding: EdgeInsets.symmetric(
-                    horizontal: widget.compact ? 10 : 14,
+                    horizontal: widget.compact ? 6 : 10,
                   ),
                   foregroundColor: selected
-                      ? context.colors.onSelection
-                      : context.colors.textSecondary,
+                      ? colors.onSelection
+                      : colors.textSecondary,
                   backgroundColor: AppColors.transparent,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   alignment: Alignment.center,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(
+                      EvaporateTheme.radiusChip,
+                    ),
                   ),
                   textStyle: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: 0.9,
                   ),
                 ),
               ),
             );
           }),
+        ),
+      ),
+    );
+  }
+}
+
+/// Сколько задач в работе. На выбранной клавише метка выворачивается:
+/// золотая метка на золотой плашке пропала бы.
+class _QueueBadge extends StatelessWidget {
+  const _QueueBadge({required this.count, required this.selected});
+
+  final int count;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AnimatedContainer(
+      duration: context.motion.fast,
+      curve: EvaporateMotion.ease,
+      constraints: const BoxConstraints(minWidth: 17),
+      height: 17,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(
+        color: selected ? colors.onSelection : colors.primaryFill,
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          color: selected ? colors.selection : colors.onPrimary,
+          fontFamily: EvaporateTheme.monoFontFamily,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

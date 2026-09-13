@@ -11,8 +11,8 @@ import '../widgets/app_mark.dart';
 import '../../l10n/app_localizations.dart';
 import 'navigation.dart';
 
-/// Верхняя панель концепции: бренд и действия стоят по краям, а разделы —
-/// ровно по центру доступной ширины. В узком окне разделы переезжают вниз.
+/// Верхняя рейка: бренд и действия стоят по краям, а разделы — ровно по
+/// центру доступной ширины. В узком окне разделы переезжают вниз.
 class ConceptTopBar extends StatelessWidget {
   const ConceptTopBar({super.key, required this.compact});
 
@@ -20,6 +20,7 @@ class ConceptTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final settings = context.watch<SettingsBloc>().state;
     final dark = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
@@ -29,18 +30,42 @@ class ConceptTopBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const AppMark(size: 36),
-              if (!compact) ...[
-                const SizedBox(width: 10),
-                Text(
-                  'EVAPORATE',
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontFamily: EvaporateTheme.monoFontFamily,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.4,
+              // Знак в собственной оправе с волосяным кантом: на чернильном
+              // фоне без канта он выглядит вырезанным из другой картинки.
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.42),
                   ),
+                  borderRadius: BorderRadius.circular(
+                    EvaporateTheme.radiusControl,
+                  ),
+                ),
+                child: const AppMark(size: 30),
+              ),
+              if (!compact) ...[
+                const SizedBox(width: 11),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'EVAPORATE',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontFamily: EvaporateTheme.monoFontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Короткий золотой штрих под словом — подпись на
+                    // корпусе, а не украшение: он же задаёт фирменный цвет
+                    // всей рейке.
+                    Container(width: 26, height: 2, color: colors.primary),
+                  ],
                 ),
               ],
               const Spacer(),
@@ -51,7 +76,7 @@ class ConceptTopBar extends StatelessWidget {
                   const SearchFocusRequested(),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               TopAction(
                 tooltip: dark
                     ? L.of(context).lightThemeAction
@@ -69,12 +94,13 @@ class ConceptTopBar extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               TopAction(
                 key: const ValueKey('rail-quit'),
                 tooltip: L.of(context).quitApp,
                 hiddenLabel: L.of(context).quitApp,
                 icon: Icons.power_settings_new_rounded,
+                danger: true,
                 onPressed: () => unawaited(windowManager.close()),
               ),
             ],
@@ -86,13 +112,17 @@ class ConceptTopBar extends StatelessWidget {
   }
 }
 
-class TopAction extends StatelessWidget {
+/// Клавиша верхней рейки. Под курсором подсвечивается и чуть поднимается —
+/// на строке из одинаковых квадратов это единственный способ показать, где
+/// именно сейчас рука.
+class TopAction extends StatefulWidget {
   const TopAction({
     super.key,
     required this.tooltip,
     required this.icon,
     required this.onPressed,
     this.hiddenLabel,
+    this.danger = false,
   });
 
   final String tooltip;
@@ -100,24 +130,55 @@ class TopAction extends StatelessWidget {
   final VoidCallback onPressed;
   final String? hiddenLabel;
 
+  /// Действие, которое закрывает приложение. Подсвечивается тревожным
+  /// цветом только под курсором: постоянно красная кнопка выхода в углу
+  /// читалась бы как поломка.
+  final bool danger;
+
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: tooltip,
-    onPressed: onPressed,
-    icon: Stack(
-      alignment: Alignment.center,
-      children: [
-        Icon(icon, size: 20),
-        if (hiddenLabel case final label?)
-          SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
-      ],
-    ),
-    style: IconButton.styleFrom(
-      minimumSize: const Size(42, 42),
-      backgroundColor: context.colors.surfaceHigh.withValues(alpha: 0.62),
-      foregroundColor: context.colors.textSecondary,
-      side: BorderSide(color: context.colors.outline.withValues(alpha: 0.45)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    ),
-  );
+  State<TopAction> createState() => _TopActionState();
+}
+
+class _TopActionState extends State<TopAction> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final accent = widget.danger ? colors.danger : colors.primary;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: context.motion.fast,
+        curve: EvaporateMotion.ease,
+        transform: Matrix4.translationValues(0, _hovered ? -1 : 0, 0),
+        child: IconButton(
+          tooltip: widget.tooltip,
+          onPressed: widget.onPressed,
+          icon: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(widget.icon, size: 18),
+              if (widget.hiddenLabel case final label?)
+                SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
+            ],
+          ),
+          style: IconButton.styleFrom(
+            minimumSize: const Size(38, 38),
+            backgroundColor: _hovered
+                ? colors.surfaceHigh
+                : colors.surface.withValues(alpha: 0.5),
+            foregroundColor: _hovered ? accent : colors.textSecondary,
+            side: BorderSide(
+              color: _hovered ? accent.withValues(alpha: 0.6) : colors.outline,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

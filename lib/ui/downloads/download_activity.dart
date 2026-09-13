@@ -161,6 +161,7 @@ class _DownloadActivityState extends State<DownloadActivity> {
             value: indeterminate ? null : task.progress,
             height: 6,
             borderRadius: 4,
+            busy: task.state == DownloadState.active,
           ),
         ),
       ],

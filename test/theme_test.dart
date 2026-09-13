@@ -32,8 +32,8 @@ void main() {
 
   group('читаемость', () {
     test('фон выделения использует точные цвета, текст контрастный', () {
-      expect(EvaporatePalette.light.selection, const Color(0xFF202324));
-      expect(EvaporatePalette.dark.selection, const Color(0xFFF0EEE8));
+      expect(EvaporatePalette.light.selection, const Color(0xFF16171A));
+      expect(EvaporatePalette.dark.selection, const Color(0xFFE9C877));
       for (final palette in palettes.values) {
         expect(
           contrast(palette.onSelection, palette.selection),
@@ -78,7 +78,7 @@ void main() {
 
       test('$name: акценты читаются как текст', () {
         for (final accent in [p.primary, p.accent, p.danger, p.warning]) {
-          for (final background in [p.background, p.surface]) {
+          for (final background in [p.background, p.surface, p.surfaceHigh]) {
             expect(
               contrast(accent, background),
               greaterThanOrEqualTo(4.5),
@@ -88,8 +88,21 @@ void main() {
         }
       });
 
-      test('$name: надпись на кнопке читается', () {
-        expect(contrast(p.onPrimary, p.primary), greaterThanOrEqualTo(4.5));
+      // Роли фирменного цвета разделены: [primary] набирают текстом,
+      // [primaryFill] заливают. Мерить нужно каждую в своей роли — на
+      // насыщенном оранжевом Картриджа общий токен провалил бы обе.
+      test('$name: надпись на клавише читается', () {
+        expect(contrast(p.onPrimary, p.primaryFill), greaterThanOrEqualTo(4.5));
+      });
+
+      test('$name: текстовый акцент не подменён заливочным', () {
+        for (final background in [p.background, p.surface, p.surfaceHigh]) {
+          expect(
+            contrast(p.primary, background),
+            greaterThanOrEqualTo(4.5),
+            reason: 'им набраны метки и проценты на самих панелях',
+          );
+        }
       });
 
       test('$name: границы видны, но не кричат', () {

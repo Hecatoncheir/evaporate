@@ -27,7 +27,8 @@ class AppSettings extends Equatable {
     this.liquidDistortionEnabled = false,
     this.liquidSelectionEnabled = false,
     this.ambientEnabled = true,
-    this.interfaceAnimationsEnabled = false,
+    this.heroSweepEnabled = true,
+    this.interfaceAnimationsEnabled = true,
     this.dropsEnabled = false,
     this.portalEnabled = true,
     this.selectionFrameEnabled = false,
@@ -89,6 +90,16 @@ class AppSettings extends Equatable {
   final bool liquidDistortionEnabled;
   final bool liquidSelectionEnabled;
   final bool ambientEnabled;
+
+  /// Полоса света, раз в несколько секунд проходящая по крупной обложке.
+  /// Единственное, что двигается по картинке само, — она и отличает живой
+  /// кадр от вклеенной картинки. Своя настройка, потому что цена у неё
+  /// своя: кадры идут всё время, пока библиотека открыта.
+  final bool heroSweepEnabled;
+
+  /// Проявления, переезды и всход полки. Включены по умолчанию: это не
+  /// украшение сверху, а то, чем оболочка объясняет, что куда переехало.
+  /// Системную просьбу не двигаться они слушают и без этой настройки.
   final bool interfaceAnimationsEnabled;
 
   /// Капли, стекающие по обложке выбранной игры. Единственный эффект на
@@ -155,6 +166,7 @@ class AppSettings extends Equatable {
     bool? liquidDistortionEnabled,
     bool? liquidSelectionEnabled,
     bool? ambientEnabled,
+    bool? heroSweepEnabled,
     bool? interfaceAnimationsEnabled,
     bool? dropsEnabled,
     bool? portalEnabled,
@@ -188,6 +200,7 @@ class AppSettings extends Equatable {
       liquidSelectionEnabled:
           liquidSelectionEnabled ?? this.liquidSelectionEnabled,
       ambientEnabled: ambientEnabled ?? this.ambientEnabled,
+      heroSweepEnabled: heroSweepEnabled ?? this.heroSweepEnabled,
       interfaceAnimationsEnabled:
           interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
       dropsEnabled: dropsEnabled ?? this.dropsEnabled,
@@ -223,6 +236,7 @@ class AppSettings extends Equatable {
     'liquidDistortionEnabled': liquidDistortionEnabled,
     'liquidSelectionEnabled': liquidSelectionEnabled,
     'ambientEnabled': ambientEnabled,
+    'heroSweepEnabled': heroSweepEnabled,
     'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
     'dropsEnabled': dropsEnabled,
     'portalEnabled': portalEnabled,
@@ -258,8 +272,9 @@ class AppSettings extends Equatable {
     liquidDistortionEnabled: json['liquidDistortionEnabled'] as bool? ?? false,
     liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? false,
     ambientEnabled: json['ambientEnabled'] as bool? ?? true,
+    heroSweepEnabled: json['heroSweepEnabled'] as bool? ?? true,
     interfaceAnimationsEnabled:
-        json['interfaceAnimationsEnabled'] as bool? ?? false,
+        json['interfaceAnimationsEnabled'] as bool? ?? true,
     dropsEnabled: json['dropsEnabled'] as bool? ?? false,
     portalEnabled: json['portalEnabled'] as bool? ?? true,
     selectionFrameEnabled: json['selectionFrameEnabled'] as bool? ?? false,
@@ -306,6 +321,7 @@ class AppSettings extends Equatable {
     liquidDistortionEnabled,
     liquidSelectionEnabled,
     ambientEnabled,
+    heroSweepEnabled,
     interfaceAnimationsEnabled,
     dropsEnabled,
     portalEnabled,

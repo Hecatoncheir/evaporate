@@ -34,7 +34,7 @@ class WatchedFolders extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         border: Border.all(color: colors.outline),
       ),
       child: Column(

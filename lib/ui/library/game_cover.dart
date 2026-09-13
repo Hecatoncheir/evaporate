@@ -95,7 +95,7 @@ class GameCoverTile extends StatelessWidget {
       },
       padding: EdgeInsets.zero,
       margin: EdgeInsets.zero,
-      borderRadius: 10,
+      borderRadius: EvaporateTheme.radiusControl,
       borderWidth: 2.5,
       showFocusBorder: frameEnabled,
       focusedScale: 1.06,
@@ -105,7 +105,7 @@ class GameCoverTile extends StatelessWidget {
         enabled: selected && portalEnabled,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(7.5),
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
             boxShadow: [
               BoxShadow(
                 // Тень своя, а не из темы: она отделяет обложку от фона, и в
@@ -117,7 +117,7 @@ class GameCoverTile extends StatelessWidget {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(7.5),
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
             child: AspectRatio(
               aspectRatio: 2 / 3,
               child: Semantics(

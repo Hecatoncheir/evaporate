@@ -52,7 +52,7 @@ void main() {
     final menuCenter = tester.getCenter(
       find.byKey(const ValueKey('concept-navigation')),
     );
-    for (final label in ['Библиотека', 'Загрузки', 'Сохранения', 'Настройки']) {
+    for (final label in ['БИБЛИОТЕКА', 'ЗАГРУЗКИ', 'СОХРАНЕНИЯ', 'НАСТРОЙКИ']) {
       expect(
         tester.getCenter(find.text(label).first).dy,
         closeTo(menuCenter.dy, 1),
@@ -80,7 +80,7 @@ void main() {
     final actionCenter = tester.getCenter(actions);
     final searchCenter = tester.getCenter(search);
 
-    expect(find.text('Библиотека'), findsOneWidget);
+    expect(find.text('БИБЛИОТЕКА'), findsOneWidget);
     expect(find.text('Добавить игру'), findsOneWidget);
     expect(filterCenter.dx, lessThan(actionCenter.dx));
     expect(actionCenter.dx, lessThan(searchCenter.dx));

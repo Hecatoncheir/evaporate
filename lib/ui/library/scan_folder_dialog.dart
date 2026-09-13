@@ -335,13 +335,13 @@ class _DropArea extends StatelessWidget {
       onDragDone: onDrop,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           decoration: BoxDecoration(
             color: dragging ? colors.surfaceHigh : null,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
             border: Border.all(color: accent, width: dragging ? 2 : 1),
           ),
           child: Column(

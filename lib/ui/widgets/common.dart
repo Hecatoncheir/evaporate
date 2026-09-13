@@ -6,10 +6,14 @@ import '../theme.dart';
 import 'spatial_surface.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Главное действие лаунчера: компактная зелёная клавиша с лёгким объёмом.
+/// Главное действие лаунчера: клавиша фирменного цвета с настоящим ходом.
+///
 /// Геометрия совпадает с соседними обычными кнопками, поэтому ряд действий
-/// выглядит единым, а цвет по-прежнему сохраняет главный акцент.
-class LauncherActionButton extends StatelessWidget {
+/// выглядит единым, а цвет остаётся единственным на весь экран криком.
+/// Схемы расходятся не оттенком, а материалом: ночью клавиша светится
+/// золотом, днём стоит на своём тёмном торце и при нажатии в него
+/// проваливается — это и есть разница между экраном и железкой.
+class LauncherActionButton extends StatefulWidget {
   const LauncherActionButton({
     super.key,
     required this.label,
@@ -22,57 +26,101 @@ class LauncherActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
 
   @override
+  State<LauncherActionButton> createState() => _LauncherActionButtonState();
+}
+
+class _LauncherActionButtonState extends State<LauncherActionButton> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final enabled = onPressed != null;
+    final colors = context.colors;
+    final motion = context.motion;
+    final enabled = widget.onPressed != null;
+    final radius = BorderRadius.circular(EvaporateTheme.radiusControl);
+
+    // Ход клавиши: в дневной схеме он равен толщине торца, иначе кнопка
+    // проваливалась бы сквозь него.
+    final travel = colors.depth.a == 0 ? 1.0 : 3.0;
+    final sunk = _pressed && enabled;
+    final lit = _hovered && enabled;
+
     return Semantics(
       button: true,
       enabled: enabled,
       child: Opacity(
         opacity: enabled ? 1 : 0.45,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.launcherGreenTop,
-                AppColors.launcherGreenBottom,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: AnimatedContainer(
+            duration: motion.fast,
+            curve: EvaporateMotion.ease,
+            transform: Matrix4.translationValues(0, sunk ? travel : 0, 0),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  // Блик по верхней кромке. Днём его почти нет: плоский
+                  // цвет — часть замысла, а не упущение.
+                  Color.lerp(
+                    colors.primaryFill,
+                    AppColors.foilHighlight,
+                    colors.isDark ? 0.16 : 0.04,
+                  )!,
+                  colors.primaryFill,
+                ],
+              ),
+              borderRadius: radius,
+              boxShadow: [
+                if (colors.depth.a > 0)
+                  BoxShadow(
+                    color: colors.depth,
+                    offset: Offset(0, sunk ? 1 : travel),
+                    spreadRadius: -0.5,
+                  ),
+                BoxShadow(
+                  color: colors.isDark
+                      ? colors.glow.withValues(alpha: lit ? 0.34 : 0.18)
+                      : colors.shadow,
+                  blurRadius: lit ? 26 : 14,
+                  offset: Offset(0, sunk ? 2 : 6),
+                ),
               ],
             ),
-            border: Border.all(color: AppColors.launcherGreenBorder),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.coverTextShadow.withValues(alpha: 0.28),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Material(
-            color: AppColors.transparent,
-            child: InkWell(
-              onTap: onPressed,
-              borderRadius: BorderRadius.circular(8),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 112, minHeight: 48),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 18, color: AppColors.launcherButtonText),
-                      const SizedBox(width: 8),
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: AppColors.launcherButtonText,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
+            child: Material(
+              color: AppColors.transparent,
+              child: InkWell(
+                onTap: widget.onPressed,
+                onHighlightChanged: (value) => setState(() => _pressed = value),
+                borderRadius: radius,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 112,
+                    minHeight: 48,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(widget.icon, size: 18, color: colors.onPrimary),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.label,
+                          style: TextStyle(
+                            color: colors.onPrimary,
+                            fontFamily: EvaporateTheme.displayFontFamily,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -110,7 +158,7 @@ class StatusChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
       ),
       child: Text(
         label,
@@ -143,7 +191,7 @@ class SectionCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: GlassSurface(
-        radius: 12,
+        radius: EvaporateTheme.radiusPanel,
         opacity: context.colors.isDark ? 0.62 : 0.74,
         padding: const EdgeInsets.all(18),
         child: Column(

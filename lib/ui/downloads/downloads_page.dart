@@ -55,13 +55,15 @@ class DownloadsPage extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    L.of(context).downloads,
+                    L.of(context).downloads.toUpperCase(),
                     style: const TextStyle(
                       fontFamily: EvaporateTheme.displayFontFamily,
-                      fontSize: 42,
-                      height: 0.95,
+                      fontSize: 34,
+                      height: 1.0,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -1.8,
+                      // Заглавными и с разрядом: широкий шрифт держит название раздела
+                      // как надпись на корпусе, а прижатые заглавные слипаются.
+                      letterSpacing: 1.4,
                     ),
                   ),
                   const Spacer(),

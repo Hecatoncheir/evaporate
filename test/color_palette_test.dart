@@ -29,15 +29,15 @@ void main() {
 
   test('theme exports particle colours without changing their values', () {
     expect(libraryInkColors, const [
-      Color(0xFFEF147C),
-      Color(0xFFFF713F),
-      Color(0xFFFFC52E),
-      Color(0xFF05BDC9),
-      Color(0xFF7552D9),
-      Color(0xFFEF147C),
+      Color(0xFFF2C368),
+      Color(0xFF49B7E0),
+      Color(0xFFE0574A),
+      Color(0xFFF2A93B),
+      Color(0xFF9A7BD8),
+      Color(0xFFF2C368),
     ]);
-    expect(ambientParticleColor(false), const Color(0xFF2F0346));
-    expect(ambientParticleColor(true), const Color(0xFFF2685A));
+    expect(ambientParticleColor(false), const Color(0xFF8C3A10));
+    expect(ambientParticleColor(true), const Color(0xFFE9C877));
     for (final dark in [false, true]) {
       expect(
         particleColor(isDark: dark, phase: 0, glow: 0),
@@ -52,23 +52,39 @@ void main() {
 
   test('wave and artwork palettes keep their theme values', () {
     expect(waveColors(true), const [
-      Color(0xFFF2685A),
-      Color(0xFFDFAE4E),
-      Color(0xFF05BDC9),
-      Color(0xFFCCC5B9),
+      Color(0xFFE9C877),
+      Color(0xFF49B7E0),
+      Color(0xFFE0574A),
+      Color(0xFFC9C2B2),
     ]);
     expect(waveColors(false), const [
-      Color(0xFFAD175E),
-      Color(0xFFF2685A),
-      Color(0xFF05BDC9),
-      Color(0xFFB62D38),
+      Color(0xFFFF4A17),
+      Color(0xFFFFC400),
+      Color(0xFF0090A8),
+      Color(0xFFB3261E),
     ]);
     for (final title in ['Celeste', 'Hades', 'Игра']) {
       final hue = (title.hashCode % 360).abs().toDouble();
       expect(gameCoverColors(title), [
-        HSLColor.fromAHSL(1, hue, 0.32, 0.27).toColor(),
-        HSLColor.fromAHSL(1, (hue + 24) % 360, 0.30, 0.13).toColor(),
+        HSLColor.fromAHSL(1, hue, 0.34, 0.30).toColor(),
+        HSLColor.fromAHSL(1, (hue + 24) % 360, 0.32, 0.13).toColor(),
       ]);
+
+      // Свет корпуса держится выверенных якорей, а не всего круга:
+      // свободный оттенок от хеша однажды выдаёт болотно-зелёный, и
+      // оболочка выглядит сломанной, а не «своей у каждого».
+      final ambient = gameAmbientColors(title);
+      expect(ambient, hasLength(3));
+      expect(gameAmbientColors(title), ambient, reason: 'один и тот же свет');
+      final lead = HSLColor.fromColor(ambient.first).hue;
+      expect(
+        ambientHues.any((anchor) {
+          final delta = (lead - anchor).abs();
+          return (delta < 7) || (360 - delta < 7);
+        }),
+        isTrue,
+        reason: 'оттенок $lead ушёл от якорей $ambientHues',
+      );
     }
     expect(AppColors.coverOverlay, Colors.black.withValues(alpha: 0.66));
     expect(AppColors.detailOverlay, Colors.black.withValues(alpha: 0.62));

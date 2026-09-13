@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../models/game.dart';
+import '../theme.dart';
 import '../widgets/spatial_surface.dart';
 
 import 'game_detail.dart';
@@ -22,7 +23,7 @@ class GamePage extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
           child: GlassSurface(
-            radius: 12,
+            radius: EvaporateTheme.radiusPanel,
             shadow: false,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             child: Row(

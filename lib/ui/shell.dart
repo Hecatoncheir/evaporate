@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,19 +10,15 @@ import '../input/input_scope.dart';
 import '../bloc/notice.dart';
 import '../models/app_settings.dart';
 import '../models/game.dart';
-import '../services/download/download_engine.dart';
 import 'downloads/downloads_page.dart';
 import 'library/game_wave.dart';
 import 'library/library_page.dart';
 import 'saves/saves_page.dart';
 import 'settings/settings_page.dart';
-import 'labels.dart';
 import 'theme.dart';
-import 'widgets/button_hints.dart';
+import 'widgets/ambient_light.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
-import 'widgets/spatial_surface.dart';
-import '../l10n/app_localizations.dart';
 import 'shell/app_footer.dart';
 import 'shell/navigation.dart';
 import 'shell/top_bar.dart';
@@ -71,6 +65,17 @@ class AppShell extends StatelessWidget {
     final waveEnabled = context.select<SettingsBloc, bool>(
       (bloc) => bloc.state.libraryEffects && bloc.state.wavesEnabled,
     );
+    final ambientEnabled = context.select<SettingsBloc, bool>(
+      (bloc) => bloc.state.libraryEffects && bloc.state.ambientEnabled,
+    );
+    // Свет корпуса берётся от выбранной игры, поэтому оболочке нужно и то,
+    // что выбрано, и название — два разных блока.
+    final selectedId = context.select<NavigationBloc, String?>(
+      (bloc) => bloc.state.selectedGameId,
+    );
+    final selectedTitle = context.select<LibraryBloc, String?>(
+      (bloc) => bloc.state.gameById(selectedId)?.title,
+    );
 
     return MultiBlocListener(
       listeners: [
@@ -97,114 +102,103 @@ class AppShell extends StatelessWidget {
         onBack: nav.closeOpenedGame,
         child: Scaffold(
           backgroundColor: AppColors.transparent,
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                'assets/branding/frost_world_background.png',
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-              ),
-              ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-                  child: ColoredBox(
-                    color: context.colors.isDark
-                        ? AppColors.frostDark
-                        : AppColors.frostLight,
+          body: AmbientLight(
+            enabled: ambientEnabled,
+            title: selectedTitle,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 980;
+                final shortViewport = constraints.maxHeight < 520;
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    compact ? 6 : 10,
+                    compact ? 6 : 10,
+                    compact ? 6 : 10,
+                    0,
                   ),
-                ),
-              ),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 980;
-                  final shortViewport = constraints.maxHeight < 520;
-                  return Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      compact ? 6 : 10,
-                      compact ? 6 : 10,
-                      compact ? 6 : 10,
-                      0,
-                    ),
-                    child: Column(
-                      children: [
-                        ConceptTopBar(compact: compact),
-                        const SizedBox(height: 10),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: context.colors.surface.withValues(
-                                  alpha: context.colors.isDark ? 0.82 : 0.76,
-                                ),
-                                border: Border.all(
-                                  color: context.colors.outline.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    children: [
+                      ConceptTopBar(compact: compact),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            EvaporateTheme.radiusPanel,
+                          ),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              // Панель нарочно неплотная: под ней лежит свет
+                              // выбранной игры, и заливка в упор погасила бы
+                              // единственный цвет в окне.
+                              color: context.colors.surface.withValues(
+                                alpha: context.colors.isDark ? 0.62 : 0.78,
                               ),
-                              child: GameWave(
-                                key: const ValueKey('library-wave'),
-                                enabled: section == 0 && waveEnabled,
-                                child: FocusTraversalGroup(
-                                  child:
-                                      BlocSelector<
-                                        NavigationBloc,
-                                        NavigationState,
-                                        int
-                                      >(
-                                        selector: (state) => state.section,
-                                        builder: (context, section) =>
-                                            FadeIndexedStack(
-                                              index: section,
-                                              enabled: context
-                                                  .select<SettingsBloc, bool>(
-                                                    (b) =>
-                                                        b
-                                                            .state
-                                                            .libraryEffects &&
-                                                        b
-                                                            .state
-                                                            .interfaceAnimationsEnabled,
-                                                  ),
-                                              children: const [
-                                                LibraryPage(),
-                                                DownloadsPage(),
-                                                SavesPage(),
-                                                SettingsPage(),
-                                              ],
-                                            ),
-                                      ),
+                              border: Border.all(
+                                color: context.colors.outline.withValues(
+                                  alpha: 0.45,
                                 ),
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                EvaporateTheme.radiusPanel,
+                              ),
+                            ),
+                            child: GameWave(
+                              key: const ValueKey('library-wave'),
+                              enabled: section == 0 && waveEnabled,
+                              child: FocusTraversalGroup(
+                                child:
+                                    BlocSelector<
+                                      NavigationBloc,
+                                      NavigationState,
+                                      int
+                                    >(
+                                      selector: (state) => state.section,
+                                      builder: (context, section) =>
+                                          FadeIndexedStack(
+                                            index: section,
+                                            enabled: context
+                                                .select<SettingsBloc, bool>(
+                                                  (b) =>
+                                                      b.state.libraryEffects &&
+                                                      b
+                                                          .state
+                                                          .interfaceAnimationsEnabled,
+                                                ),
+                                            children: const [
+                                              LibraryPage(),
+                                              DownloadsPage(),
+                                              SavesPage(),
+                                              SettingsPage(),
+                                            ],
+                                          ),
+                                    ),
                               ),
                             ),
                           ),
                         ),
-                        if (compact) ...[
-                          const SizedBox(height: 8),
-                          const ConceptNavigation(compact: true),
-                        ],
-                        if (!shortViewport) ...[
-                          const SizedBox(height: 6),
-                          SizedBox(
-                            height: 40,
-                            child: OverflowBox(
-                              maxWidth: constraints.maxWidth,
-                              child: SizedBox(
-                                width: constraints.maxWidth,
-                                child: const AppFooter(),
-                              ),
+                      ),
+                      if (compact) ...[
+                        const SizedBox(height: 8),
+                        const ConceptNavigation(compact: true),
+                      ],
+                      if (!shortViewport) ...[
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 40,
+                          child: OverflowBox(
+                            maxWidth: constraints.maxWidth,
+                            child: SizedBox(
+                              width: constraints.maxWidth,
+                              child: const AppFooter(),
                             ),
                           ),
-                        ],
+                        ),
                       ],
-                    ),
-                  );
-                },
-              ),
-            ],
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -218,158 +212,5 @@ class AppShell extends StatelessWidget {
     } else {
       showInfo(context, notice.message);
     }
-  }
-}
-
-/// Нижняя строка: подсказки управления, скорость обмена и состояние движка.
-class DownloadStatusBar extends StatelessWidget {
-  const DownloadStatusBar({super.key, required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final downloads = context.watch<DownloadsBloc>().state;
-    final settings = context.watch<SettingsBloc>().state;
-    final gamepad = context.read<GamepadService>();
-    final status = downloads.engine;
-    final stats = downloads.stats;
-
-    final (color, icon) = switch (status.state) {
-      EngineState.ready => (context.colors.accent, Icons.check_circle_outline),
-      EngineState.starting => (context.colors.warning, Icons.hourglass_empty),
-      EngineState.failed => (context.colors.danger, Icons.error_outline),
-      EngineState.stopped => (
-        context.colors.textSecondary,
-        Icons.stop_circle_outlined,
-      ),
-    };
-
-    return SizedBox(
-      height: compact ? 40 : 46,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final readoutWidth = compact ? 230.0 : 330.0;
-          final hintWidth = (constraints.maxWidth - readoutWidth - 10).clamp(
-            180.0,
-            620.0,
-          );
-          return Row(
-            children: [
-              SizedBox(
-                width: hintWidth,
-                child: GlassSurface(
-                  radius: 12,
-                  opacity: 0.84,
-                  shadow: false,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ValueListenableBuilder<GamepadStatus>(
-                      valueListenable: gamepad.status,
-                      builder: (context, gamepadStatus, _) => ButtonHints(
-                        binding: settings.gamepad,
-                        gamepadConnected:
-                            settings.gamepad.enabled && gamepadStatus.hasDevice,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              const SizedBox(width: 10),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: readoutWidth),
-                child: GlassSurface(
-                  radius: 12,
-                  opacity: 0.92,
-                  shadow: false,
-                  padding: const EdgeInsets.all(5),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: context.colors.railBackground.withValues(
-                        alpha: context.colors.isDark ? 0.92 : 0.7,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: context.colors.outline.withValues(alpha: 0.42),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: color,
-                            boxShadow: [
-                              BoxShadow(
-                                color: color.withValues(alpha: 0.5),
-                                blurRadius: 7,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(icon, size: 14, color: color),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            status.message ??
-                                L
-                                    .of(context)
-                                    .engineStatus(
-                                      engineStateLabel(
-                                        L.of(context),
-                                        status.state,
-                                      ),
-                                    ),
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.25,
-                              color: color,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (!compact && stats.activeCount > 0) ...[
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.arrow_downward,
-                            size: 12,
-                            color: context.colors.primary,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            speedLabel(L.of(context), stats.downloadSpeed),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          const SizedBox(width: 9),
-                          Icon(
-                            Icons.arrow_upward,
-                            size: 12,
-                            color: context.colors.textSecondary,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            speedLabel(L.of(context), stats.uploadSpeed),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
   }
 }

@@ -153,9 +153,9 @@ void main() {
         final preview = Platform.environment['LIQUID_PREVIEW_PREFIX'];
         if (preview != null) {
           for (final entry in {
-            'Ahem': 'assets/fonts/NunitoSans.ttf',
-            'Nunito': 'assets/fonts/Nunito.ttf',
-            'Nunito Sans': 'assets/fonts/NunitoSans.ttf',
+            'Ahem': 'assets/fonts/GolosText.ttf',
+            'Unbounded': 'assets/fonts/Unbounded.ttf',
+            'Golos Text': 'assets/fonts/GolosText.ttf',
             'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
             'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
           }.entries) {

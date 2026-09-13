@@ -33,9 +33,9 @@ class ConceptLibraryHeading extends StatelessWidget {
                 style: TextStyle(
                   color: context.colors.primary,
                   fontFamily: EvaporateTheme.monoFontFamily,
-                  fontSize: 9,
+                  fontSize: 9.5,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
+                  letterSpacing: 1.6,
                 ),
               ),
               const SizedBox(height: 7),
@@ -45,13 +45,15 @@ class ConceptLibraryHeading extends StatelessWidget {
                     : L.of(context).conceptLibraryHeadline,
                 maxLines: compact ? 1 : 2,
                 overflow: TextOverflow.ellipsis,
+                // Широкому шрифту нужен не минус, а почти ноль: с плотным
+                // разрядом заглавные слипаются, а строка перестаёт влезать.
                 style: TextStyle(
                   color: context.colors.textPrimary,
                   fontFamily: EvaporateTheme.displayFontFamily,
-                  fontSize: compact ? 25 : 38,
-                  height: 0.92,
+                  fontSize: compact ? 22 : 32,
+                  height: 1.04,
                   fontWeight: FontWeight.w800,
-                  letterSpacing: compact ? -1 : -2.1,
+                  letterSpacing: compact ? -0.2 : -0.4,
                 ),
               ),
             ],

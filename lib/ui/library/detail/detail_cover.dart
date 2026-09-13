@@ -33,7 +33,7 @@ class DetailCover extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: context.colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         border: Border.all(color: context.colors.outline),
       ),
       child: Stack(

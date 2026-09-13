@@ -226,6 +226,7 @@ class ProgressBlock extends StatelessWidget {
           value: indeterminate ? null : task.progress,
           height: 6,
           borderRadius: 4,
+          busy: task.state == DownloadState.active,
         ),
         const SizedBox(height: 10),
         DefaultTextStyle(

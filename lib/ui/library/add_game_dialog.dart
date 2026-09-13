@@ -350,12 +350,12 @@ class _PathPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onPick,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
           color: context.colors.surfaceHigh,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
           border: Border.all(color: context.colors.outline),
         ),
         child: Row(

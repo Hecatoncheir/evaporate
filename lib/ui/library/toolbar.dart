@@ -76,7 +76,7 @@ class LibraryToolbar extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: context.colors.railBackground.withValues(alpha: 0.78),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
           border: Border.all(
             color: context.colors.textPrimary.withValues(alpha: 0.1),
           ),
@@ -126,7 +126,7 @@ class LibraryToolbar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
       child: GlassSurface(
-        radius: 12,
+        radius: EvaporateTheme.radiusPanel,
         opacity: context.colors.isDark ? 0.72 : 0.84,
         shadow: false,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -195,7 +195,7 @@ class _ShelfTabsState extends State<ShelfTabs> {
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
       color: context.colors.railBackground.withValues(alpha: 0.78),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
       border: Border.all(
         color: context.colors.textPrimary.withValues(alpha: 0.1),
       ),
@@ -206,7 +206,7 @@ class _ShelfTabsState extends State<ShelfTabs> {
         key: const ValueKey('shelf-liquid'),
         targetKey: () => _targets[widget.shelf],
         color: context.colors.selection,
-        radius: 8,
+        radius: EvaporateTheme.radiusControl,
         enabled: context.select<SettingsBloc, bool>(
           (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
         ),
@@ -262,7 +262,9 @@ class ShelfButton extends StatelessWidget {
           minimumSize: const Size(0, 42),
           padding: const EdgeInsets.symmetric(horizontal: 10),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+          ),
         ),
         child: LiquidSelectionInk(
           normalColor: colors.textSecondary,

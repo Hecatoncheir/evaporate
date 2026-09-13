@@ -24,8 +24,8 @@ void main() {
   setUpAll(() async {
     if (Platform.environment['WINDOW_FRAME_PREVIEW'] == null) return;
     for (final entry in {
-      'Nunito': 'assets/fonts/Nunito.ttf',
-      'Nunito Sans': 'assets/fonts/NunitoSans.ttf',
+      'Unbounded': 'assets/fonts/Unbounded.ttf',
+      'Golos Text': 'assets/fonts/GolosText.ttf',
       'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
       'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
     }.entries) {

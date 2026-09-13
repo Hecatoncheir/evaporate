@@ -64,7 +64,7 @@ void main() {
     await frames(tester);
 
     final quit = find.byKey(const ValueKey('rail-quit'));
-    Focus.of(tester.element(find.text('Настройки').first)).requestFocus();
+    Focus.of(tester.element(find.text('НАСТРОЙКИ').first)).requestFocus();
     await frames(tester);
 
     var reached = false;

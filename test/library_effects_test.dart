@@ -106,8 +106,8 @@ void main() {
   );
 
   test('ambient points use the exact requested colors', () {
-    expect(ambientParticleColor(false), const Color(0xFF2F0346));
-    expect(ambientParticleColor(true), const Color(0xFFF2685A));
+    expect(ambientParticleColor(false), const Color(0xFF8C3A10));
+    expect(ambientParticleColor(true), const Color(0xFFE9C877));
   });
 
   testWidgets('particle painter has a sharp core and no glow outside it', (
@@ -142,9 +142,9 @@ void main() {
       try {
         final pixels = (await image.toByteData())!.buffer.asUint8List();
         expect(pixels.sublist((16 * 32 + 16) * 4, (16 * 32 + 16) * 4 + 4), [
-          closeTo(239, 1),
-          closeTo(20, 1),
-          closeTo(124, 1),
+          closeTo(242, 1),
+          closeTo(195, 1),
+          closeTo(104, 1),
           closeTo(255, 1),
         ]);
         for (final x in [12, 13, 19, 20]) {
@@ -567,9 +567,9 @@ void main() {
       final preview = Platform.environment['LIQUID_PREVIEW'];
       if (preview != null) {
         for (final entry in {
-          'Ahem': 'assets/fonts/NunitoSans.ttf',
-          'Nunito': 'assets/fonts/Nunito.ttf',
-          'Nunito Sans': 'assets/fonts/NunitoSans.ttf',
+          'Ahem': 'assets/fonts/GolosText.ttf',
+          'Unbounded': 'assets/fonts/Unbounded.ttf',
+          'Golos Text': 'assets/fonts/GolosText.ttf',
           'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
           'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
         }.entries) {

@@ -58,7 +58,10 @@ void main() {
                   )
                   .decoration
               as BoxDecoration;
-      expect(decoration.borderRadius, BorderRadius.circular(8));
+      expect(
+        decoration.borderRadius,
+        BorderRadius.circular(EvaporateTheme.radiusControl),
+      );
       expect(find.byType(DecorativeMotion), findsNothing);
       Focus.of(tester.element(find.text('Играть'))).requestFocus();
       await tester.pump();
@@ -137,9 +140,9 @@ void main() {
     final preview = Platform.environment['GAME_PAGE_PREVIEW'];
     if (preview != null) {
       for (final entry in {
-        'Ahem': 'assets/fonts/NunitoSans.ttf',
-        'Nunito': 'assets/fonts/Nunito.ttf',
-        'Nunito Sans': 'assets/fonts/NunitoSans.ttf',
+        'Ahem': 'assets/fonts/GolosText.ttf',
+        'Unbounded': 'assets/fonts/Unbounded.ttf',
+        'Golos Text': 'assets/fonts/GolosText.ttf',
         'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
         'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
       }.entries) {

@@ -140,21 +140,26 @@ void main() {
   });
 
   group('полоса загрузки', () {
+    // Заполненную часть рисует своя полоса с переходом цвета, а не
+    // `LinearProgressIndicator`: доля читается из её `widthFactor`.
+    double filled(WidgetTester tester) => tester
+        .widget<FractionallySizedBox>(find.byType(FractionallySizedBox))
+        .widthFactor!;
+
     testWidgets('значение доезжает, а не прыгает', (tester) async {
       await tester.pumpWidget(wrap(const AnimatedProgress(value: 0.8)));
 
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-      final early = tester
-          .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
-          .value!;
-      expect(early, lessThan(0.8), reason: 'значение должно ехать постепенно');
+
+      expect(
+        filled(tester),
+        lessThan(0.8),
+        reason: 'значение должно ехать постепенно',
+      );
 
       await tester.pumpAndSettle();
-      final settled = tester
-          .widget<LinearProgressIndicator>(find.byType(LinearProgressIndicator))
-          .value!;
-      expect(settled, closeTo(0.8, 0.001));
+      expect(filled(tester), closeTo(0.8, 0.001));
     });
 
     testWidgets('неизвестный прогресс остаётся бегущим', (tester) async {
@@ -175,10 +180,7 @@ void main() {
       await tester.pumpWidget(wrap(const AnimatedProgress(value: 1.7)));
       await tester.pumpAndSettle();
 
-      final bar = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator),
-      );
-      expect(bar.value, closeTo(1.0, 0.001));
+      expect(filled(tester), closeTo(1.0, 0.001));
     });
   });
 }

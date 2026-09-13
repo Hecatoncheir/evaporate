@@ -27,7 +27,8 @@ void main() {
       expect(settings.liquidDistortionEnabled, isFalse);
       expect(settings.liquidSelectionEnabled, isFalse);
       expect(settings.ambientEnabled, isTrue);
-      expect(settings.interfaceAnimationsEnabled, isFalse);
+      expect(settings.heroSweepEnabled, isTrue);
+      expect(settings.interfaceAnimationsEnabled, isTrue);
       expect(settings.dropsEnabled, isFalse);
       expect(settings.portalEnabled, isTrue);
       expect(settings.selectionFrameEnabled, isFalse);
@@ -45,7 +46,8 @@ void main() {
       base.copyWith(liquidDistortionEnabled: true),
       base.copyWith(liquidSelectionEnabled: true),
       base.copyWith(ambientEnabled: false),
-      base.copyWith(interfaceAnimationsEnabled: true),
+      base.copyWith(heroSweepEnabled: false),
+      base.copyWith(interfaceAnimationsEnabled: false),
       base.copyWith(dropsEnabled: true),
       base.copyWith(portalEnabled: false),
       base.copyWith(selectionFrameEnabled: true),
