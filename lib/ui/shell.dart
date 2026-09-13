@@ -190,16 +190,16 @@ class AppShell extends StatelessWidget {
                         ],
                         if (!shortViewport) ...[
                           const SizedBox(height: 6),
-                        SizedBox(
-                          height: 40,
-                          child: OverflowBox(
-                            maxWidth: constraints.maxWidth,
-                            child: SizedBox(
-                              width: constraints.maxWidth,
-                              child: const _AppFooter(),
+                          SizedBox(
+                            height: 40,
+                            child: OverflowBox(
+                              maxWidth: constraints.maxWidth,
+                              child: SizedBox(
+                                width: constraints.maxWidth,
+                                child: const _AppFooter(),
+                              ),
                             ),
                           ),
-                        ),
                         ],
                       ],
                     ),
