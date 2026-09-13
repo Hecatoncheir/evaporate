@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
@@ -124,6 +125,24 @@ void main() {
       harness.library.state.gameById(harness.nav.state.selectedGameId)?.title,
       'Гамма',
     );
+  });
+
+  testWidgets('витрина показывает обложку выбранной игры', (tester) async {
+    final harness = await withGames(tester);
+    final cover = File('assets/branding/app_icon.png').absolute;
+    final beta = harness.library.state.games.firstWhere(
+      (game) => game.title == 'Бета',
+    );
+    harness.library.add(GameUpdated(beta.copyWith(coverPath: cover.path)));
+    harness.nav.add(GameSelected(beta.id));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final image = tester.widget<Image>(
+      find.byKey(const ValueKey('featured-game-background')),
+    );
+    expect(image.image, isA<FileImage>());
+    expect((image.image as FileImage).file.path, cover.path);
   });
 
   testWidgets('исчезнувшая игра не оставляет открытой страницы', (

@@ -45,6 +45,20 @@ void main() {
       await frames(tester, 30);
       final button = find.byType(LauncherActionButton);
       expect(tester.widget<LauncherActionButton>(button).onPressed, isNotNull);
+      final buttonSize = tester.getSize(button);
+      expect(buttonSize.height, 48);
+      expect(buttonSize.width, greaterThanOrEqualTo(112));
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find.descendant(
+                      of: button,
+                      matching: find.byType(DecoratedBox),
+                    ),
+                  )
+                  .decoration
+              as BoxDecoration;
+      expect(decoration.borderRadius, BorderRadius.circular(8));
       expect(find.byType(DecorativeMotion), findsNothing);
       Focus.of(tester.element(find.text('Играть'))).requestFocus();
       await tester.pump();

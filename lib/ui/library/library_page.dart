@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -133,6 +134,12 @@ class _LibraryPageState extends State<LibraryPage> {
 
     final found = _search(library.games);
     final games = _onShelf(found, _shelf);
+    final selectedIndex = games.indexWhere(
+      (game) => game.id == navState.selectedGameId,
+    );
+    final featured = games.isEmpty
+        ? null
+        : games[selectedIndex < 0 ? 0 : selectedIndex];
     if (_hoveredId != null && !games.any((g) => g.id == _hoveredId)) {
       _hoveredId = null;
     }
@@ -169,11 +176,11 @@ class _LibraryPageState extends State<LibraryPage> {
                     );
                   },
                 ),
-              if (games.isNotEmpty && roomy)
+              if (featured != null && roomy)
                 _FeaturedGame(
-                  game: games.first,
-                  onOpen: () => nav.add(GameOpened(games.first.id)),
-                  onPrimary: () => _primaryGameAction(context, games.first),
+                  game: featured,
+                  onOpen: () => nav.add(GameOpened(featured.id)),
+                  onPrimary: () => _primaryGameAction(context, featured),
                 ),
               _Toolbar(
                 shelf: _shelf,
@@ -696,6 +703,14 @@ class _FeaturedGame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playable = game.status != GameStatus.installed || game.canLaunch;
+    final coverPath = game.coverPath;
+    final fallback = Image.asset(
+      'assets/branding/orbit_fall_hero.png',
+      key: const ValueKey('featured-game-background-fallback'),
+      fit: BoxFit.cover,
+      alignment: const Alignment(0.2, 0.46),
+      filterQuality: FilterQuality.medium,
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 8, 28, 8),
       child: SizedBox(
@@ -705,12 +720,17 @@ class _FeaturedGame extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(
-                'assets/branding/orbit_fall_hero.png',
-                fit: BoxFit.cover,
-                alignment: const Alignment(0.2, 0.46),
-                filterQuality: FilterQuality.medium,
-              ),
+              if (coverPath == null)
+                fallback
+              else
+                Image.file(
+                  File(coverPath),
+                  key: const ValueKey('featured-game-background'),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (context, error, stackTrace) => fallback,
+                ),
               const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

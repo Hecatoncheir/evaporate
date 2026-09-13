@@ -7,7 +7,8 @@ import 'spatial_surface.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Главное действие лаунчера: компактная зелёная клавиша с лёгким объёмом.
-/// Она намеренно почти прямоугольная — как кнопка Download из референса.
+/// Геометрия совпадает с соседними обычными кнопками, поэтому ряд действий
+/// выглядит единым, а цвет по-прежнему сохраняет главный акцент.
 class LauncherActionButton extends StatelessWidget {
   const LauncherActionButton({
     super.key,
@@ -39,7 +40,7 @@ class LauncherActionButton extends StatelessWidget {
               ],
             ),
             border: Border.all(color: AppColors.launcherGreenBorder),
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
                 color: AppColors.coverTextShadow.withValues(alpha: 0.28),
@@ -52,9 +53,9 @@ class LauncherActionButton extends StatelessWidget {
             color: AppColors.transparent,
             child: InkWell(
               onTap: onPressed,
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(8),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 116, minHeight: 42),
+                constraints: const BoxConstraints(minWidth: 112, minHeight: 48),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
