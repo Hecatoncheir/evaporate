@@ -152,6 +152,10 @@ class _LibraryPageState extends State<LibraryPage> {
       builder: (context, constraints) {
         final roomy = constraints.maxHeight >= 760;
         final showHeading = constraints.maxHeight >= 360;
+        // Кадр выбранной игры не прячется там, где просто меньше места:
+        // ниже 760 он становится полосой и уходит совсем только тогда,
+        // когда иначе не осталось бы места самой полке.
+        final showHero = constraints.maxHeight >= 520;
         return LibraryAtmosphere(
           enabled: effects.libraryEffects,
           particlesEnabled: effects.particlesEnabled,
@@ -172,9 +176,10 @@ class _LibraryPageState extends State<LibraryPage> {
                     );
                   },
                 ),
-              if (featured != null && roomy)
+              if (featured != null && showHero)
                 FeaturedGame(
                   game: featured,
+                  compact: !roomy,
                   sweepEnabled:
                       effects.libraryEffects && effects.heroSweepEnabled,
                   onOpen: () => nav.add(GameOpened(featured.id)),

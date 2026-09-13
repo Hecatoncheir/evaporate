@@ -70,13 +70,6 @@
       }
     }
   },
-  "@concurrentAtOnce": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "@databaseDownloadingPercent": {
     "placeholders": {
       "percent": {
@@ -763,7 +756,8 @@
   "chooseFile": "Выбрать файл",
   "chooseFolder": "Выбрать папку",
   "clear": "Очистить",
-  "concurrentAtOnce": "одновременно — {count}",
+  "downloadsStatActive": "Активных",
+  "downloadsStatQueued": "В очереди",
   "concurrentDownloads": "Одновременных загрузок",
   "confirm": "Продолжить",
   "controls": "Управление",

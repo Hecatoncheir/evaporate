@@ -40,6 +40,9 @@ class TaskCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Названия релизов длинные и обрезаются по месту: без
+                // просвета многоточие упиралось бы прямо в состояние.
+                const SizedBox(width: 12),
                 Text(
                   task.isMetadata
                       ? L.of(context).stateMetadata

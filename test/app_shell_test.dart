@@ -40,8 +40,8 @@ void main() {
 
     await tester.tap(find.text('ЗАГРУЗКИ').first);
     await tester.pumpAndSettle();
-    expect(find.text('Сейчас скачивается'), findsOneWidget);
-    expect(find.text('Дальше в очереди'), findsOneWidget);
+    expect(find.text('СЕЙЧАС СКАЧИВАЕТСЯ'), findsOneWidget);
+    expect(find.text('ДАЛЬШЕ В ОЧЕРЕДИ'), findsOneWidget);
 
     await tester.tap(find.text('СОХРАНЕНИЯ').first);
     await tester.pumpAndSettle();

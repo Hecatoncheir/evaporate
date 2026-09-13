@@ -5,6 +5,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
 import '../../l10n/app_localizations.dart';
+import 'queue_column.dart';
 
 /// Левая колонка: игры, которые можно поставить в очередь.
 class AvailableGames extends StatelessWidget {
@@ -30,16 +31,16 @@ class AvailableGames extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Text(
+          padding: const EdgeInsets.fromLTRB(24, 4, 16, 0),
+          child: SectionTitle(
             L.of(context).availableToDownload,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            trailing: '${available.length}',
           ),
         ),
         Expanded(
           child: available.isEmpty
               ? Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 16, 16),
                   child: Text(
                     L.of(context).allGamesQueued,
                     style: TextStyle(
@@ -50,7 +51,7 @@ class AvailableGames extends StatelessWidget {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 16, 16),
                   itemCount: available.length,
                   itemBuilder: (context, index) =>
                       DraggableGame(game: available[index]),
@@ -88,37 +89,61 @@ class DraggableGame extends StatelessWidget {
   }
 }
 
-class GameChip extends StatelessWidget {
+class GameChip extends StatefulWidget {
   const GameChip({super.key, required this.game});
 
   final Game game;
 
   @override
+  State<GameChip> createState() => _GameChipState();
+}
+
+class _GameChipState extends State<GameChip> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-        border: Border.all(color: context.colors.outline),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.drag_indicator,
-            size: 16,
-            color: context.colors.textSecondary,
+    final colors = context.colors;
+    final game = widget.game;
+    // Плашку тащат мышью, и это должно быть видно до того, как потянут:
+    // под курсором она приподнимается и берёт фирменный кант.
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: context.motion.fast,
+        curve: EvaporateMotion.ease,
+        transform: Matrix4.translationValues(0, _hovered ? -2 : 0, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: _hovered
+              ? Color.lerp(colors.surface, colors.primary, 0.08)
+              : colors.surface,
+          borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+          border: Border.all(
+            color: _hovered
+                ? colors.primary.withValues(alpha: 0.55)
+                : colors.outline,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              game.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.drag_indicator,
+              size: 16,
+              color: _hovered ? colors.primary : colors.textSecondary,
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                game.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -16,12 +16,19 @@ import '../../l10n/app_localizations.dart';
 /// игры, к которой человек вернулся. Поэтому обложка идёт во всю ширину, а
 /// надпись лежит на затемнении слева — как на афише, а не как подпись под
 /// картинкой.
+///
+/// В невысоком окне кадр не исчезает, а сжимается в одну полосу
+/// ([compact]): выбранная игра и клавиша запуска — то, ради чего открывают
+/// библиотеку, и прятать их там, где просто меньше места, неправильно.
+/// Полностью кадр убирается только в совсем низком окне, где иначе не
+/// осталось бы места самой полке.
 class FeaturedGame extends StatelessWidget {
   const FeaturedGame({
     super.key,
     required this.game,
     required this.onOpen,
     required this.onPrimary,
+    this.compact = false,
     this.sweepEnabled = false,
   });
 
@@ -29,29 +36,25 @@ class FeaturedGame extends StatelessWidget {
   final VoidCallback onOpen;
   final VoidCallback onPrimary;
 
+  /// Полоса вместо кадра: название в одну строку, клавиши справа, без
+  /// описания и отдельного показания наигранного времени.
+  final bool compact;
+
   /// Полоса света, проходящая по обложке. Настройка своя — см. [HeroSweep].
   final bool sweepEnabled;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final playable = game.status != GameStatus.installed || game.canLaunch;
-    final coverPath = game.coverPath;
-    final fallback = Image.asset(
-      'assets/branding/orbit_fall_hero.png',
-      key: const ValueKey('featured-game-background-fallback'),
-      fit: BoxFit.cover,
-      alignment: const Alignment(0.2, 0.46),
-      filterQuality: FilterQuality.medium,
-    );
     final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 8, 28, 10),
+      padding: EdgeInsets.fromLTRB(28, compact ? 6 : 8, 28, compact ? 8 : 10),
       child: SizedBox(
-        // Выше делать нельзя: в окне 1280x900 первый ряд обложек уходит
-        // под нижний край, и полка перестаёт читаться с одного взгляда.
-        height: 238,
+        // Выше полного кадра делать нельзя: в окне 1280x900 первый ряд
+        // обложек уходит под нижний край, и полка перестаёт читаться с
+        // одного взгляда.
+        height: compact ? 128 : 238,
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: radius,
@@ -69,188 +72,301 @@ class FeaturedGame extends StatelessWidget {
           child: ClipRRect(
             borderRadius: radius,
             child: LayoutBuilder(
-              builder: (context, box) {
-                // Надпись занимает долю кадра, а не 452 точки: на
-                // широкоформатном окне фиксированный блок оставлял
-                // название обрезанным посреди пустого кадра.
-                final textWidth = (box.maxWidth * 0.44).clamp(320.0, 760.0);
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    HeroSweep(
-                      enabled: sweepEnabled,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          if (coverPath == null)
-                            fallback
-                          else
-                            Image.file(
-                              File(coverPath),
-                              key: const ValueKey('featured-game-background'),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.center,
-                              filterQuality: FilterQuality.medium,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  fallback,
-                            ),
-                          const DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [
-                                  AppColors.heroShadeStrong,
-                                  AppColors.heroShadeMiddle,
-                                  AppColors.heroShadeClear,
-                                ],
-                                stops: [0, 0.5, 0.86],
-                              ),
-                            ),
-                          ),
-                          // Второе затемнение снизу: у надписи должна быть
-                          // подложка независимо от того, что на картинке.
-                          const DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  AppColors.heroShadeMiddle,
-                                  AppColors.heroShadeClear,
-                                ],
-                                stops: [0, 0.62],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      left: 28,
-                      top: 24,
-                      bottom: 24,
-                      width: textWidth,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 22,
-                                height: 1.5,
-                                color: AppColors.heroEyebrow,
-                              ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Text(
-                                  L
-                                      .of(context)
-                                      .conceptFeaturedContinue(
-                                        game.lastPlayed == null
-                                            ? L.of(context).featuredReady
-                                            : L.of(context).featuredRecent,
-                                      )
-                                      .toUpperCase(),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.heroEyebrow,
-                                    fontFamily: EvaporateTheme.monoFontFamily,
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.6,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Text(
-                            game.title.toUpperCase(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.coverText,
-                              fontFamily: EvaporateTheme.displayFontFamily,
-                              // Крупнее не влезает: под названием стоят
-                              // описание в две строки и ряд клавиш, и в кадре
-                              // высотой 238 им нужно место.
-                              fontSize: 32,
-                              height: 1.04,
-                              fontWeight: FontWeight.w800,
-                              // Разряд положительный: у широкого шрифта
-                              // прижатые заглавные слипаются.
-                              letterSpacing: 0.6,
-                              shadows: [
-                                Shadow(
-                                  blurRadius: 18,
-                                  color: AppColors.coverTextShadow,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            game.description?.trim().isNotEmpty == true
-                                ? game.description!
-                                : L.of(context).featuredFallbackDescription,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: AppColors.heroBody,
-                              fontSize: 12.5,
-                              height: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              LauncherActionButton(
-                                onPressed: playable ? onPrimary : null,
-                                icon:
-                                    game.status == GameStatus.notInstalled ||
-                                        game.status == GameStatus.error
-                                    ? Icons.download_rounded
-                                    : Icons.play_arrow_rounded,
-                                label: _primaryLabel(context, game),
-                              ),
-                              const SizedBox(width: 9),
-                              OutlinedButton(
-                                onPressed: onOpen,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.coverText,
-                                  side: BorderSide(
-                                    color: AppColors.coverText.withValues(
-                                      alpha: 0.34,
-                                    ),
-                                  ),
-                                  minimumSize: const Size(112, 48),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      EvaporateTheme.radiusControl,
-                                    ),
-                                  ),
-                                ),
-                                child: Text(L.of(context).openGame),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      right: 22,
-                      bottom: 22,
-                      child: _PlaytimeReadout(game: game),
-                    ),
-                  ],
-                );
-              },
+              builder: (context, box) => Stack(
+                fit: StackFit.expand,
+                children: [
+                  _Art(game: game, compact: compact, sweep: sweepEnabled),
+                  if (compact)
+                    _CompactContent(
+                      game: game,
+                      onOpen: onOpen,
+                      onPrimary: onPrimary,
+                    )
+                  else
+                    ..._full(context, box.maxWidth),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  List<Widget> _full(BuildContext context, double width) {
+    // Надпись занимает долю кадра, а не фиксированные 452 точки: на
+    // широкоформатном окне такой блок оставлял название обрезанным посреди
+    // пустого кадра.
+    final textWidth = (width * 0.44).clamp(320.0, 760.0);
+    return [
+      Positioned(
+        left: 28,
+        top: 24,
+        bottom: 24,
+        width: textWidth,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Eyebrow(game: game),
+            const Spacer(),
+            Text(
+              game.title.toUpperCase(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.coverText,
+                fontFamily: EvaporateTheme.displayFontFamily,
+                // Крупнее не влезает: под названием стоят описание в две
+                // строки и ряд клавиш.
+                fontSize: 32,
+                height: 1.04,
+                fontWeight: FontWeight.w800,
+                // Разряд положительный: у широкого шрифта прижатые
+                // заглавные слипаются.
+                letterSpacing: 0.6,
+                shadows: [
+                  Shadow(blurRadius: 18, color: AppColors.coverTextShadow),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              game.description?.trim().isNotEmpty == true
+                  ? game.description!
+                  : L.of(context).featuredFallbackDescription,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.heroBody,
+                fontSize: 12.5,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _Actions(game: game, onOpen: onOpen, onPrimary: onPrimary),
+          ],
+        ),
+      ),
+      Positioned(right: 22, bottom: 22, child: _PlaytimeReadout(game: game)),
+    ];
+  }
+}
+
+/// Сама картинка с затемнениями и пробегом света.
+class _Art extends StatelessWidget {
+  const _Art({required this.game, required this.compact, required this.sweep});
+
+  final Game game;
+  final bool compact;
+  final bool sweep;
+
+  @override
+  Widget build(BuildContext context) {
+    final coverPath = game.coverPath;
+    final fallback = Image.asset(
+      'assets/branding/orbit_fall_hero.png',
+      key: const ValueKey('featured-game-background-fallback'),
+      fit: BoxFit.cover,
+      alignment: const Alignment(0.2, 0.46),
+      filterQuality: FilterQuality.medium,
+    );
+
+    return HeroSweep(
+      enabled: sweep,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (coverPath == null)
+            fallback
+          else
+            Image.file(
+              File(coverPath),
+              key: const ValueKey('featured-game-background'),
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, error, stackTrace) => fallback,
+            ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  AppColors.heroShadeStrong,
+                  AppColors.heroShadeMiddle,
+                  AppColors.heroShadeClear,
+                ],
+                stops: [0, 0.5, 0.86],
+              ),
+            ),
+          ),
+          // В полосе клавиши стоят справа, прямо на картинке, и им нужна
+          // своя подложка: в полном кадре правая половина остаётся
+          // открытой, а здесь на ней белая надпись.
+          if (compact)
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerRight,
+                  end: Alignment.centerLeft,
+                  colors: [AppColors.heroShadeStrong, AppColors.heroShadeClear],
+                  stops: [0, 0.46],
+                ),
+              ),
+            ),
+          // Второе затемнение снизу: у надписи должна быть подложка
+          // независимо от того, что на картинке.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [AppColors.heroShadeMiddle, AppColors.heroShadeClear],
+                stops: [0, 0.62],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Полоса: название и клавиши в одной строке.
+class _CompactContent extends StatelessWidget {
+  const _CompactContent({
+    required this.game,
+    required this.onOpen,
+    required this.onPrimary,
+  });
+
+  final Game game;
+  final VoidCallback onOpen;
+  final VoidCallback onPrimary;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(22, 16, 20, 16),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Наигранное время уходит в надстрочную метку: отдельному
+              // показанию в полосе места нет, а знать его человек хочет.
+              _Eyebrow(game: game, withPlaytime: true),
+              const SizedBox(height: 8),
+              Text(
+                game.title.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.coverText,
+                  fontFamily: EvaporateTheme.displayFontFamily,
+                  fontSize: 22,
+                  height: 1.02,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                  shadows: [
+                    Shadow(blurRadius: 14, color: AppColors.coverTextShadow),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 18),
+        _Actions(game: game, onOpen: onOpen, onPrimary: onPrimary),
+      ],
+    ),
+  );
+}
+
+/// Надстрочная метка: чем игра занята и сколько в неё играли.
+class _Eyebrow extends StatelessWidget {
+  const _Eyebrow({required this.game, this.withPlaytime = false});
+
+  final Game game;
+  final bool withPlaytime;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    var text = l.conceptFeaturedContinue(
+      game.lastPlayed == null ? l.featuredReady : l.featuredRecent,
+    );
+    if (withPlaytime && game.playtime > Duration.zero) {
+      text = '$text · ${formatDurationLabel(l, game.playtime)}';
+    }
+    return Row(
+      children: [
+        Container(width: 22, height: 1.5, color: AppColors.heroEyebrow),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            text.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.heroEyebrow,
+              fontFamily: EvaporateTheme.monoFontFamily,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.6,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Главная клавиша и переход на страницу игры.
+class _Actions extends StatelessWidget {
+  const _Actions({
+    required this.game,
+    required this.onOpen,
+    required this.onPrimary,
+  });
+
+  final Game game;
+  final VoidCallback onOpen;
+  final VoidCallback onPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final playable = game.status != GameStatus.installed || game.canLaunch;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LauncherActionButton(
+          onPressed: playable ? onPrimary : null,
+          icon:
+              game.status == GameStatus.notInstalled ||
+                  game.status == GameStatus.error
+              ? Icons.download_rounded
+              : Icons.play_arrow_rounded,
+          label: _primaryLabel(context, game),
+        ),
+        const SizedBox(width: 9),
+        OutlinedButton(
+          onPressed: onOpen,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.coverText,
+            side: BorderSide(
+              color: AppColors.coverText.withValues(alpha: 0.34),
+            ),
+            minimumSize: const Size(112, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+            ),
+          ),
+          child: Text(L.of(context).openGame),
+        ),
+      ],
     );
   }
 

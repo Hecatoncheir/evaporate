@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/library/featured_game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -125,6 +126,54 @@ void main() {
       harness.library.state.gameById(harness.nav.state.selectedGameId)?.title,
       'Гамма',
     );
+  });
+
+  // Выбранная игра и клавиша запуска — то, ради чего открывают библиотеку.
+  // Прятать их там, где просто меньше места по высоте, неправильно: кадр
+  // сжимается в полосу и уходит совсем только в совсем низком окне.
+  testWidgets('витрина не исчезает в невысоком окне, а становится полосой', (
+    tester,
+  ) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    harness.addGame(title: 'Альфа', status: GameStatus.installed);
+
+    Future<void> resize(double height) async {
+      tester.view.physicalSize = Size(1400, height);
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpAndSettle();
+    }
+
+    tester.view.physicalSize = const Size(1400, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(harness.buildApp());
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<FeaturedGame>(find.byType(FeaturedGame)).compact,
+      isFalse,
+    );
+    final full = tester.getSize(find.byType(FeaturedGame)).height;
+
+    await resize(760);
+    final compact = tester.widget<FeaturedGame>(find.byType(FeaturedGame));
+    expect(compact.compact, isTrue);
+    expect(
+      tester.getSize(find.byType(FeaturedGame)).height,
+      lessThan(full),
+      reason: 'полоса обязана быть ниже полного кадра',
+    );
+    // Клавиша запуска остаётся на месте — она и есть смысл кадра.
+    expect(find.text('Играть'), findsOneWidget);
+    expect(find.text('Открыть игру'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    // А вот в совсем низком окне кадр уступает место самой полке.
+    await resize(420);
+    expect(find.byType(FeaturedGame), findsNothing);
+    expect(find.byType(GameCoverTile), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('витрина показывает обложку выбранной игры', (tester) async {

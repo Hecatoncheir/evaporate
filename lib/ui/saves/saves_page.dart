@@ -13,6 +13,7 @@ import '../labels.dart';
 import '../library/saves/save_tag.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/readout_panel.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Общий экран переноса сохранений: состояние хранилища, папка синхронизации,
@@ -84,12 +85,7 @@ class _SavesPageState extends State<SavesPage> {
                   children: [
                     const _Heading(),
                     const SizedBox(height: 20),
-                    _SavesReadout(
-                      snapshots: entries.length,
-                      stored: stored,
-                      games: configured,
-                      last: entries.isEmpty ? null : entries.first.$2.createdAt,
-                    ),
+                    _readout(context, entries, stored, configured),
                     const SizedBox(height: 18),
                     if (wide)
                       Row(
@@ -111,6 +107,31 @@ class _SavesPageState extends State<SavesPage> {
           ],
         );
       },
+    );
+  }
+
+  /// Показания хранилища: что спрашивают в первую очередь.
+  Widget _readout(
+    BuildContext context,
+    List<(Game, SaveSnapshot)> entries,
+    int stored,
+    int configured,
+  ) {
+    final l = L.of(context);
+    final last = entries.isEmpty ? null : entries.first.$2.createdAt;
+    return ReadoutPanel(
+      cells: [
+        ReadoutCell(label: l.savesStatSnapshots, value: '${entries.length}'),
+        ReadoutCell(label: l.savesStatSize, value: formatBytes(stored)),
+        ReadoutCell(label: l.savesStatGames, value: '$configured'),
+        ReadoutCell(
+          label: l.savesStatLast,
+          value: last == null ? l.savesStatNever : formatDateTime(last),
+          // Дата длиннее числа и в тот же кегль не влезает.
+          compact: true,
+          dim: last == null,
+        ),
+      ],
     );
   }
 
@@ -247,139 +268,6 @@ class _Heading extends StatelessWidget {
       ),
     ],
   );
-}
-
-/// Показания хранилища снимков: одна панель, разделённая на ячейки.
-///
-/// Именно панель, а не четыре карточки: это одно показание в четырёх
-/// графах, и разъехавшиеся карточки читались бы как четыре разных блока.
-class _SavesReadout extends StatelessWidget {
-  const _SavesReadout({
-    required this.snapshots,
-    required this.stored,
-    required this.games,
-    required this.last,
-  });
-
-  final int snapshots;
-  final int stored;
-  final int games;
-  final DateTime? last;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final l = L.of(context);
-    final cells = [
-      _ReadoutCell(label: l.savesStatSnapshots, value: '$snapshots'),
-      _ReadoutCell(label: l.savesStatSize, value: formatBytes(stored)),
-      _ReadoutCell(label: l.savesStatGames, value: '$games'),
-      _ReadoutCell(
-        label: l.savesStatLast,
-        value: last == null ? l.savesStatNever : formatDateTime(last!),
-        // Дата длиннее числа и в тот же кегль не влезает.
-        compact: true,
-        dim: last == null,
-      ),
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.railBackground.withValues(
-          alpha: colors.isDark ? 0.7 : 0.6,
-        ),
-        border: Border.all(color: colors.outline),
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-      ),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          // В узком окне четыре графы не встают в строку — тогда по две.
-          if (box.maxWidth < 680) {
-            return Column(
-              children: [
-                Row(
-                  children: [_cell(cells[0]), _bar(context), _cell(cells[1])],
-                ),
-                Divider(height: 1, thickness: 1, color: colors.outline),
-                Row(
-                  children: [_cell(cells[2]), _bar(context), _cell(cells[3])],
-                ),
-              ],
-            );
-          }
-          return Row(
-            children: [
-              for (var i = 0; i < cells.length; i++) ...[
-                if (i > 0) _bar(context),
-                _cell(cells[i]),
-              ],
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _cell(_ReadoutCell cell) => Expanded(child: cell);
-
-  Widget _bar(BuildContext context) =>
-      Container(width: 1, height: 54, color: context.colors.outline);
-}
-
-class _ReadoutCell extends StatelessWidget {
-  const _ReadoutCell({
-    required this.label,
-    required this.value,
-    this.compact = false,
-    this.dim = false,
-  });
-
-  final String label;
-  final String value;
-  final bool compact;
-  final bool dim;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-            ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: dim ? colors.textSecondary : colors.textPrimary,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              fontSize: compact ? 14 : 21,
-              height: 1,
-              fontWeight: FontWeight.w700,
-              // Табличные цифры: показание не должно дёргаться, когда
-              // меняется одна цифра.
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Хронология: все снимки библиотеки, свежие сверху.

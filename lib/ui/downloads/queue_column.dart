@@ -164,13 +164,14 @@ class QueuedCard extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             SizedBox(
-              width: 22,
+              width: 24,
               child: Text(
                 '$position',
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontFamily: EvaporateTheme.monoFontFamily,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: context.colors.textSecondary,
+                  color: context.colors.primary,
                 ),
               ),
             ),
@@ -213,22 +214,31 @@ class SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Подпись на корпусе, а не заголовок абзаца: моноширинная, заглавными,
+    // а число рядом — фирменным цветом, чтобы читалось как показание.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Wrap(
-        spacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
         children: [
           Text(
-            text,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            text.toUpperCase(),
+            style: TextStyle(
+              color: context.colors.textSecondary,
+              fontFamily: EvaporateTheme.monoFontFamily,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
           ),
           if (trailing != null) ...[
+            const SizedBox(width: 9),
             Text(
               trailing!,
               style: TextStyle(
-                fontSize: 12.5,
-                color: context.colors.textSecondary,
+                color: context.colors.primary,
+                fontFamily: EvaporateTheme.monoFontFamily,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
