@@ -76,6 +76,20 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; \
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; \
   Flags: nowait postinstall skipifsilent
+; При самообновлении setup запускается напрямую с /RELAUNCH:
+; после тихой установки он сам открывает новую версию.
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RelaunchRequested
+
+[Code]
+function RelaunchRequested: Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), '/RELAUNCH') = 0 then
+      Result := True;
+end;
 
 [UninstallDelete]
 ; Папка обновления, которую приложение готовит себе само. Настройки,

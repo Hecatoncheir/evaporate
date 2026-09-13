@@ -4,7 +4,7 @@ import 'package:evaporate/services/system/update_check.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Что уезжает в релиз, знает не приложение, а `.github/workflows/ci.yml` —
-/// и разойтись они могут молча. Приложение ищет в релизе архив по хвосту
+/// и разойтись они могут молча. Приложение ищет в релизе файл по хвосту
 /// имени: переименуй сборка файл, и обновление по нажатию перестанет
 /// находить, что скачивать, ничем себя не выдав до следующего выпуска.
 ///
@@ -13,9 +13,9 @@ void main() {
   final ci = File('.github/workflows/ci.yml').readAsStringSync();
 
   group('сборка кладёт в релиз то, что ищет приложение', () {
-    for (final platform in ['macos', 'windows', 'linux']) {
-      test('архив для $platform собирается под ожидаемым именем', () {
-        final suffix = Release.archiveSuffix(platform);
+    for (final platform in ['macos', 'linux']) {
+      test('обновление для $platform собирается под ожидаемым именем', () {
+        final suffix = Release.updateSuffix(platform);
 
         expect(suffix, isNotNull);
         expect(
@@ -28,6 +28,14 @@ void main() {
         );
       });
     }
+
+    test('windows обновляется файлом Inno Setup', () {
+      expect(Release.updateSuffix('windows'), '-windows-setup.exe');
+      expect(
+        File('windows/installer.iss').readAsStringSync(),
+        contains('OutputBaseFilename=evaporate-{#AppVersion}-windows-setup'),
+      );
+    });
 
     // Задача выпуска забирает артефакты по маске `evaporate-*` и по ней же
     // считает контрольные суммы. Файл с другим именем не попадёт ни в

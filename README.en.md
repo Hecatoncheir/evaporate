@@ -47,8 +47,9 @@ building; each system has its own file:
 | Other Linux | `evaporate-<version>-linux-x86_64.run` | `chmod +x file.run && ./file.run` |
 | Linux, by hand | `evaporate-<version>-linux.tar.gz` | unpack anywhere and run `evaporate` |
 
-The `-macos.zip` and `-windows.zip` archives sit alongside them, but are not
-for people: the app fetches those itself when updating in place.
+The app uses the `-macos.zip` archive for an in-place macOS update. On Windows
+it downloads and runs `-windows-setup.exe` instead; `-windows.zip` remains for
+manual installation and diagnostics.
 
 Neither the Windows installer nor the macOS bundle is signed — certificates
 cost money. So the first run brings up SmartScreen ("Windows protected your
@@ -251,9 +252,9 @@ subprocess, and the fact that the macOS release of Ludusavi is arm64 only.
   no longer exists is discarded, since a window off the edge of the screen
   looks like an app that failed to start.
 - **Update check** — the app asks GitHub whether a newer release exists and
-  tells you. It never downloads or installs anything on its own: silent
-  self-updates are a surprise nobody asked for, and on Linux the app may well
-  live in a system directory it cannot write to.
+  tells you. Download and installation start only after a user click. If a
+  Linux copy lives in a system directory, the app tells you to update it the
+  same way it was installed.
 
 ## Requirements
 
@@ -299,10 +300,11 @@ python3 tool/make_icon.py
 | Build Windows | windows | the Release directory: a `.zip` and an Inno Setup installer |
 | Attach to release | ubuntu | uploads the files and `SHA256SUMS` for a `v*` tag |
 
-Every build ships two files: an installer for a person and an archive for the
-app itself. The in-place update looks for a release file ending in
-`-macos.zip`, `-windows.zip` or `-linux.tar.gz` and swaps the installation
-directory with no wizard involved — [`release_artifacts_test.dart`](test/release_artifacts_test.dart)
+An update started by the user looks for `-macos.zip`, `-linux.tar.gz`, or
+`-windows-setup.exe` in the release. On macOS and Linux, a detached helper
+swaps the installation directory. On Windows, the app starts Inno Setup itself
+as a detached process; after the silent installation, the installer relaunches
+Evaporate. [`release_artifacts_test.dart`](test/release_artifacts_test.dart)
 keeps the names from drifting apart. The packaging recipes sit next to the
 platform code: [`windows/installer.iss`](windows/installer.iss),
 [`tool/package_macos.sh`](tool/package_macos.sh),

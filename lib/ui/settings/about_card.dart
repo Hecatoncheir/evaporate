@@ -149,10 +149,9 @@ class _AboutCardState extends State<AboutCard> {
 
   /// Скачивает обновление, проверяет его и запускает замену.
   ///
-  /// Заменять папку работающего приложения нельзя, поэтому дальше работает
-  /// скрипт-помощник: он ждёт нашего выхода, меняет папки местами и
-  /// запускает приложение заново. Нам остаётся закрыться — через тот же
-  /// путь, что и обычное закрытие окна, чтобы всё успело лечь на диск.
+  /// На Windows дальше работает сам Inno Setup, на macOS и Linux —
+  /// POSIX-помощник. Нам остаётся закрыться через тот же путь, что и
+  /// обычное закрытие окна, чтобы всё успело лечь на диск.
   Future<void> _install() async {
     final release = _found;
     if (release == null) return;
@@ -189,7 +188,7 @@ class _AboutCardState extends State<AboutCard> {
       );
 
       await installer.apply(staged);
-      // Дальше нас заменит помощник — уходим тем же путём, что и по
+      // Дальше нас заменит setup или помощник — уходим тем же путём, что и по
       // закрытию окна: иначе отложенные записи не лягут на диск.
       await windowManager.close();
     } on Object catch (error) {
@@ -232,7 +231,7 @@ class _AboutCardState extends State<AboutCard> {
                 label: Text(L.of(context).checkForUpdates),
               ),
               if (_found != null) ...[
-                if (_found!.archiveForThisPlatform != null)
+                if (_found!.updateForThisPlatform != null)
                   FilledButton.icon(
                     onPressed: _updating ? null : _install,
                     icon: _updating

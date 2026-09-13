@@ -101,34 +101,32 @@ class Release extends Equatable {
   final String notes;
   final DateTime? publishedAt;
 
-  /// Приложенные архивы и файл контрольных сумм.
+  /// Приложенные файлы релиза.
   final List<ReleaseAsset> assets;
 
-  /// Хвост имени архива для системы.
+  /// Хвост имени файла обновления для системы.
   ///
-  /// Имена задаёт сборка: `evaporate-<версия>-macos.zip` и рядом такие же
-  /// для Windows и Linux. Опознаём по хвосту, а не по полному имени: в нём
-  /// стоит версия, и знать её заранее неоткуда.
-  ///
-  /// Рядом с архивами релиз несёт установщики — `.dmg`, `.deb`, `.run` и
-  /// `setup.exe`, — и приложению нужны не они: мастер установки в обновлении
-  /// по нажатию только помешал бы. Отсюда и точность хвоста.
-  static String? archiveSuffix(String platformKey) => switch (platformKey) {
+  /// Windows получает setup, а не zip: его можно запустить напрямую и
+  /// закрыть приложение, не оставляя между ними ненадёжный PowerShell-
+  /// помощник. macOS и Linux по-прежнему заменяют папку из архива.
+  static String? updateSuffix(String platformKey) => switch (platformKey) {
     'macos' => '-macos.zip',
-    'windows' => '-windows.zip',
+    'windows' => '-windows-setup.exe',
     'linux' => '-linux.tar.gz',
     _ => null,
   };
 
-  /// Архив для этой системы.
-  ReleaseAsset? get archiveForThisPlatform {
-    final suffix = archiveSuffix(currentPlatformKey());
+  /// Файл, которым эта система обновляется.
+  ReleaseAsset? updateFor(String platformKey) {
+    final suffix = updateSuffix(platformKey);
     if (suffix == null) return null;
     for (final asset in assets) {
       if (asset.name.endsWith(suffix)) return asset;
     }
     return null;
   }
+
+  ReleaseAsset? get updateForThisPlatform => updateFor(currentPlatformKey());
 
   /// Файл контрольных сумм, которым проверяется скачанное.
   ///
@@ -156,10 +154,8 @@ class UpdateCheckException implements Exception {
 
 /// Проверка, не вышла ли версия новее установленной.
 ///
-/// Приложение ничего не скачивает и не ставит само: оно только сообщает, что
-/// обновление есть, и даёт ссылку. Молчаливое самообновление на десктопе —
-/// сюрприз, которого никто не просил, а на Linux ещё и не сработает: там
-/// приложение может лежать в системной папке без прав на запись.
+/// Сама проверка только сообщает о новой версии. Скачивание и установку
+/// запускает пользователь из экрана настроек.
 class UpdateCheck {
   UpdateCheck({
     String? currentVersion,

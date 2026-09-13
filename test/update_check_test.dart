@@ -158,6 +158,11 @@ void main() {
             'size': 200,
           },
           {
+            'name': 'evaporate-9.9.9-windows-setup.exe',
+            'browser_download_url': 'https://example.invalid/windows-setup.exe',
+            'size': 250,
+          },
+          {
             'name': 'evaporate-9.9.9-linux.tar.gz',
             'browser_download_url': 'https://example.invalid/linux.tar.gz',
             'size': 300,
@@ -170,13 +175,17 @@ void main() {
         ]),
       )!;
 
-      expect(release.assets, hasLength(4));
+      expect(release.assets, hasLength(5));
       expect(release.checksums?.url, 'https://example.invalid/SHA256SUMS');
       // Своя система — та, на которой идёт прогон.
-      expect(release.archiveForThisPlatform, isNotNull);
+      expect(release.updateForThisPlatform, isNotNull);
       expect(
-        release.archiveForThisPlatform!.name,
+        release.updateForThisPlatform!.name,
         contains(currentPlatformKey()),
+      );
+      expect(
+        release.updateFor('windows')!.name,
+        'evaporate-9.9.9-windows-setup.exe',
       );
     });
 
@@ -184,7 +193,7 @@ void main() {
       final release = UpdateCheck.parseRelease(body(const []))!;
 
       expect(release.assets, isEmpty);
-      expect(release.archiveForThisPlatform, isNull);
+      expect(release.updateForThisPlatform, isNull);
       expect(release.checksums, isNull);
     });
 

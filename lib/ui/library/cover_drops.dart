@@ -151,13 +151,16 @@ class _DropsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    // Порядок значений — порядок объявления в шейдере: время, размер,
-    // потом текстура отдельным вызовом.
+    // Порядок значений — порядок объявления в шейдере: время, размер плитки,
+    // размер исходной картинки, потом текстура отдельным вызовом. Последние
+    // два значения нужны, чтобы шейдер повторил BoxFit.cover обычной плитки.
     shader
       ..setFloat(0, clock.value)
       ..setFloat(1, size.width)
       ..setFloat(2, size.height)
       ..setFloat(3, 1)
+      ..setFloat(4, cover.width.toDouble())
+      ..setFloat(5, cover.height.toDouble())
       ..setImageSampler(0, cover);
     canvas.drawRect(Offset.zero & size, Paint()..shader = shader);
   }

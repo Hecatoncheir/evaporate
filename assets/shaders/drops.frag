@@ -7,13 +7,15 @@
 //
 //   https://github.com/monster555/flutter_shady_weather_demo
 //
-// Наши правки: обложка приходит уже обрезанной по плитке, поэтому смещение
-// прижато к краям — иначе капля у самого края тянула бы за собой пустоту.
+// Наши правки: исходная обложка приводится к кадру плитки как BoxFit.cover,
+// а смещение прижато к краям — иначе капля у самого края тянула бы за собой
+// пустоту.
 
 #include <flutter/runtime_effect.glsl>
 
 uniform float iTime;
 uniform vec3 iResolution;
+uniform vec2 iTextureSize;
 uniform sampler2D iChannel0;
 
 out vec4 fragColor;
@@ -96,6 +98,17 @@ void main() {
     vec2 uv = fragCoord.xy / iResolution.xy;
 
     uv += wetGlass(fragCoord);
+
+    // Обычная плитка рисует файл через BoxFit.cover. Текстура шейдера — это
+    // исходный файл, поэтому повторяем ту же центральную обрезку здесь:
+    // иначе при включении капель широкая Steam-картинка внезапно показывала
+    // другой фрагмент, и казалось, что выбранная игра сменила обложку.
+    float coverScale = max(
+        iResolution.x / iTextureSize.x,
+        iResolution.y / iTextureSize.y
+    );
+    vec2 visiblePart = iResolution.xy / (iTextureSize * coverScale);
+    uv = (uv - vec2(0.5)) * visiblePart + vec2(0.5);
 
     // За краем обложки нет ничего: без этого капля у границы размазывала бы
     // прозрачность внутрь плитки.

@@ -5,6 +5,7 @@ import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
+import '../../core/format.dart';
 import 'proxy_http_overrides.dart';
 import 'app_log.dart';
 import 'update_check.dart';
@@ -41,24 +42,28 @@ class UpdateException implements Exception {
   String toString() => message;
 }
 
-/// Скачивает обновление, проверяет его и распаковывает.
+/// Скачивает и проверяет обновление.
 ///
 /// Проверка не формальность. Канал защищён TLS, но оборванная загрузка
 /// выглядит как целый файл, и распаковывать её поверх установки — верный
 /// способ оставить человека без работающего приложения. Поэтому сначала
 /// размер, потом sha256 из `SHA256SUMS`, и только потом распаковка.
 ///
-/// Ничего не заменяется: результат — распакованная папка рядом. Заменой
-/// занимается скрипт-помощник уже после выхода приложения.
+/// На Windows результат — готовый Inno Setup. На macOS и Linux архив
+/// распаковывается в папку, которую заменит POSIX-помощник после
+/// выхода приложения.
 class UpdateDownload {
   UpdateDownload({
     required this.workDir,
+    String? platform,
     Future<List<int>> Function(Uri uri, void Function(int, int) onProgress)?
     fetch,
-  }) : _fetch = fetch ?? _httpFetch;
+  }) : _platform = platform ?? currentPlatformKey(),
+       _fetch = fetch ?? _httpFetch;
 
   /// Куда складывать скачанное — папка данных приложения.
   final String workDir;
+  final String _platform;
 
   final Future<List<int>> Function(
     Uri uri,
@@ -66,8 +71,7 @@ class UpdateDownload {
   )
   _fetch;
 
-  /// Готовит обновление и возвращает папку, которой предстоит заменить
-  /// установку.
+  /// Готовит обновление и возвращает setup или корень распакованной сборки.
   Future<String> prepare(
     Release release, {
     void Function(UpdateProgress)? onProgress,
@@ -89,8 +93,8 @@ class UpdateDownload {
     Release release, {
     void Function(UpdateProgress)? onProgress,
   }) async {
-    final archive = release.archiveForThisPlatform;
-    if (archive == null) {
+    final asset = release.updateFor(_platform);
+    if (asset == null) {
       throw const UpdateException('Для этой системы файла в релизе нет');
     }
 
@@ -99,26 +103,36 @@ class UpdateDownload {
     await dir.create(recursive: true);
 
     onProgress?.call(
-      UpdateProgress(phase: UpdatePhase.downloading, total: archive.sizeBytes),
+      UpdateProgress(phase: UpdatePhase.downloading, total: asset.sizeBytes),
     );
     final bytes = await _fetch(
-      Uri.parse(archive.url),
+      Uri.parse(asset.url),
       (received, total) => onProgress?.call(
         UpdateProgress(
           phase: UpdatePhase.downloading,
           received: received,
-          total: total > 0 ? total : archive.sizeBytes,
+          total: total > 0 ? total : asset.sizeBytes,
         ),
       ),
     );
 
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.verifying));
-    await _verify(release, archive, bytes);
+    await _verify(release, asset, bytes);
+
+    // На Windows ничего не распаковываем: Inno Setup сам заменит
+    // файлы после закрытия приложения. Запускаем его напрямую,
+    // чтобы PowerShell не был промежуточным процессом.
+    if (_platform == 'windows') {
+      final setup = File(p.join(dir.path, asset.name));
+      await setup.writeAsBytes(bytes, flush: true);
+      onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
+      return setup.path;
+    }
 
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.unpacking));
     final staged = Directory(p.join(dir.path, 'staged'));
     await staged.create(recursive: true);
-    await _unpack(archive.name, bytes, staged.path);
+    await _unpack(asset.name, bytes, staged.path);
 
     final root = await _rootOf(staged);
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));

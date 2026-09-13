@@ -26,6 +26,10 @@ void main() {
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });
 
+  Future<Process> dummyProcess() => Platform.isWindows
+      ? Process.start('cmd', const ['/c', 'exit', '0'])
+      : Process.start('true', const []);
+
   /// Архив в том виде, в каком его кладёт сборка.
   ///
   /// Папки в нём — отдельные записи с косой чертой на конце: так их пишут и
@@ -64,14 +68,18 @@ void main() {
     ],
   );
 
+  String archivePlatform() => Platform.isLinux ? 'linux' : 'macos';
+
   /// Подделка сети: отдаёт архив и суммы, ничего никуда не отправляя.
   UpdateDownload downloadOf({
     required String name,
     required List<int> bytes,
     String? sums,
     bool sumsFail = false,
+    String? platform,
   }) => UpdateDownload(
     workDir: tmp.path,
+    platform: platform ?? archivePlatform(),
     fetch: (uri, onProgress) async {
       if (uri.path.endsWith('SHA256SUMS')) {
         if (sumsFail) throw const SocketException('нет связи');
@@ -84,11 +92,9 @@ void main() {
 
   // Имя архива для своей системы приходит из релиза, а какое оно — знает
   // сборка. Тест берёт то же, что и приложение.
-  String archiveName() {
-    if (Platform.isMacOS) return 'evaporate-9.9.9-macos.zip';
-    if (Platform.isWindows) return 'evaporate-9.9.9-windows.zip';
-    return 'evaporate-9.9.9-linux.tar.gz';
-  }
+  String archiveName() => archivePlatform() == 'linux'
+      ? 'evaporate-9.9.9-linux.tar.gz'
+      : 'evaporate-9.9.9-macos.zip';
 
   group('подготовка обновления', () {
     test('архив скачивается, проверяется и распаковывается', () async {
@@ -115,6 +121,27 @@ void main() {
       expect(phases, contains(UpdatePhase.downloading));
       expect(phases, contains(UpdatePhase.verifying));
       expect(phases, contains(UpdatePhase.unpacking));
+      expect(phases.last, UpdatePhase.ready);
+    });
+
+    test('windows setup сохраняется без распаковки', () async {
+      const name = 'evaporate-9.9.9-windows-setup.exe';
+      final bytes = utf8.encode('setup');
+      final phases = <UpdatePhase>[];
+
+      final setup =
+          await downloadOf(
+            name: name,
+            bytes: bytes,
+            platform: 'windows',
+          ).prepare(
+            releaseWith(name: name, bytes: bytes),
+            onProgress: (progress) => phases.add(progress.phase),
+          );
+
+      expect(setup, endsWith(name));
+      expect(await File(setup).readAsBytes(), bytes);
+      expect(phases, isNot(contains(UpdatePhase.unpacking)));
       expect(phases.last, UpdatePhase.ready);
     });
 
@@ -313,23 +340,11 @@ void main() {
       executable: '/Applications/Evaporate.app/Contents/MacOS/evaporate',
     );
 
-    String windowsScript() => UpdateScript.build(
-      layout: const InstallLayout(
-        root: r'C:\Program Files\Evaporate',
-        executable: r'C:\Program Files\Evaporate\evaporate.exe',
-      ),
-      stagedRoot: r'C:\Temp\staged',
-      pid: 777,
-      logPath: '/tmp/evaporate-update.log',
-      platform: 'windows',
-    );
-
     String posixScript() => UpdateScript.build(
       layout: layout,
       stagedRoot: '/tmp/staged/Evaporate.app',
       pid: 4242,
       logPath: '/tmp/evaporate-update.log',
-      platform: 'macos',
     );
 
     // Порядок шагов и есть возможность откатиться: прежняя папка
@@ -352,15 +367,6 @@ void main() {
       );
     });
 
-    test('на windows ждут исчезновения процесса по номеру', () {
-      final script = windowsScript();
-
-      expect(script, contains('Get-Process -Id 777'));
-      expect(script, contains(r'Swap $root $backup'));
-      expect(script, contains(r'Swap $backup $root'));
-      expect(script, contains(r'Start-Process -FilePath $launch'));
-    });
-
     // То, из-за чего обновление кончалось закрытым приложением: помощник
     // выходил на любом отказе, так и не запустив ничего. Остаться на прежней
     // версии терпимо, остаться вовсе без приложения — нет.
@@ -368,82 +374,54 @@ void main() {
       // Запуск стоит до проверки успеха — значит он безусловен. Внутри
       // ветки «получилось» он и был, когда обновление оставляло человека с
       // закрытым приложением.
-      for (final (script, launch, verdict) in [
-        (posixScript(), r'"$launch" >/dev/null', r'if [ "$replaced" -eq 1 ]'),
-        (
-          windowsScript(),
-          r'Start-Process -FilePath $launch',
-          r'if ($replaced)',
-        ),
-      ]) {
-        expect(script, contains(launch));
-        expect(script, contains(verdict));
-        expect(
-          script.indexOf(launch),
-          lessThan(script.indexOf(verdict)),
-          reason: 'запуск попал внутрь удачной ветки — после отката его нет',
-        );
-      }
+      final script = posixScript();
+      const launch = r'"$launch" >/dev/null';
+      const verdict = r'if [ "$replaced" -eq 1 ]';
+      expect(script, contains(launch));
+      expect(script, contains(verdict));
+      expect(
+        script.indexOf(launch),
+        lessThan(script.indexOf(verdict)),
+        reason: 'запуск попал внутрь удачной ветки — после отката его нет',
+      );
     });
 
     // Помощник работает, когда приложения уже нет: рассказать о случившемся
     // ему больше нечем, а «закрылось и не открылось» без единого следа —
     // худшее, что может случиться с обновлением.
     test('помощник пишет о каждом шаге', () {
-      for (final script in [posixScript(), windowsScript()]) {
-        expect(script, contains('/tmp/evaporate-update.log'));
-        expect(script, contains('не установлено, версия прежняя'));
-        expect(script, contains('приложение не закрылось'));
-      }
+      final script = posixScript();
+      expect(script, contains('/tmp/evaporate-update.log'));
+      expect(script, contains('не установлено, версия прежняя'));
+      expect(script, contains('приложение не закрылось'));
     });
 
-    test('на windows помощник не зовёт внешних команд', () {
-      final script = windowsScript();
+    test('помощник остался только для posix', () {
+      expect(UpdateScript.fileName, endsWith('.sh'));
 
-      for (final external in ['tasklist', 'find ', 'ping ', 'timeout ']) {
-        expect(
-          script,
-          isNot(contains(external)),
-          reason: '«$external» откроет своё окно: консоли у помощника нет',
-        );
-      }
+      final posix = UpdateScript.command('x.sh');
+      expect(posix, ['sh', 'x.sh']);
     });
 
-    test('чем запускать и как называется — по системе', () {
-      expect(UpdateScript.fileName(platform: 'windows'), endsWith('.ps1'));
-      expect(UpdateScript.fileName(platform: 'linux'), endsWith('.sh'));
-
-      final windows = UpdateScript.command('x.ps1', platform: 'windows');
-      expect(windows.first, 'powershell');
-      expect(windows, containsAllInOrder(['-WindowStyle', 'Hidden']));
-      // Скрипт свой и только что записанный, но политика запуска по
-      // умолчанию не даст выполнить и такой.
-      expect(windows, containsAllInOrder(['-ExecutionPolicy', 'Bypass']));
-      expect(windows.last, 'x.ps1');
-
-      expect(UpdateScript.command('x.sh', platform: 'linux'), ['sh', 'x.sh']);
-    });
-
-    // Путь может прийти с апострофом в имени пользователя, а строки в
-    // PowerShell им же и закрываются.
+    // В sh апостроф закрывает одинарную строку.
     test('апостроф в пути не рвёт скрипт', () {
       final script = UpdateScript.build(
         layout: const InstallLayout(
-          root: r"C:\Users\D'Artagnan\Evaporate",
-          executable: r"C:\Users\D'Artagnan\Evaporate\evaporate.exe",
+          root: "/Users/D'Artagnan/Evaporate.app",
+          executable:
+              "/Users/D'Artagnan/Evaporate.app/Contents/MacOS/evaporate",
         ),
-        stagedRoot: r'C:\Temp\staged',
+        stagedRoot: '/tmp/staged',
         pid: 1,
         logPath: '/tmp/evaporate-update.log',
-        platform: 'windows',
       );
 
-      expect(script, contains(r"'C:\Users\D''Artagnan\Evaporate'"));
+      expect(script, contains(r"'/Users/D'\''Artagnan/Evaporate.app'"));
     });
   });
 
   group('файл помощника', () {
-    Future<File> written(String platform) async {
+    Future<File> written() async {
       final installer = UpdateInstaller(
         workDir: tmp.path,
         layout: InstallLayout(
@@ -451,43 +429,16 @@ void main() {
           executable: p.join(tmp.path, 'evaporate'),
         ),
         processId: 1,
-        platform: platform,
-        start: (executable, arguments) async => Process.start('true', const []),
+        platform: 'linux',
+        start: (executable, arguments) async => dummyProcess(),
       );
       await installer.apply(p.join(tmp.path, 'staged'));
-      return File(p.join(tmp.path, UpdateScript.fileName(platform: platform)));
+      return File(p.join(tmp.path, UpdateScript.fileName));
     }
-
-    // Windows PowerShell читает `.ps1` в системной кодировке, если файл не
-    // начинается с метки порядка байтов. На русской Windows кириллица в
-    // скрипте превращалась в мусор вместе с кавычками — и помощник не
-    // разбирался вовсе: приложение закрывалось и не открывалось.
-    test('скрипт для windows начинается с метки кодировки', () async {
-      final bytes = await (await written('windows')).readAsBytes();
-
-      expect(bytes.take(3), [0xEF, 0xBB, 0xBF]);
-    });
-
-    // Проверка на настоящем разборщике, и именно того файла, который кладёт
-    // установщик: скрипт пишется строкой, а опечатка или потерянная в
-    // кодировке кавычка выяснились бы иначе только на чужой машине, посреди
-    // обновления. Идёт на сборке Windows — там PowerShell есть.
-    test('скрипт разбирается самим PowerShell', () async {
-      final file = await written('windows');
-
-      final read = "(Get-Content -Raw -LiteralPath '${file.path}')";
-      final result = await Process.run('powershell', [
-        '-NoProfile',
-        '-Command',
-        "[void][ScriptBlock]::Create($read)",
-      ]);
-
-      expect(result.exitCode, 0, reason: '${result.stderr}');
-    }, skip: Platform.isWindows ? null : 'PowerShell есть на Windows');
 
     // У `sh` наоборот: метка перед `#!` сделала бы файл незапускаемым.
     test('скрипт для posix начинается с shebang', () async {
-      final bytes = await (await written('linux')).readAsBytes();
+      final bytes = await (await written()).readAsBytes();
 
       expect(bytes.take(2), '#!'.codeUnits);
     });
@@ -521,30 +472,89 @@ void main() {
   });
 
   group('запуск замены', () {
-    test('скрипт пишется и запускается отдельным процессом', () async {
+    test(
+      'скрипт пишется и запускается отдельным процессом',
+      () async {
+        final started = <List<String>>[];
+        final installer = UpdateInstaller(
+          workDir: tmp.path,
+          layout: InstallLayout(
+            root: tmp.path,
+            executable: p.join(tmp.path, 'evaporate'),
+          ),
+          processId: 4242,
+          platform: 'linux',
+          start: (executable, arguments) async {
+            started.add([executable, ...arguments]);
+            // Настоящий процесс здесь ни к чему: проверяем, что запускаем.
+            return dummyProcess();
+          },
+        );
+
+        await installer.apply(p.join(tmp.path, 'staged'));
+
+        expect(started, hasLength(1));
+        final script = File(p.join(tmp.path, UpdateScript.fileName));
+        expect(script.existsSync(), isTrue);
+        expect(script.readAsStringSync(), contains('4242'));
+        expect(started.single.last, script.path);
+      },
+      skip: Platform.isWindows
+          ? 'POSIX-помощник не запускается на Windows'
+          : null,
+    );
+
+    test('windows запускает setup напрямую, без PowerShell', () async {
+      final setup = File(p.join(tmp.path, 'evaporate-9.9.9-windows-setup.exe'));
+      await setup.writeAsBytes(const [1]);
+      await File(p.join(tmp.path, 'unins000.exe')).writeAsBytes(const [1]);
       final started = <List<String>>[];
       final installer = UpdateInstaller(
         workDir: tmp.path,
         layout: InstallLayout(
           root: tmp.path,
-          executable: p.join(tmp.path, 'evaporate'),
+          executable: p.join(tmp.path, 'evaporate.exe'),
         ),
-        processId: 4242,
+        platform: 'windows',
         start: (executable, arguments) async {
           started.add([executable, ...arguments]);
-          // Настоящий процесс здесь ни к чему: проверяем, что запускаем.
-          return Process.start('true', const []);
+          return dummyProcess();
         },
       );
 
-      await installer.apply(p.join(tmp.path, 'staged'));
+      expect(await installer.canInstall, isTrue);
+      await installer.apply(setup.path);
 
       expect(started, hasLength(1));
-      final script = File(p.join(tmp.path, UpdateScript.fileName()));
-      expect(script.existsSync(), isTrue);
-      expect(script.readAsStringSync(), contains('4242'));
-      expect(started.single.last, script.path);
-    }, skip: Platform.isWindows ? 'команда true есть не на Windows' : null);
+      expect(started.single.first, setup.path);
+      expect(
+        started.single,
+        containsAll(['/VERYSILENT', '/CLOSEAPPLICATIONS', '/RELAUNCH']),
+      );
+      expect(
+        started.single.any(
+          (argument) => argument.toLowerCase().contains('powershell'),
+        ),
+        isFalse,
+      );
+      expect(
+        File(p.join(tmp.path, 'evaporate-update.ps1')).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('portable windows-копию автоматически не обновляем', () async {
+      final installer = UpdateInstaller(
+        workDir: tmp.path,
+        layout: InstallLayout(
+          root: tmp.path,
+          executable: p.join(tmp.path, 'evaporate.exe'),
+        ),
+        platform: 'windows',
+      );
+
+      expect(await installer.canInstall, isFalse);
+    });
 
     // На Linux приложение нередко лежит там, куда его положил пакетный
     // менеджер: молча не сработать хуже, чем честно отказаться.
