@@ -3,6 +3,15 @@
 Формат следует [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — [семантическому версионированию](https://semver.org/lang/ru/).
 
+## [0.29.1] — 2026-09-13
+
+### Исправлено
+
+- Панель библиотеки снова размещает фильтры, действия и поиск в одной строке
+  на широком экране; поиск занимает компактное место справа.
+- Вертикальное выравнивание содержимого toolbar скорректировано для ровного
+  положения элементов и полей ввода.
+
 ## [0.29.0] — 2026-09-13
 
 ### Добавлено
@@ -958,6 +967,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.29.1]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.29.1
 [0.29.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.29.0
 [0.28.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.28.0
 [0.27.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.27.0

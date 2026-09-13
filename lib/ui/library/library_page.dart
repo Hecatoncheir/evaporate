@@ -1001,7 +1001,7 @@ class _Toolbar extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(3),
+          padding: const EdgeInsets.only(top: 3, right: 3, bottom: 0, left: 3),
           child: Actions(
             actions: {
               ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
@@ -1034,7 +1034,7 @@ class _Toolbar extends StatelessWidget {
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
                 ),
               ),
             ),
@@ -1063,18 +1063,15 @@ class _Toolbar extends StatelessWidget {
               );
             }
             if (constraints.maxWidth >= 760) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      filters,
-                      const SizedBox(width: 16),
-                      Expanded(child: search),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Align(alignment: Alignment.center, child: actions),
+                  filters,
+                  const SizedBox(width: 6),
+                  Expanded(child: actions),
+                  const SizedBox(width: 6),
+                  search,
                 ],
               );
             }
