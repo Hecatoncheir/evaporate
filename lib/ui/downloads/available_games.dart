@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/library/library_bloc.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
+import '../library/remove_game_dialog.dart';
 import '../theme.dart';
 import '../../l10n/app_localizations.dart';
 import 'queue_column.dart';
@@ -142,9 +144,61 @@ class _GameChipState extends State<GameChip> {
                 style: const TextStyle(fontSize: 13),
               ),
             ),
+            // Убрать игру можно и отсюда: список этот для многих —
+            // единственное место, где неустановленная игра вообще видна, и
+            // гонять за удалением на её страницу незачем. Клавиша видна
+            // всегда, а не по наведению: спрятанное под курсором не
+            // существует для того, кто о нём не знает.
+            const SizedBox(width: 4),
+            _RemoveButton(game: game),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Убрать игру из списка — то есть из библиотеки.
+///
+/// Приглушена, пока на неё не навели: рядом с ней плашку тащат мышью, и
+/// тревожный цвет во весь список спорил бы с тем, ради чего список
+/// заведён.
+class _RemoveButton extends StatefulWidget {
+  const _RemoveButton({required this.game});
+
+  final Game game;
+
+  @override
+  State<_RemoveButton> createState() => _RemoveButtonState();
+}
+
+class _RemoveButtonState extends State<_RemoveButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: IconButton(
+        onPressed: () => _remove(context),
+        icon: const Icon(Icons.close_rounded, size: 15),
+        tooltip: L.of(context).removeFromLibrary,
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
+        color: _hovered ? colors.danger : colors.textSecondary,
+      ),
+    );
+  }
+
+  Future<void> _remove(BuildContext context) async {
+    final library = context.read<LibraryBloc>();
+    final choice = await askRemoveGame(context, widget.game);
+    if (choice == null) return;
+    library.add(
+      GameRemoved(widget.game, deleteFiles: choice == RemoveChoice.withFiles),
     );
   }
 }

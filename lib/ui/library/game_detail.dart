@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -13,6 +11,7 @@ import '../../l10n/app_localizations.dart';
 import '../downloads/download_activity.dart';
 import 'detail/action_panel.dart';
 import 'detail/downloading_header.dart';
+import 'remove_game_dialog.dart';
 import 'detail/detail_header.dart';
 import 'detail/files_section.dart';
 import 'detail/info_section.dart';
@@ -84,45 +83,10 @@ class GameDetail extends StatelessWidget {
 
   Future<void> _remove(BuildContext context) async {
     final library = context.read<LibraryBloc>();
-    final hasFiles =
-        game.installDir != null && Directory(game.installDir!).existsSync();
-
-    final choice = await showDialog<_RemoveChoice>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(L.of(context).removeQuestion(game.title)),
-        content: Text(
-          hasFiles
-              ? '${L.of(context).removeSnapshotsNote}\n\n'
-                    '${L.of(context).removeFilesNote(game.installDir!)}'
-              : L.of(context).removeSnapshotsNote,
-          style: const TextStyle(height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(L.of(context).cancel),
-          ),
-          if (hasFiles)
-            TextButton(
-              onPressed: () => Navigator.pop(context, _RemoveChoice.withFiles),
-              style: TextButton.styleFrom(
-                foregroundColor: context.colors.danger,
-              ),
-              child: Text(L.of(context).removeWithFiles),
-            ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, _RemoveChoice.libraryOnly),
-            child: Text(L.of(context).removeFromLibrary),
-          ),
-        ],
-      ),
-    );
+    final choice = await askRemoveGame(context, game);
     if (choice == null) return;
     library.add(
-      GameRemoved(game, deleteFiles: choice == _RemoveChoice.withFiles),
+      GameRemoved(game, deleteFiles: choice == RemoveChoice.withFiles),
     );
   }
 }
-
-enum _RemoveChoice { libraryOnly, withFiles }
