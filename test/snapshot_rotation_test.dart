@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
+import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -127,6 +128,46 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
   }
+
+  // «Куда делись гигабайты» спрашивают через неделю, и к тому времени
+  // единственный, кто помнит про уборку, — журнал. Пустые прогоны в него
+  // при этом не идут: уборка следует за каждым снимком, и чаще всего ей
+  // нечего делать.
+  test(
+    'освобождённое уборкой попадает в журнал, а пустой проход — нет',
+    () async {
+      final log = AppLog(
+        path: p.join(tmp.path, 'evaporate.log'),
+        previousPath: p.join(tmp.path, 'evaporate.log.1'),
+      );
+      final previous = AppLog.instance;
+      AppLog.instance = log;
+      addTearDown(() => AppLog.instance = previous);
+
+      final id = await gameWithSave('Журнал', keep: 1);
+      await takeSnapshot(id);
+      await log.flush();
+      expect(
+        (await log.tail()).where((line) => line.contains('освободила')),
+        isEmpty,
+        reason: 'убирать ещё нечего — и писать не о чем',
+      );
+
+      // Второй снимок с другим содержимым: первый уйдёт ротацией, и его
+      // файлы окажутся ничьими.
+      await File(p.join(tmp.path, 'saves', 'Журнал', 'slot.sav'))
+          .writeAsString('другой прогресс');
+      await takeSnapshot(id);
+      await waitForStore();
+
+      await log.flush();
+      expect(
+        (await log.tail()).where((line) => line.contains('освободила')),
+        isNotEmpty,
+        reason: 'уборка должна оставить след, когда и правда что-то унесла',
+      );
+    },
+  );
 
   test('лишние снимки уходят и из списка, и с диска', () async {
     final id = await gameWithSave('Ротация', keep: 2);

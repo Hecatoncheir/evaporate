@@ -760,9 +760,18 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// оставаться нужными другой, если обе привезли один и тот же пакет.
   Future<void> _collectGarbage() async {
     try {
-      await _saves.collectGarbage(
+      final freed = await _saves.collectGarbage(
         state.snapshots.values.expand((list) => list),
       );
+      // Только когда и правда убрали: уборка идёт следом за каждым снимком
+      // и чаще всего не находит ничего, а журнал, полный нулей, никто
+      // читать не станет. Зато «куда делись гигабайты» — вопрос, который
+      // задают через неделю, и ответ на него должен где-то лежать.
+      if (freed > 0) {
+        AppLog.instance.write(
+          'уборка хранилища снимков освободила ${formatBytes(freed)}',
+        );
+      }
     } on Object catch (error) {
       // Уборка — дело подсобное: не вышло, значит место освободится позже.
       AppLog.instance.write('уборка хранилища снимков', error);
