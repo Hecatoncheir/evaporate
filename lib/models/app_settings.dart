@@ -28,6 +28,7 @@ class AppSettings extends Equatable {
     this.liquidSelectionEnabled = false,
     this.ambientEnabled = true,
     this.heroSweepEnabled = true,
+    this.coverBackdropEnabled = true,
     this.interfaceAnimationsEnabled = true,
     this.dropsEnabled = false,
     this.portalEnabled = true,
@@ -96,6 +97,9 @@ class AppSettings extends Equatable {
   /// кадр от вклеенной картинки. Своя настройка, потому что цена у неё
   /// своя: кадры идут всё время, пока библиотека открыта.
   final bool heroSweepEnabled;
+
+  /// Обложка приглушённым фоном на странице игры.
+  final bool coverBackdropEnabled;
 
   /// Проявления, переезды и всход полки. Включены по умолчанию: это не
   /// украшение сверху, а то, чем оболочка объясняет, что куда переехало.
@@ -167,6 +171,7 @@ class AppSettings extends Equatable {
     bool? liquidSelectionEnabled,
     bool? ambientEnabled,
     bool? heroSweepEnabled,
+    bool? coverBackdropEnabled,
     bool? interfaceAnimationsEnabled,
     bool? dropsEnabled,
     bool? portalEnabled,
@@ -201,6 +206,7 @@ class AppSettings extends Equatable {
           liquidSelectionEnabled ?? this.liquidSelectionEnabled,
       ambientEnabled: ambientEnabled ?? this.ambientEnabled,
       heroSweepEnabled: heroSweepEnabled ?? this.heroSweepEnabled,
+      coverBackdropEnabled: coverBackdropEnabled ?? this.coverBackdropEnabled,
       interfaceAnimationsEnabled:
           interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
       dropsEnabled: dropsEnabled ?? this.dropsEnabled,
@@ -237,6 +243,7 @@ class AppSettings extends Equatable {
     'liquidSelectionEnabled': liquidSelectionEnabled,
     'ambientEnabled': ambientEnabled,
     'heroSweepEnabled': heroSweepEnabled,
+    'coverBackdropEnabled': coverBackdropEnabled,
     'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
     'dropsEnabled': dropsEnabled,
     'portalEnabled': portalEnabled,
@@ -273,6 +280,7 @@ class AppSettings extends Equatable {
     liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? false,
     ambientEnabled: json['ambientEnabled'] as bool? ?? true,
     heroSweepEnabled: json['heroSweepEnabled'] as bool? ?? true,
+    coverBackdropEnabled: json['coverBackdropEnabled'] as bool? ?? true,
     interfaceAnimationsEnabled:
         json['interfaceAnimationsEnabled'] as bool? ?? true,
     dropsEnabled: json['dropsEnabled'] as bool? ?? false,
@@ -322,6 +330,7 @@ class AppSettings extends Equatable {
     liquidSelectionEnabled,
     ambientEnabled,
     heroSweepEnabled,
+    coverBackdropEnabled,
     interfaceAnimationsEnabled,
     dropsEnabled,
     portalEnabled,

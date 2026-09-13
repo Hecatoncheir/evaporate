@@ -484,6 +484,17 @@ class SettingsPage extends StatelessWidget {
                           : null,
                     ),
                     SwitchListTile(
+                      key: const ValueKey('effects-coverBackdrop-toggle'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(L.of(context).effectCoverBackdrop),
+                      value: settings.coverBackdropEnabled,
+                      onChanged: settings.libraryEffects
+                          ? (value) => update(
+                              settings.copyWith(coverBackdropEnabled: value),
+                            )
+                          : null,
+                    ),
+                    SwitchListTile(
                       key: const ValueKey('effects-drops-toggle'),
                       contentPadding: EdgeInsets.zero,
                       title: Text(L.of(context).effectDrops),

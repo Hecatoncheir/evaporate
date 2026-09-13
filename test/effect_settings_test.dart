@@ -28,6 +28,7 @@ void main() {
       expect(settings.liquidSelectionEnabled, isFalse);
       expect(settings.ambientEnabled, isTrue);
       expect(settings.heroSweepEnabled, isTrue);
+      expect(settings.coverBackdropEnabled, isTrue);
       expect(settings.interfaceAnimationsEnabled, isTrue);
       expect(settings.dropsEnabled, isFalse);
       expect(settings.portalEnabled, isTrue);

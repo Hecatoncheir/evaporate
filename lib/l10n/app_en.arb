@@ -17,6 +17,7 @@
   "effectAmbient": "Selected game lights up the chassis",
   "effectAmbientNote": "Panels take on the colour of the selected cover, and the light flows as you move between games",
   "effectHeroSweep": "Light sweep across the featured cover",
+  "effectCoverBackdrop": "Cover as the game page backdrop",
   "effectDrops": "Raindrops on the selected cover",
   "effectDropsNote": "Covers only: the drops refract the artwork, and there is nothing to refract on a title plate",
   "effectPortal": "Sparks around the selected cover",

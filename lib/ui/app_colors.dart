@@ -241,6 +241,11 @@ Color particleColor({
 /// Здесь лежат базовые значения; прозрачность виджеты всё ещё анимируют.
 abstract final class AppColors {
   static const transparent = Colors.transparent;
+
+  /// Непрозрачное для масок: в `BlendMode.dstIn` важна одна альфа, а не
+  /// цвет, — но писать `Colors.white` там, где речь о непрозрачности,
+  /// значит заставлять читателя гадать, при чём тут белый.
+  static const opaque = Colors.white;
   static const coverText = Colors.white;
   static const coverTextShadow = Colors.black54;
   static final coverShadow = Colors.black.withValues(alpha: 0.3);
