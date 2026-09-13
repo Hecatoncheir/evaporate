@@ -11,6 +11,25 @@ import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
 import 'download_activity.dart';
 
+/// Отмена спрашивает, как и на странице игры.
+///
+/// Задача снимается насовсем: место в очереди, обмен с пирами и состояние
+/// кусков теряются, а игра уходит из «качается» обратно в «не
+/// установлена». Файлы при этом остаются, но продолжить с того же места
+/// одним нажатием уже нельзя.
+Future<void> _cancel(BuildContext context, Game game) async {
+  final downloads = context.read<DownloadsBloc>();
+  final ok = await confirm(
+    context,
+    title: L.of(context).cancelDownloadQuestion,
+    message: L.of(context).cancelDownloadNote,
+    confirmLabel: L.of(context).cancelDownload,
+    destructive: true,
+  );
+  if (!ok) return;
+  downloads.add(DownloadCancelRequested(game));
+}
+
 class TaskCard extends StatelessWidget {
   const TaskCard({super.key, required this.task, required this.game});
 
@@ -73,8 +92,7 @@ class TaskCard extends StatelessWidget {
                     ),
                   const SizedBox(width: 6),
                   IconAction(
-                    onPressed: () =>
-                        downloads.add(DownloadCancelRequested(game!)),
+                    onPressed: () => _cancel(context, game!),
                     icon: Icons.close,
                     tooltip: L.of(context).cancelDownload,
                     danger: true,

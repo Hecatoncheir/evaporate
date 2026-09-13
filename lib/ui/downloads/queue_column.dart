@@ -10,6 +10,23 @@ import '../widgets/common.dart';
 import '../../l10n/app_localizations.dart';
 import 'task_card.dart';
 
+/// Спрашиваем и здесь: клавиша та же и делает то же самое, а очередь — не
+/// черновик, человек её выстраивал. Текст, однако, свой: тут ничего не
+/// качается прямо сейчас, и обещать «задача будет снята» посреди загрузки
+/// было бы не про то.
+Future<void> _removeFromQueue(BuildContext context, Game game) async {
+  final downloads = context.read<DownloadsBloc>();
+  final ok = await confirm(
+    context,
+    title: L.of(context).removeFromQueueQuestion,
+    message: L.of(context).removeFromQueueNote,
+    confirmLabel: L.of(context).removeFromQueue,
+    destructive: true,
+  );
+  if (!ok) return;
+  downloads.add(DownloadCancelRequested(game));
+}
+
 /// Правая колонка: активные загрузки и очередь, которую можно переставлять.
 class QueueColumn extends StatelessWidget {
   const QueueColumn({
@@ -195,9 +212,7 @@ class QueuedCard extends StatelessWidget {
               // Та же клавиша, что на карточке задачи: действие одно и то
               // же, и выглядеть на одном экране по-разному ему незачем.
               IconAction(
-                onPressed: () => context.read<DownloadsBloc>().add(
-                  DownloadCancelRequested(game!),
-                ),
+                onPressed: () => _removeFromQueue(context, game!),
                 icon: Icons.close,
                 tooltip: L.of(context).removeFromQueue,
                 danger: true,

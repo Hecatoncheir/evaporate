@@ -1073,6 +1073,8 @@
   "removeFilesNote": "Файлы игры лежат в:\n{dir}",
   "removeFromLibrary": "Удалить из библиотеки",
   "removeFromQueue": "Убрать из очереди",
+  "removeFromQueueQuestion": "Убрать из очереди?",
+  "removeFromQueueNote": "Задача уйдёт из очереди и перестанет ждать своего часа. Скачанное, если оно есть, останется на диске.",
   "removePath": "Убрать путь",
   "removeQuestion": "Удалить «{title}»?",
   "removeSnapshotsNote": "Снимки сохранений этой игры тоже будут удалены.",

@@ -389,6 +389,8 @@
   "removeFilesNote": "The game files live in:\n{dir}",
   "removeFromLibrary": "Remove from library",
   "removeFromQueue": "Remove from queue",
+  "removeFromQueueQuestion": "Remove from the queue?",
+  "removeFromQueueNote": "The task leaves the queue and stops waiting its turn. Anything already downloaded stays on disk.",
   "removePath": "Remove the path",
   "removeQuestion": "Remove “{title}”?",
   "removeSnapshotsNote": "Save snapshots for this game will be removed too.",
