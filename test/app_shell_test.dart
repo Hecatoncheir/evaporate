@@ -238,6 +238,45 @@ void main() {
     ]) {
       expect(find.bySemanticsLabel(section), findsOneWidget);
     }
+
+    // И остаются в верхней рейке: прежде обойма переезжала под содержимое
+    // и налезала на подсказки управления в нижней строке.
+    final rack = tester.getRect(
+      find.byKey(const ValueKey('concept-navigation')),
+    );
+    expect(
+      rack.bottom,
+      lessThan(80),
+      reason: 'разделы должны остаться в рейке, а не уехать вниз',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  // Место в рейке обойма уступает по очереди: сначала подписи, потом число
+  // задач, и лишь затем сжимает сами клавиши. Ширина, заданная числом,
+  // переполняла рейку на считанные точки — ровно те, из-за которых Flutter
+  // рисует полосатую ленту поверх интерфейса.
+  testWidgets('в совсем узком окне разделы прячут подписи, но не названия', (
+    tester,
+  ) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    tester.view.physicalSize = const Size(620, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(harness.buildApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('БИБЛИОТЕКА'), findsNothing);
+    for (final section in [
+      'Библиотека',
+      'Загрузки',
+      'Сохранения',
+      'Настройки',
+    ]) {
+      expect(find.bySemanticsLabel(section), findsOneWidget);
+    }
     expect(tester.takeException(), isNull);
   });
 }

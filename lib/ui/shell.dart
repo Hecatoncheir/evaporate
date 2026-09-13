@@ -20,7 +20,6 @@ import 'widgets/ambient_light.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
 import 'shell/app_footer.dart';
-import 'shell/navigation.dart';
 import 'shell/top_bar.dart';
 
 class AppShell extends StatelessWidget {
@@ -177,10 +176,6 @@ class AppShell extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (compact) ...[
-                        const SizedBox(height: 8),
-                        const ConceptNavigation(compact: true),
-                      ],
                       if (!shortViewport) ...[
                         const SizedBox(height: 6),
                         SizedBox(

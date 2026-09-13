@@ -68,7 +68,16 @@ class ConceptTopBar extends StatelessWidget {
                   ],
                 ),
               ],
-              const Spacer(),
+              if (compact) ...[
+                // В узком окне разделы остаются в рейке, а не уезжают вниз:
+                // обойма сама прячет подписи и сжимается по месту. Прежде
+                // она переезжала под содержимое и налезала на подсказки
+                // управления в нижней строке.
+                const SizedBox(width: 10),
+                const Expanded(child: Center(child: ConceptNavigation())),
+                const SizedBox(width: 10),
+              ] else
+                const Spacer(),
               TopAction(
                 tooltip: L.of(context).searchHint,
                 icon: Icons.search_rounded,
@@ -105,7 +114,7 @@ class ConceptTopBar extends StatelessWidget {
               ),
             ],
           ),
-          if (!compact) const ConceptNavigation(compact: false),
+          if (!compact) const ConceptNavigation(),
         ],
       ),
     );

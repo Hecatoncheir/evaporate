@@ -14,21 +14,40 @@ import '../../l10n/app_localizations.dart';
 /// Клавиши **одной ширины**, хотя подписи разной длины. Так плашка едет
 /// ровным шагом, ряд читается как один орган управления, а не как четыре
 /// кнопки подряд, и при смене языка обойма не меняет размер.
+///
+/// Ширина считается от того, что дали, а не задана числом: обойма стоит в
+/// верхней рейке при любом размере окна, и в узком месте сначала прячет
+/// подписи, потом число задач, и лишь затем сжимает сами клавиши. Заданная
+/// числом ширина переполняла рейку на считанные точки — ровно те, из-за
+/// которых Flutter рисует полосатую ленту поверх интерфейса.
+///
+/// Подпись раздела диктору достаётся всегда, даже когда её не видно: без
+/// неё узкое окно оставило бы человека с четырьмя безымянными значками.
 class ConceptNavigation extends StatefulWidget {
-  const ConceptNavigation({super.key, required this.compact});
-
-  final bool compact;
+  const ConceptNavigation({super.key});
 
   @override
   State<ConceptNavigation> createState() => _ConceptNavigationState();
 }
 
 class _ConceptNavigationState extends State<ConceptNavigation> {
+  /// Клавиша во всю ширину — с подписью и запасом по краям.
+  static const _fullWidth = 130.0;
+
+  /// Ниже этого подпись уже не влезает целиком: «БИБЛИОТЕКА» плюс значок,
+  /// просвет и поля занимают почти сто тридцать точек.
+  static const _labelWidth = 124.0;
+
+  /// А ниже этого не влезает и число задач рядом со значком.
+  static const _badgeWidth = 58.0;
+
+  /// Поле и кант самой обоймы: они тоже занимают место в рейке.
+  static const _chrome = 8.0;
+
   final _targets = List.generate(4, (_) => GlobalKey());
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final section = context.select<NavigationBloc, int>(
       (bloc) => bloc.state.section,
     );
@@ -47,13 +66,36 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
       Icons.save_rounded,
       Icons.settings_rounded,
     ];
-    final width = widget.compact ? 56.0 : 130.0;
+    return LayoutBuilder(
+      builder: (context, box) =>
+          _rack(context, box, labels, icons, section, count),
+    );
+  }
+
+  Widget _rack(
+    BuildContext context,
+    BoxConstraints box,
+    List<String> labels,
+    List<IconData> icons,
+    int section,
+    int count,
+  ) {
+    final colors = context.colors;
+    // Делим ровно то, что дали, за вычетом собственных поля и канта
+    // обоймы: забыть про них — те самые восемь точек переполнения.
+    // Округлять вверх нельзя, переполнение на две точки выглядит так же
+    // плохо, как на двадцать.
+    final room = box.maxWidth.isFinite
+        ? box.maxWidth - _chrome
+        : labels.length * _fullWidth;
+    final per = room <= 0 ? 0.0 : room / labels.length;
+    final width = per < _fullWidth ? per : _fullWidth;
+    final showLabels = per >= _labelWidth;
+    final showBadge = per >= _badgeWidth;
 
     return Container(
-      key: ValueKey(
-        widget.compact ? 'concept-navigation-compact' : 'concept-navigation',
-      ),
-      height: widget.compact ? 52 : 48,
+      key: const ValueKey('concept-navigation'),
+      height: 48,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: colors.railBackground,
@@ -88,27 +130,26 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
                 onPressed: () =>
                     context.read<NavigationBloc>().add(SectionSelected(index)),
                 // ignore: sort_child_properties_last
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      LiquidSelectionInk(
-                        normalColor: colors.textSecondary,
-                        selectedColor: colors.onSelection,
-                        child: Icon(icons[index], size: 16),
-                      ),
-                      if (!widget.compact ||
-                          MediaQuery.sizeOf(context).width > 560) ...[
-                        const SizedBox(width: 8),
-                        // Заглавными: короткая подпись на корпусе, а не
-                        // слово в предложении. Диктору при этом достаётся
-                        // обычное слово — часть читалок разбирает капс по
-                        // буквам, как сокращение.
-                        Flexible(
-                          child: Semantics(
-                            label: labels[index],
-                            child: ExcludeSemantics(
+                child: Semantics(
+                  label: labels[index],
+                  child: ExcludeSemantics(
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          LiquidSelectionInk(
+                            normalColor: colors.textSecondary,
+                            selectedColor: colors.onSelection,
+                            child: Icon(icons[index], size: 16),
+                          ),
+                          if (showLabels) ...[
+                            const SizedBox(width: 8),
+                            // Заглавными: короткая подпись на корпусе, а не
+                            // слово в предложении. Диктору достаётся обычное
+                            // слово — часть читалок разбирает капс по
+                            // буквам, как сокращение.
+                            Flexible(
                               child: Text(
                                 labels[index].toUpperCase(),
                                 maxLines: 1,
@@ -116,21 +157,19 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
                                 softWrap: false,
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                      if (index == 1 && count > 0) ...[
-                        const SizedBox(width: 6),
-                        _QueueBadge(count: count, selected: selected),
-                      ],
-                    ],
+                          ],
+                          if (showBadge && index == 1 && count > 0) ...[
+                            const SizedBox(width: 6),
+                            _QueueBadge(count: count, selected: selected),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 style: TextButton.styleFrom(
                   minimumSize: Size(width, 42),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: widget.compact ? 6 : 10,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   foregroundColor: selected
                       ? colors.onSelection
                       : colors.textSecondary,
