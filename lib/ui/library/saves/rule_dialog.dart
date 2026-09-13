@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/format.dart';
 import '../../../core/save_path_template.dart';
+import '../../../models/save_profile.dart';
 import '../../theme.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -142,8 +143,15 @@ class _RuleDialogState extends State<RuleDialog> {
           onPressed: () => Navigator.pop(
             context,
             RuleDraft(
+              // Именно константа, а не `L.of(context).saves`. Показывают
+              // метку переведённой (`ruleLabelText`), но хранят и
+              // сопоставляют — как есть: правила сходятся между
+              // устройствами по метке, и записанное здесь «Saves» с
+              // английского интерфейса не сошлось бы с «Сохранениями» на
+              // русском. Сейв просто не восстановился бы, и никто не
+              // догадался бы почему.
               _labelController.text.trim().isEmpty
-                  ? L.of(context).saves
+                  ? SavePathRule.defaultLabel
                   : _labelController.text.trim(),
               _templateController.text.trim(),
               _currentPlatformOnly,
