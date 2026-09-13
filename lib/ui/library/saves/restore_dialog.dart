@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/library/library_bloc.dart';
 import '../../../core/format.dart';
 import '../../../models/game.dart';
-import '../../../models/save_profile.dart';
 import '../../../models/save_snapshot.dart';
 import '../../theme.dart';
 import '../../../l10n/app_localizations.dart';
@@ -73,7 +72,12 @@ class _RestoreDialogState extends State<RestoreDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final targets = _resolveTargets();
+    // Спрашиваем у менеджера, а не считаем сами: раскладывать файлы будет
+    // он, и обещать здесь что-то своё значит обещать не то.
+    final targets = context.read<LibraryBloc>().saveManager.previewTargets(
+      widget.game,
+      widget.snapshot,
+    );
 
     return AlertDialog(
       title: Text(L.of(context).restoreSaves),
@@ -201,32 +205,5 @@ class _RestoreDialogState extends State<RestoreDialog> {
         ),
       ],
     );
-  }
-
-  /// Показываем заранее, куда именно попадут файлы: восстановление
-  /// перезаписывает чужие сохранения, и это должно быть видно до нажатия.
-  Map<String, String> _resolveTargets() {
-    final local = widget.game.saveProfile.rulesForCurrentPlatform;
-    final targets = <String, String>{};
-    for (final rule in widget.snapshot.rules) {
-      SavePathRule? match;
-      for (final candidate in local) {
-        if (candidate.id == rule.id) {
-          match = candidate;
-          break;
-        }
-      }
-      match ??= local
-          .where(
-            (c) =>
-                c.label.trim().toLowerCase() == rule.label.trim().toLowerCase(),
-          )
-          .firstOrNull;
-      if (match == null && rule.appliesToCurrentPlatform()) match = rule;
-      if (match == null) continue;
-      final resolved = match.resolve(gameDir: widget.game.installDir);
-      if (resolved != null) targets[match.label] = resolved;
-    }
-    return targets;
   }
 }

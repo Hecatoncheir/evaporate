@@ -474,6 +474,31 @@ class SaveManager {
 
   /// Путь из внешнего манифеста никогда не становится локальной целью.
   /// Сопоставляем только с явно настроенными у игры путями: id -> метка.
+  /// Куда лягут файлы снимка на этом устройстве: метка правила → путь.
+  ///
+  /// Нужно диалогу восстановления, который показывает это до нажатия:
+  /// восстановление перезаписывает чужие сохранения, и место записи должно
+  /// быть видно заранее. Отсюда же и требование к предпросмотру — он
+  /// обязан идти **тем же** сопоставлением, что и сама раскладка.
+  ///
+  /// Раньше диалог считал это сам, и две реализации разошлись в двух
+  /// местах: при двух правилах с одной меткой он брал первое, тогда как
+  /// раскладка от двоякости отказывается, а не найдя местного правила,
+  /// подставлял правило **из снимка** — то есть путь с чужой машины,
+  /// который здесь не будет записан никогда. Обещание диалога и поведение
+  /// восстановления обязаны совпадать, иначе диалог не предупреждение, а
+  /// выдумка.
+  Map<String, String> previewTargets(Game game, SaveSnapshot snapshot) {
+    final targets = <String, String>{};
+    for (final rule in snapshot.rules) {
+      final local = _matchLocalRule(game, rule);
+      if (local == null) continue;
+      final resolved = local.resolve(gameDir: game.installDir);
+      if (resolved != null) targets[local.label] = resolved;
+    }
+    return targets;
+  }
+
   SavePathRule? _matchLocalRule(Game game, SavePathRule incoming) {
     final local = game.saveProfile.rulesForCurrentPlatform;
     for (final rule in local) {

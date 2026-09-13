@@ -102,6 +102,109 @@ void main() {
     },
   );
 
+  /// Диалог восстановления показывает человеку, куда лягут файлы, **до**
+  /// того как он нажмёт. Обещание это чего-то стоит ровно постольку,
+  /// поскольку предпросмотр и раскладка идут одним сопоставлением. Раньше
+  /// диалог считал сам и расходился с раскладкой в двух местах.
+  group('предпросмотр целей', () {
+    test('совпадает с тем, куда восстановление и правда положило', () async {
+      final saves = await writeSaves('предпросмотр', {'slot.sav': 'прогресс'});
+      final game = gameWith(
+        id: 'g1',
+        title: 'Игра',
+        rules: [
+          SavePathRule(
+            id: 'rule-1',
+            label: SavePathRule.defaultLabel,
+            template: saves.path,
+          ),
+        ],
+      );
+      final snapshot = await manager.createSnapshot(game);
+
+      final preview = manager.previewTargets(game, snapshot);
+      final report = await manager.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+        backupCurrent: false,
+      );
+
+      expect(preview, isNotEmpty);
+      expect(preview, report.targets);
+    });
+
+    // Своего правила под эту платформу у игры нет. Диалог подставлял сюда
+    // правило из снимка и показывал путь с чужой машины — тот, куда здесь
+    // не запишут никогда, — да ещё и оставлял клавишу доступной.
+    test('не выдумывает цель из правила, приехавшего со снимком', () async {
+      final saves = await writeSaves('чужое', {'slot.sav': 'прогресс'});
+      final source = gameWith(
+        id: 'источник',
+        title: 'Игра',
+        rules: [
+          SavePathRule(
+            id: 'rule-1',
+            label: SavePathRule.defaultLabel,
+            template: saves.path,
+          ),
+        ],
+      );
+      final snapshot = await manager.createSnapshot(source);
+
+      final bare = gameWith(id: 'g2', title: 'Игра', rules: const []);
+      expect(manager.previewTargets(bare, snapshot), isEmpty);
+      // И раскладка того же мнения: класть некуда.
+      await expectLater(
+        manager.restoreSnapshot(game: bare, snapshot: snapshot),
+        throwsA(isA<SaveException>()),
+      );
+    });
+
+    // Две метки «Сохранения» — и непонятно, которая из них та. Раскладка от
+    // двоякости отказывается, а диалог брал первую попавшуюся.
+    test('от двух правил с одной меткой отказывается, а не гадает', () async {
+      final saves = await writeSaves('двоякость', {'slot.sav': 'прогресс'});
+      final source = gameWith(
+        id: 'источник',
+        title: 'Игра',
+        rules: [
+          SavePathRule(
+            id: 'rule-1',
+            label: SavePathRule.defaultLabel,
+            template: saves.path,
+          ),
+        ],
+      );
+      final snapshot = await manager.createSnapshot(source);
+
+      final twin = gameWith(
+        id: 'g3',
+        title: 'Игра',
+        rules: [
+          SavePathRule(
+            id: 'первое',
+            label: SavePathRule.defaultLabel,
+            template: p.join(tmp.path, 'первое'),
+          ),
+          SavePathRule(
+            id: 'второе',
+            label: SavePathRule.defaultLabel,
+            template: p.join(tmp.path, 'второе'),
+          ),
+        ],
+      );
+
+      expect(manager.previewTargets(twin, snapshot), isEmpty);
+      // Раскладка того же мнения: сопоставить правило не с чем.
+      await expectLater(
+        manager.restoreSnapshot(game: twin, snapshot: snapshot),
+        throwsA(isA<SaveException>()),
+      );
+      expect(Directory(p.join(tmp.path, 'первое')).existsSync(), isFalse);
+      expect(Directory(p.join(tmp.path, 'второе')).existsSync(), isFalse);
+    });
+  });
+
   test('снимок с одного устройства раскладывается по путям другого', () async {
     // Устройство A: сейвы лежат по своему пути.
     final deviceA = await writeSaves('deviceA', {'slot1.sav': 'прогресс A'});
