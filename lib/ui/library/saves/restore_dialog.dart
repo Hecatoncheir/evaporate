@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -8,6 +6,7 @@ import '../../../core/format.dart';
 import '../../../models/game.dart';
 import '../../../models/save_snapshot.dart';
 import '../../theme.dart';
+import '../../../bloc/save_freshness_cubit.dart';
 import '../../../l10n/app_localizations.dart';
 
 class RestoreOptions {
@@ -31,47 +30,32 @@ class _RestoreDialogState extends State<RestoreDialog> {
   bool _backup = true;
   bool _wipe = false;
 
-  /// Когда здешние сохранения менялись в последний раз.
-  ///
-  /// Читается с диска, поэтому появляется не сразу: до ответа строку не
-  /// показываем вовсе — «неизвестно» здесь хуже молчания.
-  DateTime? _localChange;
-  bool _localRead = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_readLocalChange());
-  }
-
-  Future<void> _readLocalChange() async {
-    final manager = context.read<LibraryBloc>().saveManager;
-    try {
-      final when = await manager.lastLocalChange(widget.game);
-      if (mounted) setState(() => _localChange = when);
-    } on Object {
-      // Не прочиталось — просто не покажем строку.
-    } finally {
-      if (mounted) setState(() => _localRead = true);
-    }
-  }
-
   /// Здешние сохранения новее снимка настолько, что восстановление —
   /// это откат прогресса.
   ///
   /// Допуск тот же, что и у массового переноса: часы разных устройств
   /// расходятся, а время изменения файла хранится с разной точностью на
   /// разных файловых системах.
-  bool get _localIsNewer {
-    final local = _localChange;
-    if (local == null) return false;
-    return local.isAfter(
-      widget.snapshot.createdAt.add(LibraryBloc.conflictTolerance),
-    );
-  }
+  bool _isNewer(DateTime? local) =>
+      local != null &&
+      local.isAfter(
+        widget.snapshot.createdAt.add(LibraryBloc.conflictTolerance),
+      );
 
   @override
   Widget build(BuildContext context) {
+    // Чтение диска живёт в Cubit: виджету не положено ни держать
+    // асинхронность, ни ловить её ошибки — это правило блоков, и модальное
+    // окно от него не освобождено.
+    return BlocProvider(
+      create: (context) =>
+          SaveFreshnessCubit(context.read<LibraryBloc>().saveManager)
+            ..read(widget.game),
+      child: Builder(builder: _content),
+    );
+  }
+
+  Widget _content(BuildContext context) {
     // Спрашиваем у менеджера, а не считаем сами: раскладывать файлы будет
     // он, и обещать здесь что-то своё значит обещать не то.
     final targets = context.read<LibraryBloc>().saveManager.previewTargets(
@@ -100,34 +84,45 @@ class _RestoreDialogState extends State<RestoreDialog> {
             // Массовый перенос такие расхождения ловит сам, а здесь до сих
             // пор молчали — притом что восстановить одну игру просят чаще,
             // чем переехать всей библиотекой.
-            if (_localRead) ...[
-              const SizedBox(height: 6),
-              Text(
-                _localChange == null
-                    ? L.of(context).localNeverChanged
-                    : L
-                          .of(context)
-                          .localChangedAt(formatDateTime(_localChange!)),
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: _localIsNewer
-                      ? context.colors.warning
-                      : context.colors.textSecondary,
-                ),
-              ),
-              if (_localIsNewer) ...[
-                const SizedBox(height: 4),
-                Text(
-                  L.of(context).localNewerWarning,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.warning,
-                  ),
-                ),
-              ],
-            ],
+            BlocBuilder<SaveFreshnessCubit, SaveFreshness>(
+              builder: (context, freshness) {
+                if (!freshness.known) return const SizedBox.shrink();
+                final newer = _isNewer(freshness.changedAt);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 6),
+                    Text(
+                      freshness.changedAt == null
+                          ? L.of(context).localNeverChanged
+                          : L
+                                .of(context)
+                                .localChangedAt(
+                                  formatDateTime(freshness.changedAt!),
+                                ),
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: newer
+                            ? context.colors.warning
+                            : context.colors.textSecondary,
+                      ),
+                    ),
+                    if (newer) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        L.of(context).localNewerWarning,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                          color: context.colors.warning,
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 14),
             Text(
               L.of(context).filesGoHere,
