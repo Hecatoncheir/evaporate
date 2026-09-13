@@ -4,16 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../bloc/library/library_bloc.dart';
-import '../../../core/format.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../../services/launch/executable_finder.dart';
 import '../../labels.dart';
 import '../../theme.dart';
 import '../../downloads/cancel_dialog.dart';
+import '../../downloads/download_activity.dart';
 import '../../widgets/common.dart';
 import '../play_button.dart';
-import '../../widgets/animated_progress.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Главная кнопка карточки плюс прогресс загрузки.
@@ -41,7 +40,17 @@ class ActionPanel extends StatelessWidget {
             Row(children: _buildRow(context, busy)),
             if (task != null && task!.state != DownloadState.complete) ...[
               const SizedBox(height: 16),
-              ProgressBlock(task: task!),
+              // Тот же живой график, что на экране загрузок. Страница игры —
+              // место, куда приходят посмотреть именно на эту игру, и
+              // отсылать отсюда на соседний экран ради вопроса «как идёт»
+              // значит заставлять человека держать в голове два места.
+              //
+              // Ключ по задаче: история скоростей живёт в самом виджете, и
+              // без ключа она перетекла бы от одной игры к другой при
+              // перелистывании страниц.
+              DownloadActivity(key: ValueKey(task!.id), task: task!),
+              const SizedBox(height: 10),
+              DownloadSummary(task: task!),
             ],
             if (game.status == GameStatus.error && game.lastError != null) ...[
               const SizedBox(height: 14),
@@ -290,48 +299,38 @@ class _SteamLookupButton extends StatelessWidget {
   }
 }
 
-class ProgressBlock extends StatelessWidget {
-  const ProgressBlock({super.key, required this.task});
+/// Строка под графиком: сколько осталось и с кем обмениваемся.
+///
+/// Полосу и проценты рисует сам [DownloadActivity] — здесь только то, чего
+/// у него нет. Две полосы подряд означали бы, что одна из них лишняя, и
+/// человек честно пытался бы понять, чем они различаются.
+class DownloadSummary extends StatelessWidget {
+  const DownloadSummary({super.key, required this.task});
 
   final DownloadTask task;
 
   @override
   Widget build(BuildContext context) {
-    final indeterminate = task.isMetadata || task.totalBytes == 0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedProgress(
-          value: indeterminate ? null : task.progress,
-          height: 6,
-          borderRadius: 4,
-          busy: task.state == DownloadState.active,
-        ),
-        const SizedBox(height: 10),
-        DefaultTextStyle(
-          style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
-          child: Row(
-            children: [
+    return DefaultTextStyle(
+      style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: [
+          if (task.isMetadata)
+            Text(L.of(context).fetchingTorrentMetadata)
+          else ...[
+            if (task.etaSeconds > 0)
               Text(
-                task.isMetadata
-                    ? L.of(context).fetchingTorrentMetadata
-                    : '${(task.progress * 100).toStringAsFixed(1)}% · '
-                          '${L.of(context).ofAmount(formatBytes(task.completedBytes), formatBytes(task.totalBytes))}',
+                L
+                    .of(context)
+                    .etaLeft(formatEtaLabel(L.of(context), task.etaSeconds)),
               ),
-              const Spacer(),
-              if (!task.isMetadata) ...[
-                Text(
-                  '${speedLabel(L.of(context), task.downloadSpeed)} · '
-                  '${L.of(context).etaLeft(formatEtaLabel(L.of(context), task.etaSeconds))}',
-                ),
-                const SizedBox(width: 12),
-                Text(L.of(context).peersCount(task.connections)),
-              ],
-            ],
-          ),
-        ),
-      ],
+            Text(L.of(context).peersCount(task.connections)),
+            if (task.seeders > 0) Text(L.of(context).seedsCount(task.seeders)),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -2,7 +2,15 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/download_task.dart';
+import 'package:evaporate/ui/downloads/download_activity.dart';
 import 'package:evaporate/ui/library/detail/action_panel.dart';
+import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/animated_progress.dart';
+import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
+import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -137,4 +145,65 @@ void main() {
     expect(find.text('Найти в Steam'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  // На странице игры спрашивают «как идёт вот эта игра». Отсылать за
+  // ответом на соседний экран — значит заставлять держать в голове два
+  // места; тем более что график там уже нарисован.
+  testWidgets(
+    'под заголовком игры виден тот же живой график, что на загрузках',
+    (tester) async {
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      await tester.pump();
+
+      const task = DownloadTask(
+        id: 't1',
+        name: 'Качается',
+        state: DownloadState.active,
+        totalBytes: 1000,
+        completedBytes: 400,
+        connections: 7,
+        // Скорость задаёт и «осталось»: etaSeconds считается из неё.
+        downloadSpeed: 5,
+      );
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<SettingsBloc>.value(value: harness.settings),
+            BlocProvider<LibraryBloc>.value(value: harness.library),
+            BlocProvider<DownloadsBloc>.value(value: harness.downloads),
+          ],
+          child: MaterialApp(
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            locale: const Locale('ru'),
+            theme: EvaporateTheme.dark(),
+            home: MediaQuery(
+              data: const MediaQueryData(disableAnimations: true),
+              child: Scaffold(
+                body: ActionPanel(
+                  game: Game(
+                    id: 'g1',
+                    title: 'Качается',
+                    addedAt: DateTime.now(),
+                    status: GameStatus.downloading,
+                  ),
+                  task: task,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DownloadActivity), findsOneWidget);
+      // Полоса ровно одна: у графика своя, и вторая заставила бы человека
+      // честно выяснять, чем они различаются.
+      expect(find.byType(AnimatedProgress), findsOneWidget);
+      // А то, чего у графика нет, осталось: сколько ждать и с кем обмен.
+      expect(find.textContaining('осталось'), findsOneWidget);
+    },
+  );
 }
