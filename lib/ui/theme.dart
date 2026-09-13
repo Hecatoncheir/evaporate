@@ -36,6 +36,15 @@ class EvaporateTheme {
   static const radiusControl = 4.0;
   static const radiusChip = 3.0;
 
+  /// Скругление подложки под выбранным.
+  ///
+  /// К четырём корпусным радиусам выше не относится и нарочно крупнее их:
+  /// те малые, потому что описывают корпус — панели, клавиши, плашки. Этот
+  /// у подложки, которая обнимает одну клавишу и больше ничего, и
+  /// корпусной угол на ней читался бы обрезанным краем панели, а не фоном
+  /// под выбранным.
+  static const radiusSelection = 12.0;
+
   static ThemeData dark() => _build(EvaporatePalette.dark);
 
   static ThemeData light() => _build(EvaporatePalette.light);

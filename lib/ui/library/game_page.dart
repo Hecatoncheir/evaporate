@@ -22,18 +22,30 @@ class GamePage extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
-          child: GlassSurface(
-            radius: EvaporateTheme.radiusPanel,
-            shadow: false,
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Row(
-              children: [
-                TextButton.icon(
-                  onPressed: () => nav.add(const GameOpened(null)),
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  label: Text(L.of(context).backToLibrary),
+          // Подложка обнимает клавишу, а не тянется во всю ширину: за
+          // возврат отвечает одно слово в углу, а полоса на весь экран
+          // выглядела заголовком раздела и обещала больше, чем несёт.
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: GlassSurface(
+              radius: EvaporateTheme.radiusSelection,
+              shadow: false,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: TextButton.icon(
+                onPressed: () => nav.add(const GameOpened(null)),
+                style: TextButton.styleFrom(
+                  // Тем же радиусом, что подложка: иначе фон, встающий под
+                  // клавишей при наведении и выборе, рисует внутри мягкого
+                  // угла свой острый.
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      EvaporateTheme.radiusSelection,
+                    ),
+                  ),
                 ),
-              ],
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: Text(L.of(context).backToLibrary),
+              ),
             ),
           ),
         ),
