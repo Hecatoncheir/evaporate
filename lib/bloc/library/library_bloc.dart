@@ -17,6 +17,7 @@ import '../../models/bulk_report.dart';
 import '../../models/catalog_progress.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/launch/game_launcher.dart';
+import '../../services/launch/steam_shortcuts.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/notifications/notification_service.dart';
 import '../../services/saves/ludusavi_catalog.dart';
@@ -45,11 +46,17 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     GameLauncher? launcher,
     NotificationService? notifications,
     SteamCatalog? steam,
+    SteamShortcuts? steamShortcuts,
     LudusaviCatalog? savePaths,
     L Function()? localizations,
     List<SaveRoot> Function()? saveRoots,
     this.automaticMetadata = true,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
+       _steamShortcuts =
+           steamShortcuts ??
+           SteamShortcuts(
+             localizations: localizations ?? _defaultLocalizations,
+           ),
        savePaths =
            savePaths ??
            LudusaviCatalog(
@@ -98,6 +105,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       _onSavePathsLookup,
       transformer: (events, mapper) => events.asyncExpand(mapper),
     );
+    on<SteamShortcutRequested>(_onSteamShortcut);
     on<SavePathsProgressChanged>(_onSavePathsProgress);
     on<MetadataRetryRequested>(_onMetadataRetry);
     on<SaveHintsRequested>(_onSaveHintsRequested);
@@ -137,6 +145,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Каталог Steam: по имени раздачи находит название, описание и обложку.
   final SteamCatalog steam;
 
+  /// Заведение игры в Steam сторонним ярлыком. Подменяется в тестах:
+  /// настоящий Steam на машине прогона не установлен.
+  final SteamShortcuts _steamShortcuts;
+
   /// Открытая база путей сохранений — та часть работы, которую иначе
   /// пришлось бы делать руками для каждой игры.
   final LudusaviCatalog savePaths;
@@ -168,6 +180,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   static String snapshotKey(String gameId) => 'snapshot:$gameId';
 
   static String steamKey(String gameId) => 'steam:$gameId';
+
+  /// Ключ отдельный от [steamKey]: поиск обложки в каталоге и запись
+  /// ярлыка — разные дела, и занятость одного не должна гасить кнопку
+  /// другого.
+  static String steamShortcutKey(String gameId) => 'steam-shortcut:$gameId';
 
   static String savePathsKey(String gameId) => 'paths:$gameId';
 
@@ -992,6 +1009,85 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// человека. Автоматически он не снимается никогда: иначе приложение при
   /// каждом запуске ходило бы в Steam за играми, которых там попросту нет,
   /// — а таких в торрент-библиотеке половина.
+  /// Заводит игру в Steam сторонним ярлыком.
+  ///
+  /// Событием, а не вызовом из виджета: запись идёт в чужой файл и
+  /// отказывает по-разному — Steam запущен, список не разобрать, — а
+  /// объяснять такое человеку умеет общий слушатель оболочки.
+  Future<void> _onSteamShortcut(
+    SteamShortcutRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final key = steamShortcutKey(event.game.id);
+    emit(state.copyWith(busy: _withBusy(key, true)));
+    try {
+      await _steamShortcuts.addGame(
+        event.game,
+        artwork: await _steamArtwork(event.game),
+      );
+      emit(
+        state.copyWith(
+          busy: _withBusy(key, false),
+          notice: _notice(_l.noticeSteamAdded(event.game.title)),
+        ),
+      );
+    } on SteamShortcutException catch (error) {
+      emit(
+        state.copyWith(
+          busy: _withBusy(key, false),
+          notice: _notice(error.message, isError: true),
+        ),
+      );
+    } on Object catch (error) {
+      emit(
+        state.copyWith(
+          busy: _withBusy(key, false),
+          notice: _notice(error.toString(), isError: true),
+        ),
+      );
+    }
+  }
+
+  /// Витрина для Steam — четыре картинки с его же CDN.
+  ///
+  /// Лучшее, что можно положить, рисовал сам Steam и для этой самой игры.
+  /// Наша сохранённая обложка закрывает одну створку из четырёх: сетку
+  /// библиотеки. Страница игры и полка «недавних» остались бы пустыми, а
+  /// именно они и отличают заведённую игру от сироты в списке.
+  ///
+  /// Дело необязательное: нет сети, нет `appid` — ярлык заводится
+  /// по-прежнему, просто с одной обложкой вместо четырёх.
+  ///
+  /// Четыре запроса разом здесь не то же, что залп по каталогу из
+  /// `SteamLookupRequested`: там сорок игр ломились в опросную точку
+  /// магазина, здесь одна игра берёт четыре картинки с раздающей сети — и
+  /// берёт по прямой просьбе человека, которому кнопку пришлось нажать.
+  /// Последовательно эти четыре ожидания сложились бы в минуту на одну
+  /// зависшую.
+  Future<SteamArtwork?> _steamArtwork(Game game) async {
+    final appId = game.steamAppId;
+    if (appId == null) return null;
+    try {
+      final images = await Future.wait([
+        steam.imageBytes(SteamCatalog.portraitUrl(appId)),
+        steam.imageBytes(SteamCatalog.capsuleUrl(appId)),
+        steam.imageBytes(SteamCatalog.heroUrl(appId)),
+        steam.imageBytes(SteamCatalog.logoUrl(appId)),
+      ]);
+      return SteamArtwork(
+        portrait: images[0],
+        capsule: images[1],
+        hero: images[2],
+        logo: images[3],
+      );
+    } on Object catch (error) {
+      // Без витрины ярлык всё равно заводится — молчать об этом можно,
+      // потеряв лишь красоту, но след оставляем.
+      AppLog.instance.write('витрина Steam для «${game.title}»', error);
+      return null;
+    }
+  }
+
   Future<void> _onMetadataRetry(
     MetadataRetryRequested event,
     Emitter<LibraryState> emit,

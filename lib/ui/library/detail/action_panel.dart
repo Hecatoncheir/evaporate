@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -39,7 +37,7 @@ class ActionPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: _buildActions(context, busy)),
+            Row(children: _buildRow(context, busy)),
             if (task != null && task!.state != DownloadState.complete) ...[
               const SizedBox(height: 16),
               ProgressBlock(task: task!),
@@ -74,7 +72,38 @@ class ActionPanel extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildActions(BuildContext context, bool busy) {
+  /// Ряд действий: слева — то, что делают с самой игрой, справа — то, что
+  /// делают с её ярлыком в Steam.
+  List<Widget> _buildRow(BuildContext context, bool busy) {
+    return [
+      ..._primaryActions(context, busy),
+      // Правая половина забирает всё оставшееся место и прижимает клавиши
+      // к краю. Распорка тут не годится, хотя напрашивается: она делила бы
+      // свободное место с ними поровну, и подписи переносились бы на
+      // вторую строку при живом пустом месте слева.
+      //
+      // Wrap внутри — на случай, когда места и правда мало: подписи у
+      // Steam длинные, и в узком окне две клавиши рядом с «Играть»
+      // переполнили бы ряд полосатой лентой.
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              if (game.canLaunch) _SteamShortcutButton(game: game),
+              _SteamLookupButton(game: game),
+            ],
+          ),
+        ),
+      ),
+    ];
+  }
+
+  /// Действия над самой игрой — левая половина ряда.
+  List<Widget> _primaryActions(BuildContext context, bool busy) {
     final library = context.read<LibraryBloc>();
     final downloads = context.read<DownloadsBloc>();
 
@@ -123,9 +152,11 @@ class ActionPanel extends StatelessWidget {
               : null,
           label: L.of(context).play,
         ),
-        const SizedBox(width: 10),
-        if (!game.canLaunch)
-          Expanded(
+        // Пояснение гибкое, а не растянутое: справа стоят клавиши Steam, и
+        // растяжка отобрала бы у них половину места под пустой текст.
+        if (!game.canLaunch) ...[
+          const SizedBox(width: 10),
+          Flexible(
             child: Text(
               L.of(context).pickExecutableNote,
               style: TextStyle(
@@ -133,13 +164,8 @@ class ActionPanel extends StatelessWidget {
                 color: context.colors.textSecondary,
               ),
             ),
-          )
-        else
-          OutlinedButton.icon(
-            onPressed: () => _openInstallDir(context),
-            icon: const Icon(Icons.folder_open, size: 17),
-            label: Text(L.of(context).gameFolder2),
           ),
+        ],
       ];
     }
 
@@ -195,18 +221,63 @@ class ActionPanel extends StatelessWidget {
       ),
     );
   }
+}
 
-  Future<void> _openInstallDir(BuildContext context) async {
-    final dir = game.installDir;
-    if (dir == null) return;
-    final command = Platform.isMacOS
-        ? 'open'
-        : (Platform.isWindows ? 'explorer' : 'xdg-open');
-    try {
-      await Process.run(command, [dir]);
-    } on ProcessException catch (error) {
-      if (context.mounted) showError(context, error.message);
-    }
+/// «Добавить в Steam» — заводит игру сторонним ярлыком.
+class _SteamShortcutButton extends StatelessWidget {
+  const _SteamShortcutButton({required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = context.select<LibraryBloc, bool>(
+      (bloc) => bloc.state.isBusy(LibraryBloc.steamShortcutKey(game.id)),
+    );
+    return OutlinedButton.icon(
+      onPressed: busy
+          ? null
+          : () => context.read<LibraryBloc>().add(SteamShortcutRequested(game)),
+      icon: busy
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.library_add_outlined, size: 16),
+      label: Text(L.of(context).steamAddAction),
+    );
+  }
+}
+
+/// «Найти в Steam» или «Обновить из Steam» — описание и обложка из каталога.
+class _SteamLookupButton extends StatelessWidget {
+  const _SteamLookupButton({required this.game});
+
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = context.select<LibraryBloc, bool>(
+      (bloc) => bloc.state.isBusy(LibraryBloc.steamKey(game.id)),
+    );
+    return OutlinedButton.icon(
+      onPressed: busy
+          ? null
+          : () => context.read<LibraryBloc>().add(SteamLookupRequested(game)),
+      icon: busy
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.travel_explore, size: 16),
+      label: Text(
+        game.steamAppId == null
+            ? L.of(context).findInSteam
+            : L.of(context).refreshFromSteam,
+      ),
+    );
   }
 }
 

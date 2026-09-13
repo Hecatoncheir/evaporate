@@ -1265,5 +1265,16 @@
   "openGame": "Открыть игру",
   "inGame": "В ИГРЕ",
   "lightThemeAction": "Светлая тема",
-  "darkThemeAction": "Тёмная тема"
+  "darkThemeAction": "Тёмная тема",
+  "steamAddAction": "Добавить в Steam",
+  "steamNotFound": "Steam на этом устройстве не найден",
+  "steamManyProfiles": "Учётных записей Steam несколько, и в чью библиотеку класть игру — непонятно",
+  "steamIsRunning": "Сначала закройте Steam: при выходе он переписывает свой список ярлыков, и добавленная игра исчезла бы",
+  "steamShortcutsUnreadable": "Список ярлыков Steam не разобрать. Чтобы не потерять уже заведённые, ничего не меняем",
+  "noticeSteamAdded": "«{title}» добавлена в Steam — она появится там при следующем его запуске",
+  "@noticeSteamAdded": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  }
 }

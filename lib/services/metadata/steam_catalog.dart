@@ -52,12 +52,14 @@ class SteamLookupException implements Exception {
 class SteamCatalog {
   SteamCatalog({
     Future<String> Function(Uri uri)? fetch,
+    Future<List<int>?> Function(Uri uri)? fetchImage,
     this.language = 'russian',
     ProxySettings Function()? proxy,
     L Function()? localizations,
   }) : _proxy = proxy ?? _noProxy,
        _localizations = localizations ?? _defaultLocalizations {
     _fetch = fetch;
+    _fetchImage = fetchImage;
   }
 
   /// Откуда брать переводы: ошибки отсюда доходят до пользователя
@@ -70,6 +72,9 @@ class SteamCatalog {
 
   /// Подменяется в тестах, чтобы не ходить в сеть.
   late final Future<String> Function(Uri uri)? _fetch;
+
+  /// Картинки идут мимо [_fetch]: тот отдаёт текст, а тут байты.
+  late final Future<List<int>?> Function(Uri uri)? _fetchImage;
 
   /// Настройки читаются на каждый запрос: пользователь мог поменять их,
   /// пока приложение открыто.
@@ -94,6 +99,20 @@ class SteamCatalog {
       'https://cdn.cloudflare.steamstatic.com/steam/apps/$appId'
       '/library_600x900.jpg';
 
+  /// Горизонтальная плашка: ею Steam показывает игру в полке «недавние» и
+  /// в списках, где вертикальной обложке места нет.
+  static String capsuleUrl(int appId) =>
+      'https://cdn.cloudflare.steamstatic.com/steam/apps/$appId/header.jpg';
+
+  /// Широкий задник страницы игры в библиотеке.
+  static String heroUrl(int appId) =>
+      'https://cdn.cloudflare.steamstatic.com/steam/apps/$appId'
+      '/library_hero.jpg';
+
+  /// Название игры картинкой — Steam кладёт его поверх задника.
+  static String logoUrl(int appId) =>
+      'https://cdn.cloudflare.steamstatic.com/steam/apps/$appId/logo.png';
+
   static const _searchLimit = 8;
 
   /// Обложку загружаем только вместе с явным поиском метаданных; UI читает
@@ -103,31 +122,44 @@ class SteamCatalog {
       portraitUrl(game.appId),
       if (game.headerImage != null) game.headerImage!,
     ]) {
-      final client = _client(const Duration(seconds: 10));
-      try {
-        final bytes = await (() async {
-          final response = await (await client.getUrl(Uri.parse(url))).close();
-          if (response.statusCode != 200) return null;
-          // BytesBuilder, а не List<int>: в списке чисел каждый байт занял бы
-          // машинное слово, и обложка у верхнего предела стоила бы восьмидесяти
-          // мегабайт памяти вместо десяти.
-          final builder = BytesBuilder(copy: false);
-          await for (final chunk in response) {
-            builder.add(chunk);
-            if (builder.length > 10 * 1024 * 1024) {
-              throw const FormatException('Cover is too large');
-            }
-          }
-          return builder.isEmpty ? null : builder.takeBytes();
-        })().timeout(const Duration(seconds: 20));
-        if (bytes != null) return bytes;
-      } on Object {
-        // Отсутствующая обложка не отменяет найденные ID и описание.
-      } finally {
-        client.close(force: true);
-      }
+      final bytes = await imageBytes(url);
+      if (bytes != null) return bytes;
     }
     return null;
+  }
+
+  /// Картинка по адресу, или `null`, если её там нет.
+  ///
+  /// Отсутствие — обычное дело, а не сбой: вертикальную обложку старым и
+  /// мелким играм не рисовали вовсе, и CDN на такую просьбу отвечает
+  /// отказом. Поэтому исход здесь один — «есть или нет», без исключений
+  /// наружу.
+  Future<List<int>?> imageBytes(String url) async {
+    final override = _fetchImage;
+    if (override != null) return override(Uri.parse(url));
+
+    final client = _client(const Duration(seconds: 10));
+    try {
+      return await (() async {
+        final response = await (await client.getUrl(Uri.parse(url))).close();
+        if (response.statusCode != 200) return null;
+        // BytesBuilder, а не List<int>: в списке чисел каждый байт занял бы
+        // машинное слово, и обложка у верхнего предела стоила бы восьмидесяти
+        // мегабайт памяти вместо десяти.
+        final builder = BytesBuilder(copy: false);
+        await for (final chunk in response) {
+          builder.add(chunk);
+          if (builder.length > 10 * 1024 * 1024) {
+            throw const FormatException('Cover is too large');
+          }
+        }
+        return builder.isEmpty ? null : builder.takeBytes();
+      })().timeout(const Duration(seconds: 20));
+    } on Object {
+      return null;
+    } finally {
+      client.close(force: true);
+    }
   }
 
   /// Ищет кандидатов по имени раздачи, предварительно очистив его.

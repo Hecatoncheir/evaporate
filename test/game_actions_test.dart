@@ -1,0 +1,140 @@
+import 'dart:io';
+
+import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/library/detail/action_panel.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'support/test_app.dart';
+
+void main() {
+  late Directory tmp;
+
+  setUp(() async => tmp = await TestHarness.makeTempDir());
+  tearDown(() => TestHarness.removeTempDir(tmp));
+
+  /// Открывает страницу установленной игры, которой есть чем запускаться:
+  /// без исполняемого файла половины клавиш на ней не бывает.
+  Future<TestHarness> openGame(WidgetTester tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    final id = harness.addGame(
+      title: 'Тестовая игра',
+      installDir: '/tmp/game',
+      status: GameStatus.installed,
+    );
+    await harness.pump(tester);
+    harness.library.add(
+      GameUpdated(
+        harness.library.state
+            .gameById(id)!
+            .copyWith(executablePath: '/tmp/game/game.exe'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Тестовая игра').first);
+    await tester.pumpAndSettle();
+    return harness;
+  }
+
+  // Слева — то, что делают с самой игрой, справа — то, что делают с её
+  // ярлыком в Steam. Между ними распорка, иначе правая половина ездила бы
+  // вслед за длиной подписи главной клавиши.
+  testWidgets('действия Steam стоят справа от «Играть», в одном ряду', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await openGame(tester);
+
+    final play = tester.getRect(find.text('Играть'));
+    final add = tester.getRect(find.text('Добавить в Steam'));
+    final lookup = tester.getRect(find.text('Найти в Steam'));
+    final panel = tester.getRect(find.byType(ActionPanel));
+
+    expect(add.left, greaterThan(play.right));
+    expect(lookup.left, greaterThan(add.right));
+    for (final rect in [add, lookup]) {
+      expect(
+        (rect.center.dy - play.center.dy).abs(),
+        lessThan(4),
+        reason: 'клавиши Steam должны стоять в одном ряду с «Играть»',
+      );
+    }
+
+    // Прижаты к правому краю панели, а не болтаются посередине.
+    expect(panel.right - lookup.right, lessThan(40));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('папка игры ушла из ряда действий в «Подробности»', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await openGame(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(ActionPanel),
+        matching: find.text('Папка игры'),
+      ),
+      findsNothing,
+    );
+
+    // Но со страницы не пропала: её место — среди сведений об игре.
+    final play = tester.getRect(find.text('Играть'));
+    final folder = tester.getRect(find.text('Папка игры'));
+    expect(folder.top, greaterThan(play.bottom));
+  });
+
+  // Подписи у клавиш Steam длинные, и в узком окне два слова рядом с
+  // «Играть» переполняли бы ряд полосатой лентой поверх интерфейса.
+  testWidgets('в узком окне ряд действий переносится, а не переполняется', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(620, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await openGame(tester);
+
+    expect(find.text('Играть'), findsOneWidget);
+    expect(find.text('Добавить в Steam'), findsOneWidget);
+    expect(find.text('Найти в Steam'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  // Ярлык на несуществующий файл Steam примет молча, а человек найдёт его
+  // сломанным. Поиск в каталоге при этом нужен и такой игре — обложку ей
+  // искать не по чему другому.
+  testWidgets('игре без исполняемого файла «Добавить в Steam» не предлагают', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    harness.addGame(
+      title: 'Без файла',
+      installDir: '/tmp/game',
+      status: GameStatus.installed,
+    );
+    await harness.pump(tester);
+    await tester.tap(find.text('Без файла').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Добавить в Steam'), findsNothing);
+    expect(find.text('Найти в Steam'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}

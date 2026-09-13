@@ -1,9 +1,10 @@
+import 'dart:io';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/downloads/downloads_bloc.dart';
-import '../../../bloc/library/library_bloc.dart';
 import '../../../core/format.dart';
 import '../../../models/game.dart';
 import '../../../services/download/torrent_export.dart';
@@ -54,33 +55,15 @@ class InfoSection extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
-                Builder(
-                  builder: (context) {
-                    final busy = context.select<LibraryBloc, bool>(
-                      (bloc) =>
-                          bloc.state.isBusy(LibraryBloc.steamKey(game.id)),
-                    );
-                    return OutlinedButton.icon(
-                      onPressed: busy
-                          ? null
-                          : () => context.read<LibraryBloc>().add(
-                              SteamLookupRequested(game),
-                            ),
-                      icon: busy
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.travel_explore, size: 16),
-                      label: Text(
-                        game.steamAppId == null
-                            ? L.of(context).findInSteam
-                            : L.of(context).refreshFromSteam,
-                      ),
-                    );
-                  },
-                ),
+                // Папка игры живёт здесь, рядом с остальными сведениями о
+                // ней: в ряду действий её место заняли клавиши Steam, а
+                // открыть папку — дело справочное, а не главное.
+                if (game.isInstalled && game.canLaunch)
+                  OutlinedButton.icon(
+                    onPressed: () => _openInstallDir(context),
+                    icon: const Icon(Icons.folder_open, size: 16),
+                    label: Text(L.of(context).gameFolder2),
+                  ),
                 // Игру принёс торрент — значит, есть что унести обратно.
                 if (TorrentExport.isTorrent(game))
                   OutlinedButton.icon(
@@ -114,6 +97,19 @@ class InfoSection extends StatelessWidget {
     downloads.add(
       TorrentExportRequested(game: game, destination: location.path),
     );
+  }
+
+  Future<void> _openInstallDir(BuildContext context) async {
+    final dir = game.installDir;
+    if (dir == null) return;
+    final command = Platform.isMacOS
+        ? 'open'
+        : (Platform.isWindows ? 'explorer' : 'xdg-open');
+    try {
+      await Process.run(command, [dir]);
+    } on ProcessException catch (error) {
+      if (context.mounted) showError(context, error.message);
+    }
   }
 
   static String _shorten(String value) =>

@@ -540,5 +540,16 @@
   "openGame": "Open game",
   "inGame": "IN GAME",
   "lightThemeAction": "Light theme",
-  "darkThemeAction": "Dark theme"
+  "darkThemeAction": "Dark theme",
+  "steamAddAction": "Add to Steam",
+  "steamNotFound": "No Steam installation found on this device",
+  "steamManyProfiles": "There is more than one Steam account here, and it is unclear whose library the game belongs in",
+  "steamIsRunning": "Close Steam first: it rewrites its own shortcut list on exit, and the game you added would vanish",
+  "steamShortcutsUnreadable": "Steam's shortcut list cannot be parsed. Nothing is changed, so the shortcuts already there are not lost",
+  "noticeSteamAdded": "“{title}” was added to Steam and will show up there the next time Steam starts",
+  "@noticeSteamAdded": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  }
 }

@@ -185,6 +185,17 @@ final class SnapshotDeleted extends LibraryEvent {
   List<Object?> get props => [snapshot.id];
 }
 
+/// Завести игру в Steam как стороннюю — то же, что «Добавить стороннюю
+/// игру в мою библиотеку» в самом Steam.
+final class SteamShortcutRequested extends LibraryEvent {
+  const SteamShortcutRequested(this.game);
+
+  final Game game;
+
+  @override
+  List<Object?> get props => [game.id];
+}
+
 /// Подтянуть описание и обложку из каталога Steam по имени раздачи.
 final class SteamLookupRequested extends LibraryEvent {
   const SteamLookupRequested(this.game, {this.query, this.automatic = false});
