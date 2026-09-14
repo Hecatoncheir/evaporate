@@ -208,61 +208,17 @@ class _AboutCardState extends State<AboutCard> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsBloc>().state;
+    final l = L.of(context);
 
     return SectionCard(
-      title: L.of(context).about,
+      title: l.about,
       icon: Icons.info_outline,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          InfoRow(label: L.of(context).version, value: AppVersion.current),
+          InfoRow(label: l.version, value: AppVersion.current),
           const SizedBox(height: 6),
-          // Wrap, а не Row: две кнопки с длинными немецкими по духу подписями
-          // в узком окне не умещаются в строку, и вторая уезжает за край.
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: _busy ? null : _lookForUpdate,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh, size: 18),
-                label: Text(L.of(context).checkForUpdates),
-              ),
-              // Ссылка переехала сюда из нижней строки окна: там она
-              // занимала место навсегда, а нажимают её один раз в жизни, и
-              // остальное про сборку — версия, обновления — и так здесь.
-              FilledButton.tonalIcon(
-                onPressed: () => _openRelease(_repositoryUrl),
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: Text(L.of(context).sourceCode),
-              ),
-              if (_found != null) ...[
-                if (_found!.updateForThisPlatform != null)
-                  FilledButton.icon(
-                    onPressed: _updating ? null : _install,
-                    icon: _updating
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.system_update_alt, size: 16),
-                    label: Text(L.of(context).updateInstall),
-                  ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _openRelease(_found!.url),
-                  icon: const Icon(Icons.open_in_new, size: 16),
-                  label: Text(L.of(context).openReleasePage),
-                ),
-              ],
-            ],
-          ),
+          _buttons(context),
           if (_message != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -282,17 +238,62 @@ class _AboutCardState extends State<AboutCard> {
               SettingsChanged(settings.copyWith(checkUpdates: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              L.of(context).checkUpdatesOnStart,
-              style: TextStyle(fontSize: 13),
-            ),
-            subtitle: Text(
-              L.of(context).updateNote,
-              style: TextStyle(fontSize: 12),
-            ),
+            title: Text(l.checkUpdatesOnStart, style: TextStyle(fontSize: 13)),
+            subtitle: Text(l.updateNote, style: TextStyle(fontSize: 12)),
           ),
         ],
       ),
     );
   }
+
+  /// Клавиши карточки. Две последние появляются, только когда проверка
+  /// нашла версию новее нашей.
+  ///
+  /// Wrap, а не Row: две кнопки с длинными немецкими по духу подписями
+  /// в узком окне не умещаются в строку, и вторая уезжает за край.
+  Widget _buttons(BuildContext context) {
+    final l = L.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        FilledButton.tonalIcon(
+          onPressed: _busy ? null : _lookForUpdate,
+          icon: _busy ? _spinner : const Icon(Icons.refresh, size: 18),
+          label: Text(l.checkForUpdates),
+        ),
+        // Ссылка переехала сюда из нижней строки окна: там она занимала
+        // место навсегда, а нажимают её один раз в жизни, и остальное про
+        // сборку — версия, обновления — и так здесь.
+        FilledButton.tonalIcon(
+          onPressed: () => _openRelease(_repositoryUrl),
+          icon: const Icon(Icons.open_in_new, size: 16),
+          label: Text(l.sourceCode),
+        ),
+        if (_found != null) ...[
+          if (_found!.updateForThisPlatform != null)
+            FilledButton.icon(
+              onPressed: _updating ? null : _install,
+              icon: _updating
+                  ? _spinner
+                  : const Icon(Icons.system_update_alt, size: 16),
+              label: Text(l.updateInstall),
+            ),
+          FilledButton.tonalIcon(
+            onPressed: () => _openRelease(_found!.url),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: Text(l.openReleasePage),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Кружок вместо значка, пока клавиша занята работой. Размер тот же, что
+  /// у значка: иначе ряд дёргался бы на каждое нажатие.
+  static const _spinner = SizedBox(
+    width: 14,
+    height: 14,
+    child: CircularProgressIndicator(strokeWidth: 2),
+  );
 }

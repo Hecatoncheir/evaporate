@@ -48,131 +48,120 @@ class TaskCard extends StatelessWidget {
   final Game? game;
 
   @override
-  Widget build(BuildContext context) {
-    final downloads = context.read<DownloadsBloc>();
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _header(context),
+          const SizedBox(height: 14),
+          DownloadHistoryScope(
+            key: ValueKey(task.id),
+            task: task,
+            child: DownloadActivity(task: task),
+          ),
+          const SizedBox(height: 12),
+          _stats(context),
+          if (task.errorMessage != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              task.errorMessage!,
+              style: TextStyle(fontSize: 12, color: context.colors.danger),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    game?.title ?? task.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                // Названия релизов длинные и обрезаются по месту: без
-                // просвета многоточие упиралось бы прямо в состояние.
-                const SizedBox(width: 12),
-                Text(
-                  task.isMetadata
-                      ? L.of(context).stateMetadata
-                      : downloadStateLabel(L.of(context), task.state),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: task.state == DownloadState.error
-                        ? context.colors.danger
-                        : context.colors.textSecondary,
-                  ),
-                ),
-                if (game != null) ...[
-                  const SizedBox(width: 8),
-                  if (task.state == DownloadState.paused)
-                    IconAction(
-                      onPressed: () =>
-                          downloads.add(DownloadResumeRequested(game!)),
-                      icon: Icons.play_arrow,
-                      tooltip: L.of(context).resume,
-                    )
-                  else
-                    IconAction(
-                      onPressed: () =>
-                          downloads.add(DownloadPauseRequested(game!)),
-                      icon: Icons.pause,
-                      tooltip: L.of(context).pause,
-                    ),
-                  const SizedBox(width: 6),
-                  IconAction(
-                    onPressed: () => _cancel(context, game!, task),
-                    icon: Icons.close,
-                    tooltip: L.of(context).cancelDownload,
-                    danger: true,
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 14),
-            DownloadHistoryScope(
-              key: ValueKey(task.id),
-              task: task,
-              child: DownloadActivity(task: task),
-            ),
-            const SizedBox(height: 12),
-            DefaultTextStyle(
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textSecondary,
-              ),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 6,
-                children: [
-                  if (task.seeders > 0) ...[
-                    Text(L.of(context).seedsCount(task.seeders)),
-                  ],
-                  // Отданное показываем всегда, когда оно есть: раздача —
-                  // плата за скачанное, и знать свой вклад пользователь вправе.
-                  if (task.uploadedBytes > 0) ...[
-                    Text(
-                      L
-                          .of(context)
-                          .uploadedTotal(formatBytes(task.uploadedBytes)),
-                    ),
-                    if (task.completedBytes > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        L
-                            .of(context)
-                            .ratioValue(
-                              (task.uploadedBytes / task.completedBytes)
-                                  .toStringAsFixed(2),
-                            ),
-                      ),
-                    ],
-                  ],
-                  Text(L.of(context).peersCount(task.connections)),
-                  if (!task.isMetadata && task.etaSeconds > 0) ...[
-                    Text(
-                      L
-                          .of(context)
-                          .etaLeft(
-                            formatEtaLabel(L.of(context), task.etaSeconds),
-                          ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (task.errorMessage != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                task.errorMessage!,
-                style: TextStyle(fontSize: 12, color: context.colors.danger),
-              ),
+  /// Название, состояние задачи и клавиши над ней.
+  Widget _header(BuildContext context) {
+    final l = L.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            game?.title ?? task.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+          ),
+        ),
+        // Названия релизов длинные и обрезаются по месту: без просвета
+        // многоточие упиралось бы прямо в состояние.
+        const SizedBox(width: 12),
+        Text(
+          task.isMetadata ? l.stateMetadata : downloadStateLabel(l, task.state),
+          style: TextStyle(
+            fontSize: 12,
+            color: task.state == DownloadState.error
+                ? context.colors.danger
+                : context.colors.textSecondary,
+          ),
+        ),
+        // Клавиши есть только у задачи, за которой стоит игра: чужую
+        // раздачу движка ни паузить, ни отменять отсюда нечем.
+        if (game != null) ...[
+          const SizedBox(width: 8),
+          ..._actions(context, game!),
+        ],
+      ],
+    );
+  }
+
+  /// Пауза (она же продолжение) и отмена.
+  List<Widget> _actions(BuildContext context, Game game) {
+    final l = L.of(context);
+    final downloads = context.read<DownloadsBloc>();
+    final paused = task.state == DownloadState.paused;
+    return [
+      IconAction(
+        onPressed: () => downloads.add(
+          paused ? DownloadResumeRequested(game) : DownloadPauseRequested(game),
+        ),
+        icon: paused ? Icons.play_arrow : Icons.pause,
+        tooltip: paused ? l.resume : l.pause,
+      ),
+      const SizedBox(width: 6),
+      IconAction(
+        onPressed: () => _cancel(context, game, task),
+        icon: Icons.close,
+        tooltip: l.cancelDownload,
+        danger: true,
+      ),
+    ];
+  }
+
+  /// Показания под графиком: раздающие, пиры, отданное и остаток времени.
+  Widget _stats(BuildContext context) {
+    final l = L.of(context);
+    return DefaultTextStyle(
+      style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        children: [
+          if (task.seeders > 0) Text(l.seedsCount(task.seeders)),
+          // Отданное показываем всегда, когда оно есть: раздача — плата за
+          // скачанное, и знать свой вклад пользователь вправе.
+          if (task.uploadedBytes > 0) ...[
+            Text(l.uploadedTotal(formatBytes(task.uploadedBytes))),
+            if (task.completedBytes > 0) ...[
+              const SizedBox(width: 6),
+              Text(l.ratioValue(_ratio)),
             ],
           ],
-        ),
+          Text(l.peersCount(task.connections)),
+          if (!task.isMetadata && task.etaSeconds > 0)
+            Text(l.etaLeft(formatEtaLabel(l, task.etaSeconds))),
+        ],
       ),
     );
   }
+
+  /// Сколько отдано на каждый скачанный байт.
+  String get _ratio =>
+      (task.uploadedBytes / task.completedBytes).toStringAsFixed(2);
 }

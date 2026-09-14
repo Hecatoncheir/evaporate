@@ -24,6 +24,10 @@ extension _LibraryMetadata on LibraryBloc {
 
   /// Ищет игру в Steam и дополняет карточку. Название не трогаем: имя
   /// в библиотеке пользователь мог задать сам.
+  ///
+  /// Читается сверху вниз как список шагов: спросить Steam, забрать оценку
+  /// и обложку, убедиться, что игра всё ещё та самая, записать найденное.
+  /// Каждый шаг — отдельный метод ниже.
   Future<void> _onSteamLookup(
     SteamLookupRequested event,
     Emitter<LibraryState> emit,
@@ -38,85 +42,51 @@ extension _LibraryMetadata on LibraryBloc {
         (event.automatic && game.steamLookupAttempted)) {
       return;
     }
+
     emit(state.copyWith(busy: _withBusy(key, true)));
     try {
       _replaceGame(game.copyWith(steamLookupAttempted: true), emit);
       // Маркер записан до сети: даже аварийный выход не вызывает повтор.
       await persist();
-      // Идентификатор уже известен — спрашиваем прямо по нему. Поиск по
-      // названию тут не только лишний, но и вреден: он способен ответить
-      // другой игрой.
-      final match = game.steamAppId != null
-          ? await steam.details(game.steamAppId!)
-          : await steam.bestMatch(event.query ?? game.title);
+
+      final match = await _askSteamAbout(game, event.query);
       if (_closing) return;
       if (match == null) {
-        emit(
-          state.copyWith(
-            busy: _withBusy(key, false),
-            notice: event.automatic
-                ? state.notice
-                : _notice(_l.noticeSteamNothingFound),
-          ),
+        _finishBusy(
+          emit,
+          key,
+          message: event.automatic ? null : _l.noticeSteamNothingFound,
         );
         return;
       }
 
-      // Обзоры — отдельным запросом: в `appdetails` их нет вовсе. Своя
-      // попытка и свой отказ: промолчи Steam об обзорах, игра всё равно
-      // получит и обложку, и описание, и пути сохранений — терять их
-      // из-за числа рядом с оценкой не за что.
-      SteamReviews? reviews;
-      try {
-        reviews = await steam.reviews(match.appId);
-      } on Object {
-        reviews = null;
-      }
+      final reviews = await _steamReviews(match.appId);
       if (_closing) return;
-
       final coverBytes = await steam.coverBytes(match);
       if (_closing) return;
-      var current = state.gameById(game.id);
-      if (current == null || current.addedAt != game.addedAt) {
-        emit(state.copyWith(busy: _withBusy(key, false)));
+
+      var current = _stillSameGame(game);
+      if (current == null) {
+        _finishBusy(emit, key);
         return;
       }
 
-      var coverPath = current.coverPath;
-      final previousCover = coverPath;
-      if (coverBytes != null &&
-          (coverPath == null || p.isWithin(_coversDir, coverPath))) {
-        final file = File(
-          p.join(
-            _coversDir,
-            '${safeFileName(game.id)}-${DateTime.now().microsecondsSinceEpoch}-steam.jpg',
-          ),
-        );
-        try {
-          await file.parent.create(recursive: true);
-          await file.writeAsBytes(coverBytes, flush: true);
-          coverPath = file.path;
-        } on FileSystemException {
-          // Ошибка кэша обложки не отменяет ID, описание и поиск сейвов.
-        }
-        current = state.gameById(game.id);
-        if (current == null || current.addedAt != game.addedAt) {
-          if (await file.exists()) await file.delete();
-          emit(state.copyWith(busy: _withBusy(key, false)));
-          return;
-        }
+      final previousCover = current.coverPath;
+      final coverFile = await _writeSteamCover(game, coverBytes, previousCover);
+
+      // Запись файла — тоже ожидание, и за него игру могли убрать. Свежий
+      // файл тогда удаляем: иначе в кэше копились бы обложки-сироты.
+      current = _stillSameGame(game);
+      if (current == null) {
+        await _deleteCoverFile(coverFile?.path);
+        _finishBusy(emit, key);
+        return;
       }
 
-      final index = state.games.indexWhere((g) => g.id == game.id);
+      final coverPath = coverFile?.path ?? previousCover;
+      final rating = _ratingOf(match, reviews);
       final games = [...state.games];
-      final rating = GameRating(
-        score: reviews?.score,
-        summary: reviews?.summary,
-        positive: reviews?.positive ?? 0,
-        negative: reviews?.negative ?? 0,
-        metacritic: match.metacritic,
-      );
-      games[index] = current.copyWith(
+      games[games.indexWhere((g) => g.id == game.id)] = current.copyWith(
         steamAppId: match.appId,
         coverUrl: match.headerImage,
         description: match.description,
@@ -135,30 +105,113 @@ extension _LibraryMetadata on LibraryBloc {
         ),
       );
       await persist();
-      if (previousCover != null &&
-          previousCover != coverPath &&
-          p.isWithin(_coversDir, previousCover)) {
-        try {
-          final old = File(previousCover);
-          if (await old.exists()) await old.delete();
-        } on FileSystemException {
-          // Неудачная уборка старой обложки не отменяет новые метаданные.
-        }
+
+      if (coverPath != previousCover) {
+        await _deleteReplacedCover(previousCover);
       }
-      final updated = state.gameById(game.id);
-      if (!_closing &&
-          updated != null &&
-          (!event.automatic || !updated.savePathsLookupAttempted)) {
-        add(SavePathsLookupRequested(updated, automatic: event.automatic));
-      }
+      _continueWithSavePaths(game.id, automatic: event.automatic);
     } on Object catch (error) {
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
-        ),
-      );
+      _finishBusy(emit, key, message: error.toString(), isError: true);
     }
+  }
+
+  /// Спрашивает Steam об игре.
+  ///
+  /// Идентификатор уже известен — спрашиваем прямо по нему. Поиск по
+  /// названию тут не только лишний, но и вреден: он способен ответить
+  /// другой игрой.
+  Future<SteamGame?> _askSteamAbout(Game game, String? query) =>
+      game.steamAppId != null
+      ? steam.details(game.steamAppId!)
+      : steam.bestMatch(query ?? game.title);
+
+  /// Обзоры — отдельным запросом: в `appdetails` их нет вовсе.
+  ///
+  /// Своя попытка и свой отказ: промолчи Steam об обзорах, игра всё равно
+  /// получит и обложку, и описание, и пути сохранений — терять их из-за
+  /// числа рядом с оценкой не за что.
+  Future<SteamReviews?> _steamReviews(int appId) async {
+    try {
+      return await steam.reviews(appId);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Оценка игроков: доля положительных — из обзоров, Metacritic — из тех
+  /// же `appdetails`, откуда пришло описание.
+  GameRating _ratingOf(SteamGame match, SteamReviews? reviews) => GameRating(
+    score: reviews?.score,
+    summary: reviews?.summary,
+    positive: reviews?.positive ?? 0,
+    negative: reviews?.negative ?? 0,
+    metacritic: match.metacritic,
+  );
+
+  /// Та же ли игра лежит в состоянии, что и до похода в сеть.
+  ///
+  /// Пока мы ждали ответа, игру могли удалить, а на её место завести
+  /// другую с тем же id — у той другой `addedAt`, и чужие метаданные ей
+  /// не достаются.
+  Game? _stillSameGame(Game game) {
+    final current = state.gameById(game.id);
+    if (current == null || current.addedAt != game.addedAt) return null;
+    return current;
+  }
+
+  /// Кладёт обложку из Steam в кэш приложения и возвращает её файл.
+  ///
+  /// Возвращает null, если писать было нечего или не вышло: из-за картинки
+  /// не теряют ни идентификатор, ни описание, ни поиск сейвов. Обложку,
+  /// выбранную человеком самим, не трогаем — она лежит вне кэша.
+  Future<File?> _writeSteamCover(
+    Game game,
+    List<int>? bytes,
+    String? currentCover,
+  ) async {
+    final ourOwn = currentCover == null || p.isWithin(_coversDir, currentCover);
+    if (bytes == null || !ourOwn) return null;
+
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final file = File(
+      p.join(_coversDir, '${safeFileName(game.id)}-$stamp-steam.jpg'),
+    );
+    try {
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+      return file;
+    } on FileSystemException {
+      // Ошибка кэша обложки не отменяет ID, описание и поиск сейвов.
+      await _deleteCoverFile(file.path);
+      return null;
+    }
+  }
+
+  /// Убирает файл обложки, который оказался не нужен. Ошибку удаления
+  /// гасим: из-за неубранной картинки не теряют найденные метаданные.
+  Future<void> _deleteCoverFile(String? path) async {
+    if (path == null) return;
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } on FileSystemException {
+      // Лишний файл в кэше безвреден, а отменять из-за него нечего.
+    }
+  }
+
+  /// Убирает обложку, которую только что заменили новой. Трогаем лишь свой
+  /// кэш: обложку, выбранную человеком, удалять нельзя — она не наша.
+  Future<void> _deleteReplacedCover(String? path) async {
+    if (path == null || !p.isWithin(_coversDir, path)) return;
+    await _deleteCoverFile(path);
+  }
+
+  /// Следующее звено цепочки: по найденному `appid` ищутся пути сохранений.
+  void _continueWithSavePaths(String gameId, {required bool automatic}) {
+    final updated = state.gameById(gameId);
+    if (_closing || updated == null) return;
+    if (automatic && updated.savePathsLookupAttempted) return;
+    add(SavePathsLookupRequested(updated, automatic: automatic));
   }
 
   /// Заводит игру в Steam сторонним ярлыком.
@@ -362,48 +415,35 @@ extension _LibraryMetadata on LibraryBloc {
     try {
       _replaceGame(game.copyWith(savePathsLookupAttempted: true), emit);
       await persist();
-      final entry = await _lookupPaths(
+      final found = await _lookupPaths(
         SavePathsLookupRequested(game, refresh: event.refresh),
       );
       if (_closing) return;
 
-      if (entry == null) {
-        emit(
-          state.copyWith(
-            busy: _withBusy(key, false),
-            notice: event.automatic
-                ? state.notice
-                : _notice(_l.noticePathsNothingFound),
-          ),
+      if (found == null) {
+        _finishBusy(
+          emit,
+          key,
+          message: event.automatic ? null : _l.noticePathsNothingFound,
         );
         done();
         return;
       }
 
-      final current = state.gameById(event.game.id);
-      if (current == null || current.addedAt != game.addedAt) {
-        emit(state.copyWith(busy: _withBusy(key, false)));
+      final current = _stillSameGame(game);
+      if (current == null) {
+        _finishBusy(emit, key);
         done();
         return;
       }
 
-      final existing = current.saveProfile.rules.map((r) => r.template).toSet();
-      final added = <SavePathRule>[
-        for (final template in entry.templates)
-          if (!existing.contains(template))
-            SavePathRule(
-              id: const Uuid().v4(),
-              label: entry.labelFor(template),
-              template: template,
-            ),
-      ];
-
+      final added = _newRulesFor(current, found);
       final games = [...state.games];
       games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
-        ludusaviTemplates: entry.sourceTemplates,
+        ludusaviTemplates: found.sourceTemplates,
         ludusaviResolvedPaths: {
           ...current.ludusaviResolvedPaths,
-          ...entry.templates,
+          ...found.templates,
         }.toList(),
         saveProfile: current.saveProfile.copyWith(
           rules: [...current.saveProfile.rules, ...added],
@@ -415,26 +455,37 @@ extension _LibraryMetadata on LibraryBloc {
           busy: _withBusy(key, false),
           notice: event.automatic
               ? state.notice
-              : _notice(
-                  entry.isEmpty
-                      ? _l.noticePathsNothingFound
-                      : added.isEmpty
-                      ? _l.noticePathsAlreadySet
-                      : entry.describe(_l, added.length),
-                ),
+              : _notice(_foundPathsMessage(found, added.length)),
         ),
       );
       await persist();
       done();
     } on Object catch (error) {
       done();
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
-        ),
-      );
+      _finishBusy(emit, key, message: error.toString(), isError: true);
     }
+  }
+
+  /// Правила для путей, которых в профиле ещё нет. Уже заданные не
+  /// трогаем: пользователь мог поправить путь под себя.
+  List<SavePathRule> _newRulesFor(Game game, _FoundPaths found) {
+    final existing = game.saveProfile.rules.map((r) => r.template).toSet();
+    return [
+      for (final template in found.templates)
+        if (!existing.contains(template))
+          SavePathRule(
+            id: const Uuid().v4(),
+            label: found.labelFor(template),
+            template: template,
+          ),
+    ];
+  }
+
+  /// Что сказать человеку о найденных путях.
+  String _foundPathsMessage(_FoundPaths found, int added) {
+    if (found.isEmpty) return _l.noticePathsNothingFound;
+    if (added == 0) return _l.noticePathsAlreadySet;
+    return found.describe(_l, added);
   }
 
   /// Снимает сохранения всех настроенных игр и складывает пакеты в папку —

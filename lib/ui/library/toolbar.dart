@@ -34,9 +34,14 @@ class LibraryToolbar extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onReturnToGames;
 
+  /// Выше этой ширины все три органа встают в строку с просветами.
+  static const _wide = 1340.0;
+
+  /// Ниже этой — в строку не влезают вовсе и становятся столбцом.
+  static const _narrow = 760.0;
+
   @override
   Widget build(BuildContext context) {
-    final l = L.of(context);
     final filters = KeyedSubtree(
       key: const ValueKey('library-filter-group'),
       child: ShelfTabs(shelf: shelf, counts: counts, onShelf: onShelf),
@@ -45,60 +50,8 @@ class LibraryToolbar extends StatelessWidget {
       key: const ValueKey('library-actions-group'),
       child: _AddGameButton(onAdd: onAdd, onScan: onScan),
     );
-    final search = SizedBox(
-      key: const ValueKey('library-search'),
-      width: 144,
-      height: 48,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: context.colors.railBackground.withValues(alpha: 0.78),
-          borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-          border: Border.all(
-            color: context.colors.textPrimary.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 3, right: 3, bottom: 0, left: 3),
-          child: Actions(
-            actions: {
-              ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
-                onInvoke: (_) {
-                  onReturnToGames();
-                  return null;
-                },
-              ),
-            },
-            child: Shortcuts(
-              shortcuts: const {
-                SingleActivator(LogicalKeyboardKey.arrowDown):
-                    ReturnToLibraryIntent(),
-                SingleActivator(LogicalKeyboardKey.escape):
-                    ReturnToLibraryIntent(),
-                SingleActivator(LogicalKeyboardKey.enter):
-                    ReturnToLibraryIntent(),
-                SingleActivator(LogicalKeyboardKey.numpadEnter):
-                    ReturnToLibraryIntent(),
-              },
-              child: TextField(
-                focusNode: searchFocus,
-                onChanged: onQuery,
-                onSubmitted: (_) => onReturnToGames(),
-                decoration: InputDecoration(
-                  hintText: l.searchHint,
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  filled: false,
-                  isDense: true,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    final search = _search(context);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
       child: GlassSurface(
@@ -107,46 +60,112 @@ class LibraryToolbar extends StatelessWidget {
         shadow: false,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth >= 1340) {
-              return Row(
-                children: [
-                  filters,
-                  const Spacer(),
-                  actions,
-                  const Spacer(),
-                  search,
-                ],
-              );
-            }
-            if (constraints.maxWidth >= 760) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  filters,
-                  const SizedBox(width: 6),
-                  Expanded(child: actions),
-                  const SizedBox(width: 6),
-                  search,
-                ],
-              );
-            }
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(alignment: Alignment.centerLeft, child: filters),
-                const SizedBox(height: 8),
-                SizedBox(width: double.infinity, child: search),
-                const SizedBox(height: 8),
-                Align(alignment: Alignment.center, child: actions),
-              ],
-            );
-          },
+          builder: (context, constraints) => _arrange(
+            constraints.maxWidth,
+            filters: filters,
+            actions: actions,
+            search: search,
+          ),
         ),
       ),
     );
   }
+
+  /// Расставляет три органа по ширине окна.
+  Widget _arrange(
+    double width, {
+    required Widget filters,
+    required Widget actions,
+    required Widget search,
+  }) {
+    if (width >= _wide) {
+      return Row(
+        children: [filters, const Spacer(), actions, const Spacer(), search],
+      );
+    }
+    if (width >= _narrow) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          filters,
+          const SizedBox(width: 6),
+          Expanded(child: actions),
+          const SizedBox(width: 6),
+          search,
+        ],
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(alignment: Alignment.centerLeft, child: filters),
+        const SizedBox(height: 8),
+        SizedBox(width: double.infinity, child: search),
+        const SizedBox(height: 8),
+        Align(alignment: Alignment.center, child: actions),
+      ],
+    );
+  }
+
+  /// Поле поиска.
+  ///
+  /// Вниз, Escape и Enter возвращают из него в сетку обложек: иначе,
+  /// спустившись сюда с клавиатуры, человек в поле и застревал.
+  Widget _search(BuildContext context) => SizedBox(
+    key: const ValueKey('library-search'),
+    width: 144,
+    height: 48,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.colors.railBackground.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
+        border: Border.all(
+          color: context.colors.textPrimary.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 3, right: 3, bottom: 0, left: 3),
+        child: Actions(
+          actions: {
+            ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
+              onInvoke: (_) {
+                onReturnToGames();
+                return null;
+              },
+            ),
+          },
+          child: Shortcuts(
+            shortcuts: const {
+              SingleActivator(LogicalKeyboardKey.arrowDown):
+                  ReturnToLibraryIntent(),
+              SingleActivator(LogicalKeyboardKey.escape):
+                  ReturnToLibraryIntent(),
+              SingleActivator(LogicalKeyboardKey.enter):
+                  ReturnToLibraryIntent(),
+              SingleActivator(LogicalKeyboardKey.numpadEnter):
+                  ReturnToLibraryIntent(),
+            },
+            child: TextField(
+              focusNode: searchFocus,
+              onChanged: onQuery,
+              onSubmitted: (_) => onReturnToGames(),
+              decoration: InputDecoration(
+                hintText: L.of(context).searchHint,
+                prefixIcon: const Icon(Icons.search, size: 18),
+                filled: false,
+                isDense: true,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// «Добавить игру» — одна клавиша с меню на два способа.

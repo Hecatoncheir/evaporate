@@ -49,11 +49,11 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final downloads = context.watch<DownloadsBloc>().state;
-    final engineReady = downloads.engine.isReady;
+    final engine = context.watch<DownloadsBloc>().state.engine;
+    final l = L.of(context);
 
     return AlertDialog(
-      title: Text(L.of(context).addGame),
+      title: Text(l.addGame),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -61,66 +61,24 @@ class _AddGameDialogState extends State<_AddGameDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SegmentedButton<GameSourceKind>(
-                segments: [
-                  ButtonSegment(
-                    value: GameSourceKind.magnet,
-                    icon: Icon(Icons.link, size: 16),
-                    label: Text('Magnet'),
-                  ),
-                  ButtonSegment(
-                    value: GameSourceKind.torrentFile,
-                    icon: Icon(Icons.description_outlined, size: 16),
-                    label: Text('.torrent'),
-                  ),
-                  ButtonSegment(
-                    value: GameSourceKind.localFolder,
-                    icon: Icon(Icons.folder_outlined, size: 16),
-                    label: Text(L.of(context).sourceFolder),
-                  ),
-                ],
-                selected: {_kind},
-                onSelectionChanged: (value) =>
-                    setState(() => _kind = value.first),
-              ),
+              _kindPicker(context),
               const SizedBox(height: 20),
               ..._buildSourceFields(),
               const SizedBox(height: 16),
               TextField(
                 controller: _titleController,
                 decoration: InputDecoration(
-                  labelText: L.of(context).title,
-                  hintText: L.of(context).titleHint,
+                  labelText: l.title,
+                  hintText: l.titleHint,
                 ),
               ),
+              // У папки на диске качать нечего: она уже установлена.
               if (_kind != GameSourceKind.localFolder) ...[
                 const SizedBox(height: 8),
-                CheckboxListTile(
-                  value: _startImmediately && engineReady,
-                  onChanged: engineReady
-                      ? (value) =>
-                            setState(() => _startImmediately = value ?? false)
-                      : null,
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  dense: true,
-                  title: Text(L.of(context).startDownloadNow),
-                  subtitle: engineReady
-                      ? null
-                      : Text(
-                          L
-                              .of(context)
-                              .engineUnavailable(
-                                engineStateLabel(
-                                  L.of(context),
-                                  downloads.engine.state,
-                                ),
-                              ),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: context.colors.warning,
-                          ),
-                        ),
+                _startNow(
+                  context,
+                  ready: engine.isReady,
+                  engineState: engineStateLabel(l, engine.state),
                 ),
               ],
               if (_error != null) ...[
@@ -134,7 +92,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
       actions: [
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: Text(L.of(context).cancel),
+          child: Text(l.cancel),
         ),
         FilledButton(
           onPressed: _busy ? null : _submit,
@@ -144,9 +102,60 @@ class _AddGameDialogState extends State<_AddGameDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(L.of(context).add),
+              : Text(l.add),
         ),
       ],
+    );
+  }
+
+  /// Откуда берём игру: magnet-ссылка, файл раздачи или папка на диске.
+  Widget _kindPicker(BuildContext context) => SegmentedButton<GameSourceKind>(
+    segments: [
+      ButtonSegment(
+        value: GameSourceKind.magnet,
+        icon: Icon(Icons.link, size: 16),
+        label: Text('Magnet'),
+      ),
+      ButtonSegment(
+        value: GameSourceKind.torrentFile,
+        icon: Icon(Icons.description_outlined, size: 16),
+        label: Text('.torrent'),
+      ),
+      ButtonSegment(
+        value: GameSourceKind.localFolder,
+        icon: Icon(Icons.folder_outlined, size: 16),
+        label: Text(L.of(context).sourceFolder),
+      ),
+    ],
+    selected: {_kind},
+    onSelectionChanged: (value) => setState(() => _kind = value.first),
+  );
+
+  /// Ставить ли загрузку сразу.
+  ///
+  /// Пока движок не поднялся, галочка погашена, и рядом сказано почему:
+  /// иначе она выглядела бы сломанной.
+  Widget _startNow(
+    BuildContext context, {
+    required bool ready,
+    required String engineState,
+  }) {
+    final l = L.of(context);
+    return CheckboxListTile(
+      value: _startImmediately && ready,
+      onChanged: ready
+          ? (value) => setState(() => _startImmediately = value ?? false)
+          : null,
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      dense: true,
+      title: Text(l.startDownloadNow),
+      subtitle: ready
+          ? null
+          : Text(
+              l.engineUnavailable(engineState),
+              style: TextStyle(fontSize: 12, color: context.colors.warning),
+            ),
     );
   }
 
@@ -265,63 +274,15 @@ class _AddGameDialogState extends State<_AddGameDialog> {
     });
 
     try {
-      final title = _titleController.text.trim();
+      // id генерируем здесь: событие ничего не возвращает, а запустить
+      // загрузку надо будет именно этой игре.
       final id = const Uuid().v4();
-
-      switch (_kind) {
-        case GameSourceKind.magnet:
-          final magnet = _magnetController.text.trim();
-          if (!magnet.startsWith('magnet:')) {
-            throw l.badMagnet;
-          }
-          final source = GameSource(kind: GameSourceKind.magnet, value: magnet);
-          library.add(
-            GameAdded(
-              id: id,
-              title: title.isEmpty
-                  ? (_displayNameFromMagnet(magnet) ?? l.newGame)
-                  : title,
-              source: source,
-            ),
-          );
-          await _startIfRequested(library, downloads, id, source);
-          if (mounted) Navigator.pop(context, id);
-
-        case GameSourceKind.torrentFile:
-          final path = _filePath;
-          if (path == null) throw l.pickTorrent;
-          final source = GameSource(
-            kind: GameSourceKind.torrentFile,
-            value: path,
-          );
-          library.add(
-            GameAdded(
-              id: id,
-              title: title.isEmpty ? p.basenameWithoutExtension(path) : title,
-              source: source,
-            ),
-          );
-          await _startIfRequested(library, downloads, id, source);
-          if (mounted) Navigator.pop(context, id);
-
-        case GameSourceKind.localFolder:
-          final dir = _folderPath;
-          if (dir == null) throw l.pickFolder;
-          if (!await Directory(dir).exists()) throw l.folderMissing;
-
-          final candidates = await ExecutableFinder.scan(dir);
-          library.add(
-            GameAdded(
-              id: id,
-              title: title.isEmpty ? p.basename(dir) : title,
-              source: GameSource(kind: GameSourceKind.localFolder, value: dir),
-              installDir: dir,
-              executablePath: candidates.isEmpty ? null : candidates.first.path,
-              status: GameStatus.installed,
-            ),
-          );
-          if (mounted) Navigator.pop(context, id);
+      final request = await _buildRequest(l, id);
+      library.add(request.event);
+      if (request.download != null) {
+        await _startIfRequested(library, downloads, id, request.download!);
       }
+      if (mounted) Navigator.pop(context, id);
     } on Object catch (error) {
       if (mounted) {
         setState(() {
@@ -331,6 +292,75 @@ class _AddGameDialogState extends State<_AddGameDialog> {
       }
     }
   }
+
+  /// Собирает то, что предстоит завести в библиотеке.
+  ///
+  /// Проверки и название у каждого источника свои, а всё, что дальше, —
+  /// одно на всех, поэтому развилка кончается здесь.
+  Future<_AddRequest> _buildRequest(L l, String id) async {
+    final title = _titleController.text.trim();
+
+    switch (_kind) {
+      case GameSourceKind.magnet:
+        final magnet = _magnetController.text.trim();
+        if (!magnet.startsWith('magnet:')) throw l.badMagnet;
+        final source = GameSource(kind: GameSourceKind.magnet, value: magnet);
+        return _AddRequest(
+          event: GameAdded(
+            id: id,
+            title: title.isEmpty
+                ? (_displayNameFromMagnet(magnet) ?? l.newGame)
+                : title,
+            source: source,
+          ),
+          download: source,
+        );
+
+      case GameSourceKind.torrentFile:
+        final path = _filePath;
+        if (path == null) throw l.pickTorrent;
+        final source = GameSource(
+          kind: GameSourceKind.torrentFile,
+          value: path,
+        );
+        return _AddRequest(
+          event: GameAdded(
+            id: id,
+            title: title.isEmpty ? p.basenameWithoutExtension(path) : title,
+            source: source,
+          ),
+          download: source,
+        );
+
+      case GameSourceKind.localFolder:
+        final dir = _folderPath;
+        if (dir == null) throw l.pickFolder;
+        if (!await Directory(dir).exists()) throw l.folderMissing;
+
+        final candidates = await ExecutableFinder.scan(dir);
+        return _AddRequest(
+          event: GameAdded(
+            id: id,
+            title: title.isEmpty ? p.basename(dir) : title,
+            source: GameSource(kind: GameSourceKind.localFolder, value: dir),
+            installDir: dir,
+            executablePath: candidates.isEmpty ? null : candidates.first.path,
+            status: GameStatus.installed,
+          ),
+        );
+    }
+  }
+}
+
+/// Что завести в библиотеке и надо ли сразу ставить это в загрузку.
+class _AddRequest {
+  const _AddRequest({required this.event, this.download});
+
+  final GameAdded event;
+
+  /// Источник, который можно качать. У папки на диске его нет: она уже
+  /// установлена.
+  final GameSource? download;
 }
 
 class _PathPicker extends StatelessWidget {

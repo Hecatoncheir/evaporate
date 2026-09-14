@@ -47,11 +47,11 @@ class _RuleDialogState extends State<RuleDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = L.of(context);
     final template = _templateController.text;
-    final portable = SavePathTemplate.isPortable(template);
 
     return AlertDialog(
-      title: Text(L.of(context).savePath),
+      title: Text(l.savePath),
       content: SizedBox(
         width: 540,
         child: Column(
@@ -61,8 +61,8 @@ class _RuleDialogState extends State<RuleDialog> {
             TextField(
               controller: _labelController,
               decoration: InputDecoration(
-                labelText: L.of(context).label,
-                helperText: L.of(context).labelNote,
+                labelText: l.label,
+                helperText: l.labelNote,
               ),
             ),
             const SizedBox(height: 16),
@@ -73,44 +73,23 @@ class _RuleDialogState extends State<RuleDialog> {
                 fontFamily: EvaporateTheme.monoFontFamily,
                 fontSize: 13,
               ),
-              decoration: InputDecoration(
-                labelText: L.of(context).pathTemplate,
-              ),
+              decoration: InputDecoration(labelText: l.pathTemplate),
             ),
             const SizedBox(height: 8),
             Text(
-              L
-                  .of(context)
-                  .expandsTo(
-                    SavePathTemplate.expand(template, gameDir: widget.gameDir),
-                  ),
+              l.expandsTo(
+                SavePathTemplate.expand(template, gameDir: widget.gameDir),
+              ),
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
               ),
             ),
-            if (!portable) ...[
+            // Путь без плейсхолдера на другом устройстве не развернётся
+            // ни во что осмысленное — об этом предупреждают сразу.
+            if (!SavePathTemplate.isPortable(template)) ...[
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 15,
-                    color: context.colors.warning,
-                  ),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      L.of(context).absolutePathWarning,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.colors.warning,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _absoluteWarning(context),
             ],
             const SizedBox(height: 12),
             CheckboxListTile(
@@ -121,13 +100,11 @@ class _RuleDialogState extends State<RuleDialog> {
               controlAffinity: ListTileControlAffinity.leading,
               dense: true,
               title: Text(
-                L
-                    .of(context)
-                    .onlyForPlatform(platformLabel(currentPlatformKey())),
+                l.onlyForPlatform(platformLabel(currentPlatformKey())),
                 style: const TextStyle(fontSize: 13),
               ),
               subtitle: Text(
-                L.of(context).onlyForPlatformNote,
+                l.onlyForPlatformNote,
                 style: TextStyle(fontSize: 12),
               ),
             ),
@@ -137,29 +114,51 @@ class _RuleDialogState extends State<RuleDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(L.of(context).cancel),
+          child: Text(l.cancel),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(
-            context,
-            RuleDraft(
-              // Именно константа, а не `L.of(context).saves`. Показывают
-              // метку переведённой (`ruleLabelText`), но хранят и
-              // сопоставляют — как есть: правила сходятся между
-              // устройствами по метке, и записанное здесь «Saves» с
-              // английского интерфейса не сошлось бы с «Сохранениями» на
-              // русском. Сейв просто не восстановился бы, и никто не
-              // догадался бы почему.
-              _labelController.text.trim().isEmpty
-                  ? SavePathRule.defaultLabel
-                  : _labelController.text.trim(),
-              _templateController.text.trim(),
-              _currentPlatformOnly,
-            ),
-          ),
-          child: Text(L.of(context).save),
+          onPressed: () => Navigator.pop(context, _draft()),
+          child: Text(l.save),
         ),
       ],
+    );
+  }
+
+  Widget _absoluteWarning(BuildContext context) => Row(
+    children: [
+      Icon(
+        Icons.warning_amber_rounded,
+        size: 15,
+        color: context.colors.warning,
+      ),
+      SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          L.of(context).absolutePathWarning,
+          style: TextStyle(
+            fontSize: 12,
+            color: context.colors.warning,
+            height: 1.4,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  /// Правило, каким его записывают.
+  ///
+  /// Метка по умолчанию — именно константа, а не `L.of(context).saves`.
+  /// Показывают её переведённой (`ruleLabelText`), но хранят и
+  /// сопоставляют как есть: правила сходятся между устройствами по метке,
+  /// и записанное здесь «Saves» с английского интерфейса не сошлось бы
+  /// с «Сохранениями» на русском. Сейв просто не восстановился бы, и
+  /// никто не догадался бы почему.
+  RuleDraft _draft() {
+    final label = _labelController.text.trim();
+    return RuleDraft(
+      label.isEmpty ? SavePathRule.defaultLabel : label,
+      _templateController.text.trim(),
+      _currentPlatformOnly,
     );
   }
 }

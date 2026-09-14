@@ -225,6 +225,25 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     return next;
   }
 
+  /// Гасит указатель занятости и, если есть что сказать, показывает
+  /// сообщение. Работа, которую человек не просил, идёт молча — ей
+  /// сообщение не нужно.
+  void _finishBusy(
+    Emitter<LibraryState> emit,
+    String key, {
+    String? message,
+    bool isError = false,
+  }) {
+    emit(
+      state.copyWith(
+        busy: _withBusy(key, false),
+        notice: message == null
+            ? state.notice
+            : _notice(message, isError: isError),
+      ),
+    );
+  }
+
   void _schedulePersist() {
     _persistTimer?.cancel();
     _persistTimer = Timer(const Duration(milliseconds: 400), persist);

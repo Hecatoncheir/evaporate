@@ -25,6 +25,13 @@ import 'shell/top_bar.dart';
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
+  /// Ниже этой ширины поля ужимаются: каждая точка нужна содержимому.
+  static const _compactWidth = 980.0;
+
+  /// Ниже этой высоты подвал убирается совсем — иначе не остаётся места
+  /// самим разделам.
+  static const _shortHeight = 520.0;
+
   /// Действие кнопки X: сделать с выбранной игрой то же, что делает
   /// главная кнопка её карточки. Решение о том, что это за действие, —
   /// общее (`primary_action.dart`), иначе геймпад и кадр библиотеки
@@ -91,100 +98,86 @@ class AppShell extends StatelessWidget {
             enabled: ambientEnabled,
             title: selectedTitle,
             child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 980;
-                final shortViewport = constraints.maxHeight < 520;
-                return Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    compact ? 6 : 10,
-                    compact ? 6 : 10,
-                    compact ? 6 : 10,
-                    0,
-                  ),
-                  child: Column(
-                    children: [
-                      ConceptTopBar(compact: compact),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            EvaporateTheme.radiusPanel,
-                          ),
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              // Панель нарочно неплотная: под ней лежит свет
-                              // выбранной игры, и заливка в упор погасила бы
-                              // единственный цвет в окне.
-                              color: context.colors.surface.withValues(
-                                alpha: context.colors.isDark ? 0.62 : 0.78,
-                              ),
-                              border: Border.all(
-                                color: context.colors.outline.withValues(
-                                  alpha: 0.45,
-                                ),
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                EvaporateTheme.radiusPanel,
-                              ),
-                            ),
-                            child: GameWave(
-                              key: const ValueKey('library-wave'),
-                              enabled: section == 0 && waveEnabled,
-                              child: FocusTraversalGroup(
-                                child:
-                                    BlocSelector<
-                                      NavigationBloc,
-                                      NavigationState,
-                                      int
-                                    >(
-                                      selector: (state) => state.section,
-                                      builder: (context, section) =>
-                                          FadeIndexedStack(
-                                            index: section,
-                                            enabled: context
-                                                .select<SettingsBloc, bool>(
-                                                  (b) =>
-                                                      b.state.libraryEffects &&
-                                                      b
-                                                          .state
-                                                          .interfaceAnimationsEnabled,
-                                                ),
-                                            children: const [
-                                              LibraryPage(),
-                                              DownloadsPage(),
-                                              SavesPage(),
-                                              SettingsPage(),
-                                            ],
-                                          ),
-                                    ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (!shortViewport) ...[
-                        const SizedBox(height: 6),
-                        SizedBox(
-                          height: 40,
-                          child: OverflowBox(
-                            maxWidth: constraints.maxWidth,
-                            child: SizedBox(
-                              width: constraints.maxWidth,
-                              child: const AppFooter(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
+              builder: (context, constraints) => _layout(
+                context,
+                constraints,
+                section: section,
+                waveEnabled: waveEnabled,
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+  /// Раскладка окна: обойма сверху, панель разделов, подвал.
+  Widget _layout(
+    BuildContext context,
+    BoxConstraints constraints, {
+    required int section,
+    required bool waveEnabled,
+  }) {
+    final compact = constraints.maxWidth < _compactWidth;
+    final inset = compact ? 6.0 : 10.0;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(inset, inset, inset, 0),
+      child: Column(
+        children: [
+          ConceptTopBar(compact: compact),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _panel(context, section: section, waveEnabled: waveEnabled),
+          ),
+          if (constraints.maxHeight >= _shortHeight) ...[
+            const SizedBox(height: 6),
+            _footer(constraints.maxWidth),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Панель, в которой живут разделы.
+  ///
+  /// Нарочно неплотная: под ней лежит свет выбранной игры, и заливка в упор
+  /// погасила бы единственный цвет в окне.
+  Widget _panel(
+    BuildContext context, {
+    required int section,
+    required bool waveEnabled,
+  }) {
+    final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
+    return ClipRRect(
+      borderRadius: radius,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.colors.surface.withValues(
+            alpha: context.colors.isDark ? 0.62 : 0.78,
+          ),
+          border: Border.all(
+            color: context.colors.outline.withValues(alpha: 0.45),
+          ),
+          borderRadius: radius,
+        ),
+        child: GameWave(
+          key: const ValueKey('library-wave'),
+          enabled: section == 0 && waveEnabled,
+          child: FocusTraversalGroup(child: const _Sections()),
+        ),
+      ),
+    );
+  }
+
+  /// Подвал идёт во всю ширину окна и потому вылезает за поля панели.
+  Widget _footer(double width) => SizedBox(
+    height: 40,
+    child: OverflowBox(
+      maxWidth: width,
+      child: SizedBox(width: width, child: const AppFooter()),
+    ),
+  );
 
   static void _showNotice(BuildContext context, Notice? notice) {
     if (notice == null) return;
@@ -193,5 +186,34 @@ class AppShell extends StatelessWidget {
     } else {
       showInfo(context, notice.message);
     }
+  }
+}
+
+/// Четыре раздела приложения.
+///
+/// Лежат в стопке все разом: невидимый раздел не выброшен, а только не
+/// нарисован, — переход между разделами не собирает страницу заново.
+class _Sections extends StatelessWidget {
+  const _Sections();
+
+  @override
+  Widget build(BuildContext context) {
+    final section = context.select<NavigationBloc, int>(
+      (bloc) => bloc.state.section,
+    );
+    final animated = context.select<SettingsBloc, bool>(
+      (bloc) =>
+          bloc.state.libraryEffects && bloc.state.interfaceAnimationsEnabled,
+    );
+    return FadeIndexedStack(
+      index: section,
+      enabled: animated,
+      children: const [
+        LibraryPage(),
+        DownloadsPage(),
+        SavesPage(),
+        SettingsPage(),
+      ],
+    );
   }
 }

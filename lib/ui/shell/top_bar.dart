@@ -19,103 +19,110 @@ class ConceptTopBar extends StatelessWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => SizedBox(
+    height: 64,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Row(
+          children: [
+            _brand(context),
+            if (compact) ...[
+              // В узком окне разделы остаются в рейке, а не уезжают вниз:
+              // обойма сама прячет подписи и сжимается по месту. Прежде она
+              // переезжала под содержимое и налезала на подсказки
+              // управления в нижней строке.
+              const SizedBox(width: 10),
+              const Expanded(child: Center(child: ConceptNavigation())),
+              const SizedBox(width: 10),
+            ] else
+              const Spacer(),
+            ..._actions(context),
+          ],
+        ),
+        // В широком окне обойма стоит ровно по центру всей рейки, а не
+        // между бренду и действиями: для этого она и лежит в Stack.
+        if (!compact) const ConceptNavigation(),
+      ],
+    ),
+  );
+
+  /// Знак и название приложения.
+  Widget _brand(BuildContext context) {
     final colors = context.colors;
-    final settings = context.watch<SettingsBloc>().state;
-    final mode = settings.themeMode;
-    return SizedBox(
-      height: 64,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Row(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Знак в собственной оправе с волосяным кантом: на чернильном фоне
+        // без канта он выглядит вырезанным из другой картинки.
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.primary.withValues(alpha: 0.42)),
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+          ),
+          child: const AppMark(size: 30),
+        ),
+        if (!compact) ...[
+          const SizedBox(width: 11),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Знак в собственной оправе с волосяным кантом: на чернильном
-              // фоне без канта он выглядит вырезанным из другой картинки.
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: colors.primary.withValues(alpha: 0.42),
-                  ),
-                  borderRadius: BorderRadius.circular(
-                    EvaporateTheme.radiusControl,
-                  ),
-                ),
-                child: const AppMark(size: 30),
-              ),
-              if (!compact) ...[
-                const SizedBox(width: 11),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'EVAPORATE',
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontFamily: EvaporateTheme.monoFontFamily,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.2,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Короткий золотой штрих под словом — подпись на
-                    // корпусе, а не украшение: он же задаёт фирменный цвет
-                    // всей рейке.
-                    Container(width: 26, height: 2, color: colors.primary),
-                  ],
-                ),
-              ],
-              if (compact) ...[
-                // В узком окне разделы остаются в рейке, а не уезжают вниз:
-                // обойма сама прячет подписи и сжимается по месту. Прежде
-                // она переезжала под содержимое и налезала на подсказки
-                // управления в нижней строке.
-                const SizedBox(width: 10),
-                const Expanded(child: Center(child: ConceptNavigation())),
-                const SizedBox(width: 10),
-              ] else
-                const Spacer(),
-              TopAction(
-                tooltip: L.of(context).searchHint,
-                icon: Icons.search_rounded,
-                onPressed: () => context.read<NavigationBloc>().add(
-                  const SearchFocusRequested(),
+              Text(
+                'EVAPORATE',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontFamily: EvaporateTheme.monoFontFamily,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.2,
                 ),
               ),
-              const SizedBox(width: 7),
-              TopAction(
-                // Клавиша перебирает все три состояния, а не два: прежде она
-                // переключала тёмное со светлым и молча съедала «как в
-                // системе» — вернуть его можно было только в настройках,
-                // куда за этим никто не идёт.
-                tooltip: _themeActionLabel(context, _nextTheme(mode)),
-                icon: _themeIcon(mode),
-                onPressed: () {
-                  context.read<SettingsBloc>().add(
-                    SettingsChanged(
-                      settings.copyWith(themeMode: _nextTheme(mode)),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 7),
-              TopAction(
-                key: const ValueKey('rail-quit'),
-                tooltip: L.of(context).quitApp,
-                hiddenLabel: L.of(context).quitApp,
-                icon: Icons.power_settings_new_rounded,
-                danger: true,
-                onPressed: () => unawaited(windowManager.close()),
-              ),
+              const SizedBox(height: 4),
+              // Короткий золотой штрих под словом — подпись на корпусе,
+              // а не украшение: он же задаёт фирменный цвет всей рейке.
+              Container(width: 26, height: 2, color: colors.primary),
             ],
           ),
-          if (!compact) const ConceptNavigation(),
         ],
-      ),
+      ],
     );
+  }
+
+  /// Поиск, смена схемы и выход.
+  List<Widget> _actions(BuildContext context) {
+    final settings = context.watch<SettingsBloc>().state;
+    final mode = settings.themeMode;
+    return [
+      TopAction(
+        tooltip: L.of(context).searchHint,
+        icon: Icons.search_rounded,
+        onPressed: () =>
+            context.read<NavigationBloc>().add(const SearchFocusRequested()),
+      ),
+      const SizedBox(width: 7),
+      TopAction(
+        // Клавиша перебирает все три состояния, а не два: прежде она
+        // переключала тёмное со светлым и молча съедала «как в системе» —
+        // вернуть его можно было только в настройках, куда за этим никто
+        // не идёт.
+        tooltip: _themeActionLabel(context, _nextTheme(mode)),
+        icon: _themeIcon(mode),
+        onPressed: () => context.read<SettingsBloc>().add(
+          SettingsChanged(settings.copyWith(themeMode: _nextTheme(mode))),
+        ),
+      ),
+      const SizedBox(width: 7),
+      TopAction(
+        key: const ValueKey('rail-quit'),
+        tooltip: L.of(context).quitApp,
+        hiddenLabel: L.of(context).quitApp,
+        icon: Icons.power_settings_new_rounded,
+        danger: true,
+        onPressed: () => unawaited(windowManager.close()),
+      ),
+    ];
   }
 
   /// Порядок перебора: из системного — в светлое, дальше в тёмное и назад в

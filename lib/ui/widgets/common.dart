@@ -36,7 +36,6 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final motion = context.motion;
     final enabled = widget.onPressed != null;
     final radius = BorderRadius.circular(EvaporateTheme.radiusControl);
 
@@ -55,40 +54,15 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
           onEnter: (_) => setState(() => _hovered = true),
           onExit: (_) => setState(() => _hovered = false),
           child: AnimatedContainer(
-            duration: motion.fast,
+            duration: context.motion.fast,
             curve: EvaporateMotion.ease,
             transform: Matrix4.translationValues(0, sunk ? travel : 0, 0),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  // Блик по верхней кромке. Днём его почти нет: плоский
-                  // цвет — часть замысла, а не упущение.
-                  Color.lerp(
-                    colors.primaryFill,
-                    AppColors.foilHighlight,
-                    colors.isDark ? 0.16 : 0.04,
-                  )!,
-                  colors.primaryFill,
-                ],
-              ),
-              borderRadius: radius,
-              boxShadow: [
-                if (colors.depth.a > 0)
-                  BoxShadow(
-                    color: colors.depth,
-                    offset: Offset(0, sunk ? 1 : travel),
-                    spreadRadius: -0.5,
-                  ),
-                BoxShadow(
-                  color: colors.isDark
-                      ? colors.glow.withValues(alpha: lit ? 0.34 : 0.18)
-                      : colors.shadow,
-                  blurRadius: lit ? 26 : 14,
-                  offset: Offset(0, sunk ? 2 : 6),
-                ),
-              ],
+            decoration: _decoration(
+              colors,
+              radius: radius,
+              travel: travel,
+              sunk: sunk,
+              lit: lit,
             ),
             child: Material(
               color: AppColors.transparent,
@@ -103,24 +77,7 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(widget.icon, size: 18, color: colors.onPrimary),
-                        const SizedBox(width: 8),
-                        Text(
-                          widget.label,
-                          style: TextStyle(
-                            color: colors.onPrimary,
-                            fontFamily: EvaporateTheme.displayFontFamily,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: _face(colors),
                   ),
                 ),
               ),
@@ -130,6 +87,68 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
       ),
     );
   }
+
+  /// Материал клавиши: блик по верхней кромке, тёмный торец под ней и
+  /// ореол вокруг.
+  BoxDecoration _decoration(
+    EvaporatePalette colors, {
+    required BorderRadius radius,
+    required double travel,
+    required bool sunk,
+    required bool lit,
+  }) => BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        // Блик по верхней кромке. Днём его почти нет: плоский
+        // цвет — часть замысла, а не упущение.
+        Color.lerp(
+          colors.primaryFill,
+          AppColors.foilHighlight,
+          colors.isDark ? 0.16 : 0.04,
+        )!,
+        colors.primaryFill,
+      ],
+    ),
+    borderRadius: radius,
+    boxShadow: [
+      // Торец, на котором клавиша стоит днём. Ночью его нет вовсе.
+      if (colors.depth.a > 0)
+        BoxShadow(
+          color: colors.depth,
+          offset: Offset(0, sunk ? 1 : travel),
+          spreadRadius: -0.5,
+        ),
+      BoxShadow(
+        color: colors.isDark
+            ? colors.glow.withValues(alpha: lit ? 0.34 : 0.18)
+            : colors.shadow,
+        blurRadius: lit ? 26 : 14,
+        offset: Offset(0, sunk ? 2 : 6),
+      ),
+    ],
+  );
+
+  /// Надпись на клавише: значок и слово.
+  Widget _face(EvaporatePalette colors) => Row(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(widget.icon, size: 18, color: colors.onPrimary),
+      const SizedBox(width: 8),
+      Text(
+        widget.label,
+        style: TextStyle(
+          color: colors.onPrimary,
+          fontFamily: EvaporateTheme.displayFontFamily,
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.3,
+        ),
+      ),
+    ],
+  );
 }
 
 /// Небольшая цветная метка статуса — используется в списке и в карточке игры.

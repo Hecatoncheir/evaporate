@@ -29,7 +29,16 @@ class SavePathGlobs {
     // Плейсхолдер не подставился — разворачивать нечего.
     if (root.contains('{')) return const [];
 
-    final segments = p.split(root);
+    final paths = await _matchingPaths(p.split(root));
+    return _collapseAll(paths, gameDir);
+  }
+
+  /// Идёт по частям пути слева направо и на каждой маске смотрит, что
+  /// реально лежит на диске.
+  ///
+  /// Список растёт вширь: одна маска превращает один путь в столько, сколько
+  /// нашлось подходящих папок. Не совпало ничего — дальше идти незачем.
+  static Future<List<String>> _matchingPaths(List<String> segments) async {
     if (segments.isEmpty) return const [];
 
     var found = <String>[segments.first];
@@ -38,22 +47,36 @@ class SavePathGlobs {
         found = [for (final base in found) p.join(base, segment)];
         continue;
       }
-      final pattern = _toRegExp(segment);
-      final next = <String>[];
-      for (final base in found) {
-        final dir = Directory(base);
-        if (!await dir.exists()) continue;
-        await for (final entity in dir.list(followLinks: false)) {
-          final name = p.basename(entity.path);
-          if (pattern.hasMatch(name)) next.add(entity.path);
-        }
-      }
-      found = next;
+      found = await _childrenMatching(found, _toRegExp(segment));
       if (found.isEmpty) return const [];
     }
+    return found;
+  }
 
+  /// Содержимое папок [bases], чьё имя подошло под маску.
+  static Future<List<String>> _childrenMatching(
+    List<String> bases,
+    RegExp pattern,
+  ) async {
+    final next = <String>[];
+    for (final base in bases) {
+      final dir = Directory(base);
+      if (!await dir.exists()) continue;
+      await for (final entity in dir.list(followLinks: false)) {
+        if (pattern.hasMatch(p.basename(entity.path))) next.add(entity.path);
+      }
+    }
+    return next;
+  }
+
+  /// Свёртывает найденные пути обратно в шаблоны, отбрасывая повторы и то,
+  /// чего на диске уже нет.
+  static Future<List<String>> _collapseAll(
+    List<String> paths,
+    String? gameDir,
+  ) async {
     final templates = <String>[];
-    for (final path in found) {
+    for (final path in paths) {
       if (!await _exists(path)) continue;
       final collapsed = SavePathTemplate.collapse(path, gameDir: gameDir);
       if (!templates.contains(collapsed)) templates.add(collapsed);

@@ -34,6 +34,14 @@ class DownloadsPage extends StatelessWidget {
   /// длинные, обрезаются до неузнаваемости.
   static const _sourcesWidth = 340.0;
 
+  /// Ниже этой ширины источники и очередь в строку не помещаются.
+  static const _wideWidth = 980.0;
+
+  /// В низком окне полоса источников уступает место очереди: очередь
+  /// отвечает на вопрос «что происходит», а пополнить её можно и
+  /// перетаскиванием из библиотеки.
+  static const _sourcesHeight = 360.0;
+
   @override
   Widget build(BuildContext context) {
     final downloads = context.watch<DownloadsBloc>().state;
@@ -57,83 +65,83 @@ class DownloadsPage extends StatelessWidget {
     );
 
     return LayoutBuilder(
-      builder: (context, box) {
-        final wide = box.maxWidth >= 980;
-        // В низком окне полоса источников уступает место очереди: очередь
-        // отвечает на вопрос «что происходит», а пополнить её можно и
-        // перетаскиванием из библиотеки.
-        final roomForSources = box.maxHeight >= 360;
-        return Center(
-          // Приёмник тот же, что в библиотеке: `.torrent` ложится в очередь,
-          // папка становится установленной игрой. Человек бросает файл
-          // туда, где сейчас смотрит, а смотрит он на загрузки чаще, чем на
-          // сетку обложек, когда речь о раздаче.
-          //
-          // Страницу добавленной игры при этом не открываем: задача
-          // появляется прямо здесь, и уводить с неё незачем.
-          child: GameDropTarget(
-            selectAfterDrop: false,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1340),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Heading(status: downloads.engine),
+      builder: (context, box) => Center(
+        // Приёмник тот же, что в библиотеке: `.torrent` ложится в очередь,
+        // папка становится установленной игрой. Человек бросает файл туда,
+        // где сейчас смотрит, а смотрит он на загрузки чаще, чем на сетку
+        // обложек, когда речь о раздаче.
+        //
+        // Страницу добавленной игры при этом не открываем: задача
+        // появляется прямо здесь, и уводить с неё незачем.
+        child: GameDropTarget(
+          selectAfterDrop: false,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1340),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Heading(status: downloads.engine),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+                  child: _readout(
+                    context,
+                    stats: downloads.stats,
+                    active: active.length,
+                    queued: queued.length,
+                    maxConcurrent: maxConcurrent,
+                  ),
+                ),
+                if (downloads.engine.state == EngineState.failed)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
-                    child: _readout(
+                    child: EngineFailure(message: downloads.engine.message),
+                  ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _columns(
                       context,
-                      stats: downloads.stats,
-                      active: active.length,
-                      queued: queued.length,
-                      maxConcurrent: maxConcurrent,
+                      box,
+                      sources: sources,
+                      queue: queue,
                     ),
                   ),
-                  if (downloads.engine.state == EngineState.failed)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
-                      child: EngineFailure(message: downloads.engine.message),
-                    ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: wide
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SizedBox(width: _sourcesWidth, child: sources),
-                                VerticalDivider(
-                                  width: 1,
-                                  color: context.colors.outline,
-                                ),
-                                Expanded(child: queue),
-                              ],
-                            )
-                          : !roomForSources
-                          ? queue
-                          : Column(
-                              children: [
-                                // В узком окне источники остаются сверху
-                                // полосой. Доли, а не фиксированная высота:
-                                // при крупном масштабе интерфейса в
-                                // минимальном окне полоса не влезала и
-                                // выдавливала очередь за край.
-                                Flexible(flex: 2, child: sources),
-                                Divider(
-                                  height: 1,
-                                  color: context.colors.outline,
-                                ),
-                                Flexible(flex: 5, child: queue),
-                              ],
-                            ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  /// Расставляет источники и очередь по размеру окна.
+  Widget _columns(
+    BuildContext context,
+    BoxConstraints box, {
+    required Widget sources,
+    required Widget queue,
+  }) {
+    if (box.maxWidth >= _wideWidth) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: _sourcesWidth, child: sources),
+          VerticalDivider(width: 1, color: context.colors.outline),
+          Expanded(child: queue),
+        ],
+      );
+    }
+    if (box.maxHeight < _sourcesHeight) return queue;
+    return Column(
+      children: [
+        // В узком окне источники остаются сверху полосой. Доли, а не
+        // фиксированная высота: при крупном масштабе интерфейса в
+        // минимальном окне полоса не влезала и выдавливала очередь за край.
+        Flexible(flex: 2, child: sources),
+        Divider(height: 1, color: context.colors.outline),
+        Flexible(flex: 5, child: queue),
+      ],
     );
   }
 

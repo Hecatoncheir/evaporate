@@ -319,6 +319,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
 
   // ------------------------------------------------------ синхронизация
 
+  /// Сводит состояние игр с тем, что сообщил движок.
+  ///
+  /// Событие приходит раз в секунду и сразу обо всех задачах, поэтому здесь
+  /// только развилка: что делать с одной игрой — в методах ниже.
   Future<void> _onTasksChanged(
     EngineTasksChanged event,
     Emitter<DownloadsState> emit,
@@ -326,76 +330,107 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     emit(state.copyWith(tasks: event.tasks));
 
     for (final game in library.state.games) {
-      final taskId = game.downloadTaskId;
-      if (taskId == null) continue;
-      if (game.status != GameStatus.downloading &&
-          game.status != GameStatus.paused) {
-        continue;
-      }
+      if (!_isBeingDownloaded(game)) continue;
 
-      var task = state.taskById(taskId);
+      final task = state.taskById(game.downloadTaskId!);
       if (task == null) {
-        // После перезапуска движок поднимает задачи заново, с новыми
-        // идентификаторами — связываем задачу с игрой по infohash.
-        task = _taskByInfoHash(event.tasks, game.infoHash);
-        if (task == null) continue;
-        library.add(GameUpdated(game.copyWith(downloadTaskId: task.id)));
+        _relinkByInfoHash(game, event.tasks);
         continue;
       }
-      if (task.infoHash != null && game.infoHash != task.infoHash) {
-        library.add(GameUpdated(game.copyWith(infoHash: task.infoHash)));
-      }
-
-      // Magnet сначала качает метаданные, затем порождает основную задачу.
-      final next = task.followedBy;
-      if (next != null && next != taskId) {
-        library.add(GameUpdated(game.copyWith(downloadTaskId: next)));
-        continue;
-      }
-
-      switch (task.state) {
-        case DownloadState.complete:
-          if (!task.isMetadata) await _finalize(game, task, emit);
-        case DownloadState.error:
-          final reason = task.errorMessage ?? _l.noticeDownloadFailedTitle;
-          // Опрос движка идёт раз в секунду; уведомляем только на переходе
-          // в ошибку, иначе система захлебнётся повторами.
-          if (game.status != GameStatus.error) {
-            _notifySystem(
-              AppNotification(
-                title: _l.noticeDownloadFailed,
-                body: '«${game.title}»: $reason',
-                kind: NotificationKind.downloadFailed,
-              ),
-            );
-          }
-          library.add(
-            GameUpdated(
-              game.copyWith(status: GameStatus.error, lastError: reason),
-            ),
-          );
-        case DownloadState.paused:
-          if (game.status != GameStatus.paused) {
-            library.add(GameUpdated(game.copyWith(status: GameStatus.paused)));
-          }
-        case DownloadState.active:
-        case DownloadState.waiting:
-          if (game.status != GameStatus.downloading) {
-            library.add(
-              GameUpdated(game.copyWith(status: GameStatus.downloading)),
-            );
-          }
-        case DownloadState.removed:
-          library.add(
-            GameUpdated(
-              game.copyWith(
-                status: GameStatus.notInstalled,
-                downloadTaskId: null,
-              ),
-            ),
-          );
-      }
+      _syncInfoHash(game, task);
+      if (_followsNewTask(game, task)) continue;
+      await _applyTaskState(game, task, emit);
     }
+  }
+
+  /// Игра, за загрузкой которой мы следим.
+  static bool _isBeingDownloaded(Game game) =>
+      game.downloadTaskId != null &&
+      (game.status == GameStatus.downloading ||
+          game.status == GameStatus.paused);
+
+  /// Заново связывает игру с задачей движка.
+  ///
+  /// После перезапуска движок поднимает задачи с новыми идентификаторами,
+  /// и единственное, чем игру можно узнать, — её infohash.
+  void _relinkByInfoHash(Game game, List<DownloadTask> tasks) {
+    final task = _taskByInfoHash(tasks, game.infoHash);
+    if (task == null) return;
+    library.add(GameUpdated(game.copyWith(downloadTaskId: task.id)));
+  }
+
+  /// Запоминает infohash, который движок узнал уже в работе: по
+  /// magnet-ссылке он приходит вместе с метаданными, а не сразу.
+  void _syncInfoHash(Game game, DownloadTask task) {
+    if (task.infoHash == null || game.infoHash == task.infoHash) return;
+    library.add(GameUpdated(game.copyWith(infoHash: task.infoHash)));
+  }
+
+  /// Переводит взгляд на задачу, которую породила нынешняя.
+  ///
+  /// Magnet сначала качает метаданные и лишь потом заводит саму загрузку.
+  /// Вернув true, метод говорит: следить теперь надо за другой задачей, а
+  /// состояние этой разбирать незачем.
+  bool _followsNewTask(Game game, DownloadTask task) {
+    final next = task.followedBy;
+    if (next == null || next == game.downloadTaskId) return false;
+    library.add(GameUpdated(game.copyWith(downloadTaskId: next)));
+    return true;
+  }
+
+  /// Переносит состояние задачи движка в состояние игры.
+  Future<void> _applyTaskState(
+    Game game,
+    DownloadTask task,
+    Emitter<DownloadsState> emit,
+  ) async {
+    switch (task.state) {
+      case DownloadState.complete:
+        if (!task.isMetadata) await _finalize(game, task, emit);
+      case DownloadState.error:
+        _markFailed(game, task);
+      case DownloadState.paused:
+        _setStatus(game, GameStatus.paused);
+      case DownloadState.active:
+      case DownloadState.waiting:
+        _setStatus(game, GameStatus.downloading);
+      case DownloadState.removed:
+        library.add(
+          GameUpdated(
+            game.copyWith(
+              status: GameStatus.notInstalled,
+              downloadTaskId: null,
+            ),
+          ),
+        );
+    }
+  }
+
+  /// Ставит игре состояние, если оно и правда сменилось: движок
+  /// опрашивается раз в секунду, и лишнее событие тут — лишняя запись.
+  void _setStatus(Game game, GameStatus status) {
+    if (game.status == status) return;
+    library.add(GameUpdated(game.copyWith(status: status)));
+  }
+
+  /// Отмечает сорвавшуюся загрузку и один раз сообщает о ней системой.
+  ///
+  /// Опрос движка идёт раз в секунду; уведомляем только на переходе
+  /// в ошибку, иначе система захлебнётся повторами.
+  void _markFailed(Game game, DownloadTask task) {
+    final reason = task.errorMessage ?? _l.noticeDownloadFailedTitle;
+    if (game.status != GameStatus.error) {
+      _notifySystem(
+        AppNotification(
+          title: _l.noticeDownloadFailed,
+          body: '«${game.title}»: $reason',
+          kind: NotificationKind.downloadFailed,
+        ),
+      );
+    }
+    library.add(
+      GameUpdated(game.copyWith(status: GameStatus.error, lastError: reason)),
+    );
   }
 
   static DownloadTask? _taskByInfoHash(

@@ -32,32 +32,16 @@ import 'ui/theme.dart';
 import 'ui/widgets/window_frame.dart';
 import 'ui/widgets/interface_scale.dart';
 
+/// Запуск приложения — список шагов по порядку.
+///
+/// Порядок здесь значим почти везде, и каждый шаг объясняет свой: журнал
+/// заводится раньше всего, настройки читаются до блоков, окно ставится до
+/// показа, значок в трее ставится всегда.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final paths = await AppPaths.init();
-  // Раньше всего остального: смысл журнала в том, чтобы застать и то, что
-  // ломается на старте.
-  AppLog.instance = AppLog(
-    path: paths.logFile,
-    previousPath: paths.previousLogFile,
-  );
-  AppLog.instance.write('запуск ${AppVersion.current}');
-  // Помощник обновления работает, когда приложения уже нет, и пишет в свой
-  // файл. Забираем написанное сюда — иначе о неудавшейся замене не узнал бы
-  // никто, кроме того, кто полез бы искать файл руками.
-  await UpdateInstaller.collectLog(paths.dataDir);
-
-  // Движок загрузок жалуется через `logging`, и до сих пор его жалобы не
-  // доходили никуда: задача часами висела «активной», а о недоступном
-  // трекере или не поднявшемся DHT не было сказано ни слова.
-  Logger.root.level = Level.WARNING;
-  Logger.root.onRecord.listen(
-    (record) => AppLog.instance.write(
-      '${record.loggerName}: ${record.message}',
-      record.error,
-    ),
-  );
+  await _startLog(paths);
 
   final settings = SettingsBloc(paths);
   settings.add(const SettingsLoadRequested());
@@ -65,69 +49,24 @@ Future<void> main() async {
   // поэтому дожидаемся первого состояния из хранилища.
   await settings.loaded;
 
-  // Прокси применяется ко всему HTTP приложения, а не только к движку:
-  // объявление трекеру внутри библиотеки заводит клиента само, и наши
-  // настройки мимо него проходят. Перехват создания клиента — единственное
-  // место, откуда до него дотянуться.
-  final proxyRouting = ProxyHttpOverrides();
-  await proxyRouting.apply(settings.state.proxy);
-  HttpOverrides.global = proxyRouting;
-  final proxyChanges = settings.stream
-      .map((state) => state.proxy)
-      .distinct()
-      .listen((proxy) => unawaited(proxyRouting.apply(proxy)));
+  final stopProxyRouting = await _routeThroughProxy(settings);
 
   L localizations() {
     final code = settings.state.locale;
     return lookupL(code == null ? _systemLocale() : Locale(code));
   }
 
-  // Окно ставим до того, как оно появится на экране: иначе пользователь
-  // увидит, как оно прыгает из одного положения в другое.
-  await windowManager.ensureInitialized();
-  final window = WindowState(
-    store: JsonStore(paths.windowStateFile),
-    controller: const ManagedWindowController(),
-  );
-  await windowManager.waitUntilReadyToShow(
-    WindowOptions(
-      title: 'Evaporate',
-      minimumSize: const Size(
-        WindowGeometry.minWidth,
-        WindowGeometry.minHeight,
-      ),
-      titleBarStyle: TitleBarStyle.hidden,
-      windowButtonVisibility: false,
-      backgroundColor: Platform.isWindows ? null : AppColors.transparent,
-    ),
-    () async {
-      // macOS сохраняет нативные тень/скругление NSWindow, но без кнопок.
-      if (!Platform.isMacOS) await windowManager.setAsFrameless();
-      await window.restore(settings.state.windowStart);
-    },
-  );
+  final window = await _prepareWindow(paths, settings.state);
+
   // Что должно успеть лечь на диск, прежде чем процесс закончится. Список
   // наполняется по мере того, как появляются его владельцы, а порядок в нём
   // обратный порядку создания: сначала останавливаем, потом отпускаем.
-  final shutdownSteps = <ShutdownStep>[
-    proxyChanges.cancel,
-    AppLog.instance.flush,
-  ];
-  final shutdown = AppShutdown(shutdownSteps);
-  final closeHandler = WindowCloseHandler(shutdown);
+  final shutdownSteps = <ShutdownStep>[stopProxyRouting, AppLog.instance.flush];
+  final closeHandler = WindowCloseHandler(AppShutdown(shutdownSteps));
   await closeHandler.attach();
 
-  // Значок в трее ставим всегда: без него свёрнутое при запуске окно
-  // было бы ничем не открыть, а режим запуска можно поменять на ходу.
-  // «Выход» из трея уходит тем же путём, что и закрытие окна.
-  final tray = AppTray(localizations: localizations, onQuit: closeHandler.quit);
-  try {
-    await tray.install();
-  } on Object {
-    // Отказ трея не должен оставлять стартовавшее свёрнутым приложение
-    // без способа открыть окно.
-    await windowManager.show();
-  }
+  final tray = await _installTray(localizations, closeHandler.quit);
+
   // Пишем всегда, даже когда восстановление выключено: включив его позже,
   // пользователь получит осмысленные значения, а не размер по умолчанию.
   final windowSaver = WindowStateSaver(window)..attach();
@@ -184,6 +123,98 @@ Future<void> main() async {
       tray: tray,
     ),
   );
+}
+
+/// Заводит журнал и сводит в него чужие жалобы.
+///
+/// Раньше всего остального: смысл журнала в том, чтобы застать и то, что
+/// ломается на старте.
+Future<void> _startLog(AppPaths paths) async {
+  AppLog.instance = AppLog(
+    path: paths.logFile,
+    previousPath: paths.previousLogFile,
+  );
+  AppLog.instance.write('запуск ${AppVersion.current}');
+  // Помощник обновления работает, когда приложения уже нет, и пишет в свой
+  // файл. Забираем написанное сюда — иначе о неудавшейся замене не узнал бы
+  // никто, кроме того, кто полез бы искать файл руками.
+  await UpdateInstaller.collectLog(paths.dataDir);
+
+  // Движок загрузок жалуется через `logging`, и до сих пор его жалобы не
+  // доходили никуда: задача часами висела «активной», а о недоступном
+  // трекере или не поднявшемся DHT не было сказано ни слова.
+  Logger.root.level = Level.WARNING;
+  Logger.root.onRecord.listen(
+    (record) => AppLog.instance.write(
+      '${record.loggerName}: ${record.message}',
+      record.error,
+    ),
+  );
+}
+
+/// Пускает весь HTTP приложения через прокси и следит за его сменой.
+/// Возвращает шаг завершения: отписаться от изменений настроек.
+///
+/// Прокси применяется перехватом создания клиента, а не настройкой каждого:
+/// объявление трекеру внутри библиотеки заводит клиента само, и наши
+/// настройки мимо него проходят. Дотянуться до него больше неоткуда.
+Future<ShutdownStep> _routeThroughProxy(SettingsBloc settings) async {
+  final routing = ProxyHttpOverrides();
+  await routing.apply(settings.state.proxy);
+  HttpOverrides.global = routing;
+  final changes = settings.stream
+      .map((state) => state.proxy)
+      .distinct()
+      .listen((proxy) => unawaited(routing.apply(proxy)));
+  return changes.cancel;
+}
+
+/// Готовит окно до того, как оно появится на экране: иначе пользователь
+/// увидит, как оно прыгает из одного положения в другое.
+Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
+  await windowManager.ensureInitialized();
+  final window = WindowState(
+    store: JsonStore(paths.windowStateFile),
+    controller: const ManagedWindowController(),
+  );
+  await windowManager.waitUntilReadyToShow(
+    WindowOptions(
+      title: 'Evaporate',
+      minimumSize: const Size(
+        WindowGeometry.minWidth,
+        WindowGeometry.minHeight,
+      ),
+      titleBarStyle: TitleBarStyle.hidden,
+      windowButtonVisibility: false,
+      backgroundColor: Platform.isWindows ? null : AppColors.transparent,
+    ),
+    () async {
+      // macOS сохраняет нативные тень/скругление NSWindow, но без кнопок.
+      if (!Platform.isMacOS) await windowManager.setAsFrameless();
+      await window.restore(settings.windowStart);
+    },
+  );
+  return window;
+}
+
+/// Ставит значок в трее — всегда, при любом режиме запуска.
+///
+/// Без него свёрнутое при запуске окно было бы ничем не открыть, а режим
+/// запуска можно поменять на ходу. «Выход» из трея уходит тем же путём, что
+/// и закрытие окна.
+Future<AppTray> _installTray(
+  L Function() localizations,
+  Future<void> Function() onQuit,
+) async {
+  final tray = AppTray(localizations: localizations, onQuit: onQuit);
+  try {
+    await tray.install();
+  } on Object {
+    // Отказ трея не должен оставлять стартовавшее свёрнутым приложение
+    // без способа открыть окно.
+    await windowManager.show();
+  }
+  return tray;
 }
 
 class EvaporateApp extends StatefulWidget {

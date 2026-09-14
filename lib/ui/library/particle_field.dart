@@ -121,37 +121,43 @@ class ParticleField {
     return (1 - (target - point).distance / 180).clamp(0, 1);
   }
 
+  /// Откуда рождается новая точка.
+  ///
+  /// Найденное место ещё и разбрасывается в стороны: рождение из одной
+  /// точки читалось бы струёй, а не свечением.
   Offset _emissionPoint() {
-    final rect = card;
-    Offset center;
-    if (rect != null &&
-        (pointer == null ||
-            rect.contains(pointer!) ||
-            _random.nextDouble() < 0.75)) {
-      // Точку рождения берём равномерно по периметру: иначе они копятся
-      // в углах и в центре.
-      final d = _rand(0, 2 * (rect.width + rect.height));
-      if (d < rect.width) {
-        center = Offset(rect.left + d, rect.top);
-      } else if (d < rect.width + rect.height) {
-        center = Offset(rect.right, rect.top + d - rect.width);
-      } else if (d < 2 * rect.width + rect.height) {
-        center = Offset(
-          rect.right - (d - rect.width - rect.height),
-          rect.bottom,
-        );
-      } else {
-        center = Offset(
-          rect.left,
-          rect.bottom - (d - 2 * rect.width - rect.height),
-        );
-      }
-    } else {
-      center = pointer ?? Offset(size.width / 2, size.height / 2);
-    }
     final angle = _rand(0, math.pi * 2);
     final distance = _rand(10, 100);
-    return center + Offset(math.cos(angle), math.sin(angle)) * distance;
+    return _emissionCenter() +
+        Offset(math.cos(angle), math.sin(angle)) * distance;
+  }
+
+  /// Место рождения: край выбранной карточки, курсор или середина поля.
+  Offset _emissionCenter() {
+    final rect = card;
+    if (rect != null && _emitFromCard(rect)) return _pointOnPerimeter(rect);
+    return pointer ?? Offset(size.width / 2, size.height / 2);
+  }
+
+  /// Рождать ли точку у карточки. Курсор перетягивает на себя лишь часть
+  /// точек: иначе карточка при наведении рядом переставала бы светиться.
+  bool _emitFromCard(Rect rect) =>
+      pointer == null || rect.contains(pointer!) || _random.nextDouble() < 0.75;
+
+  /// Точка на периметре, выбранная равномерно по его длине: иначе точки
+  /// копятся в углах.
+  ///
+  /// Идём по сторонам по часовой стрелке и вычитаем пройденное, пока
+  /// остаток не уляжется в очередную сторону.
+  Offset _pointOnPerimeter(Rect rect) {
+    var walked = _rand(0, 2 * (rect.width + rect.height));
+    if (walked < rect.width) return Offset(rect.left + walked, rect.top);
+    walked -= rect.width;
+    if (walked < rect.height) return Offset(rect.right, rect.top + walked);
+    walked -= rect.height;
+    if (walked < rect.width) return Offset(rect.right - walked, rect.bottom);
+    walked -= rect.width;
+    return Offset(rect.left, rect.bottom - walked);
   }
 
   void step(double seconds) {
@@ -160,75 +166,122 @@ class ParticleField {
     // симуляция иначе догоняла бы упущенное одним рывком.
     final dt = seconds.clamp(0.0, 1 / 30);
     time += dt;
+
     var near = 0;
-    for (final p in particles) {
-      final target = _target(p.position);
-      final delta = target == null ? Offset.zero : target - p.position;
-      final distance = delta.distance;
-      final proximity = target == null
-          ? 0.0
-          : (1 - distance / 180).clamp(0.0, 1.0);
-      final direction = distance < 0.1 ? Offset.zero : delta / distance;
-      p.glow = proximity * proximity;
-      if (proximity > 0.7) near++;
-      var acceleration = Offset(
-        math.sin(time * 1.7 + p.phase) * 50 +
-            math.sin(time * 4.1 + p.phase * 3) * 18,
-        math.cos(time * 1.3 + p.phase * 2) * 50 +
-            math.cos(time * 3.7 + p.phase * 5) * 18,
-      );
-      // У притяжения конечный радиус: дальние точки продолжают бродить,
-      // иначе весь фон рано или поздно всосало бы в одну карточку.
-      if (target != null && proximity > 0) {
-        var tangent = Offset(-direction.dy, direction.dx);
-        final rect = card;
-        if (rect != null && edgePoint(rect, p.position) == target) {
-          tangent = target.dy == rect.top
-              ? const Offset(1, 0)
-              : target.dx == rect.right
-              ? const Offset(0, 1)
-              : target.dy == rect.bottom
-              ? const Offset(-1, 0)
-              : const Offset(0, -1);
-        }
-        final chaos = 12 + 210 * proximity * proximity;
-        final boost = 1 + 1.5 * proximity * proximity;
-        final noise = Offset(
-          math.sin(time * (4 + proximity * 17) + p.phase * 9),
-          math.cos(time * (5 + proximity * 19) + p.phase * 7),
-        );
-        acceleration +=
-            (direction * (distance * 3.8).clamp(0, 230) * proximity +
-                tangent * (proximity * 130) +
-                noise * chaos) *
-            boost;
-      }
-      p.velocity = (p.velocity + acceleration * dt) * math.exp(-2.2 * dt);
-      final speed = p.velocity.distance;
-      final limit = 180 + (maxSpeed - 180) * proximity * proximity;
-      if (speed > limit) p.velocity = p.velocity / speed * limit;
-      p.position += p.velocity * dt;
-      p.position = Offset(
-        (p.position.dx + size.width) % size.width,
-        (p.position.dy + size.height) % size.height,
-      );
-      if (p.life >= 0) p.life -= dt;
+    for (final particle in particles) {
+      if (_move(particle, dt)) near++;
     }
     particles.removeWhere((p) => p.life < 0 && p.life > -0.5);
-    if (card != null || pointer != null) {
-      // Чем больше точек у цели, тем больше рождается короткоживущих.
-      // Жёсткий предел не даёт этому расти лавиной за долгий сеанс.
-      _spawnBudget +=
-          dt *
-          densityMultiplier *
-          (42 + math.min(near / densityMultiplier, 160) * 0.8);
-      while (_spawnBudget >= 1 && particles.length < maxCount) {
-        particles.add(_newParticle(_emissionPoint(), _rand(1.6, 3.2)));
-        _spawnBudget--;
-      }
-      _spawnBudget = math.min(_spawnBudget, 1);
-    } else {
-      _spawnBudget = 0;
+    _spawn(dt, near);
+  }
+
+  /// Двигает одну точку за шаг [dt] и говорит, подошла ли она к цели
+  /// вплотную: по числу таких считается, сколько рождать новых.
+  bool _move(InkParticle particle, double dt) {
+    final target = _target(particle.position);
+    final delta = target == null ? Offset.zero : target - particle.position;
+    final distance = delta.distance;
+    final proximity = target == null
+        ? 0.0
+        : (1 - distance / 180).clamp(0.0, 1.0);
+    final direction = distance < 0.1 ? Offset.zero : delta / distance;
+    particle.glow = proximity * proximity;
+
+    var acceleration = _wander(particle);
+    // У притяжения конечный радиус: дальние точки продолжают бродить,
+    // иначе весь фон рано или поздно всосало бы в одну карточку.
+    if (target != null && proximity > 0) {
+      acceleration += _attraction(
+        particle,
+        target: target,
+        direction: direction,
+        distance: distance,
+        proximity: proximity,
+      );
     }
+
+    particle.velocity =
+        (particle.velocity + acceleration * dt) * math.exp(-2.2 * dt);
+    particle.velocity = _capped(particle.velocity, proximity);
+    particle.position = _wrapped(particle.position + particle.velocity * dt);
+    if (particle.life >= 0) particle.life -= dt;
+    return proximity > 0.7;
+  }
+
+  /// Собственное блуждание точки: по две наложенные волны на ось — от одной
+  /// движение читалось бы как маятник.
+  Offset _wander(InkParticle particle) => Offset(
+    math.sin(time * 1.7 + particle.phase) * 50 +
+        math.sin(time * 4.1 + particle.phase * 3) * 18,
+    math.cos(time * 1.3 + particle.phase * 2) * 50 +
+        math.cos(time * 3.7 + particle.phase * 5) * 18,
+  );
+
+  /// Притяжение к цели складывается из трёх тяг: к ней самой, вдоль неё и
+  /// вразнобой. Чем ближе точка, тем сильнее каждая.
+  Offset _attraction(
+    InkParticle particle, {
+    required Offset target,
+    required Offset direction,
+    required double distance,
+    required double proximity,
+  }) {
+    final chaos = 12 + 210 * proximity * proximity;
+    final boost = 1 + 1.5 * proximity * proximity;
+    final noise = Offset(
+      math.sin(time * (4 + proximity * 17) + particle.phase * 9),
+      math.cos(time * (5 + proximity * 19) + particle.phase * 7),
+    );
+    return (direction * (distance * 3.8).clamp(0, 230) * proximity +
+            _tangent(particle, target, direction) * (proximity * 130) +
+            noise * chaos) *
+        boost;
+  }
+
+  /// Куда обходить цель. У карточки это направление её стороны: точки
+  /// должны скользить вдоль края, а не закручиваться вокруг одной его точки.
+  Offset _tangent(InkParticle particle, Offset target, Offset direction) {
+    final rect = card;
+    if (rect == null || edgePoint(rect, particle.position) != target) {
+      return Offset(-direction.dy, direction.dx);
+    }
+    if (target.dy == rect.top) return const Offset(1, 0);
+    if (target.dx == rect.right) return const Offset(0, 1);
+    if (target.dy == rect.bottom) return const Offset(-1, 0);
+    return const Offset(0, -1);
+  }
+
+  /// Не даёт точке разогнаться: у цели предел выше, вдали — ниже.
+  Offset _capped(Offset velocity, double proximity) {
+    final speed = velocity.distance;
+    final limit = 180 + (maxSpeed - 180) * proximity * proximity;
+    return speed > limit ? velocity / speed * limit : velocity;
+  }
+
+  /// Поле замкнуто: ушедшая за край точка выходит с противоположной
+  /// стороны, и проплешин по краям не образуется.
+  Offset _wrapped(Offset position) => Offset(
+    (position.dx + size.width) % size.width,
+    (position.dy + size.height) % size.height,
+  );
+
+  /// Рождает короткоживущие точки у цели.
+  ///
+  /// Чем больше точек уже у неё, тем больше рождается. Жёсткий предел не
+  /// даёт этому расти лавиной за долгий сеанс.
+  void _spawn(double dt, int near) {
+    if (card == null && pointer == null) {
+      _spawnBudget = 0;
+      return;
+    }
+    _spawnBudget +=
+        dt *
+        densityMultiplier *
+        (42 + math.min(near / densityMultiplier, 160) * 0.8);
+    while (_spawnBudget >= 1 && particles.length < maxCount) {
+      particles.add(_newParticle(_emissionPoint(), _rand(1.6, 3.2)));
+      _spawnBudget--;
+    }
+    _spawnBudget = math.min(_spawnBudget, 1);
   }
 }

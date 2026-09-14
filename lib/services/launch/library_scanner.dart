@@ -67,7 +67,6 @@ class LibraryScanner {
   ///
   /// [containerDepth] — на сколько уровней спускаться внутрь папок, которые
   /// оказались не играми, а собраниями игр. Указать диск целиком — обычное
-  /// дело: человек не обязан помнить, в какой подпапке лежат игры.
   static Future<List<ScannedGame>> scan(
     String rootDir, {
     Set<String> existingDirs = const {},
@@ -80,87 +79,56 @@ class LibraryScanner {
     final root = Directory(rootDir);
     if (!await root.exists()) return const [];
 
-    final found = <ScannedGame>[];
-    await _collect(
-      root,
-      existingDirs.map(p.normalize).toSet(),
-      found,
-      limit,
-      containerDepth,
-      steamApps,
-      isCancelled ?? _never,
-      onDirectory,
+    final walk = _Walk(
+      existing: existingDirs.map(p.normalize).toSet(),
+      limit: limit,
+      steamApps: steamApps,
+      isCancelled: isCancelled ?? _never,
+      onDirectory: onDirectory,
     );
+    await _collect(root, walk, containerDepth);
 
-    found.sort(
+    walk.found.sort(
       (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
     );
-    return found;
+    return walk.found;
   }
 
-  static Future<void> _collect(
-    Directory dir,
-    Set<String> existing,
-    List<ScannedGame> out,
-    int limit,
-    int depthLeft,
-    Map<String, SteamApp> steamApps,
-    bool Function() isCancelled,
-    void Function(String directory)? onDirectory,
-  ) async {
-    if (isCancelled()) return;
-    final List<FileSystemEntity> entries;
-    try {
-      entries = await dir.list(followLinks: false).toList();
-    } on FileSystemException {
-      // Папка без прав доступа — не повод обрывать весь обход.
-      return;
-    }
+  /// Обходит подпапки [dir] и складывает найденное в [walk].
+  ///
+  /// [depthLeft] — сколько уровней ещё можно спуститься внутрь папок,
+  /// оказавшихся собраниями игр.
+  static Future<void> _collect(Directory dir, _Walk walk, int depthLeft) async {
+    if (walk.stopped) return;
 
-    for (final entity in entries) {
-      if (out.length >= limit || isCancelled()) return;
-      if (entity is! Directory) continue;
-
-      final name = p.basename(entity.path);
-      if (name.startsWith('.')) continue;
-      if (_skip.contains(name.toLowerCase())) continue;
-      if (existing.contains(p.normalize(entity.path))) continue;
+    for (final entity in await _childrenOf(dir)) {
+      if (walk.stopped) return;
+      if (entity is! Directory || walk.skips(entity)) continue;
 
       // О папке сообщаем до её осмотра: он и есть самая долгая часть, и
       // человек должен видеть, на чём приложение сейчас стоит.
-      onDirectory?.call(entity.path);
+      walk.onDirectory?.call(entity.path);
       final verdict = await _classify(entity);
-      if (isCancelled()) return;
+      if (walk.isCancelled()) return;
+
       switch (verdict.kind) {
         case _Kind.nothing:
           continue;
         case _Kind.container:
-          if (depthLeft > 0) {
-            await _collect(
-              entity,
-              existing,
-              out,
-              limit,
-              depthLeft - 1,
-              steamApps,
-              isCancelled,
-              onDirectory,
-            );
-          }
+          if (depthLeft > 0) await _collect(entity, walk, depthLeft - 1);
         case _Kind.game:
-          // Если игру знает Steam, берём его название и идентификатор: они
-          // точные, а имя папки — в лучшем случае догадка.
-          final known = steamApps[p.normalize(entity.path)];
-          final cleaned = ReleaseName.clean(name);
-          out.add(
-            ScannedGame(
-              title: known?.name ?? (cleaned.isEmpty ? name : cleaned),
-              installDir: entity.path,
-              executablePath: verdict.executable!,
-              steamAppId: known?.appId,
-            ),
-          );
+          walk.add(entity, verdict.executable!);
       }
+    }
+  }
+
+  /// Содержимое папки. Папка без прав доступа — не повод обрывать весь
+  /// обход, поэтому вместо ошибки возвращается пустой список.
+  static Future<List<FileSystemEntity>> _childrenOf(Directory dir) async {
+    try {
+      return await dir.list(followLinks: false).toList();
+    } on FileSystemException {
+      return const [];
     }
   }
 
@@ -254,3 +222,58 @@ typedef _Verdict = ({_Kind kind, String? executable});
 
 const _Verdict _container = (kind: _Kind.container, executable: null);
 const _Verdict _nothing = (kind: _Kind.nothing, executable: null);
+
+/// Условия одного обхода и то, что он уже нашёл.
+///
+/// Восемь аргументов, которые `_collect` передавал самому себе на каждый
+/// уровень вложенности, — верный способ однажды перепутать два соседних
+/// числа местами.
+class _Walk {
+  _Walk({
+    required this.existing,
+    required this.limit,
+    required this.steamApps,
+    required this.isCancelled,
+    this.onDirectory,
+  });
+
+  /// Папки, уже известные библиотеке: повторный обход не должен предлагать
+  /// добавить то же самое.
+  final Set<String> existing;
+
+  /// Сколько игр набирать. Обход диска целиком иначе не кончился бы.
+  final int limit;
+  final Map<String, SteamApp> steamApps;
+  final bool Function() isCancelled;
+  final void Function(String directory)? onDirectory;
+
+  final found = <ScannedGame>[];
+
+  /// Набрали сколько просили или обход отменили — дальше идти незачем.
+  bool get stopped => found.length >= limit || isCancelled();
+
+  /// Папки, в которые заходить не станем: скрытые, служебные и те, что уже
+  /// заняты играми библиотеки.
+  bool skips(Directory dir) {
+    final name = p.basename(dir.path);
+    return name.startsWith('.') ||
+        LibraryScanner._skip.contains(name.toLowerCase()) ||
+        existing.contains(p.normalize(dir.path));
+  }
+
+  void add(Directory dir, String executable) {
+    // Если игру знает Steam, берём его название и идентификатор: они
+    // точные, а имя папки — в лучшем случае догадка.
+    final known = steamApps[p.normalize(dir.path)];
+    final name = p.basename(dir.path);
+    final cleaned = ReleaseName.clean(name);
+    found.add(
+      ScannedGame(
+        title: known?.name ?? (cleaned.isEmpty ? name : cleaned),
+        installDir: dir.path,
+        executablePath: executable,
+        steamAppId: known?.appId,
+      ),
+    );
+  }
+}

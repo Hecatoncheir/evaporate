@@ -459,7 +459,7 @@ class _SnapshotRowState extends State<_SnapshotRow> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final snapshot = widget.snapshot;
+    final l = L.of(context);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -482,60 +482,15 @@ class _SnapshotRowState extends State<_SnapshotRow> {
         ),
         child: Row(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          widget.game.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SaveTag(
-                        text: snapshotOriginLabel(
-                          L.of(context),
-                          snapshot.origin,
-                        ),
-                        color: snapshot.origin == SnapshotOrigin.imported
-                            ? colors.primary
-                            : colors.textSecondary,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${formatDateTime(snapshot.createdAt)} · '
-                    '${snapshot.deviceName} · '
-                    '${formatBytes(snapshot.sizeBytes)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: colors.textSecondary,
-                      fontFamily: EvaporateTheme.monoFontFamily,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            Expanded(child: _summary(context)),
             IconButton(
-              tooltip: L.of(context).exportFile,
+              tooltip: l.exportFile,
               visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.ios_share, size: 17),
               onPressed: _export,
             ),
             IconButton(
-              tooltip: L.of(context).delete,
+              tooltip: l.delete,
               visualDensity: VisualDensity.compact,
               // Тревожный цвет — только под курсором: ряд постоянно красных
               // корзин в списке читается как список ошибок.
@@ -546,6 +501,55 @@ class _SnapshotRowState extends State<_SnapshotRow> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Название игры, откуда взялся снимок и строка показаний под ними.
+  Widget _summary(BuildContext context) {
+    final colors = context.colors;
+    final snapshot = widget.snapshot;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                widget.game.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            SaveTag(
+              text: snapshotOriginLabel(L.of(context), snapshot.origin),
+              color: snapshot.origin == SnapshotOrigin.imported
+                  ? colors.primary
+                  : colors.textSecondary,
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${formatDateTime(snapshot.createdAt)} · '
+          '${snapshot.deviceName} · '
+          '${formatBytes(snapshot.sizeBytes)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          // Моноширинный с табличными цифрами: иначе строка дёргалась бы
+          // на каждом обновлении списка.
+          style: TextStyle(
+            fontSize: 11.5,
+            color: colors.textSecondary,
+            fontFamily: EvaporateTheme.monoFontFamily,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
     );
   }
 

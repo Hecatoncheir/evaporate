@@ -97,24 +97,10 @@ class LiquidSelectionState extends State<LiquidSelection>
   }
 
   void _measure() {
-    final viewport = _viewport.currentContext?.findRenderObject();
     final identity = widget.targetKey();
-    final target = identity?.currentContext?.findRenderObject();
-    Rect? rect;
-    if (viewport is RenderBox &&
-        viewport.hasSize &&
-        target is RenderBox &&
-        target.attached &&
-        target.hasSize) {
-      final candidate = widget.padding.inflateRect(
-        MatrixUtils.transformRect(
-          target.getTransformTo(viewport),
-          Offset.zero & target.size,
-        ),
-      );
-      if (candidate.overlaps(Offset.zero & viewport.size)) rect = candidate;
-    }
+    final rect = _rectOf(identity);
     if (rect == _to && identity == _identity) return;
+
     final previous = _to;
     final canTravel =
         _allowed &&
@@ -135,6 +121,27 @@ class LiquidSelectionState extends State<LiquidSelection>
       _animation.value = 1;
     }
     _geometry.value++;
+  }
+
+  /// Где лежит цель — в координатах самой подложки.
+  ///
+  /// null, если цели нет, она ещё не измерена или уехала за пределы
+  /// видимого: капле в этих случаях нечего обнимать.
+  Rect? _rectOf(GlobalKey? identity) {
+    final viewport = _viewport.currentContext?.findRenderObject();
+    final target = identity?.currentContext?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.hasSize) return null;
+    if (target is! RenderBox || !target.attached || !target.hasSize) {
+      return null;
+    }
+
+    final candidate = widget.padding.inflateRect(
+      MatrixUtils.transformRect(
+        target.getTransformTo(viewport),
+        Offset.zero & target.size,
+      ),
+    );
+    return candidate.overlaps(Offset.zero & viewport.size) ? candidate : null;
   }
 
   @override

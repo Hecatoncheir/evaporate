@@ -24,6 +24,10 @@ import 'path_setting.dart';
 import 'pickers.dart';
 import 'speed_field.dart';
 
+/// Как правка настроек уходит в блок. Все карточки страницы получают её
+/// одинаково: собрали новые настройки целиком — отдали.
+typedef _Update = void Function(AppSettings next);
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -78,300 +82,15 @@ class SettingsPage extends StatelessWidget {
                 padding: EdgeInsets.zero,
               ),
               const SizedBox(height: 18),
-              // Язык, тема и режим окна лежали в карточке «Сохранения» —
-              // не по вкусовщине, а по ошибке раскладки: искать язык в
-              // сохранениях никто не станет. Теперь вид отдельно, окно и
-              // запуск отдельно, сохранения — про сохранения.
-              SectionCard(
-                title: L.of(context).appearanceAndLanguage,
-                icon: Icons.palette_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    LanguagePicker(
-                      value: settings.locale,
-                      onChanged: (code) =>
-                          update(settings.copyWith(locale: code)),
-                    ),
-                    const SizedBox(height: 12),
-                    ThemePicker(
-                      value: settings.themeMode,
-                      onChanged: (mode) =>
-                          update(settings.copyWith(themeMode: mode)),
-                    ),
-                    const SizedBox(height: 14),
-                    // Крупность обложек отсюда убрана: она стоит в самой
-                    // библиотеке, рядом с тем, на что влияет. Два ползунка с
-                    // одинаковой подписью в двух местах — это выбор, какой
-                    // из них настоящий.
-                    Wrap(
-                      spacing: 20,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 220,
-                          child: Text(
-                            L.of(context).interfaceScale,
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ),
-                        ScaleControl(
-                          key: const ValueKey('interface-scale'),
-                          label: L.of(context).interfaceScale,
-                          value: settings.interfaceScale,
-                          min: AppSettings.minInterfaceScale,
-                          max: AppSettings.maxInterfaceScale,
-                          step: 0.05,
-                          onChanged: (value) =>
-                              update(settings.copyWith(interfaceScale: value)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      L.of(context).interfaceScaleNote,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        height: 1.5,
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SectionCard(
-                title: L.of(context).windowAndStartup,
-                icon: Icons.desktop_windows_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    WindowStartPicker(
-                      value: settings.windowStart,
-                      onChanged: (mode) =>
-                          update(settings.copyWith(windowStart: mode)),
-                    ),
-                    const SizedBox(height: 4),
-                    SwitchListTile(
-                      value: settings.launchAtStartup,
-                      onChanged: (value) =>
-                          update(settings.copyWith(launchAtStartup: value)),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        L.of(context).launchAtStartup,
-                        style: TextStyle(fontSize: 13),
-                      ),
-                      subtitle: Text(
-                        L.of(context).launchAtStartupNote,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _appearanceCard(context, settings, update),
+              _windowCard(context, settings, update),
               const GamepadSettingsCard(),
               const NotificationSettingsCard(),
-              SectionCard(
-                title: L.of(context).downloads,
-                icon: Icons.download_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    PathSetting(
-                      label: L.of(context).gamesFolder,
-                      value: settings.installDir,
-                      onPick: () async {
-                        final dir = await getDirectoryPath();
-                        if (dir == null) return;
-                        update(settings.copyWith(installDir: dir));
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 220,
-                          child: Text(
-                            L.of(context).concurrentDownloads,
-                            style: TextStyle(fontSize: 13),
-                          ),
-                        ),
-                        DropdownButton<int>(
-                          value: settings.maxConcurrent,
-                          underline: const SizedBox.shrink(),
-                          items: [
-                            for (final value in [1, 2, 3, 5, 8])
-                              DropdownMenuItem(
-                                value: value,
-                                child: Text('$value'),
-                              ),
-                          ],
-                          onChanged: (value) {
-                            if (value == null) return;
-                            update(settings.copyWith(maxConcurrent: value));
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    SpeedField(
-                      label: L.of(context).limitDownload,
-                      value: settings.limits.download,
-                      onChanged: (value) => update(
-                        settings.copyWith(
-                          limits: settings.limits.copyWith(download: value),
-                        ),
-                      ),
-                    ),
-                    SpeedField(
-                      label: L.of(context).limitUpload,
-                      value: settings.limits.upload,
-                      hint: L.of(context).limitUploadNote,
-                      onChanged: (value) => update(
-                        settings.copyWith(
-                          limits: settings.limits.copyWith(upload: value),
-                        ),
-                      ),
-                    ),
-                    SpeedField(
-                      label: L.of(context).seedRatio,
-                      value: settings.limits.seedRatio,
-                      unit: L.of(context).seedRatioUnit,
-                      hint: L.of(context).seedRatioNote,
-                      onChanged: (value) => update(
-                        settings.copyWith(
-                          limits: settings.limits.copyWith(seedRatio: value),
-                        ),
-                      ),
-                    ),
-                    SpeedField(
-                      label: L.of(context).limitWhilePlaying,
-                      value: settings.limits.whilePlaying,
-                      hint: L.of(context).limitPlayingNote,
-                      onChanged: (value) => update(
-                        settings.copyWith(
-                          limits: settings.limits.copyWith(whilePlaying: value),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SectionCard(
-                title: L.of(context).metadataRetryTitle,
-                icon: Icons.image_search_outlined,
-                trailing: OutlinedButton.icon(
-                  onPressed: () => context.read<LibraryBloc>().add(
-                    const MetadataRetryRequested(),
-                  ),
-                  icon: const Icon(Icons.refresh, size: 16),
-                  label: Text(L.of(context).metadataRetryAction),
-                ),
-                child: Text(
-                  L.of(context).metadataRetryNote,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.5,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ),
-              // Без клавиши перезапуска: она осталась одна, на самих
-              // загрузках, где движок и живёт. Здесь про него только
-              // справка.
-              SectionCard(
-                title: L.of(context).downloadEngine,
-                icon: Icons.settings_ethernet,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    InfoRow(
-                      label: L.of(context).engineState,
-                      value:
-                          engine.message ??
-                          engineStateLabel(L.of(context), engine.state),
-                      valueColor: engine.isReady
-                          ? context.colors.accent
-                          : context.colors.warning,
-                    ),
-                    InfoRow(
-                      label: L.of(context).engineImplementation,
-                      value: L.of(context).engineBuiltIn,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      L.of(context).engineNote,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: context.colors.textSecondary,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _downloadsCard(context, settings, update),
+              _metadataCard(context),
+              _engineCard(context, engine),
               const ProxySettingsCard(),
-              SectionCard(
-                title: L.of(context).saves,
-                icon: Icons.save_outlined,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    PathSetting(
-                      label: L.of(context).syncFolder,
-                      value: settings.syncFolder ?? L.of(context).notSet,
-                      onPick: () async {
-                        final dir = await getDirectoryPath();
-                        if (dir == null) return;
-                        update(settings.copyWith(syncFolder: dir));
-                      },
-                      onClear: settings.syncFolder == null
-                          ? null
-                          : () => update(settings.copyWith(syncFolder: null)),
-                    ),
-                    const SizedBox(height: 6),
-                    SwitchListTile(
-                      value: settings.autoExportToSync,
-                      onChanged: (value) =>
-                          update(settings.copyWith(autoExportToSync: value)),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        L.of(context).copyToSyncFolder,
-                        style: TextStyle(fontSize: 13),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    SwitchListTile(
-                      value: settings.autoSnapshotOnExit,
-                      onChanged: (value) =>
-                          update(settings.copyWith(autoSnapshotOnExit: value)),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        L.of(context).snapshotOnExit,
-                        style: TextStyle(fontSize: 13),
-                      ),
-                      subtitle: Text(
-                        L.of(context).defaultForNewGames,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                    SwitchListTile(
-                      value: settings.autoSnapshotOnLaunch,
-                      onChanged: (value) => update(
-                        settings.copyWith(autoSnapshotOnLaunch: value),
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        L.of(context).snapshotOnLaunch,
-                        style: TextStyle(fontSize: 13),
-                      ),
-                      subtitle: Text(
-                        L.of(context).autoSnapshotOnLaunchNote,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _savesCard(context, settings, update),
               const LibraryEffectsCard(),
               const LogCard(),
               const AboutCard(),
@@ -381,6 +100,299 @@ class SettingsPage extends StatelessWidget {
       ),
     );
   }
+
+  /// Язык, тема и крупность интерфейса.
+  ///
+  /// Всё это лежало в карточке «Сохранения» — не по вкусовщине, а по ошибке
+  /// раскладки: искать язык в сохранениях никто не станет. Теперь вид
+  /// отдельно, окно и запуск отдельно, сохранения — про сохранения.
+  Widget _appearanceCard(
+    BuildContext context,
+    AppSettings settings,
+    _Update update,
+  ) {
+    final l = L.of(context);
+    return SectionCard(
+      title: l.appearanceAndLanguage,
+      icon: Icons.palette_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LanguagePicker(
+            value: settings.locale,
+            onChanged: (code) => update(settings.copyWith(locale: code)),
+          ),
+          const SizedBox(height: 12),
+          ThemePicker(
+            value: settings.themeMode,
+            onChanged: (mode) => update(settings.copyWith(themeMode: mode)),
+          ),
+          const SizedBox(height: 14),
+          // Крупность обложек отсюда убрана: она стоит в самой библиотеке,
+          // рядом с тем, на что влияет. Два ползунка с одинаковой подписью
+          // в двух местах — это выбор, какой из них настоящий.
+          Wrap(
+            spacing: 20,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 220,
+                child: Text(
+                  l.interfaceScale,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+              ScaleControl(
+                key: const ValueKey('interface-scale'),
+                label: l.interfaceScale,
+                value: settings.interfaceScale,
+                min: AppSettings.minInterfaceScale,
+                max: AppSettings.maxInterfaceScale,
+                step: 0.05,
+                onChanged: (value) =>
+                    update(settings.copyWith(interfaceScale: value)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          _note(context, l.interfaceScaleNote),
+        ],
+      ),
+    );
+  }
+
+  /// Каким показывается окно при запуске и запускаться ли с системой.
+  Widget _windowCard(
+    BuildContext context,
+    AppSettings settings,
+    _Update update,
+  ) {
+    final l = L.of(context);
+    return SectionCard(
+      title: l.windowAndStartup,
+      icon: Icons.desktop_windows_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          WindowStartPicker(
+            value: settings.windowStart,
+            onChanged: (mode) => update(settings.copyWith(windowStart: mode)),
+          ),
+          const SizedBox(height: 4),
+          SwitchListTile(
+            value: settings.launchAtStartup,
+            onChanged: (value) =>
+                update(settings.copyWith(launchAtStartup: value)),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.launchAtStartup, style: TextStyle(fontSize: 13)),
+            subtitle: Text(
+              l.launchAtStartupNote,
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Куда качать, сколько задач разом и какие держать скорости.
+  Widget _downloadsCard(
+    BuildContext context,
+    AppSettings settings,
+    _Update update,
+  ) {
+    final l = L.of(context);
+    final limits = settings.limits;
+    return SectionCard(
+      title: l.downloads,
+      icon: Icons.download_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PathSetting(
+            label: l.gamesFolder,
+            value: settings.installDir,
+            onPick: () async {
+              final dir = await getDirectoryPath();
+              if (dir == null) return;
+              update(settings.copyWith(installDir: dir));
+            },
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              SizedBox(
+                width: 220,
+                child: Text(
+                  l.concurrentDownloads,
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+              DropdownButton<int>(
+                value: settings.maxConcurrent,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final value in [1, 2, 3, 5, 8])
+                    DropdownMenuItem(value: value, child: Text('$value')),
+                ],
+                onChanged: (value) {
+                  if (value == null) return;
+                  update(settings.copyWith(maxConcurrent: value));
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SpeedField(
+            label: l.limitDownload,
+            value: limits.download,
+            onChanged: (value) => update(
+              settings.copyWith(limits: limits.copyWith(download: value)),
+            ),
+          ),
+          SpeedField(
+            label: l.limitUpload,
+            value: limits.upload,
+            hint: l.limitUploadNote,
+            onChanged: (value) => update(
+              settings.copyWith(limits: limits.copyWith(upload: value)),
+            ),
+          ),
+          SpeedField(
+            label: l.seedRatio,
+            value: limits.seedRatio,
+            unit: l.seedRatioUnit,
+            hint: l.seedRatioNote,
+            onChanged: (value) => update(
+              settings.copyWith(limits: limits.copyWith(seedRatio: value)),
+            ),
+          ),
+          SpeedField(
+            label: l.limitWhilePlaying,
+            value: limits.whilePlaying,
+            hint: l.limitPlayingNote,
+            onChanged: (value) => update(
+              settings.copyWith(limits: limits.copyWith(whilePlaying: value)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Просьба поискать обложки и пути заново — для игр, которым их не хватает.
+  Widget _metadataCard(BuildContext context) {
+    final l = L.of(context);
+    return SectionCard(
+      title: l.metadataRetryTitle,
+      icon: Icons.image_search_outlined,
+      trailing: OutlinedButton.icon(
+        onPressed: () =>
+            context.read<LibraryBloc>().add(const MetadataRetryRequested()),
+        icon: const Icon(Icons.refresh, size: 16),
+        label: Text(l.metadataRetryAction),
+      ),
+      child: _note(context, l.metadataRetryNote),
+    );
+  }
+
+  /// Справка о движке загрузок.
+  ///
+  /// Без клавиши перезапуска: она осталась одна, на самих загрузках, где
+  /// движок и живёт.
+  Widget _engineCard(BuildContext context, EngineStatus engine) {
+    final l = L.of(context);
+    return SectionCard(
+      title: l.downloadEngine,
+      icon: Icons.settings_ethernet,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InfoRow(
+            label: l.engineState,
+            value: engine.message ?? engineStateLabel(l, engine.state),
+            valueColor: engine.isReady
+                ? context.colors.accent
+                : context.colors.warning,
+          ),
+          InfoRow(label: l.engineImplementation, value: l.engineBuiltIn),
+          const SizedBox(height: 8),
+          _note(context, l.engineNote),
+        ],
+      ),
+    );
+  }
+
+  /// Папка синхронизации и то, когда снимки снимаются сами.
+  Widget _savesCard(
+    BuildContext context,
+    AppSettings settings,
+    _Update update,
+  ) {
+    final l = L.of(context);
+    return SectionCard(
+      title: l.saves,
+      icon: Icons.save_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PathSetting(
+            label: l.syncFolder,
+            value: settings.syncFolder ?? l.notSet,
+            onPick: () async {
+              final dir = await getDirectoryPath();
+              if (dir == null) return;
+              update(settings.copyWith(syncFolder: dir));
+            },
+            onClear: settings.syncFolder == null
+                ? null
+                : () => update(settings.copyWith(syncFolder: null)),
+          ),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            value: settings.autoExportToSync,
+            onChanged: (value) =>
+                update(settings.copyWith(autoExportToSync: value)),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.copyToSyncFolder, style: TextStyle(fontSize: 13)),
+          ),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            value: settings.autoSnapshotOnExit,
+            onChanged: (value) =>
+                update(settings.copyWith(autoSnapshotOnExit: value)),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.snapshotOnExit, style: TextStyle(fontSize: 13)),
+            subtitle: Text(
+              l.defaultForNewGames,
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+          SwitchListTile(
+            value: settings.autoSnapshotOnLaunch,
+            onChanged: (value) =>
+                update(settings.copyWith(autoSnapshotOnLaunch: value)),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l.snapshotOnLaunch, style: TextStyle(fontSize: 13)),
+            subtitle: Text(
+              l.autoSnapshotOnLaunchNote,
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Пояснение под настройкой — одним начертанием на всю страницу.
+  Widget _note(BuildContext context, String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 12.5,
+      height: 1.5,
+      color: context.colors.textSecondary,
+    ),
+  );
 }
 
 /// Настройки — столбец, а не сетка.

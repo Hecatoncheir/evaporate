@@ -221,55 +221,72 @@ class UpdateDownload {
   }
 
   Future<void> _unpack(String name, List<int> bytes, String target) async {
+    final archive = _readArchive(name, bytes);
+    for (final file in archive.files) {
+      final destination = _safeDestination(file.name, target);
+      // Запись про корень архива: создавать нечего, целевая папка уже есть.
+      if (destination == null) continue;
+      await _extract(file, destination);
+    }
+  }
+
+  /// Разбирает скачанное: `.tar.gz` на Linux, zip на остальных.
+  static Archive _readArchive(String name, List<int> bytes) {
     final data = Uint8List.fromList(bytes);
-    final Archive archive;
     try {
-      archive = name.endsWith('.tar.gz')
+      return name.endsWith('.tar.gz')
           ? TarDecoder().decodeBytes(GZipDecoder().decodeBytes(data))
           : ZipDecoder().decodeBytes(data);
     } on Object catch (error) {
       throw UpdateException('Архив не читается: $error');
     }
+  }
 
-    for (final file in archive.files) {
-      // Та же мерка, что и у пакетов сохранений: архив приехал из сети, и
-      // выход за пределы папки в нём недопустим.
-      final relative = file.name.replaceAll(r'\', '/');
-      // Пустые куски пути выходом наружу не являются: так записана обычная
-      // папка (`data/flutter_assets/assets/`), так же выглядит и двойной
-      // слеш. Отбрасываем их и разбираем то, что осталось, — иначе
-      // обновление спотыкалось о первую же папку в архиве.
-      final parts = [
-        for (final part in relative.split('/'))
-          if (part.isNotEmpty) part,
-      ];
-      if (parts.any((part) => part == '.' || part == '..')) {
-        throw UpdateException('Архив просит записать файл наружу: $relative');
-      }
-      // Запись про корень архива: создавать нечего, целевая папка уже есть.
-      if (parts.isEmpty) continue;
-      final destination = p.normalize(p.joinAll([target, ...parts]));
-      if (!p.isWithin(target, destination)) {
-        throw UpdateException('Архив просит записать файл наружу: $relative');
-      }
+  /// Куда положить одну запись архива. `null` — записи про корень архива:
+  /// создавать нечего, целевая папка уже есть.
+  ///
+  /// Та же мерка, что и у пакетов сохранений: архив приехал из сети, и
+  /// выход за пределы папки в нём недопустим.
+  static String? _safeDestination(String entryName, String target) {
+    final relative = entryName.replaceAll(r'\', '/');
+    // Пустые куски пути выходом наружу не являются: так записана обычная
+    // папка (`data/flutter_assets/assets/`), так же выглядит и двойной
+    // слеш. Отбрасываем их и разбираем то, что осталось, — иначе
+    // обновление спотыкалось о первую же папку в архиве.
+    final parts = [
+      for (final part in relative.split('/'))
+        if (part.isNotEmpty) part,
+    ];
+    if (parts.any((part) => part == '.' || part == '..')) {
+      throw UpdateException('Архив просит записать файл наружу: $relative');
+    }
+    if (parts.isEmpty) return null;
 
-      if (!file.isFile) {
-        await Directory(destination).create(recursive: true);
-        continue;
-      }
-      final out = File(destination);
-      await out.parent.create(recursive: true);
-      final sink = OutputFileStream(destination);
-      try {
-        file.writeContent(sink);
-      } finally {
-        await sink.close();
-      }
-      // Права в zip не переживают распаковку, а запускать после обновления
-      // придётся именно эти файлы.
-      if (!Platform.isWindows && _looksExecutable(file)) {
-        await Process.run('chmod', ['+x', destination]);
-      }
+    final destination = p.normalize(p.joinAll([target, ...parts]));
+    if (!p.isWithin(target, destination)) {
+      throw UpdateException('Архив просит записать файл наружу: $relative');
+    }
+    return destination;
+  }
+
+  /// Кладёт одну запись архива на своё место.
+  static Future<void> _extract(ArchiveFile file, String destination) async {
+    if (!file.isFile) {
+      await Directory(destination).create(recursive: true);
+      return;
+    }
+    final out = File(destination);
+    await out.parent.create(recursive: true);
+    final sink = OutputFileStream(destination);
+    try {
+      file.writeContent(sink);
+    } finally {
+      await sink.close();
+    }
+    // Права в zip не переживают распаковку, а запускать после обновления
+    // придётся именно эти файлы.
+    if (!Platform.isWindows && _looksExecutable(file)) {
+      await Process.run('chmod', ['+x', destination]);
     }
   }
 
@@ -329,35 +346,54 @@ class UpdateDownload {
       if (!resumed && response.statusCode != HttpStatus.ok) {
         throw UpdateException('Сервер ответил ${response.statusCode}');
       }
-
-      var received = resumed ? from : 0;
-      final total = response.contentLength > 0
-          ? response.contentLength + received
-          : 0;
-      final sink = target.openWrite(
-        mode: resumed ? FileMode.append : FileMode.writeOnly,
+      await _writeBody(
+        response,
+        target,
+        alreadyHave: resumed ? from : 0,
+        append: resumed,
+        onProgress: onProgress,
       );
-      var reported = DateTime.now();
-      try {
-        await for (final chunk in response) {
-          sink.add(chunk);
-          received += chunk.length;
-          final now = DateTime.now();
-          if (now.difference(reported) < const Duration(milliseconds: 100)) {
-            continue;
-          }
-          reported = now;
-          onProgress(received, total);
-        }
-      } finally {
-        await sink.close();
-      }
-      onProgress(received, total);
     } on SocketException catch (error) {
       throw UpdateException('Нет связи: ${error.message}');
     } finally {
       client.close(force: true);
     }
+  }
+
+  /// Как часто докладываем о ходе загрузки. Кусков приходят тысячи, и
+  /// перерисовывать окно на каждый значит тратить на показ больше, чем на
+  /// саму загрузку.
+  static const _progressInterval = Duration(milliseconds: 100);
+
+  /// Пишет тело ответа в файл, изредка сообщая о ходе.
+  static Future<void> _writeBody(
+    HttpClientResponse response,
+    File target, {
+    required int alreadyHave,
+    required bool append,
+    required void Function(int, int) onProgress,
+  }) async {
+    var received = alreadyHave;
+    final total = response.contentLength > 0
+        ? response.contentLength + received
+        : 0;
+    final sink = target.openWrite(
+      mode: append ? FileMode.append : FileMode.writeOnly,
+    );
+    var reported = DateTime.now();
+    try {
+      await for (final chunk in response) {
+        sink.add(chunk);
+        received += chunk.length;
+        final now = DateTime.now();
+        if (now.difference(reported) < _progressInterval) continue;
+        reported = now;
+        onProgress(received, total);
+      }
+    } finally {
+      await sink.close();
+    }
+    onProgress(received, total);
   }
 
   /// Запрос с продолжением и переадресациями.

@@ -116,38 +116,10 @@ class ExecutableFinder {
     int depth,
     String folderName,
   ) async {
-    final lower = name.toLowerCase();
-    int base;
-
-    if (Platform.isWindows) {
-      if (!lower.endsWith('.exe') && !lower.endsWith('.bat')) return null;
-      base = lower.endsWith('.exe') ? 30 : 10;
-    } else if (Platform.isMacOS) {
-      if (lower.endsWith('.sh') || lower.endsWith('.command')) {
-        base = 20;
-      } else if (await _isExecutable(file)) {
-        base = 15;
-      } else {
-        return null;
-      }
-    } else {
-      if (lower.endsWith('.sh') ||
-          lower.endsWith('.x86_64') ||
-          lower.endsWith('.appimage')) {
-        base = 25;
-      } else if (await _isExecutable(file)) {
-        base = 15;
-      } else {
-        return null;
-      }
-    }
-
-    int size = 0;
-    try {
-      size = await file.length();
-    } on FileSystemException {
-      return null;
-    }
+    final base = await _launchScore(file, name.toLowerCase());
+    if (base == null) return null;
+    final size = await _sizeOrNull(file);
+    if (size == null) return null;
 
     return ExecutableCandidate(
       path: file.path,
@@ -156,9 +128,43 @@ class ExecutableFinder {
           base +
           _score(name, depth) +
           _matchesFolder(name, folderName) +
+          // Крупный файл среди соседей чаще всего и есть игра: рядом с ней
+          // лежат мелкие вспомогательные утилиты.
           (size > 5 * 1024 * 1024 ? 10 : 0),
       sizeBytes: size,
     );
+  }
+
+  /// Насколько файл похож на то, чем игру запускают, — по одному лишь имени
+  /// и праву на исполнение. Null означает «это точно не запуск».
+  ///
+  /// Системы тут расходятся: на Windows игру запускают `.exe` и `.bat`, на
+  /// остальных — скрипты и всё, чему выставлен бит исполнения.
+  static Future<int?> _launchScore(File file, String lower) async {
+    if (Platform.isWindows) {
+      if (lower.endsWith('.exe')) return 30;
+      if (lower.endsWith('.bat')) return 10;
+      return null;
+    }
+    if (Platform.isMacOS) {
+      if (lower.endsWith('.sh') || lower.endsWith('.command')) return 20;
+      return await _isExecutable(file) ? 15 : null;
+    }
+    if (lower.endsWith('.sh') ||
+        lower.endsWith('.x86_64') ||
+        lower.endsWith('.appimage')) {
+      return 25;
+    }
+    return await _isExecutable(file) ? 15 : null;
+  }
+
+  /// Размер файла; null — прочитать не удалось, и кандидатом он не станет.
+  static Future<int?> _sizeOrNull(File file) async {
+    try {
+      return await file.length();
+    } on FileSystemException {
+      return null;
+    }
   }
 
   /// Насколько имя файла похоже на имя папки игры.

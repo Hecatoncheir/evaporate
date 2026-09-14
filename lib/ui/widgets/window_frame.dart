@@ -231,13 +231,10 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
 
   @override
   Widget build(BuildContext context) {
-    final l = L.of(context);
     final expanded = _maximized || _fullScreen;
     // На Windows форму задаёт DWM. Прозрачный слой помешал бы его
     // скруглению и мог бы оставить чёрные углы на Windows 10.
     final radius = !expanded && !Platform.isWindows ? 12.0 : 0.0;
-    final colors = context.colors;
-    final foreground = _focused ? colors.textPrimary : colors.textSecondary;
 
     // Развёрнутому окну край тянуть незачем, а macOS меняет размер сама:
     // startResizing там не поддерживается.
@@ -255,92 +252,12 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
             children: [
               Column(
                 children: [
-                  Material(
-                    color: colors.surface,
-                    child: SizedBox(
-                      height: WindowChrome.barHeight,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              key: const ValueKey('window-drag-region'),
-                              behavior: HitTestBehavior.opaque,
-                              onPanStart: (_) =>
-                                  _perform(windowManager.startDragging),
-                              onDoubleTap: _toggleSize,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: Row(
-                                  children: [
-                                    const AppMark(size: 24),
-                                    const SizedBox(width: 9),
-                                    Text(
-                                      'Evaporate',
-                                      style: TextStyle(
-                                        color: foreground,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    if (_error != null)
-                                      Tooltip(
-                                        message: _error!,
-                                        child: Icon(
-                                          Icons.error_outline,
-                                          color: colors.danger,
-                                          size: 16,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          // Отступ ровно на толщину полосы у края: под
-                          // полосой кнопка не просто не нажимается, а
-                          // получает нажатие потом, когда системный цикл
-                          // изменения размера уже закончился.
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: resizable ? WindowChrome.edge : 0,
-                              right: resizable ? WindowChrome.edge : 0,
-                            ),
-                            child: Row(
-                              children: [
-                                _WindowButton(
-                                  label: l.minimizeWindow,
-                                  icon: Icons.remove,
-                                  onPressed: () =>
-                                      _perform(windowManager.minimize),
-                                ),
-                                _WindowButton(
-                                  label: expanded
-                                      ? l.restoreWindow
-                                      : l.maximizeWindow,
-                                  icon: expanded
-                                      ? Icons.filter_none
-                                      : Icons.crop_square,
-                                  onPressed: _toggleSize,
-                                ),
-                                _WindowButton(
-                                  label: l.closeWindow,
-                                  icon: Icons.close,
-                                  destructive: true,
-                                  onPressed: () =>
-                                      _perform(windowManager.close),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  _titleBar(context, expanded: expanded, resizable: resizable),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: context.colors.outline,
                   ),
-                  Divider(height: 1, thickness: 1, color: colors.outline),
                   Expanded(child: widget.child),
                 ],
               ),
@@ -356,6 +273,102 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
           ),
         ),
       ),
+    );
+  }
+
+  /// Своя полоса заголовка: рамку ОС мы убрали, и перетаскивание с кнопками
+  /// окна теперь наши.
+  Widget _titleBar(
+    BuildContext context, {
+    required bool expanded,
+    required bool resizable,
+  }) => Material(
+    color: context.colors.surface,
+    child: SizedBox(
+      height: WindowChrome.barHeight,
+      child: Row(
+        children: [
+          Expanded(child: _dragRegion(context)),
+          // Отступ ровно на толщину полосы у края: под полосой кнопка не
+          // просто не нажимается, а получает нажатие потом, когда системный
+          // цикл изменения размера уже закончился.
+          Padding(
+            padding: EdgeInsets.only(
+              top: resizable ? WindowChrome.edge : 0,
+              right: resizable ? WindowChrome.edge : 0,
+            ),
+            child: _windowButtons(context, expanded: expanded),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  /// Полоса, за которую окно таскают. Двойное нажатие по ней разворачивает
+  /// окно — так же, как по заголовку обычного окна системы.
+  Widget _dragRegion(BuildContext context) {
+    final colors = context.colors;
+    // У окна не в фокусе заголовок приглушён — так же, как у системных.
+    final foreground = _focused ? colors.textPrimary : colors.textSecondary;
+
+    return GestureDetector(
+      key: const ValueKey('window-drag-region'),
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) => _perform(windowManager.startDragging),
+      onDoubleTap: _toggleSize,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            const AppMark(size: 24),
+            const SizedBox(width: 9),
+            Text(
+              'Evaporate',
+              style: TextStyle(
+                color: foreground,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const Spacer(),
+            if (_error != null)
+              Tooltip(
+                message: _error!,
+                child: Icon(
+                  Icons.error_outline,
+                  color: colors.danger,
+                  size: 16,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Три кнопки окна: свернуть, развернуть или вернуть, закрыть.
+  Widget _windowButtons(BuildContext context, {required bool expanded}) {
+    final l = L.of(context);
+    return Row(
+      children: [
+        _WindowButton(
+          label: l.minimizeWindow,
+          icon: Icons.remove,
+          onPressed: () => _perform(windowManager.minimize),
+        ),
+        _WindowButton(
+          label: expanded ? l.restoreWindow : l.maximizeWindow,
+          icon: expanded ? Icons.filter_none : Icons.crop_square,
+          onPressed: _toggleSize,
+        ),
+        _WindowButton(
+          label: l.closeWindow,
+          icon: Icons.close,
+          destructive: true,
+          onPressed: () => _perform(windowManager.close),
+        ),
+      ],
     );
   }
 

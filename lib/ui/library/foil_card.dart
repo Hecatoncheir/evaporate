@@ -59,34 +59,51 @@ class FoilCardState extends State<FoilCard>
     _syncMotion();
   }
 
+  /// Приводит анимацию карточки в соответствие с настройками и обстановкой.
   void _syncMotion() {
     final reduced = MediaQuery.disableAnimationsOf(context);
     final enabled =
         widget.enabled &&
         (widget.foilEnabled || widget.tiltEnabled || widget.distortionEnabled);
+
     _motion.foil = widget.enabled && widget.foilEnabled;
     _motion.distortion = enabled && !reduced && widget.distortionEnabled;
-    if (!enabled || reduced) {
+    if (enabled && !reduced) {
+      _motion.tilt = widget.tiltEnabled;
+    } else {
+      // Украшения выключены или система просит не двигаться: карточка
+      // замирает, но подсветка выбранной остаётся — это не украшение,
+      // а указание, что выбрано.
       _motion.strength = enabled && widget.active ? 1 : 0;
       _motion.tilt = false;
       _motion.phase = 0;
-    } else {
-      _motion.tilt = widget.tiltEnabled;
     }
     _motion.changed();
-    final run =
-        enabled &&
-        !reduced &&
-        _visible &&
-        TickerMode.valuesOf(context).enabled &&
-        (ModalRoute.isCurrentOf(context) ?? true) &&
-        (widget.active || _motion.strength > 0);
-    if (run && !_ticker.isActive) {
-      _previous = null;
+
+    _runTicker(enabled && !reduced && _worthAnimating);
+  }
+
+  /// Стоит ли гнать кадры прямо сейчас.
+  ///
+  /// Украшение не должно жечь батарею за спиной: в свёрнутом окне, на
+  /// невидимом разделе и на неактивном маршруте часы стоят.
+  bool get _worthAnimating =>
+      _visible &&
+      TickerMode.valuesOf(context).enabled &&
+      (ModalRoute.isCurrentOf(context) ?? true) &&
+      (widget.active || _motion.strength > 0);
+
+  /// Пускает или останавливает часы перерисовки.
+  ///
+  /// Отсчёт прошлого кадра сбрасывается на обеих границах: после паузы он
+  /// показывал бы шаг длиной во всю паузу.
+  void _runTicker(bool run) {
+    if (run == _ticker.isActive) return;
+    _previous = null;
+    if (run) {
       _ticker.start();
-    } else if (!run && _ticker.isActive) {
+    } else {
       _ticker.stop();
-      _previous = null;
     }
   }
 

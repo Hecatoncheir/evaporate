@@ -56,11 +56,6 @@ class _LibraryPageState extends State<LibraryPage> {
   double _rowStride = 320;
   String? _hoveredId;
 
-  /// Над окном что-то держат. Пока это так, показываем, что сюда можно.
-
-  /// Разбор сброшенного идёт с обращениями к диску, и второй сброс поверх
-  /// первого наплодил бы дубли.
-
   /// Открыто окно поиска установленных игр.
   bool _scanning = false;
 
@@ -107,30 +102,34 @@ class _LibraryPageState extends State<LibraryPage> {
     });
   }
 
+  /// Выше этой высоты у кадра выбранной игры полный вид; ниже — полоса.
+  static const _roomyHeight = 760.0;
+
+  /// Ниже этой высоты кадр убирается совсем: иначе не осталось бы места
+  /// самой полке.
+  static const _heroHeight = 520.0;
+
+  /// Ниже этой высоты не остаётся места и заголовку раздела.
+  static const _headingHeight = 360.0;
+
+  /// Поля сетки обложек и просвет между плитками.
+  static const _gridPadding = 64.0;
+  static const _gridGap = 36.0;
+
   @override
   Widget build(BuildContext context) {
     final library = context.watch<LibraryBloc>().state;
     final nav = context.read<NavigationBloc>();
     final navState = context.watch<NavigationBloc>().state;
     final effects = context.watch<SettingsBloc>().state;
-    final libraryIds = library.games.map((g) => g.id).toSet();
     final scale = context.select<SettingsBloc, double>(
       (b) => b.state.libraryScale,
     );
-    _tileKeys.removeWhere((id, _) => !libraryIds.contains(id));
-    for (final id
-        in _tileFocus.keys.where((id) => !libraryIds.contains(id)).toList()) {
-      _tileFocus.remove(id)!.dispose();
-    }
+    _forgetGoneGames(library.games);
 
     final found = _search(library.games);
     final games = _onShelf(found, _shelf);
-    final selectedIndex = games.indexWhere(
-      (game) => game.id == navState.selectedGameId,
-    );
-    final featured = games.isEmpty
-        ? null
-        : games[selectedIndex < 0 ? 0 : selectedIndex];
+    final featured = _featured(games, navState.selectedGameId);
     if (_hoveredId != null && !games.any((g) => g.id == _hoveredId)) {
       _hoveredId = null;
     }
@@ -145,12 +144,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final roomy = constraints.maxHeight >= 760;
-        final showHeading = constraints.maxHeight >= 360;
-        // Кадр выбранной игры не прячется там, где просто меньше места:
-        // ниже 760 он становится полосой и уходит совсем только тогда,
-        // когда иначе не осталось бы места самой полке.
-        final showHero = constraints.maxHeight >= 520;
+        final height = constraints.maxHeight;
         return LibraryAtmosphere(
           enabled: effects.libraryEffects,
           particlesEnabled: effects.particlesEnabled,
@@ -158,67 +152,37 @@ class _LibraryPageState extends State<LibraryPage> {
           targetKey: () => _tileKeys[_hoveredId ?? navState.selectedGameId],
           child: Column(
             children: [
-              if (showHeading)
-                ConceptLibraryHeading(
-                  scale: scale,
-                  onScale: (value) {
-                    final settings = context.read<SettingsBloc>();
-                    settings.add(
-                      SettingsChanged(
-                        settings.state.copyWith(libraryScale: value),
-                      ),
-                    );
-                  },
-                ),
-              if (featured != null && showHero)
+              if (height >= _headingHeight) _heading(context, scale),
+              // Кадр выбранной игры не прячется там, где просто меньше
+              // места: ниже 760 точек он становится полосой и уходит совсем
+              // только тогда, когда иначе не осталось бы места полке.
+              if (featured != null && height >= _heroHeight)
                 FeaturedGame(
                   game: featured,
-                  compact: !roomy,
+                  compact: height < _roomyHeight,
                   sweepEnabled:
                       effects.libraryEffects && effects.heroSweepEnabled,
                   onOpen: () => nav.add(GameOpened(featured.id)),
                   onPrimary: () => dispatchPrimaryAction(context, featured),
                 ),
-              LibraryToolbar(
-                shelf: _shelf,
-                counts: {
-                  for (final shelf in Shelf.values)
-                    shelf: _onShelf(found, shelf).length,
-                },
-                onShelf: (value) => setState(() => _shelf = value),
-                searchFocus: nav.searchFocus,
-                onReturnToGames: () => _returnToGames(games, nav),
-                onQuery: (value) => setState(() => _query = value),
-                onScan: () => _scanFolder(context),
-                onAdd: () => _addGame(context),
-              ),
+              _toolbar(context, found, games, nav),
               Expanded(
+                // Сброшенное в окно: папка становится установленной игрой,
+                // `.torrent` — игрой в очереди загрузки. Magnet-ссылку сюда
+                // не притащить: системы отдают её не файлом, и до приложения
+                // она не доезжает. Для неё есть «Добавить игру».
+                //
                 // Пока открыто окно поиска, брошенное принадлежит ему.
                 child: GameDropTarget(
                   enabled: !_scanning,
                   child: games.isEmpty
                       ? _empty(context, library.games.isEmpty)
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            final extent = 215 * scale;
-                            _columns =
-                                ((constraints.maxWidth - 64) / (extent + 36))
-                                    .ceil()
-                                    .clamp(1, 1000);
-                            final tileWidth =
-                                (constraints.maxWidth -
-                                    64 -
-                                    36 * (_columns - 1)) /
-                                _columns;
-                            _rowStride = tileWidth * 1.5 + 40;
-                            return _grid(
-                              games,
-                              navState.selectedGameId,
-                              nav,
-                              effects,
-                              extent,
-                            );
-                          },
+                      : _measuredGrid(
+                          games,
+                          navState.selectedGameId,
+                          nav,
+                          effects,
+                          scale,
                         ),
                 ),
               ),
@@ -229,11 +193,74 @@ class _LibraryPageState extends State<LibraryPage> {
     );
   }
 
-  /// Сброшенное в окно: папка становится установленной игрой, `.torrent` —
-  /// игрой в очереди загрузки.
+  /// Освобождает то, что осталось от игр, которых в библиотеке больше нет.
+  void _forgetGoneGames(List<Game> games) {
+    final alive = games.map((g) => g.id).toSet();
+    _tileKeys.removeWhere((id, _) => !alive.contains(id));
+    for (final id
+        in _tileFocus.keys.where((id) => !alive.contains(id)).toList()) {
+      _tileFocus.remove(id)!.dispose();
+    }
+  }
+
+  /// Игра для крупного кадра: выбранная, а если её на полке нет — первая.
+  Game? _featured(List<Game> games, String? selectedId) {
+    if (games.isEmpty) return null;
+    final index = games.indexWhere((game) => game.id == selectedId);
+    return games[index < 0 ? 0 : index];
+  }
+
+  Widget _heading(BuildContext context, double scale) => ConceptLibraryHeading(
+    scale: scale,
+    onScale: (value) {
+      final settings = context.read<SettingsBloc>();
+      settings.add(
+        SettingsChanged(settings.state.copyWith(libraryScale: value)),
+      );
+    },
+  );
+
+  /// Полки, поиск и клавиши «найти» и «добавить».
+  Widget _toolbar(
+    BuildContext context,
+    List<Game> found,
+    List<Game> games,
+    NavigationBloc nav,
+  ) => LibraryToolbar(
+    shelf: _shelf,
+    counts: {
+      for (final shelf in Shelf.values) shelf: _onShelf(found, shelf).length,
+    },
+    onShelf: (value) => setState(() => _shelf = value),
+    searchFocus: nav.searchFocus,
+    onReturnToGames: () => _returnToGames(games, nav),
+    onQuery: (value) => setState(() => _query = value),
+    onScan: () => _scanFolder(context),
+    onAdd: () => _addGame(context),
+  );
+
+  /// Меряет место под сетку и строит её.
   ///
-  /// Magnet-ссылку сюда не притащить: системы отдают её не файлом, и до
-  /// приложения она не доезжает. Для неё есть «Добавить игру».
+  /// Ширина плитки нужна не только сетке: по ней считается шаг прокрутки,
+  /// которым фокус догоняет ещё не построенную плитку.
+  Widget _measuredGrid(
+    List<Game> games,
+    String? selectedId,
+    NavigationBloc nav,
+    AppSettings effects,
+    double scale,
+  ) => LayoutBuilder(
+    builder: (context, constraints) {
+      final extent = 215 * scale;
+      final room = constraints.maxWidth - _gridPadding;
+      _columns = (room / (extent + _gridGap)).ceil().clamp(1, 1000);
+      final tileWidth = (room - _gridGap * (_columns - 1)) / _columns;
+      _rowStride = tileWidth * 1.5 + 40;
+      return _grid(games, selectedId, nav, effects, extent);
+    },
+  );
+
+  /// Сетка обложек: ленивая, с рамкой выбранного и всходом первого экрана.
   Widget _grid(
     List<Game> games,
     String? selectedId,
@@ -241,7 +268,10 @@ class _LibraryPageState extends State<LibraryPage> {
     AppSettings effects,
     double extent,
   ) {
+    // Где какая игра — чтобы ленивая сетка узнавала уже построенную плитку
+    // после перестановки, а не собирала её заново.
     final indices = {for (var i = 0; i < games.length; i++) games[i].id: i};
+
     return LiquidSelection(
       key: const ValueKey('grid-liquid'),
       targetKey: () => _tileKeys[_hoveredId ?? selectedId],
@@ -263,75 +293,102 @@ class _LibraryPageState extends State<LibraryPage> {
           mainAxisSpacing: 32,
         ),
         itemCount: games.length,
-        itemBuilder: (context, index) {
-          final game = games[index];
-          final motion = context.motion;
-          final hovered = _hoveredId == game.id;
-          return MouseRegion(
-            key: ValueKey(game.id),
-            onEnter: (_) => setState(() => _hoveredId = game.id),
-            onExit: (_) {
-              if (mounted && _hoveredId == game.id) {
-                setState(() => _hoveredId = null);
-              }
-            },
-            child: RiseIn(
-              enabled:
-                  effects.libraryEffects && effects.interfaceAnimationsEnabled,
-              // Очередь всхода — только для первого экрана. Дальше ленивая
-              // сетка строит плитки по мере прокрутки, и задержка означала
-              // бы, что домотанное появляется через полсекунды после того,
-              // как человек до него домотал.
-              delay: index < motion.staggerLimit
-                  ? motion.staggerAt(index)
-                  : Duration.zero,
-              child: AnimatedContainer(
-                duration: motion.fast,
-                curve: EvaporateMotion.ease,
-                // Обложка приподнимается под курсором: в сетке одинаковых
-                // прямоугольников это самый заметный способ показать, где
-                // рука, — заметнее рамки.
-                transform: Matrix4.translationValues(0, hovered ? -7 : 0, 0),
-                child: KeyedSubtree(
-                  key: _tileKeys.putIfAbsent(
-                    game.id,
-                    () => GlobalKey(debugLabel: game.id),
-                  ),
-                  child: FoilCard(
-                    active: (_hoveredId ?? selectedId) == game.id,
-                    enabled: effects.libraryEffects,
-                    foilEnabled: effects.foilEnabled,
-                    tiltEnabled: effects.cardTiltEnabled,
-                    distortionEnabled: effects.liquidDistortionEnabled,
-                    child: GameCoverTile(
-                      focusNode: _tileFocus.putIfAbsent(
-                        game.id,
-                        () => FocusNode(debugLabel: 'game:${game.id}'),
-                      ),
-                      key: ValueKey(game.id),
-                      game: game,
-                      selected: game.id == selectedId,
-                      dropsEnabled:
-                          effects.libraryEffects && effects.dropsEnabled,
-                      portalEnabled:
-                          effects.libraryEffects && effects.portalEnabled,
-                      // Рамка живёт мимо общего выключателя эффектов: она
-                      // показывает, где ты в сетке, а не украшает её.
-                      frameEnabled: effects.selectionFrameEnabled,
-                      onOpen: () => nav.add(GameOpened(game.id)),
-                      // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
-                      // работать по той игре, на которую смотришь, не заходя внутрь.
-                      onFocused: () => nav.add(GameSelected(game.id)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+        itemBuilder: (context, index) => _tile(
+          context,
+          game: games[index],
+          index: index,
+          selectedId: selectedId,
+          nav: nav,
+          effects: effects,
+        ),
       ),
     );
   }
+
+  /// Одна плитка сетки: она же следит за курсором и всходит при появлении.
+  Widget _tile(
+    BuildContext context, {
+    required Game game,
+    required int index,
+    required String? selectedId,
+    required NavigationBloc nav,
+    required AppSettings effects,
+  }) {
+    final motion = context.motion;
+    final hovered = _hoveredId == game.id;
+
+    return MouseRegion(
+      key: ValueKey(game.id),
+      onEnter: (_) => setState(() => _hoveredId = game.id),
+      onExit: (_) {
+        if (mounted && _hoveredId == game.id) {
+          setState(() => _hoveredId = null);
+        }
+      },
+      child: RiseIn(
+        enabled: effects.libraryEffects && effects.interfaceAnimationsEnabled,
+        // Очередь всхода — только для первого экрана. Дальше ленивая сетка
+        // строит плитки по мере прокрутки, и задержка означала бы, что
+        // домотанное появляется через полсекунды после того, как человек
+        // до него домотал.
+        delay: index < motion.staggerLimit
+            ? motion.staggerAt(index)
+            : Duration.zero,
+        child: AnimatedContainer(
+          duration: motion.fast,
+          curve: EvaporateMotion.ease,
+          // Обложка приподнимается под курсором: в сетке одинаковых
+          // прямоугольников это самый заметный способ показать, где рука, —
+          // заметнее рамки.
+          transform: Matrix4.translationValues(0, hovered ? -7 : 0, 0),
+          child: KeyedSubtree(
+            key: _tileKeys.putIfAbsent(
+              game.id,
+              () => GlobalKey(debugLabel: game.id),
+            ),
+            child: FoilCard(
+              active: (_hoveredId ?? selectedId) == game.id,
+              enabled: effects.libraryEffects,
+              foilEnabled: effects.foilEnabled,
+              tiltEnabled: effects.cardTiltEnabled,
+              distortionEnabled: effects.liquidDistortionEnabled,
+              child: _cover(
+                game,
+                selectedId: selectedId,
+                nav: nav,
+                effects: effects,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Сама обложка и всё, что на ней живёт.
+  Widget _cover(
+    Game game, {
+    required String? selectedId,
+    required NavigationBloc nav,
+    required AppSettings effects,
+  }) => GameCoverTile(
+    focusNode: _tileFocus.putIfAbsent(
+      game.id,
+      () => FocusNode(debugLabel: 'game:${game.id}'),
+    ),
+    key: ValueKey(game.id),
+    game: game,
+    selected: game.id == selectedId,
+    dropsEnabled: effects.libraryEffects && effects.dropsEnabled,
+    portalEnabled: effects.libraryEffects && effects.portalEnabled,
+    // Рамка живёт мимо общего выключателя эффектов: она показывает, где ты
+    // в сетке, а не украшает её.
+    frameEnabled: effects.selectionFrameEnabled,
+    onOpen: () => nav.add(GameOpened(game.id)),
+    // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
+    // работать по той игре, на которую смотришь, не заходя внутрь.
+    onFocused: () => nav.add(GameSelected(game.id)),
+  );
 
   /// Возвращает выбор в осмысленное состояние, если он повис в воздухе.
   void _repairSelection(

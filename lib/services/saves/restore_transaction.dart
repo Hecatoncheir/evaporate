@@ -3,13 +3,19 @@ part of 'save_manager.dart';
 /// Проверка пакета, подготовка новых целей и откат файловой транзакции.
 /// Ни один исходный путь не изменяется до полной подготовки всех целей.
 extension _RestoreTransaction on SaveManager {
+  /// Собирает план: какой файл пакета в какое место ляжет.
+  ///
+  /// План строится целиком до первой записи на диск. Пакет приходит извне,
+  /// и половина разобранного пакета хуже, чем неразобранный.
   _RestorePlan _buildRestorePlan(
     Archive archive,
     Map<String, _RestoreTarget> targets,
   ) {
     final entries = <_RestoreEntry>[];
     final destinations = <String>{};
-    final fileRuleCounts = <String, int>{};
+    // Правило на один файл описывает ровно один файл: второй означает, что
+    // пакет собран не так, как их пишем мы.
+    final filesPerRule = <String, int>{};
     var bytes = 0;
 
     for (final file in archive.files) {
@@ -17,25 +23,17 @@ extension _RestoreTransaction on SaveManager {
         throw SaveException(_l.savePathEscapes(file.name));
       }
       if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
+
       final parsed = SaveManager._parseEntryName(file.name);
       if (parsed == null) continue;
       final target = targets[parsed.ruleId];
       if (target == null) continue;
 
-      final relative = parsed.relativePath.replaceAll(r'\', '/');
-      final parts = relative.split('/');
-      if (relative.isEmpty ||
-          p.posix.isAbsolute(relative) ||
-          p.windows.isAbsolute(relative) ||
-          (Platform.isWindows && relative.contains(':')) ||
-          parts.any((part) => part.isEmpty || part == '.' || part == '..')) {
-        throw SaveException(_l.savePathEscapes(file.name));
-      }
-
-      late final String destination;
+      final parts = _safeRelativeParts(parsed.relativePath, file.name);
+      final String destination;
       if (target.isFile) {
-        final count = (fileRuleCounts[parsed.ruleId] ?? 0) + 1;
-        fileRuleCounts[parsed.ruleId] = count;
+        final count = (filesPerRule[parsed.ruleId] ?? 0) + 1;
+        filesPerRule[parsed.ruleId] = count;
         if (count > 1 || parts.length != 1) {
           throw SaveException(_l.savePathEscapes(file.name));
         }
@@ -47,9 +45,12 @@ extension _RestoreTransaction on SaveManager {
         }
       }
 
+      // Два файла пакета в одно место — спор о том, чьё содержимое окажется
+      // на диске. Решать его молча нельзя.
       if (!destinations.add(destination)) {
         throw SaveException(_l.saveArchiveReadFailed(file.name));
       }
+
       bytes += file.size;
       if (bytes > SaveManager._maxSnapshotBytes) {
         throw SaveException(_l.saveTooLarge(formatBytes(bytes)));
@@ -62,112 +63,203 @@ extension _RestoreTransaction on SaveManager {
         ),
       );
     }
-    final usedTargets = entries.map((entry) => entry.target).toSet().toList();
-    for (var i = 0; i < usedTargets.length; i++) {
-      for (var j = i + 1; j < usedTargets.length; j++) {
-        final a = usedTargets[i].path;
-        final b = usedTargets[j].path;
+
+    _checkTargetsDoNotOverlap(entries.map((entry) => entry.target).toSet());
+    if (entries.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
+    return _RestorePlan(entries: entries, bytes: bytes);
+  }
+
+  /// Разбирает путь внутри пакета на части и убеждается, что он никуда не
+  /// уводит: пакет приходит извне, и `../..` в нём — обычное дело.
+  List<String> _safeRelativeParts(String relativePath, String entryName) {
+    final relative = relativePath.replaceAll(r'\', '/');
+    final parts = relative.split('/');
+    final escapes =
+        relative.isEmpty ||
+        p.posix.isAbsolute(relative) ||
+        p.windows.isAbsolute(relative) ||
+        // На Windows двоеточие уводит на другой диск, а не именует файл.
+        (Platform.isWindows && relative.contains(':')) ||
+        parts.any((part) => part.isEmpty || part == '.' || part == '..');
+    if (escapes) throw SaveException(_l.savePathEscapes(entryName));
+    return parts;
+  }
+
+  /// Цели не должны лежать одна в другой: замена идёт папкой целиком, и
+  /// вложенная цель исчезла бы вместе со старым содержимым внешней.
+  void _checkTargetsDoNotOverlap(Set<_RestoreTarget> targets) {
+    final paths = [for (final target in targets) target.path];
+    for (var i = 0; i < paths.length; i++) {
+      for (var j = i + 1; j < paths.length; j++) {
+        final a = paths[i];
+        final b = paths[j];
         if (p.equals(a, b) || p.isWithin(a, b) || p.isWithin(b, a)) {
           throw SaveException(_l.savePathEscapes('$a / $b'));
         }
       }
     }
-    if (entries.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
-    return _RestorePlan(entries: entries, bytes: bytes);
   }
 
+  /// Раскладывает пакет по местам так, чтобы неудача на любом шаге не
+  /// оставила человека без сохранений.
+  ///
+  /// Порядок шагов и есть возможность откатиться: сначала рядом с каждой
+  /// целью собирается её замена, потом прежнее отодвигается в резервную
+  /// копию, и только в самом конце копии убираются.
   Future<void> _commitRestore(
     _RestorePlan plan, {
     required bool wipeTarget,
   }) async {
+    // Оба списка нужны и откату, и уборке, поэтому живут здесь, а шаги
+    // только дописывают в них.
     final prepared = <_PreparedTarget>[];
     final committed = <_CommittedTarget>[];
     try {
-      for (final group in plan.byTarget.entries) {
-        final target = group.key;
-        final token = SaveManager._uuid.v4();
-        final candidatePath = p.join(
-          p.dirname(target.path),
-          '.${p.basename(target.path)}.evaporate-new-$token',
-        );
-        prepared.add(_PreparedTarget(target: target, path: candidatePath));
-        if ((await FileSystemEntity.type(target.path, followLinks: false)) ==
-            FileSystemEntityType.link) {
-          throw SaveException(_l.savePathEscapes(target.path));
-        }
-        await Directory(p.dirname(target.path)).create(recursive: true);
-
-        if (target.isFile) {
-          if (await Directory(target.path).exists()) {
-            throw FileSystemException('Expected a file', target.path);
-          }
-          final entry = group.value.single;
-          await _writeArchiveFile(entry.archiveFile, candidatePath);
-        } else {
-          if (await File(target.path).exists()) {
-            throw FileSystemException('Expected a directory', target.path);
-          }
-          final candidate = Directory(candidatePath);
-          await candidate.create(recursive: true);
-          if (!wipeTarget && await Directory(target.path).exists()) {
-            await _copyDirectory(Directory(target.path), candidate);
-          }
-          for (final entry in group.value) {
-            final relative = p.relative(entry.destination, from: target.path);
-            await _writeArchiveFile(
-              entry.archiveFile,
-              p.join(candidate.path, relative),
-            );
-          }
-        }
-      }
-
-      for (final item in prepared) {
-        final backupPath =
-            '${item.target.path}.evaporate-old-${SaveManager._uuid.v4()}';
-        final existed = await _entityExists(item.target);
-        if (existed) {
-          await _renameEntity(item.target, item.target.path, backupPath);
-        }
-        try {
-          await _renameEntity(item.target, item.path, item.target.path);
-        } on Object {
-          if (existed) {
-            await _renameEntity(item.target, backupPath, item.target.path);
-          }
-          rethrow;
-        }
-        committed.add(
-          _CommittedTarget(
-            target: item.target,
-            backupPath: existed ? backupPath : null,
-          ),
-        );
-      }
+      await _prepareTargets(plan, prepared, wipeTarget: wipeTarget);
+      await _swapPreparedIn(prepared, committed);
     } on Object catch (error) {
-      for (final item in committed.reversed) {
-        if (await _entityExists(item.target)) {
-          await _deleteEntity(item.target, item.target.path);
-        }
-        if (item.backupPath != null) {
-          await _renameEntity(item.target, item.backupPath!, item.target.path);
-        }
-      }
+      await _rollback(committed);
       throw error is SaveException
           ? error
           : SaveException(_l.saveArchiveReadFailed('$error'));
     } finally {
-      for (final item in prepared) {
-        try {
-          await _deleteEntity(item.target, item.path);
-        } on FileSystemException {
-          // Подготовленный файл не является единственной копией сейва.
-          // Ошибка его уборки не должна запускать откат завершённой операции.
-        }
+      await _dropPrepared(prepared);
+    }
+    await _dropBackups(committed);
+  }
+
+  /// Собирает замену рядом с каждой целью, не трогая саму цель.
+  Future<void> _prepareTargets(
+    _RestorePlan plan,
+    List<_PreparedTarget> prepared, {
+    required bool wipeTarget,
+  }) async {
+    for (final group in plan.byTarget.entries) {
+      final target = group.key;
+      final token = SaveManager._uuid.v4();
+      final candidatePath = p.join(
+        p.dirname(target.path),
+        '.${p.basename(target.path)}.evaporate-new-$token',
+      );
+      prepared.add(_PreparedTarget(target: target, path: candidatePath));
+
+      // По ссылке мы писали бы неизвестно куда — мимо цели.
+      if ((await FileSystemEntity.type(target.path, followLinks: false)) ==
+          FileSystemEntityType.link) {
+        throw SaveException(_l.savePathEscapes(target.path));
+      }
+      await Directory(p.dirname(target.path)).create(recursive: true);
+
+      if (target.isFile) {
+        await _prepareFileTarget(target, candidatePath, group.value);
+      } else {
+        await _prepareDirectoryTarget(
+          target,
+          candidatePath,
+          group.value,
+          wipeTarget: wipeTarget,
+        );
       }
     }
-    // После успешной замены всех целей откатываться уже не нужно.
-    // Ошибка удаления старой копии не должна удалить новые сохранения.
+  }
+
+  Future<void> _prepareFileTarget(
+    _RestoreTarget target,
+    String candidatePath,
+    List<_RestoreEntry> entries,
+  ) async {
+    if (await Directory(target.path).exists()) {
+      throw FileSystemException('Expected a file', target.path);
+    }
+    // Ровно одна запись на такую цель — это проверено при сборке плана.
+    await _writeArchiveFile(entries.single.archiveFile, candidatePath);
+  }
+
+  /// Собирает новую папку целиком: при слиянии — поверх копии нынешней,
+  /// при замене — с чистого места.
+  Future<void> _prepareDirectoryTarget(
+    _RestoreTarget target,
+    String candidatePath,
+    List<_RestoreEntry> entries, {
+    required bool wipeTarget,
+  }) async {
+    if (await File(target.path).exists()) {
+      throw FileSystemException('Expected a directory', target.path);
+    }
+    final candidate = Directory(candidatePath);
+    await candidate.create(recursive: true);
+    if (!wipeTarget && await Directory(target.path).exists()) {
+      await _copyDirectory(Directory(target.path), candidate);
+    }
+    for (final entry in entries) {
+      final relative = p.relative(entry.destination, from: target.path);
+      await _writeArchiveFile(
+        entry.archiveFile,
+        p.join(candidate.path, relative),
+      );
+    }
+  }
+
+  /// Ставит подготовленное на место цели, отодвинув прежнее в резервную
+  /// копию. Сорвись переименование — отодвинутое возвращается тут же.
+  Future<void> _swapPreparedIn(
+    List<_PreparedTarget> prepared,
+    List<_CommittedTarget> committed,
+  ) async {
+    for (final item in prepared) {
+      final backupPath =
+          '${item.target.path}.evaporate-old-${SaveManager._uuid.v4()}';
+      final existed = await _entityExists(item.target);
+      if (existed) {
+        await _renameEntity(item.target, item.target.path, backupPath);
+      }
+      try {
+        await _renameEntity(item.target, item.path, item.target.path);
+      } on Object {
+        if (existed) {
+          await _renameEntity(item.target, backupPath, item.target.path);
+        }
+        rethrow;
+      }
+      committed.add(
+        _CommittedTarget(
+          target: item.target,
+          backupPath: existed ? backupPath : null,
+        ),
+      );
+    }
+  }
+
+  /// Возвращает уже заменённые цели к прежнему виду — в обратном порядке,
+  /// чтобы каждая следующая находила своё место свободным.
+  Future<void> _rollback(List<_CommittedTarget> committed) async {
+    for (final item in committed.reversed) {
+      if (await _entityExists(item.target)) {
+        await _deleteEntity(item.target, item.target.path);
+      }
+      if (item.backupPath != null) {
+        await _renameEntity(item.target, item.backupPath!, item.target.path);
+      }
+    }
+  }
+
+  /// Убирает подготовленное, чем бы дело ни кончилось: при удаче оно уже
+  /// переименовано в цель, при неудаче — просто лишнее.
+  Future<void> _dropPrepared(List<_PreparedTarget> prepared) async {
+    for (final item in prepared) {
+      try {
+        await _deleteEntity(item.target, item.path);
+      } on FileSystemException {
+        // Подготовленный файл не является единственной копией сейва.
+        // Ошибка его уборки не должна запускать откат завершённой операции.
+      }
+    }
+  }
+
+  /// Убирает резервные копии: все цели заменены, откатываться уже некуда.
+  ///
+  /// Ошибка удаления старой копии не должна удалить новые сохранения.
+  Future<void> _dropBackups(List<_CommittedTarget> committed) async {
     for (final item in committed) {
       if (item.backupPath == null) continue;
       try {

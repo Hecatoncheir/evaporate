@@ -75,26 +75,31 @@ class SteamInstall {
       final steamapps = Directory(p.join(root, 'steamapps'));
       if (!await steamapps.exists()) continue;
       found.add(steamapps.path);
-
-      final file = File(p.join(steamapps.path, 'libraryfolders.vdf'));
-      if (!await file.exists()) continue;
-      final String text;
-      try {
-        text = await file.readAsString();
-      } on FileSystemException {
-        continue;
-      }
-      final folders = Vdf.map(Vdf.parse(text), ['libraryfolders']);
-      if (folders == null) continue;
-      for (final entry in folders.values) {
-        if (entry is! Map<String, Object>) continue;
-        final path = entry['path'];
-        if (path is! String || path.isEmpty) continue;
-        final dir = Directory(p.join(path, 'steamapps'));
-        if (await dir.exists()) found.add(dir.path);
-      }
+      found.addAll(await _otherDisks(steamapps.path));
     }
     return found.toList();
+  }
+
+  /// Библиотеки на других дисках: Steam перечисляет их в
+  /// `libraryfolders.vdf` рядом с основной.
+  static Future<List<String>> _otherDisks(String steamapps) async {
+    final text = await _readOrNull(
+      File(p.join(steamapps, 'libraryfolders.vdf')),
+    );
+    if (text == null) return const [];
+
+    final folders = Vdf.map(Vdf.parse(text), ['libraryfolders']);
+    if (folders == null) return const [];
+
+    final found = <String>[];
+    for (final entry in folders.values) {
+      if (entry is! Map<String, Object>) continue;
+      final path = entry['path'];
+      if (path is! String || path.isEmpty) continue;
+      final dir = Directory(p.join(path, 'steamapps'));
+      if (await dir.exists()) found.add(dir.path);
+    }
+    return found;
   }
 
   /// Установленные игры со всеми их точными сведениями.
@@ -105,36 +110,26 @@ class SteamInstall {
     final apps = <int, SteamApp>{};
 
     for (final steamapps in await libraries(roots: roots)) {
-      final List<FileSystemEntity> entries;
-      try {
-        entries = await Directory(steamapps).list(followLinks: false).toList();
-      } on FileSystemException {
-        continue;
-      }
-
-      for (final entity in entries) {
+      for (final entity in await _childrenOf(Directory(steamapps))) {
         if (entity is! File) continue;
-        final name = p.basename(entity.path);
-        if (!name.startsWith('appmanifest_') || !name.endsWith('.acf')) {
-          continue;
-        }
+        if (!_isManifest(p.basename(entity.path))) continue;
         final app = await _readManifest(entity, steamapps);
         if (app != null) apps[app.appId] = app;
       }
     }
 
-    final list = apps.values.toList()
+    return apps.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return list;
   }
 
+  /// Файл описания одной установленной игры: `appmanifest_<appid>.acf`.
+  static bool _isManifest(String name) =>
+      name.startsWith('appmanifest_') && name.endsWith('.acf');
+
   static Future<SteamApp?> _readManifest(File file, String steamapps) async {
-    final String text;
-    try {
-      text = await file.readAsString();
-    } on FileSystemException {
-      return null;
-    }
+    final text = await _readOrNull(file);
+    if (text == null) return null;
+
     final doc = Vdf.parse(text);
     final appId = int.tryParse(Vdf.string(doc, ['AppState', 'appid']) ?? '');
     final name = Vdf.string(doc, ['AppState', 'name']);
@@ -146,6 +141,25 @@ class SteamInstall {
     if (!await Directory(installDir).exists()) return null;
 
     return SteamApp(appId: appId, name: name, installDir: installDir);
+  }
+
+  /// Текст файла; null — файла нет или он не читается. Файлы здесь чужие, и
+  /// недоступность любого из них не повод ронять поиск целиком.
+  static Future<String?> _readOrNull(File file) async {
+    try {
+      return await file.readAsString();
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  /// Содержимое папки; недоступная папка возвращает пустой список.
+  static Future<List<FileSystemEntity>> _childrenOf(Directory dir) async {
+    try {
+      return await dir.list(followLinks: false).toList();
+    } on FileSystemException {
+      return const [];
+    }
   }
 
   /// Игры по папке установки — так найденное на диске сопоставляется с тем,

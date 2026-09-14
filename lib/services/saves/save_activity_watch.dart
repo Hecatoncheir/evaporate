@@ -170,13 +170,8 @@ class SaveActivityWatch {
         if (entity is! File) continue;
         if (p.split(entity.path).length - rootDepth > _depth) continue;
 
-        final FileStat stat;
-        try {
-          stat = await entity.stat();
-        } on FileSystemException {
-          continue;
-        }
-        if (stat.modified.isBefore(since)) continue;
+        final stat = await _statOrNull(entity);
+        if (stat == null || stat.modified.isBefore(since)) continue;
 
         count++;
         if (_saveLike.contains(p.extension(entity.path).toLowerCase())) {
@@ -191,6 +186,15 @@ class SaveActivityWatch {
       saveLike: saveLike,
       truncated: seen > _fileBudget,
     );
+  }
+
+  /// Сведения о файле; null — прочитать не вышло, и такой файл не в счёт.
+  static Future<FileStat?> _statOrNull(File file) async {
+    try {
+      return await file.stat();
+    } on FileSystemException {
+      return null;
+    }
   }
 
   static int _score({

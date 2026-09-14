@@ -104,79 +104,21 @@ class DownloadActivity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final task = this.task;
     final l = L.of(context);
+    // Пока метаданных нет, размер раздачи неизвестен, и доля готовности
+    // тоже: полоса в этом случае бежит без конца, а не стоит на нуле.
     final indeterminate = task.isMetadata || task.totalBytes == 0;
-    // Историю читаем из общего Cubit: на странице игры по ней же рисуется
-    // подложка под заголовком, и расходиться этим двум нельзя.
-    final history = context.watch<DownloadHistoryCubit>();
-    final peak = history.peakOf(task);
-    final disk = history.diskSpeed;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _Metric(
-              icon: Icons.network_check_rounded,
-              label: l.networkSpeed,
-              value: speedLabel(l, task.downloadSpeed),
-              color: context.colors.primary,
-            ),
-            _Metric(
-              icon: Icons.speed_rounded,
-              label: l.peakSpeed,
-              value: speedLabel(l, peak),
-              color: context.colors.primary,
-            ),
-            _Metric(
-              icon: Icons.storage_rounded,
-              label: l.diskActivity,
-              value: speedLabel(l, disk),
-              color: context.colors.accent,
-            ),
-            _Metric(
-              icon: Icons.upload_rounded,
-              label: l.uploadSpeed,
-              value: speedLabel(l, task.uploadSpeed),
-              color: context.colors.textSecondary,
-            ),
-          ],
-        ),
+        _metrics(context),
         if (showChart) ...[
           const SizedBox(height: 14),
           DownloadChart(task: task),
         ],
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                task.isMetadata
-                    ? l.fetchingMetadata
-                    : '${formatBytes(task.completedBytes)} / '
-                          '${formatBytes(task.totalBytes)}',
-                style: TextStyle(
-                  color: context.colors.textSecondary,
-                  fontSize: 12,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-            ),
-            if (!indeterminate)
-              Text(
-                '${(task.progress * 100).round()}%',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-          ],
-        ),
+        _amounts(context, indeterminate: indeterminate),
         const SizedBox(height: 7),
         Semantics(
           value: indeterminate
@@ -189,6 +131,76 @@ class DownloadActivity extends StatelessWidget {
             busy: task.state == DownloadState.active,
           ),
         ),
+      ],
+    );
+  }
+
+  /// Четыре показания: сеть, её пик, диск и отдача.
+  Widget _metrics(BuildContext context) {
+    final l = L.of(context);
+    // Историю читаем из общего Cubit: на странице игры по ней же рисуется
+    // подложка под заголовком, и расходиться этим двум нельзя.
+    final history = context.watch<DownloadHistoryCubit>();
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _Metric(
+          icon: Icons.network_check_rounded,
+          label: l.networkSpeed,
+          value: speedLabel(l, task.downloadSpeed),
+          color: context.colors.primary,
+        ),
+        _Metric(
+          icon: Icons.speed_rounded,
+          label: l.peakSpeed,
+          value: speedLabel(l, history.peakOf(task)),
+          color: context.colors.primary,
+        ),
+        _Metric(
+          icon: Icons.storage_rounded,
+          label: l.diskActivity,
+          value: speedLabel(l, history.diskSpeed),
+          color: context.colors.accent,
+        ),
+        _Metric(
+          icon: Icons.upload_rounded,
+          label: l.uploadSpeed,
+          value: speedLabel(l, task.uploadSpeed),
+          color: context.colors.textSecondary,
+        ),
+      ],
+    );
+  }
+
+  /// Сколько скачано, сколько всего и какая доля готова.
+  Widget _amounts(BuildContext context, {required bool indeterminate}) {
+    final l = L.of(context);
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            task.isMetadata
+                ? l.fetchingMetadata
+                : '${formatBytes(task.completedBytes)} / '
+                      '${formatBytes(task.totalBytes)}',
+            style: TextStyle(
+              color: context.colors.textSecondary,
+              fontSize: 12,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ),
+        if (!indeterminate)
+          Text(
+            '${(task.progress * 100).round()}%',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
       ],
     );
   }

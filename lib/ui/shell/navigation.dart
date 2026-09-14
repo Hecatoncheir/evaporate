@@ -44,6 +44,9 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
   /// Поле и кант самой обоймы: они тоже занимают место в рейке.
   static const _chrome = 8.0;
 
+  /// Метка с числом задач стоит только у загрузок — это их клавиша.
+  static const _downloadsSection = 1;
+
   final _targets = List.generate(4, (_) => GlobalKey());
 
   @override
@@ -72,6 +75,7 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
     );
   }
 
+  /// Сама обойма: корпус, плашка выбранного и четыре клавиши в ряд.
   Widget _rack(
     BuildContext context,
     BoxConstraints box,
@@ -81,17 +85,7 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
     int count,
   ) {
     final colors = context.colors;
-    // Делим ровно то, что дали, за вычетом собственных поля и канта
-    // обоймы: забыть про них — те самые восемь точек переполнения.
-    // Округлять вверх нельзя, переполнение на две точки выглядит так же
-    // плохо, как на двадцать.
-    final room = box.maxWidth.isFinite
-        ? box.maxWidth - _chrome
-        : labels.length * _fullWidth;
-    final per = room <= 0 ? 0.0 : room / labels.length;
-    final width = per < _fullWidth ? per : _fullWidth;
-    final showLabels = per >= _labelWidth;
-    final showBadge = per >= _badgeWidth;
+    final fit = _fit(box, labels.length);
 
     return Container(
       key: const ValueKey('concept-navigation'),
@@ -121,79 +115,134 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: List.generate(labels.length, (index) {
-            final selected = section == index;
-            return SizedBox(
-              width: width,
-              child: TextButton(
-                key: _targets[index],
-                onPressed: () =>
-                    context.read<NavigationBloc>().add(SectionSelected(index)),
-                // ignore: sort_child_properties_last
-                child: Semantics(
-                  label: labels[index],
-                  child: ExcludeSemantics(
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          LiquidSelectionInk(
-                            normalColor: colors.textSecondary,
-                            selectedColor: colors.onSelection,
-                            child: Icon(icons[index], size: 16),
-                          ),
-                          if (showLabels) ...[
-                            const SizedBox(width: 8),
-                            // Заглавными: короткая подпись на корпусе, а не
-                            // слово в предложении. Диктору достаётся обычное
-                            // слово — часть читалок разбирает капс по
-                            // буквам, как сокращение.
-                            Flexible(
-                              child: Text(
-                                labels[index].toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.fade,
-                                softWrap: false,
-                              ),
-                            ),
-                          ],
-                          if (showBadge && index == 1 && count > 0) ...[
-                            const SizedBox(width: 6),
-                            _QueueBadge(count: count, selected: selected),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  minimumSize: Size(width, 42),
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  foregroundColor: selected
-                      ? colors.onSelection
-                      : colors.textSecondary,
-                  backgroundColor: AppColors.transparent,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  alignment: Alignment.center,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      EvaporateTheme.radiusChip,
-                    ),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.9,
-                  ),
-                ),
+          children: [
+            for (var index = 0; index < labels.length; index++)
+              _button(
+                context,
+                index: index,
+                label: labels[index],
+                icon: icons[index],
+                selected: section == index,
+                queued: index == _downloadsSection ? count : 0,
+                fit: fit,
               ),
-            );
-          }),
+          ],
         ),
       ),
     );
   }
+
+  /// Сколько места досталось одной клавише.
+  ///
+  /// Делим ровно то, что дали, за вычетом собственных поля и канта обоймы:
+  /// забыть про них — те самые восемь точек переполнения. Округлять вверх
+  /// нельзя: переполнение на две точки выглядит так же плохо, как на
+  /// двадцать.
+  static _RackFit _fit(BoxConstraints box, int buttons) {
+    final room = box.maxWidth.isFinite
+        ? box.maxWidth - _chrome
+        : buttons * _fullWidth;
+    final per = room <= 0 ? 0.0 : room / buttons;
+    return _RackFit(
+      width: per < _fullWidth ? per : _fullWidth,
+      showLabels: per >= _labelWidth,
+      showBadge: per >= _badgeWidth,
+    );
+  }
+
+  /// Одна клавиша обоймы: значок, подпись и, у загрузок, число задач.
+  Widget _button(
+    BuildContext context, {
+    required int index,
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required int queued,
+    required _RackFit fit,
+  }) {
+    final colors = context.colors;
+    return SizedBox(
+      width: fit.width,
+      child: TextButton(
+        key: _targets[index],
+        onPressed: () =>
+            context.read<NavigationBloc>().add(SectionSelected(index)),
+        // ignore: sort_child_properties_last
+        child: Semantics(
+          label: label,
+          child: ExcludeSemantics(
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  LiquidSelectionInk(
+                    normalColor: colors.textSecondary,
+                    selectedColor: colors.onSelection,
+                    child: Icon(icon, size: 16),
+                  ),
+                  if (fit.showLabels) ...[
+                    const SizedBox(width: 8),
+                    // Заглавными: короткая подпись на корпусе, а не слово
+                    // в предложении. Диктору достаётся обычное слово —
+                    // часть читалок разбирает капс по буквам, как
+                    // сокращение.
+                    Flexible(
+                      child: Text(
+                        label.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
+                      ),
+                    ),
+                  ],
+                  if (fit.showBadge && queued > 0) ...[
+                    const SizedBox(width: 6),
+                    _QueueBadge(count: queued, selected: selected),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+        style: _buttonStyle(colors, width: fit.width, selected: selected),
+      ),
+    );
+  }
+
+  static ButtonStyle _buttonStyle(
+    EvaporatePalette colors, {
+    required double width,
+    required bool selected,
+  }) => TextButton.styleFrom(
+    minimumSize: Size(width, 42),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    foregroundColor: selected ? colors.onSelection : colors.textSecondary,
+    backgroundColor: AppColors.transparent,
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    alignment: Alignment.center,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
+    ),
+    textStyle: const TextStyle(
+      fontSize: 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.9,
+    ),
+  );
+}
+
+/// Что помещается на клавише при нынешней ширине обоймы.
+class _RackFit {
+  const _RackFit({
+    required this.width,
+    required this.showLabels,
+    required this.showBadge,
+  });
+
+  final double width;
+  final bool showLabels;
+  final bool showBadge;
 }
 
 /// Сколько задач в работе. На выбранной клавише метка выворачивается:

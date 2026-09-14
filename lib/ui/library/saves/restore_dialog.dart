@@ -62,9 +62,10 @@ class _RestoreDialogState extends State<RestoreDialog> {
       widget.game,
       widget.snapshot,
     );
+    final l = L.of(context);
 
     return AlertDialog(
-      title: Text(L.of(context).restoreSaves),
+      title: Text(l.restoreSaves),
       content: SizedBox(
         width: 560,
         child: Column(
@@ -72,133 +73,150 @@ class _RestoreDialogState extends State<RestoreDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              L
-                  .of(context)
-                  .snapshotFrom(
-                    formatDateTime(widget.snapshot.createdAt),
-                    widget.snapshot.deviceName,
-                    platformLabel(widget.snapshot.platform),
-                  ),
+              l.snapshotFrom(
+                formatDateTime(widget.snapshot.createdAt),
+                widget.snapshot.deviceName,
+                platformLabel(widget.snapshot.platform),
+              ),
               style: const TextStyle(fontSize: 13, height: 1.5),
             ),
-            // Массовый перенос такие расхождения ловит сам, а здесь до сих
-            // пор молчали — притом что восстановить одну игру просят чаще,
-            // чем переехать всей библиотекой.
-            BlocBuilder<SaveFreshnessCubit, SaveFreshness>(
-              builder: (context, freshness) {
-                if (!freshness.known) return const SizedBox.shrink();
-                final newer = _isNewer(freshness.changedAt);
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 6),
-                    Text(
-                      freshness.changedAt == null
-                          ? L.of(context).localNeverChanged
-                          : L
-                                .of(context)
-                                .localChangedAt(
-                                  formatDateTime(freshness.changedAt!),
-                                ),
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: newer
-                            ? context.colors.warning
-                            : context.colors.textSecondary,
-                      ),
-                    ),
-                    if (newer) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        L.of(context).localNewerWarning,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                          color: context.colors.warning,
-                        ),
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
+            _localFreshness(),
             const SizedBox(height: 14),
             Text(
-              L.of(context).filesGoHere,
+              l.filesGoHere,
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
               ),
             ),
             const SizedBox(height: 6),
-            if (targets.isEmpty)
-              Text(
-                L.of(context).noTargetFolders,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: context.colors.warning,
-                  height: 1.4,
-                ),
-              )
-            else
-              for (final entry in targets.entries)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    '${entry.key}: ${entry.value}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: EvaporateTheme.monoFontFamily,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
-                ),
+            ..._targetList(context, targets),
             const SizedBox(height: 12),
-            CheckboxListTile(
-              value: _backup,
-              onChanged: (value) => setState(() => _backup = value ?? true),
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              dense: true,
-              title: Text(
-                L.of(context).backupFirst,
-                style: TextStyle(fontSize: 13),
-              ),
-            ),
-            CheckboxListTile(
-              value: _wipe,
-              onChanged: (value) => setState(() => _wipe = value ?? false),
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              dense: true,
-              title: Text(
-                L.of(context).wipeBeforeUnpack,
-                style: TextStyle(fontSize: 13),
-              ),
-              subtitle: Text(
-                L.of(context).wipeNote,
-                style: TextStyle(fontSize: 11.5),
-              ),
-            ),
+            ..._options(context),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(L.of(context).cancel),
-        ),
-        FilledButton(
-          onPressed: targets.isEmpty
-              ? null
-              : () => Navigator.pop(
-                  context,
-                  RestoreOptions(backupCurrent: _backup, wipeTarget: _wipe),
-                ),
-          child: Text(L.of(context).restore),
-        ),
-      ],
+      actions: _actions(context, canRestore: targets.isNotEmpty),
     );
+  }
+
+  /// Когда здешние сохранения менялись в последний раз.
+  ///
+  /// Массовый перенос такие расхождения ловит сам, а здесь до сих пор
+  /// молчали — притом что восстановить одну игру просят чаще, чем переехать
+  /// всей библиотекой.
+  Widget _localFreshness() => BlocBuilder<SaveFreshnessCubit, SaveFreshness>(
+    builder: (context, freshness) {
+      // «Не знаем» и «сохранений не было» — разные вещи: на неудавшемся
+      // чтении молчим, а не заявляем, что сейвы никогда не трогали.
+      if (!freshness.known) return const SizedBox.shrink();
+
+      final l = L.of(context);
+      final newer = _isNewer(freshness.changedAt);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 6),
+          Text(
+            freshness.changedAt == null
+                ? l.localNeverChanged
+                : l.localChangedAt(formatDateTime(freshness.changedAt!)),
+            style: TextStyle(
+              fontSize: 12.5,
+              color: newer
+                  ? context.colors.warning
+                  : context.colors.textSecondary,
+            ),
+          ),
+          if (newer) ...[
+            const SizedBox(height: 4),
+            Text(
+              l.localNewerWarning,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+                color: context.colors.warning,
+              ),
+            ),
+          ],
+        ],
+      );
+    },
+  );
+
+  /// Куда лягут файлы. Пусто — восстанавливать некуда, и об этом говорят
+  /// прямо: погасшая клавиша без слова выглядела бы поломкой.
+  List<Widget> _targetList(BuildContext context, Map<String, String> targets) {
+    if (targets.isEmpty) {
+      return [
+        Text(
+          L.of(context).noTargetFolders,
+          style: TextStyle(
+            fontSize: 12.5,
+            color: context.colors.warning,
+            height: 1.4,
+          ),
+        ),
+      ];
+    }
+    return [
+      for (final entry in targets.entries)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            '${entry.key}: ${entry.value}',
+            style: TextStyle(
+              fontSize: 12,
+              fontFamily: EvaporateTheme.monoFontFamily,
+              color: context.colors.textSecondary,
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// Две галочки: снять резервную копию и стереть целевую папку до
+  /// распаковки.
+  List<Widget> _options(BuildContext context) {
+    final l = L.of(context);
+    return [
+      CheckboxListTile(
+        value: _backup,
+        onChanged: (value) => setState(() => _backup = value ?? true),
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        dense: true,
+        title: Text(l.backupFirst, style: TextStyle(fontSize: 13)),
+      ),
+      CheckboxListTile(
+        value: _wipe,
+        onChanged: (value) => setState(() => _wipe = value ?? false),
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        dense: true,
+        title: Text(l.wipeBeforeUnpack, style: TextStyle(fontSize: 13)),
+        subtitle: Text(l.wipeNote, style: TextStyle(fontSize: 11.5)),
+      ),
+    ];
+  }
+
+  List<Widget> _actions(BuildContext context, {required bool canRestore}) {
+    final l = L.of(context);
+    return [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(l.cancel),
+      ),
+      FilledButton(
+        onPressed: canRestore
+            ? () => Navigator.pop(
+                context,
+                RestoreOptions(backupCurrent: _backup, wipeTarget: _wipe),
+              )
+            : null,
+        child: Text(l.restore),
+      ),
+    ];
   }
 }

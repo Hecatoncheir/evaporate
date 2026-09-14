@@ -268,29 +268,42 @@ class SaveManager {
   /// `null` означает, что сохранений нет вовсе, — затирать нечего.
   Future<DateTime?> lastLocalChange(Game game) async {
     DateTime? newest;
-
     for (final rule in game.saveProfile.rulesForCurrentPlatform) {
       final resolved = rule.resolve(gameDir: game.installDir);
       if (resolved == null) continue;
+      newest = _later(newest, await _newestChangeAt(resolved));
+    }
+    return newest;
+  }
 
-      final file = File(resolved);
-      if (await file.exists()) {
-        final modified = (await file.stat()).modified;
-        if (newest == null || modified.isAfter(newest)) newest = modified;
-        continue;
-      }
+  /// Позднее из двух времён. null означает «ничего не было».
+  static DateTime? _later(DateTime? a, DateTime? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return b.isAfter(a) ? b : a;
+  }
 
-      final directory = Directory(resolved);
-      if (!await directory.exists()) continue;
-      await for (final entity in directory.list(
-        recursive: true,
-        followLinks: false,
-      )) {
-        if (entity is! File) continue;
-        if (_skipNames.contains(p.basename(entity.path))) continue;
-        final modified = (await entity.stat()).modified;
-        if (newest == null || modified.isAfter(newest)) newest = modified;
-      }
+  /// Когда в последний раз менялось то, на что указывает один путь.
+  ///
+  /// Правило указывает и на отдельный файл, и на папку: во втором случае
+  /// смотрим всё её содержимое, до самого дна.
+  Future<DateTime?> _newestChangeAt(String path) async {
+    final file = File(path);
+    if (await file.exists()) return (await file.stat()).modified;
+
+    final directory = Directory(path);
+    if (!await directory.exists()) return null;
+
+    DateTime? newest;
+    await for (final entity in directory.list(
+      recursive: true,
+      followLinks: false,
+    )) {
+      if (entity is! File) continue;
+      // Служебные файлы системы меняются сами по себе и о прогрессе
+      // человека не говорят ничего.
+      if (_skipNames.contains(p.basename(entity.path))) continue;
+      newest = _later(newest, (await entity.stat()).modified);
     }
     return newest;
   }

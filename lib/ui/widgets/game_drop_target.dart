@@ -105,28 +105,13 @@ class _GameDropTargetState extends State<GameDropTarget> {
       for (final candidate in candidates) {
         if (candidate.kind == DropKind.unsupported) continue;
 
-        final id = const Uuid().v4();
-        library.add(
-          GameAdded(
-            id: id,
-            title: candidate.title,
-            source: candidate.source,
-            installDir: candidate.kind == DropKind.folder
-                ? candidate.path
-                : null,
-            executablePath: candidate.executablePath,
-            status: candidate.kind == DropKind.folder
-                ? GameStatus.installed
-                : GameStatus.notInstalled,
-          ),
-        );
+        final id = _addGame(library, candidate);
         added++;
         lastId = id;
 
-        if (candidate.kind == DropKind.torrent) {
-          if (await _startDownload(library, downloads, id, candidate.source)) {
-            queued++;
-          }
+        if (candidate.kind == DropKind.torrent &&
+            await _startDownload(library, downloads, id, candidate.source)) {
+          queued++;
         }
       }
 
@@ -139,17 +124,38 @@ class _GameDropTargetState extends State<GameDropTarget> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            queued == 0
-                ? l.dropAdded(added)
-                : '${l.dropAdded(added)}, ${l.dropQueued(queued)}',
-          ),
+          content: Text(_dropMessage(l, added: added, queued: queued)),
         ),
       );
     } finally {
       if (mounted) setState(() => _importing = false);
     }
   }
+
+  /// Заводит игру из брошенного в окно файла и возвращает её id.
+  ///
+  /// Папка — уже установленная игра, `.torrent` — ещё не скачанная.
+  String _addGame(LibraryBloc library, DropCandidate candidate) {
+    final id = const Uuid().v4();
+    final installed = candidate.kind == DropKind.folder;
+    library.add(
+      GameAdded(
+        id: id,
+        title: candidate.title,
+        source: candidate.source,
+        installDir: installed ? candidate.path : null,
+        executablePath: candidate.executablePath,
+        status: installed ? GameStatus.installed : GameStatus.notInstalled,
+      ),
+    );
+    return id;
+  }
+
+  /// Одной строкой: сколько игр завели и сколько из них поставили качаться.
+  String _dropMessage(L l, {required int added, required int queued}) =>
+      queued == 0
+      ? l.dropAdded(added)
+      : '${l.dropAdded(added)}, ${l.dropQueued(queued)}';
 
   /// Событие добавления обрабатывается асинхронно, поэтому перед запуском
   /// загрузки дожидаемся, пока игра действительно появится в состоянии.

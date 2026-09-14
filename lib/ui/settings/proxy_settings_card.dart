@@ -59,13 +59,14 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
   Widget build(BuildContext context) {
     final store = context.watch<SettingsBloc>();
     final proxy = store.state.proxy;
+    final l = L.of(context);
 
     void update(ProxySettings next) {
       store.add(SettingsChanged(store.state.copyWith(proxy: next)));
     }
 
     return SectionCard(
-      title: L.of(context).proxy,
+      title: l.proxy,
       icon: Icons.vpn_lock_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,78 +75,14 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             value: proxy.enabled,
             onChanged: (value) => update(proxy.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              L.of(context).proxyEnable,
-              style: TextStyle(fontSize: 13),
-            ),
+            title: Text(l.proxyEnable, style: TextStyle(fontSize: 13)),
           ),
           const SizedBox(height: 8),
-          Wrap(
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              SizedBox(
-                width: 220,
-                child: Text(
-                  L.of(context).proxyKind,
-                  style: TextStyle(fontSize: 13),
-                ),
-              ),
-              SegmentedButton<ProxyKind>(
-                segments: const [
-                  ButtonSegment(value: ProxyKind.socks5, label: Text('SOCKS5')),
-                  ButtonSegment(value: ProxyKind.http, label: Text('HTTP')),
-                ],
-                selected: {proxy.kind},
-                onSelectionChanged: proxy.enabled
-                    ? (value) => update(proxy.copyWith(kind: value.first))
-                    : null,
-              ),
-            ],
-          ),
+          _kindPicker(context, proxy, update),
           const SizedBox(height: 12),
-          _Field(
-            label: L.of(context).proxyHost,
-            controller: _host,
-            enabled: proxy.enabled,
-          ),
-          _Field(
-            label: L.of(context).proxyPort,
-            controller: _port,
-            enabled: proxy.enabled,
-            numeric: true,
-          ),
-          _Field(
-            label: L.of(context).proxyUser,
-            controller: _user,
-            enabled: proxy.enabled,
-          ),
-          _Field(
-            label: L.of(context).proxyPassword,
-            controller: _password,
-            enabled: proxy.enabled,
-            obscure: true,
-          ),
+          ..._addressFields(context, enabled: proxy.enabled),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              FilledButton(
-                onPressed: proxy.enabled ? () => _apply(proxy) : null,
-                child: Text(L.of(context).proxyApply),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  proxy.isUsable ? proxy.uri : L.of(context).proxyNoAddress,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: EvaporateTheme.monoFontFamily,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          _applyRow(context, proxy),
           const SizedBox(height: 6),
           SwitchListTile(
             value: proxy.useForSteam,
@@ -153,26 +90,93 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
                 ? (value) => update(proxy.copyWith(useForSteam: value))
                 : null,
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              L.of(context).proxyForSteam,
-              style: TextStyle(fontSize: 13),
-            ),
-            subtitle: Text(
-              L.of(context).proxyForSteamNote,
-              style: TextStyle(fontSize: 12),
-            ),
+            title: Text(l.proxyForSteam, style: TextStyle(fontSize: 13)),
+            subtitle: Text(l.proxyForSteamNote, style: TextStyle(fontSize: 12)),
           ),
           const SizedBox(height: 6),
+          // HTTP-прокси не умеет обмен с пирами — про это предупреждают,
+          // а не молчат: иначе загрузка через него просто не поедет.
           if (proxy.kind == ProxyKind.http)
-            _Warning(L.of(context).proxyHttpNote)
+            _Warning(l.proxyHttpNote)
           else
-            _Note(L.of(context).proxySocksNote),
+            _Note(l.proxySocksNote),
           const SizedBox(height: 6),
-          _Warning(L.of(context).proxyPasswordWarning),
+          _Warning(l.proxyPasswordWarning),
         ],
       ),
     );
   }
+
+  /// SOCKS5 или HTTP.
+  Widget _kindPicker(
+    BuildContext context,
+    ProxySettings proxy,
+    void Function(ProxySettings) update,
+  ) => Wrap(
+    runSpacing: 8,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      SizedBox(
+        width: 220,
+        child: Text(L.of(context).proxyKind, style: TextStyle(fontSize: 13)),
+      ),
+      SegmentedButton<ProxyKind>(
+        segments: const [
+          ButtonSegment(value: ProxyKind.socks5, label: Text('SOCKS5')),
+          ButtonSegment(value: ProxyKind.http, label: Text('HTTP')),
+        ],
+        selected: {proxy.kind},
+        onSelectionChanged: proxy.enabled
+            ? (value) => update(proxy.copyWith(kind: value.first))
+            : null,
+      ),
+    ],
+  );
+
+  /// Адрес, порт и учётные данные.
+  ///
+  /// Поля правятся руками и уходят в настройки по «Применить», а не на
+  /// каждый знак: на полпути набранный адрес — не адрес.
+  List<Widget> _addressFields(BuildContext context, {required bool enabled}) {
+    final l = L.of(context);
+    return [
+      _Field(label: l.proxyHost, controller: _host, enabled: enabled),
+      _Field(
+        label: l.proxyPort,
+        controller: _port,
+        enabled: enabled,
+        numeric: true,
+      ),
+      _Field(label: l.proxyUser, controller: _user, enabled: enabled),
+      _Field(
+        label: l.proxyPassword,
+        controller: _password,
+        enabled: enabled,
+        obscure: true,
+      ),
+    ];
+  }
+
+  /// Клавиша «Применить» и собранный адрес рядом с ней.
+  Widget _applyRow(BuildContext context, ProxySettings proxy) => Row(
+    children: [
+      FilledButton(
+        onPressed: proxy.enabled ? () => _apply(proxy) : null,
+        child: Text(L.of(context).proxyApply),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          proxy.isUsable ? proxy.uri : L.of(context).proxyNoAddress,
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: EvaporateTheme.monoFontFamily,
+            color: context.colors.textSecondary,
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class _Field extends StatelessWidget {

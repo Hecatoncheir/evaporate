@@ -405,22 +405,22 @@ class _ImageSize {
 /// Обе с CDN Steam, других нам и не приносят. `null` — «не разобрали»;
 /// вызывающий считает такую обложку вертикальной, потому что каталог
 /// сначала просит именно вертикальную.
-_ImageSize? _imageSize(List<int> bytes) {
-  if (bytes.length > 24 &&
-      bytes[0] == 0x89 &&
-      bytes[1] == 0x50 &&
-      bytes[2] == 0x4E &&
-      bytes[3] == 0x47) {
-    // PNG: размеры лежат в IHDR, сразу за подписью, старшим байтом вперёд.
-    final width =
-        bytes[16] << 24 | bytes[17] << 16 | bytes[18] << 8 | bytes[19];
-    final height =
-        bytes[20] << 24 | bytes[21] << 16 | bytes[22] << 8 | bytes[23];
-    return _ImageSize(width, height);
-  }
+_ImageSize? _imageSize(List<int> bytes) => _pngSize(bytes) ?? _jpegSize(bytes);
 
+/// PNG: размеры лежат в IHDR, сразу за подписью, старшим байтом вперёд.
+_ImageSize? _pngSize(List<int> bytes) {
+  const signature = [0x89, 0x50, 0x4E, 0x47];
+  if (bytes.length <= 24) return null;
+  for (var i = 0; i < signature.length; i++) {
+    if (bytes[i] != signature[i]) return null;
+  }
+  return _ImageSize(_be32(bytes, 16), _be32(bytes, 20));
+}
+
+/// JPEG: идём по маркерам до любого из SOF — только там лежат размеры.
+_ImageSize? _jpegSize(List<int> bytes) {
   if (bytes.length < 4 || bytes[0] != 0xFF || bytes[1] != 0xD8) return null;
-  // JPEG: идём по маркерам до любого из SOF — только там лежат размеры.
+
   var i = 2;
   while (i + 9 < bytes.length) {
     if (bytes[i] != 0xFF) {
@@ -433,20 +433,27 @@ _ImageSize? _imageSize(List<int> bytes) {
       i += 2;
       continue;
     }
-    final length = bytes[i + 2] << 8 | bytes[i + 3];
-    final isSof =
-        marker >= 0xC0 &&
-        marker <= 0xCF &&
-        marker != 0xC4 && // таблица Хаффмана
-        marker != 0xC8 && // расширение JPEG
-        marker != 0xCC; // таблица арифметического кодирования
-    if (isSof) {
-      final height = bytes[i + 5] << 8 | bytes[i + 6];
-      final width = bytes[i + 7] << 8 | bytes[i + 8];
-      return _ImageSize(width, height);
+    if (_isStartOfFrame(marker)) {
+      return _ImageSize(_be16(bytes, i + 7), _be16(bytes, i + 5));
     }
+    final length = _be16(bytes, i + 2);
     if (length < 2) return null;
     i += 2 + length;
   }
   return null;
 }
+
+/// Начало кадра — единственный маркер, в котором записаны размеры.
+bool _isStartOfFrame(int marker) =>
+    marker >= 0xC0 &&
+    marker <= 0xCF &&
+    marker != 0xC4 && // таблица Хаффмана
+    marker != 0xC8 && // расширение JPEG
+    marker != 0xCC; // таблица арифметического кодирования
+
+/// Число из двух байт, старший впереди.
+int _be16(List<int> bytes, int at) => bytes[at] << 8 | bytes[at + 1];
+
+/// Число из четырёх байт, старший впереди.
+int _be32(List<int> bytes, int at) =>
+    bytes[at] << 24 | bytes[at + 1] << 16 | bytes[at + 2] << 8 | bytes[at + 3];

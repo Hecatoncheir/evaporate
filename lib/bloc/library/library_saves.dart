@@ -53,6 +53,9 @@ extension _LibrarySaves on LibraryBloc {
     final initial = state.gameById(event.game.id);
     if (initial == null) return;
     var game = initial;
+    // Автоснимок после выхода из игры человек не просил — и об удаче ему
+    // сообщать незачем. О неудаче сообщаем уведомлением: окна он уже
+    // не видит.
     final silent = event.origin == SnapshotOrigin.autoOnExit;
     final key = LibraryBloc.snapshotKey(game.id);
     emit(state.copyWith(busy: _withBusy(key, true)));
@@ -60,7 +63,7 @@ extension _LibrarySaves on LibraryBloc {
     try {
       final resolved = await _resolveStoredPaths(game, emit);
       if (resolved == null) {
-        emit(state.copyWith(busy: _withBusy(key, false)));
+        _finishBusy(emit, key);
         return;
       }
       game = resolved;
@@ -76,57 +79,62 @@ extension _LibrarySaves on LibraryBloc {
       // секундами, а то и не задаётся вовсе — держать ради неё снимок
       // незаписанным значит рисковать им ради необязательного удобства.
       emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
+      if (_syncFolderWanted) await _exportToSync(snapshot);
 
-      if (settings.state.autoExportToSync &&
-          settings.state.syncFolder != null) {
-        try {
-          await _exportToSyncFolder(snapshot);
-        } on Object catch (error) {
-          // Папка синхронизации могла отвалиться — снимок сохранён локально.
-          AppLog.instance.write('выгрузка в папку синхронизации', error);
-        }
-      }
-
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: silent
-              ? state.notice
-              : _notice(
-                  _l.noticeSnapshotReady(
-                    snapshot.fileCount,
-                    formatBytes(snapshot.sizeBytes),
-                  ),
-                ),
-        ),
+      _finishBusy(
+        emit,
+        key,
+        message: silent
+            ? null
+            : _l.noticeSnapshotReady(
+                snapshot.fileCount,
+                formatBytes(snapshot.sizeBytes),
+              ),
       );
       await _prune(game.id, emit);
       await persist();
     } on SaveException catch (error) {
-      if (silent) {
-        // Молчаливый автоснимок провалился — единственный способ сообщить.
-        _notifySystem(
-          AppNotification(
-            title: _l.noticeSnapshotFailed,
-            body: _l.noticeSaveFailedBody(game.title, error.message),
-            kind: NotificationKind.saveFailed,
-          ),
-        );
-      }
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: silent ? state.notice : _notice(error.message, isError: true),
-        ),
+      if (silent) _notifySnapshotFailed(game, error.message);
+      _finishBusy(
+        emit,
+        key,
+        message: silent ? null : error.message,
+        isError: true,
       );
     } on Object catch (error) {
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
-        ),
-      );
+      _finishBusy(emit, key, message: error.toString(), isError: true);
     }
+  }
+
+  /// Просили ли класть копию снимка в папку синхронизации.
+  ///
+  /// Проверка снаружи, а не внутри: ждать шаг, которого нет, значит
+  /// отложить сообщение об удаче на лишнюю микрозадачу, а на него смотрят
+  /// сразу после появления снимка.
+  bool get _syncFolderWanted =>
+      settings.state.autoExportToSync && settings.state.syncFolder != null;
+
+  /// Кладёт копию снимка в папку синхронизации. Отказ снимка не отменяет:
+  /// локально он уже сохранён.
+  Future<void> _exportToSync(SaveSnapshot snapshot) async {
+    try {
+      await _exportToSyncFolder(snapshot);
+    } on Object catch (error) {
+      // Папка синхронизации могла отвалиться — снимок сохранён локально.
+      AppLog.instance.write('выгрузка в папку синхронизации', error);
+    }
+  }
+
+  /// Молчаливый автоснимок провалился, и уведомление — единственный способ
+  /// сообщить: окна приложения человек в этот момент уже не видит.
+  void _notifySnapshotFailed(Game game, String message) {
+    _notifySystem(
+      AppNotification(
+        title: _l.noticeSnapshotFailed,
+        body: _l.noticeSaveFailedBody(game.title, message),
+        kind: NotificationKind.saveFailed,
+      ),
+    );
   }
 
   Map<String, List<SaveSnapshot>> _withSnapshot(SaveSnapshot snapshot) {

@@ -20,9 +20,9 @@ class SnapshotTile extends StatelessWidget {
   final VoidCallback onRestore;
   final VoidCallback onExport;
   final VoidCallback onDelete;
-
   @override
   Widget build(BuildContext context) {
+    final l = L.of(context);
     // Дата, источник, размер и число файлов лежат отдельными подписями, и
     // диктор читал бы их четырьмя объявлениями подряд. Кнопки при этом
     // остаются своими: до них надо доходить и нажимать по отдельности.
@@ -34,13 +34,11 @@ class SnapshotTile extends StatelessWidget {
     // встаёт перед ними, и диктор читает всё то же самое — только теперь
     // пять раз вместо четырёх.
     return Semantics(
-      label: L
-          .of(context)
-          .snapshotSpoken(
-            formatDateTime(snapshot.createdAt),
-            snapshotOriginLabel(L.of(context), snapshot.origin),
-            snapshot.fileCount,
-          ),
+      label: l.snapshotSpoken(
+        formatDateTime(snapshot.createdAt),
+        snapshotOriginLabel(l, snapshot.origin),
+        snapshot.fileCount,
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -51,68 +49,69 @@ class SnapshotTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Expanded(
-              child: ExcludeSemantics(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          formatDateTime(snapshot.createdAt),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SaveTag(
-                          text: snapshotOriginLabel(
-                            L.of(context),
-                            snapshot.origin,
-                          ),
-                          color: snapshot.origin == SnapshotOrigin.imported
-                              ? context.colors.primary
-                              : context.colors.textSecondary,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${snapshot.deviceName} · '
-                      '${platformLabel(snapshot.platform)} · '
-                      '${L.of(context).filesCount(snapshot.fileCount)} · '
-                      '${formatBytes(snapshot.sizeBytes)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: context.colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
+            Expanded(child: ExcludeSemantics(child: _summary(context))),
+            _action(
+              icon: Icons.restore,
+              tooltip: l.restore,
               onPressed: onRestore,
-              icon: const Icon(Icons.restore, size: 17),
-              tooltip: L.of(context).restore,
-              visualDensity: VisualDensity.compact,
             ),
-            IconButton(
+            _action(
+              icon: Icons.ios_share,
+              tooltip: l.exportFile,
               onPressed: onExport,
-              icon: const Icon(Icons.ios_share, size: 17),
-              tooltip: L.of(context).exportFile,
-              visualDensity: VisualDensity.compact,
             ),
-            IconButton(
+            _action(
+              icon: Icons.delete_outline,
+              tooltip: l.delete,
               onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline, size: 17),
-              tooltip: L.of(context).delete,
-              visualDensity: VisualDensity.compact,
             ),
           ],
         ),
       ),
     );
   }
+
+  /// Когда сняли, откуда он взялся и что в нём лежит.
+  Widget _summary(BuildContext context) {
+    final l = L.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              formatDateTime(snapshot.createdAt),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 8),
+            SaveTag(
+              text: snapshotOriginLabel(l, snapshot.origin),
+              color: snapshot.origin == SnapshotOrigin.imported
+                  ? context.colors.primary
+                  : context.colors.textSecondary,
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(
+          '${snapshot.deviceName} · '
+          '${platformLabel(snapshot.platform)} · '
+          '${l.filesCount(snapshot.fileCount)} · '
+          '${formatBytes(snapshot.sizeBytes)}',
+          style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+        ),
+      ],
+    );
+  }
+
+  Widget _action({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) => IconButton(
+    onPressed: onPressed,
+    icon: Icon(icon, size: 17),
+    tooltip: tooltip,
+    visualDensity: VisualDensity.compact,
+  );
 }

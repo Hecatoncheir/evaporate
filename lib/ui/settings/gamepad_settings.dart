@@ -33,94 +33,39 @@ class GamepadSettingsCard extends StatelessWidget {
     final store = context.watch<SettingsBloc>();
     final gamepad = context.read<GamepadService>();
     final binding = store.state.gamepad;
+    final l = L.of(context);
 
     void save(GamepadBinding next) =>
         store.add(SettingsChanged(store.state.copyWith(gamepad: next)));
 
     return SectionCard(
-      title: L.of(context).controls,
+      title: l.controls,
       icon: Icons.sports_esports_outlined,
       trailing: TextButton.icon(
         onPressed: gamepad.refreshDevices,
         icon: const Icon(Icons.refresh, size: 16),
-        label: Text(L.of(context).refresh),
+        label: Text(l.refresh),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ValueListenableBuilder<GamepadStatus>(
-            valueListenable: gamepad.status,
-            builder: (context, status, _) => InfoRow(
-              label: L.of(context).gamepad,
-              value: gamepadStatusLabel(L.of(context), status),
-              valueColor: status.hasDevice
-                  ? context.colors.accent
-                  : context.colors.textSecondary,
-            ),
-          ),
+          _status(gamepad),
           const SizedBox(height: 4),
           SwitchListTile(
             value: binding.enabled,
             onChanged: (value) => save(binding.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              L.of(context).gamepadControls,
-              style: TextStyle(fontSize: 13),
-            ),
+            title: Text(l.gamepadControls, style: TextStyle(fontSize: 13)),
             subtitle: Text(
-              L.of(context).gamepadNavigationNote,
+              l.gamepadNavigationNote,
               style: TextStyle(fontSize: 12),
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              SizedBox(
-                width: 220,
-                child: Text(
-                  L.of(context).deadZone,
-                  style: TextStyle(fontSize: 13),
-                ),
-              ),
-              Expanded(
-                child: MediaQuery(
-                  // В направленном режиме Slider обрабатывает только ←/→.
-                  // ↑/↓ проходят к FocusTraversal и двигают курсор дальше
-                  // по настройкам.
-                  data: MediaQuery.of(context)
-                      .copyWith(navigationMode: NavigationMode.directional),
-                  child: Slider(
-                    value: binding.deadzone,
-                    min: 0.2,
-                    max: 0.9,
-                    divisions: 14,
-                    label: binding.deadzone.toStringAsFixed(2),
-                    onChanged: (value) => save(
-                      binding.copyWith(
-                        deadzone: value,
-                        // Порог отпускания держим ниже порога срабатывания,
-                        // иначе стик «дребезжит» на границе.
-                        releaseZone: value * 0.7,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 44,
-                child: Text(
-                  binding.deadzone.toStringAsFixed(2),
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          _deadzone(context, binding, save),
           const SizedBox(height: 12),
           Text(
-            L.of(context).bindings,
+            l.bindings,
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
@@ -135,12 +80,71 @@ class GamepadSettingsCard extends StatelessWidget {
             onPressed: () =>
                 save(binding.copyWith(buttons: GamepadBinding.defaultButtons)),
             icon: const Icon(Icons.restart_alt, size: 16),
-            label: Text(L.of(context).defaultBinding),
+            label: Text(l.defaultBinding),
           ),
         ],
       ),
     );
   }
+
+  /// Подключён ли геймпад прямо сейчас. Слушаем сервис, а не настройки:
+  /// устройство появляется и пропадает само.
+  Widget _status(GamepadService gamepad) =>
+      ValueListenableBuilder<GamepadStatus>(
+        valueListenable: gamepad.status,
+        builder: (context, status, _) => InfoRow(
+          label: L.of(context).gamepad,
+          value: gamepadStatusLabel(L.of(context), status),
+          valueColor: status.hasDevice
+              ? context.colors.accent
+              : context.colors.textSecondary,
+        ),
+      );
+
+  /// Мёртвая зона стика: ниже неё отклонение не считается движением.
+  Widget _deadzone(
+    BuildContext context,
+    GamepadBinding binding,
+    void Function(GamepadBinding) save,
+  ) => Row(
+    children: [
+      SizedBox(
+        width: 220,
+        child: Text(L.of(context).deadZone, style: TextStyle(fontSize: 13)),
+      ),
+      Expanded(
+        child: MediaQuery(
+          // В направленном режиме Slider обрабатывает только ←/→.
+          // ↑/↓ проходят к FocusTraversal и двигают курсор дальше
+          // по настройкам.
+          data: MediaQuery.of(context)
+              .copyWith(navigationMode: NavigationMode.directional),
+          child: Slider(
+            value: binding.deadzone,
+            min: 0.2,
+            max: 0.9,
+            divisions: 14,
+            label: binding.deadzone.toStringAsFixed(2),
+            onChanged: (value) => save(
+              binding.copyWith(
+                deadzone: value,
+                // Порог отпускания держим ниже порога срабатывания,
+                // иначе стик «дребезжит» на границе.
+                releaseZone: value * 0.7,
+              ),
+            ),
+          ),
+        ),
+      ),
+      SizedBox(
+        width: 44,
+        child: Text(
+          binding.deadzone.toStringAsFixed(2),
+          style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
+        ),
+      ),
+    ],
+  );
 
   Future<void> _assign(BuildContext context, NavAction action) async {
     final store = context.read<SettingsBloc>();

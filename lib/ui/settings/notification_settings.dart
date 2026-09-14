@@ -19,9 +19,10 @@ class NotificationSettingsCard extends StatelessWidget {
     final store = context.watch<SettingsBloc>();
     final notifications = context.read<NotificationService>();
     final enabled = store.state.systemNotifications;
+    final l = L.of(context);
 
     return SectionCard(
-      title: L.of(context).notifications,
+      title: l.notifications,
       icon: Icons.notifications_outlined,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,66 +33,26 @@ class NotificationSettingsCard extends StatelessWidget {
               SettingsChanged(store.state.copyWith(systemNotifications: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              L.of(context).systemNotifications,
-              style: TextStyle(fontSize: 13),
-            ),
+            title: Text(l.systemNotifications, style: TextStyle(fontSize: 13)),
             subtitle: Text(
-              L.of(context).systemNotificationsNote,
+              l.systemNotificationsNote,
               style: TextStyle(fontSize: 12),
             ),
           ),
+          // Система может не уметь показывать уведомления вовсе — тогда
+          // включённый переключатель обещал бы то, чего не будет.
           if (!notifications.isAvailable) ...[
             const SizedBox(height: 6),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 15,
-                  color: context.colors.warning,
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    L.of(context).notificationsUnavailableNote,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.colors.warning,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _warning(context, l.notificationsUnavailableNote),
           ],
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (Platform.isMacOS)
-                OutlinedButton.icon(
-                  onPressed: enabled
-                      ? () => _requestPermission(context, notifications)
-                      : null,
-                  icon: const Icon(Icons.lock_open_outlined, size: 16),
-                  label: Text(L.of(context).requestPermission),
-                ),
-              OutlinedButton.icon(
-                onPressed: enabled
-                    ? () => _sendTest(context, notifications)
-                    : null,
-                icon: const Icon(Icons.send_outlined, size: 16),
-                label: Text(L.of(context).test),
-              ),
-            ],
-          ),
+          _buttons(context, notifications, enabled: enabled),
+          // Разрешение у системы просит сам человек: диалог, выскочивший
+          // при первом запуске, отклоняют не глядя.
           if (Platform.isMacOS) ...[
             const SizedBox(height: 8),
             Text(
-              L.of(context).permissionNote,
+              l.permissionNote,
               style: TextStyle(
                 fontSize: 12,
                 color: context.colors.textSecondary,
@@ -101,6 +62,57 @@ class NotificationSettingsCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _warning(BuildContext context, String text) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(
+        Icons.warning_amber_rounded,
+        size: 15,
+        color: context.colors.warning,
+      ),
+      SizedBox(width: 8),
+      Expanded(
+        child: Text(
+          text,
+          style: TextStyle(
+            fontSize: 12,
+            color: context.colors.warning,
+            height: 1.4,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  /// Спросить разрешение (только macOS) и отправить пробное уведомление.
+  Widget _buttons(
+    BuildContext context,
+    NotificationService notifications, {
+    required bool enabled,
+  }) {
+    final l = L.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (Platform.isMacOS)
+          OutlinedButton.icon(
+            onPressed: enabled
+                ? () => _requestPermission(context, notifications)
+                : null,
+            icon: const Icon(Icons.lock_open_outlined, size: 16),
+            label: Text(l.requestPermission),
+          ),
+        OutlinedButton.icon(
+          onPressed: enabled ? () => _sendTest(context, notifications) : null,
+          icon: const Icon(Icons.send_outlined, size: 16),
+          label: Text(l.test),
+        ),
+      ],
     );
   }
 

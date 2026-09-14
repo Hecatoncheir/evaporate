@@ -27,7 +27,6 @@ class WatchedFolders extends StatelessWidget {
 
     final l = L.of(context);
     final colors = context.colors;
-    final library = context.read<LibraryBloc>();
 
     return Container(
       margin: const EdgeInsets.only(top: 12),
@@ -63,64 +62,75 @@ class WatchedFolders extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          for (final hint in hints)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hint.template,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: EvaporateTheme.monoFontFamily,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          l.watchedFilesChanged(hint.fileCount),
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
+          for (final hint in hints) _hintRow(context, hint),
+          _footer(context, hints),
+        ],
+      ),
+    );
+  }
+
+  /// Одна подсказка: путь, сколько файлов в нём изменилось, и «Добавить».
+  Widget _hintRow(BuildContext context, SavePathSuggestion hint) {
+    final l = L.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hint.template,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: EvaporateTheme.monoFontFamily,
+                    fontSize: 12,
                   ),
-                  const SizedBox(width: 10),
-                  TextButton(
-                    onPressed: () => library.add(
-                      SaveHintsAccepted(game: game, suggestions: [hint]),
-                    ),
-                    child: Text(l.add),
-                  ),
-                ],
-              ),
-            ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () => library.add(SaveHintsDismissed(game.id)),
-                child: Text(l.notThis),
-              ),
-              const SizedBox(width: 6),
-              if (hints.length > 1)
-                FilledButton(
-                  onPressed: () => library.add(
-                    SaveHintsAccepted(game: game, suggestions: hints),
-                  ),
-                  child: Text(l.addAll),
                 ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  l.watchedFilesChanged(hint.fileCount),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: context.colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          TextButton(
+            onPressed: () => context.read<LibraryBloc>().add(
+              SaveHintsAccepted(game: game, suggestions: [hint]),
+            ),
+            child: Text(l.add),
           ),
         ],
       ),
+    );
+  }
+
+  /// Отказ от всех подсказок и, когда их несколько, согласие со всеми.
+  Widget _footer(BuildContext context, List<SavePathSuggestion> hints) {
+    final l = L.of(context);
+    final library = context.read<LibraryBloc>();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () => library.add(SaveHintsDismissed(game.id)),
+          child: Text(l.notThis),
+        ),
+        const SizedBox(width: 6),
+        if (hints.length > 1)
+          FilledButton(
+            onPressed: () =>
+                library.add(SaveHintsAccepted(game: game, suggestions: hints)),
+            child: Text(l.addAll),
+          ),
+      ],
     );
   }
 }

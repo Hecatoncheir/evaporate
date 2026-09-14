@@ -38,42 +38,7 @@ class LibraryEffectsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SegmentedButton<EffectPreset>(
-            key: const ValueKey('effects-preset'),
-            segments: [
-              ButtonSegment(
-                value: EffectPreset.off,
-                label: Text(l.effectPresetOff),
-              ),
-              ButtonSegment(
-                value: EffectPreset.calm,
-                label: Text(l.effectPresetCalm),
-              ),
-              ButtonSegment(
-                value: EffectPreset.standard,
-                label: Text(l.effectPresetStandard),
-              ),
-              ButtonSegment(
-                value: EffectPreset.full,
-                label: Text(l.effectPresetFull),
-              ),
-            ],
-            // Пустой выбор разрешён ради своего набора: сегменты
-            // показывают, что выбрано, а не куда ткнуть наугад.
-            emptySelectionAllowed: true,
-            showSelectedIcon: false,
-            selected: {?settings.effectPreset},
-            onSelectionChanged: (selection) =>
-                update(selection.first.applyTo(settings)),
-            style: const ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
-          ),
+          _presets(l, settings, update),
           const SizedBox(height: 10),
           Text(
             settings.effectPreset == null
@@ -85,48 +50,81 @@ class LibraryEffectsCard extends StatelessWidget {
               color: context.colors.textSecondary,
             ),
           ),
-          ExpansionTile(
-            key: const ValueKey('effects-details'),
-            tilePadding: EdgeInsets.zero,
-            childrenPadding: EdgeInsets.zero,
-            title: Text(
-              l.effectsDetails,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            children: [
-              SwitchListTile(
-                key: const ValueKey('effects-master-toggle'),
-                value: settings.libraryEffects,
-                onChanged: (value) =>
-                    update(settings.copyWith(libraryEffects: value)),
-                contentPadding: EdgeInsets.zero,
-                title: Text(l.libraryEffectsEnable),
-              ),
-              for (final effect in _effects(l))
-                SwitchListTile(
-                  key: ValueKey('effects-${effect.id}-toggle'),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(effect.title),
-                  subtitle: effect.note == null
-                      ? null
-                      : Text(
-                          effect.note!,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                  value: effect.value(settings),
-                  // Рамка выбора живёт мимо общего выключателя: она
-                  // показывает место в сетке, а не украшает её, и
-                  // зажигается по прямой просьбе.
-                  onChanged: settings.libraryEffects || effect.independent
-                      ? (value) => update(effect.apply(settings, value))
-                      : null,
-                ),
-            ],
-          ),
+          _details(l, settings, update),
         ],
       ),
     );
   }
+
+  /// Четыре набора: выключено, спокойно, обычно, полностью.
+  Widget _presets(
+    L l,
+    AppSettings settings,
+    void Function(AppSettings) update,
+  ) => SegmentedButton<EffectPreset>(
+    key: const ValueKey('effects-preset'),
+    segments: [
+      ButtonSegment(value: EffectPreset.off, label: Text(l.effectPresetOff)),
+      ButtonSegment(value: EffectPreset.calm, label: Text(l.effectPresetCalm)),
+      ButtonSegment(
+        value: EffectPreset.standard,
+        label: Text(l.effectPresetStandard),
+      ),
+      ButtonSegment(value: EffectPreset.full, label: Text(l.effectPresetFull)),
+    ],
+    // Пустой выбор разрешён ради своего набора: сегменты показывают,
+    // что выбрано, а не куда ткнуть наугад.
+    emptySelectionAllowed: true,
+    showSelectedIcon: false,
+    selected: {?settings.effectPreset},
+    onSelectionChanged: (selection) =>
+        update(selection.first.applyTo(settings)),
+    style: const ButtonStyle(
+      textStyle: WidgetStatePropertyAll(
+        TextStyle(fontSize: 12.5, fontFamily: EvaporateTheme.fontFamily),
+      ),
+    ),
+  );
+
+  /// «Подробно»: общий выключатель и по галочке на каждое украшение.
+  Widget _details(
+    L l,
+    AppSettings settings,
+    void Function(AppSettings) update,
+  ) => ExpansionTile(
+    key: const ValueKey('effects-details'),
+    tilePadding: EdgeInsets.zero,
+    childrenPadding: EdgeInsets.zero,
+    title: Text(
+      l.effectsDetails,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+    ),
+    children: [
+      SwitchListTile(
+        key: const ValueKey('effects-master-toggle'),
+        value: settings.libraryEffects,
+        onChanged: (value) => update(settings.copyWith(libraryEffects: value)),
+        contentPadding: EdgeInsets.zero,
+        title: Text(l.libraryEffectsEnable),
+      ),
+      for (final effect in _effects(l))
+        SwitchListTile(
+          key: ValueKey('effects-${effect.id}-toggle'),
+          contentPadding: EdgeInsets.zero,
+          title: Text(effect.title),
+          subtitle: effect.note == null
+              ? null
+              : Text(effect.note!, style: const TextStyle(fontSize: 12)),
+          value: effect.value(settings),
+          // Рамка выбора живёт мимо общего выключателя: она показывает
+          // место в сетке, а не украшает её, и зажигается по прямой
+          // просьбе.
+          onChanged: settings.libraryEffects || effect.independent
+              ? (value) => update(effect.apply(settings, value))
+              : null,
+        ),
+    ],
+  );
 
   /// Украшения одним списком: имя ключа, подпись, чтение и запись флага.
   ///
