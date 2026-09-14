@@ -141,6 +141,13 @@ class LiquidSelectionState extends State<LiquidSelection>
         Offset.zero & target.size,
       ),
     );
+    // Проверять на конечность нужно раньше, чем на пересечение: у предка
+    // цели может оказаться вырожденное преобразование, и тогда перевод
+    // в координаты подложки даёт NaN. `Rect.overlaps` такой прямоугольник
+    // пропускает — сравнения с NaN всегда ложны, и ни один из его ранних
+    // выходов не срабатывает, — а дальше NaN доезжает до `addRRect` и
+    // роняет отрисовку кадра целиком.
+    if (!candidate.isFinite) return null;
     return candidate.overlaps(Offset.zero & viewport.size) ? candidate : null;
   }
 

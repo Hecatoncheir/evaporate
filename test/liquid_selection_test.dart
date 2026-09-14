@@ -320,4 +320,33 @@ void main() {
       },
     );
   }
+
+  // Прямоугольник с NaN доезжал до `addRRect` и ронял отрисовку всего
+  // кадра: `Rect.overlaps`, единственная проверка на его пути, NaN
+  // пропускает — сравнения с ним всегда ложны, и ни один ранний выход
+  // не срабатывает.
+  testWidgets('вырожденное преобразование предка не роняет кадр', (
+    tester,
+  ) async {
+    final target = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LiquidSelection(
+          targetKey: () => target,
+          color: const Color(0xFF806040),
+          child: Center(
+            child: Transform(
+              // Матрица без обратной: перевод в координаты подложки делит
+              // на ноль, то есть даёт NaN.
+              transform: Matrix4.zero(),
+              child: SizedBox(key: target, width: 120, height: 40),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+  });
 }
