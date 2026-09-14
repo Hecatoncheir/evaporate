@@ -1,3 +1,5 @@
+<img src="site/assets/app-icon.png" alt="" width="112" height="112" />
+
 # Evaporate
 
 *[Русская версия](README.md)*
@@ -547,11 +549,23 @@ stops itself on the system's reduce-motion request, on a minimized window, on a
 disabled `TickerMode` and on an inactive route: decoration has no business
 burning battery behind your back.
 
-The icon was drawn with imagegen: on a cream and midnight-indigo ground, three
-vivid multicolour ribbons of vapour form the Evaporate mark, with offset-colour
-outlines and a printed texture. The artwork and prompts live in
-`docs/branding/`; `tool/make_icon.py` exports macOS sizes, the Linux PNG, and
-multi-size Windows and tray ICO files.
+The icon is drawn in vector rather than begged from an image generator: an "E"
+monogram whose top bar loses its substance — the blocks get shorter, lower and
+further apart, with sparks trailing after them. The app's name said by the
+letter itself. It is filled with a liquid rainbow running from yellow through
+pink to a cold blue: the one place where the app departs from its own palette,
+because an icon is allowed to be louder than the interface.
+
+There are two source drawings, and that is a necessity rather than a
+convenience. Large sizes take the one with the glow and the sparks; small ones
+take the drawing with no effects at all, a shorter gradient and the farthest
+block removed — the halo lights up the plate and at 16 px it blurs the outline
+by exactly the width the letter is drawn with. Both live in `docs/branding/`
+next to the write-up ([brand.md](docs/branding/brand.md)), and
+`tool/make_icon.py` renders every size from them anew: macOS sizes, the Linux
+PNG, and multi-size Windows and tray ICO files. A headless browser does the
+rendering, so packaging works on all three systems instead of macOS only, as it
+did with `sips`.
 
 Screenshots for this file and for the website are taken by
 [`tool/capture_window.ps1`](tool/capture_window.ps1): it captures the window
