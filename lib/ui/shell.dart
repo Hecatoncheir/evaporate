@@ -28,6 +28,15 @@ class AppShell extends StatelessWidget {
   /// Ниже этой ширины поля ужимаются: каждая точка нужна содержимому.
   static const _compactWidth = 980.0;
 
+  /// Поле между краем окна и содержимым: в узком окне меньше, каждая точка
+  /// ширины там нужна содержимому.
+  ///
+  /// Не приватное, потому что от него зависит чужое правило: полоса
+  /// изменения размера у края окна не должна доставать до верхней рейки,
+  /// иначе нажатие на её клавишу уйдёт в системный цикл изменения размера.
+  static const compactInset = 6.0;
+  static const wideInset = 10.0;
+
   /// Ниже этой высоты подвал убирается совсем — иначе не остаётся места
   /// самим разделам.
   static const _shortHeight = 520.0;
@@ -119,7 +128,7 @@ class AppShell extends StatelessWidget {
     required bool waveEnabled,
   }) {
     final compact = constraints.maxWidth < _compactWidth;
-    final inset = compact ? 6.0 : 10.0;
+    final inset = compact ? compactInset : wideInset;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(inset, inset, inset, 0),

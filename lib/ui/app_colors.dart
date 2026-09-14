@@ -275,8 +275,6 @@ abstract final class AppColors {
   // и на тёмной подложке — как искры и должны выглядеть.
   static const portalSpark = Color(0xFFFFE79A);
   static const portalRim = Color(0xFFFF8A1F);
-  static const windowCloseForeground = Colors.white;
-  static const windowCloseBackground = Color(0xFFC42B1C);
 
   // Рассеянный свет и металл под панелями. Это часть оформления корпуса,
   // а не семантические цвета текста, поэтому значения общие для темы.

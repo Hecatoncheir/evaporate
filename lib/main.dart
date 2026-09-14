@@ -186,7 +186,10 @@ Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
       ),
       titleBarStyle: TitleBarStyle.hidden,
       windowButtonVisibility: false,
-      backgroundColor: Platform.isWindows ? null : AppColors.transparent,
+      // Прозрачный фон на всех системах: углы окна режет само приложение
+      // (`AppWindowFrame`), и за вырезанным углом должен быть виден стол,
+      // а не подложка окна.
+      backgroundColor: AppColors.transparent,
     ),
     () async {
       // macOS сохраняет нативные тень/скругление NSWindow, но без кнопок.

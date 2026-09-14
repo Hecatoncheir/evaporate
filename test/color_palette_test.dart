@@ -88,7 +88,6 @@ void main() {
     }
     expect(AppColors.coverOverlay, Colors.black.withValues(alpha: 0.66));
     expect(AppColors.detailOverlay, Colors.black.withValues(alpha: 0.62));
-    expect(AppColors.windowCloseBackground, const Color(0xFFC42B1C));
     expect(AppColors.coverText, Colors.white);
     expect(AppColors.transparent, Colors.transparent);
   });

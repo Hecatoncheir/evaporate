@@ -34,7 +34,6 @@
   "minimizeWindow": "Minimize window",
   "maximizeWindow": "Maximize window",
   "restoreWindow": "Restore window",
-  "closeWindow": "Close window",
   "savedManifestPaths": "Saved Ludusavi paths",
   "findInstalledGames": "Find installed games",
   "@@locale": "en",

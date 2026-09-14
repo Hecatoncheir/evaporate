@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/widgets/window_frame.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -108,38 +109,44 @@ void main() {
   // Полосы, за которые тянут края окна, лежат поверх всего — иначе до них
   // не дотянуться. Значит они легко накрывают то, что под ними, и проверять
   // тут нужно именно геометрию.
-  group('полосы изменения размера', () {
-    // Кнопка под невидимой полосой — не просто мёртвая точка. Нажатие
-    // уходит в системный цикл изменения размера, отпускания мыши Flutter не
-    // видит, и отложенное нажатие достаётся кнопке под полосой. С «Закрыть»
-    // это выглядит так: потянул окно за верх — окно закрылось.
-    test('ни одна не залезает на кнопки окна', () {
-      for (final size in const [
-        Size(900, 600),
-        Size(1280, 800),
-        Size(640, 480),
-      ]) {
-        final buttons = WindowChrome.buttonsRect(size.width);
+  /// Приложение целиком под своей рамкой: клавиши окна живут в верхней
+  /// рейке, и без оболочки их не достать.
+  Future<void> pumpApp(WidgetTester tester, {Locale? locale}) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    tester.view.physicalSize = const Size(1100, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      harness.buildApp(
+        locale: locale,
+        builder: (context, child) => AppWindowFrame(child: child!),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
 
-        for (final zone in WindowChrome.resizeZones(size)) {
-          expect(
-            zone.rect.overlaps(buttons),
-            isFalse,
-            reason: 'полоса ${zone.edge.name} ${zone.rect} накрыла кнопки окна',
-          );
-        }
-      }
+  // Полосы, за которые тянут края окна, лежат поверх всего — иначе до них
+  // не дотянуться. Значит они легко накрывают то, что под ними, и проверять
+  // тут нужно именно геометрию.
+  group('полосы изменения размера', () {
+    // Орган управления под невидимой полосой — не просто мёртвая точка.
+    // Нажатие уходит в системный цикл изменения размера, отпускания мыши
+    // Flutter не видит, и отложенное нажатие достаётся тому, что под
+    // полосой. Клавиши окна стоят в верхней рейке, а она отступает от края
+    // окна дальше, чем полоса толста, — но числа эти живут в разных файлах
+    // и сходятся только здесь.
+    test('полоса у края не достаёт до верхней рейки', () {
+      expect(WindowChrome.edge, lessThan(AppShell.compactInset));
+      expect(AppShell.compactInset, lessThanOrEqualTo(AppShell.wideInset));
     });
 
-    // Отступ панели рассчитан на полосу в четыре точки. Стань любая толще —
-    // и она снова полезет на кнопки, а тест выше об этом узнает не сразу:
-    // толщину меняют в одном месте, а отступ в другом.
-    test('все не толще отступа, на который отодвинуты кнопки', () {
+    test('все не толще заявленной толщины', () {
       for (final zone in WindowChrome.resizeZones(const Size(900, 600))) {
         expect(
           zone.rect.shortestSide,
           lessThanOrEqualTo(WindowChrome.edge),
-          reason: 'полоса ${zone.edge.name} толще отступа кнопок',
+          reason: 'полоса ${zone.edge.name} толще заявленного',
         );
       }
     });
@@ -167,17 +174,19 @@ void main() {
     });
   });
 
-  testWidgets('minimize, maximize, restore and close call the OS', (
+  testWidgets('клавиши рейки сворачивают, разворачивают и закрывают окно', (
     tester,
   ) async {
-    await pump(tester);
+    await pumpApp(tester);
     await tester.tap(find.byTooltip('Свернуть окно'));
     await tester.pumpAndSettle();
     expect(calls.any((c) => c.method == 'minimize'), isTrue);
+
     await tester.tap(find.byTooltip('Развернуть окно'));
     await tester.pumpAndSettle();
     expect(maximized, isTrue);
     expect(find.byKey(const ValueKey('window-resize-top')), findsNothing);
+
     await tester.tap(find.byTooltip('Восстановить размер окна'));
     await tester.pumpAndSettle();
     expect(maximized, isFalse);
@@ -185,17 +194,35 @@ void main() {
       find.byKey(const ValueKey('window-resize-top')),
       Platform.isMacOS ? findsNothing : findsOneWidget,
     );
-    await tester.tap(find.byTooltip('Закрыть окно'));
+
+    await tester.tap(find.byKey(const ValueKey('rail-quit')));
     await tester.pumpAndSettle();
     expect(calls.any((c) => c.method == 'close'), isTrue);
     expect(tester.takeException(), isNull);
+  });
+
+  // Без своей рамки клавиш окна в рейке нет вовсе: окном тогда
+  // распоряжается система, и вторых клавиш ему не нужно.
+  testWidgets('без рамки рейка клавиш окна не показывает', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    tester.view.physicalSize = const Size(1100, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(harness.buildApp());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('rail-minimize')), findsNothing);
+    expect(find.byKey(const ValueKey('rail-maximize')), findsNothing);
+    expect(find.byKey(const ValueKey('window-drag-region')), findsNothing);
+    expect(find.byKey(const ValueKey('rail-quit')), findsOneWidget);
   });
 
   testWidgets(
     'startup maximized/fullscreen state has no resize edges or rounding',
     (tester) async {
       fullScreen = true;
-      await pump(tester);
+      await pumpApp(tester);
       final clip = tester.widget<ClipRRect>(
         find.byKey(const ValueKey('window-clip')),
       );
@@ -208,21 +235,25 @@ void main() {
     },
   );
 
-  testWidgets(
-    'title dragging and double click preserve native window behavior',
-    (tester) async {
-      await pump(tester);
-      final title = find.byKey(const ValueKey('window-drag-region'));
-      await tester.drag(title, const Offset(100, 0));
-      await tester.pumpAndSettle();
-      expect(calls.any((c) => c.method == 'startDragging'), isTrue);
-      await tester.tap(title);
-      await tester.pump(const Duration(milliseconds: 70));
-      await tester.tap(title);
-      await tester.pumpAndSettle();
-      expect(maximized, isTrue);
-    },
-  );
+  testWidgets('рейка тянет окно, а двойное нажатие разворачивает', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    final rail = find.byKey(const ValueKey('window-drag-region'));
+    // Берёмся за знак и название: посередине рейки стоит обойма разделов,
+    // и нажатие достанется ей. А за имя приложения окно тянуться обязано.
+    final grip = tester.getTopLeft(rail) + const Offset(100, 32);
+
+    await tester.dragFrom(grip, const Offset(100, 0));
+    await tester.pumpAndSettle();
+    expect(calls.any((c) => c.method == 'startDragging'), isTrue);
+
+    await tester.tapAt(grip);
+    await tester.pump(const Duration(milliseconds: 70));
+    await tester.tapAt(grip);
+    await tester.pumpAndSettle();
+    expect(maximized, isTrue);
+  });
 
   testWidgets('resize edges call the matching native edge', (tester) async {
     await pump(tester);
@@ -241,18 +272,38 @@ void main() {
     expect((resize.arguments as Map)['resizeEdge'], 'right');
   });
 
+  // Рамка лежит выше Navigator, и это всё ещё верно для её полос: тянуть
+  // окно за край можно и поверх открытого диалога. Клавиши окна этого
+  // свойства лишились сознательно — они переехали в рейку, то есть под
+  // барьер диалога, — и обменяно оно на то, что знак и название больше не
+  // стоят в окне дважды.
+  testWidgets('полосы изменения размера остаются над диалогом', (tester) async {
+    if (Platform.isMacOS) return;
+    await pump(tester);
+    await tester.tap(find.text('Open dialog'));
+    await tester.pumpAndSettle();
+    expect(find.text('Dialog'), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const ValueKey('window-resize-right')),
+      const Offset(-40, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(calls.any((c) => c.method == 'startResizing'), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'native maximize events update controls and dispose removes listener',
     (tester) async {
       final before = windowManager.listeners.length;
-      await pump(tester);
+      await pumpApp(tester);
       expect(windowManager.listeners.length, before + 1);
       final listener = windowManager.listeners.last;
       listener.onWindowMaximize();
       await tester.pumpAndSettle();
       expect(find.byTooltip('Восстановить размер окна'), findsOneWidget);
       listener.onWindowUnmaximize();
-      listener.onWindowBlur();
       await tester.pumpAndSettle();
       expect(find.byTooltip('Развернуть окно'), findsOneWidget);
       final clip = tester.widget<ClipRRect>(
@@ -260,39 +311,36 @@ void main() {
       );
       expect(
         clip.borderRadius,
-        BorderRadius.circular(Platform.isWindows ? 0 : 12),
+        BorderRadius.circular(WindowChrome.cornerRadius),
       );
       await tester.pumpWidget(const SizedBox());
       expect(windowManager.listeners.length, before);
     },
   );
 
-  testWidgets('window controls stay outside modal dialogs and are localized', (
-    tester,
-  ) async {
-    await pump(tester, locale: const Locale('en'));
-    await tester.tap(find.text('Open dialog'));
-    await tester.pumpAndSettle();
-    expect(find.text('Dialog'), findsOneWidget);
-    await tester.tap(find.byTooltip('Minimize window'));
-    await tester.pumpAndSettle();
-    expect(calls.any((c) => c.method == 'minimize'), isTrue);
-    expect(tester.takeException(), isNull);
+  testWidgets('подписи клавиш окна переводятся', (tester) async {
+    await pumpApp(tester, locale: const Locale('en'));
+    expect(find.byTooltip('Minimize window'), findsOneWidget);
+    expect(find.byTooltip('Maximize window'), findsOneWidget);
   });
 
-  testWidgets('native operation errors are handled and can be retried', (
+  // Отказ системы гасить нельзя: не свернувшееся по нажатию окно выглядит
+  // зависшим, а объяснить, что случилось, кроме нас некому.
+  testWidgets('отказ системы доходит сообщением, а нажать можно снова', (
     tester,
   ) async {
-    await pump(tester);
+    await pumpApp(tester);
     failedMethod = 'minimize';
     await tester.tap(find.byTooltip('Свернуть окно'));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    expect(find.byType(SnackBar), findsOneWidget);
     expect(tester.takeException(), isNull);
+
     failedMethod = null;
+    calls.clear();
     await tester.tap(find.byTooltip('Свернуть окно'));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.error_outline), findsNothing);
+    expect(calls.any((c) => c.method == 'minimize'), isTrue);
   });
 
   testWidgets('library fits minimum window size with custom frame', (
@@ -313,7 +361,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byTooltip('Закрыть окно'), findsOneWidget);
+    expect(find.byKey(const ValueKey('rail-quit')), findsOneWidget);
     expect(
       find.widgetWithText(OutlinedButton, 'Добавить игру'),
       findsOneWidget,

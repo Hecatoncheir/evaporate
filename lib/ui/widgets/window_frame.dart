@@ -5,41 +5,38 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../theme.dart';
-import 'app_mark.dart';
+import 'common.dart';
 
 /// Размеры обрамления, вынесенные из виджета: их сверяет тест.
 ///
 /// Полосы, за которые тянут края окна, лежат поверх всего остального — иначе
-/// до них не дотянуться. Значит они могут накрыть и кнопки окна, а кнопка
-/// под невидимой полосой — это уже не просто мёртвая точка: нажатие уходит
-/// в системный цикл изменения размера, Flutter отпускания мыши не видит, и
-/// отложенное нажатие достаётся кнопке под полосой. Верхняя из них шла по
-/// всем трём кнопкам сразу, включая «Закрыть».
+/// до них не дотянуться. Значит они могут накрыть и то, что под ними, а
+/// орган управления под невидимой полосой — это уже не просто мёртвая точка:
+/// нажатие уходит в системный цикл изменения размера, Flutter отпускания
+/// мыши не видит, и отложенное нажатие достаётся тому, что лежит под
+/// полосой.
 ///
 /// Отсюда правило: полоса тонкая (в [edge] точки), уголок берётся уголком, а
-/// не квадратом, и панель с кнопками отступает от края ровно на [edge].
+/// не квадратом, и верхняя рейка приложения отступает от края окна дальше,
+/// чем [edge]. За отступ отвечает оболочка, и сходятся эти два числа в
+/// тесте.
 class WindowChrome {
   const WindowChrome._();
 
   /// Толщина полосы у края окна.
   static const edge = 4.0;
 
+  /// Скругление углов окна — одно на все системы: рамку рисуем мы, и
+  /// выглядеть она должна одинаково.
+  ///
+  /// Заметно круглее системного, но не настолько, чтобы спорить с тенью:
+  /// тень на Windows рисует DWM по своей форме, со скруглением примерно в
+  /// восемь точек, и задать ей радиус нечем. Чем глубже рез, тем заметнее
+  /// она выглядывает из-за угла.
+  static const cornerRadius = 16.0;
+
   /// Длина уголка вдоль каждой стороны.
   static const corner = 8.0;
-
-  static const barHeight = 42.0;
-  static const buttonWidth = 48.0;
-  static const buttonCount = 3;
-
-  /// Куда попадают кнопки окна при ширине [width].
-  static Rect buttonsRect(double width) => Rect.fromLTWH(
-    width - edge - buttonWidth * buttonCount,
-    edge,
-    buttonWidth * buttonCount,
-    barHeight - edge,
-  );
 
   /// Полосы и уголки для окна размера [size]. Уголок — две полосы, сходящиеся
   /// под прямым углом: квадрат восемь на восемь залез бы на кнопку, а полоса
@@ -141,8 +138,58 @@ class WindowChrome {
   };
 }
 
-/// Обрамляет весь Navigator, включая диалоги: системной панели больше нет,
-/// поэтому управление окном должно оставаться доступным на любой странице.
+/// Что верхней рейке нужно знать об окне: развёрнуто ли оно и как это
+/// изменить.
+///
+/// Раздаётся сверху, от рамки, а не спрашивается у системы второй раз: два
+/// независимых слушателя одного события — два места, где состояние может
+/// разойтись, и разойтись им ничего не мешает.
+///
+/// Отсутствие этого виджета означает, что своей рамки нет вовсе, — тогда
+/// рейке и нечего показывать: окном распоряжается система.
+class WindowControl extends InheritedWidget {
+  const WindowControl({
+    super.key,
+    required this.expanded,
+    required this.toggleSize,
+    required super.child,
+  });
+
+  /// Развёрнуто на весь экран или растянуто во весь рабочий стол.
+  final bool expanded;
+
+  final Future<void> Function() toggleSize;
+
+  static WindowControl? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<WindowControl>();
+
+  @override
+  bool updateShouldNotify(WindowControl oldWidget) =>
+      oldWidget.expanded != expanded;
+}
+
+/// Выполняет действие над окном и говорит, если система откажет.
+///
+/// Гасить отказ нельзя: не свернувшееся по нажатию окно выглядит зависшим,
+/// а объяснить, что случилось, кроме нас некому.
+Future<void> runWindowAction(
+  BuildContext context,
+  Future<void> Function() action,
+) async {
+  try {
+    await action();
+  } on Object catch (error) {
+    if (context.mounted) showError(context, error);
+  }
+}
+
+/// Обрамляет весь Navigator, включая диалоги: рамки ОС нет, и скруглённые
+/// углы с полосами для изменения размера рисуем мы сами.
+///
+/// Своей полосы заголовка у рамки нет — перетаскивание и клавиши окна живут
+/// в верхней рейке приложения, чтобы знак и название не стояли на экране
+/// дважды. Цена решения: пока открыт модальный диалог, они под его
+/// барьером.
 class AppWindowFrame extends StatefulWidget {
   const AppWindowFrame({super.key, required this.child});
 
@@ -155,9 +202,7 @@ class AppWindowFrame extends StatefulWidget {
 class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
   bool _maximized = false;
   bool _fullScreen = false;
-  bool _focused = true;
   int _revision = 0;
-  String? _error;
 
   @override
   void initState() {
@@ -172,29 +217,26 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
       final values = await Future.wait([
         windowManager.isMaximized(),
         windowManager.isFullScreen(),
-        windowManager.isFocused(),
       ]);
       if (!mounted || revision != _revision) return;
       setState(() {
         _maximized = values[0];
         _fullScreen = values[1];
-        _focused = values[2];
       });
     } on Object catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) showError(context, error);
     }
   }
 
-  Future<void> _perform(Future<void> Function() action) async {
-    try {
-      await action();
-      if (mounted && _error != null) setState(() => _error = null);
-    } on Object catch (error) {
-      if (mounted) setState(() => _error = error.toString());
-    }
-  }
-
-  Future<void> _toggleSize() => _perform(() async {
+  /// Разворачивает окно или возвращает прежний размер.
+  ///
+  /// Полноэкранный режим — тоже «развёрнуто», и выходим сначала из него:
+  /// иначе клавиша из полного экрана делала бы окно ещё и развёрнутым.
+  ///
+  /// В конце состояние перечитывается, а не ждётся событием: на части
+  /// систем событие приходит с задержкой, и клавиша до него показывала бы
+  /// несбывшееся.
+  Future<void> _toggleSize() => runWindowAction(context, () async {
     if (await windowManager.isFullScreen()) {
       await windowManager.setFullScreen(false);
     } else if (await windowManager.isMaximized()) {
@@ -218,10 +260,6 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
   void onWindowEnterFullScreen() => _changed(() => _fullScreen = true);
   @override
   void onWindowLeaveFullScreen() => _changed(() => _fullScreen = false);
-  @override
-  void onWindowFocus() => _changed(() => _focused = true);
-  @override
-  void onWindowBlur() => _changed(() => _focused = false);
 
   @override
   void dispose() {
@@ -232,9 +270,10 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
   @override
   Widget build(BuildContext context) {
     final expanded = _maximized || _fullScreen;
-    // На Windows форму задаёт DWM. Прозрачный слой помешал бы его
-    // скруглению и мог бы оставить чёрные углы на Windows 10.
-    final radius = !expanded && !Platform.isWindows ? 12.0 : 0.0;
+    // Углы режем сами, на всех системах одинаково: фон окна прозрачный,
+    // поэтому за вырезанным углом виден рабочий стол, а не подложка окна.
+    // Развёрнутому окну углы не нужны: там их резать не от чего.
+    final radius = expanded ? 0.0 : WindowChrome.cornerRadius;
 
     // Развёрнутому окну край тянуть незачем, а macOS меняет размер сама:
     // startResizing там не поддерживается.
@@ -250,20 +289,14 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
           builder: (context, constraints) => Stack(
             fit: StackFit.expand,
             children: [
-              Column(
-                children: [
-                  _titleBar(context, expanded: expanded, resizable: resizable),
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: context.colors.outline,
-                  ),
-                  Expanded(child: widget.child),
-                ],
+              WindowControl(
+                expanded: expanded,
+                toggleSize: _toggleSize,
+                child: widget.child,
               ),
               // Невидимые узкие полосы возвращают изменение размера после
-              // удаления рамки ОС. Их размеры и правило «не залезать на
-              // кнопки» живут в WindowChrome, где их и проверяет тест.
+              // удаления рамки ОС. Их размеры и правило «не доставать до
+              // рейки» живут в WindowChrome, где их и проверяет тест.
               if (resizable)
                 for (final zone in WindowChrome.resizeZones(
                   constraints.biggest,
@@ -273,102 +306,6 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
           ),
         ),
       ),
-    );
-  }
-
-  /// Своя полоса заголовка: рамку ОС мы убрали, и перетаскивание с кнопками
-  /// окна теперь наши.
-  Widget _titleBar(
-    BuildContext context, {
-    required bool expanded,
-    required bool resizable,
-  }) => Material(
-    color: context.colors.surface,
-    child: SizedBox(
-      height: WindowChrome.barHeight,
-      child: Row(
-        children: [
-          Expanded(child: _dragRegion(context)),
-          // Отступ ровно на толщину полосы у края: под полосой кнопка не
-          // просто не нажимается, а получает нажатие потом, когда системный
-          // цикл изменения размера уже закончился.
-          Padding(
-            padding: EdgeInsets.only(
-              top: resizable ? WindowChrome.edge : 0,
-              right: resizable ? WindowChrome.edge : 0,
-            ),
-            child: _windowButtons(context, expanded: expanded),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  /// Полоса, за которую окно таскают. Двойное нажатие по ней разворачивает
-  /// окно — так же, как по заголовку обычного окна системы.
-  Widget _dragRegion(BuildContext context) {
-    final colors = context.colors;
-    // У окна не в фокусе заголовок приглушён — так же, как у системных.
-    final foreground = _focused ? colors.textPrimary : colors.textSecondary;
-
-    return GestureDetector(
-      key: const ValueKey('window-drag-region'),
-      behavior: HitTestBehavior.opaque,
-      onPanStart: (_) => _perform(windowManager.startDragging),
-      onDoubleTap: _toggleSize,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            const AppMark(size: 24),
-            const SizedBox(width: 9),
-            Text(
-              'Evaporate',
-              style: TextStyle(
-                color: foreground,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const Spacer(),
-            if (_error != null)
-              Tooltip(
-                message: _error!,
-                child: Icon(
-                  Icons.error_outline,
-                  color: colors.danger,
-                  size: 16,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Три кнопки окна: свернуть, развернуть или вернуть, закрыть.
-  Widget _windowButtons(BuildContext context, {required bool expanded}) {
-    final l = L.of(context);
-    return Row(
-      children: [
-        _WindowButton(
-          label: l.minimizeWindow,
-          icon: Icons.remove,
-          onPressed: () => _perform(windowManager.minimize),
-        ),
-        _WindowButton(
-          label: expanded ? l.restoreWindow : l.maximizeWindow,
-          icon: expanded ? Icons.filter_none : Icons.crop_square,
-          onPressed: _toggleSize,
-        ),
-        _WindowButton(
-          label: l.closeWindow,
-          icon: Icons.close,
-          destructive: true,
-          onPressed: () => _perform(windowManager.close),
-        ),
-      ],
     );
   }
 
@@ -388,54 +325,10 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {
           if (event.buttons != kPrimaryButton) return;
-          unawaited(_perform(() => windowManager.startResizing(edge)));
+          unawaited(
+            runWindowAction(context, () => windowManager.startResizing(edge)),
+          );
         },
-      ),
-    ),
-  );
-}
-
-class _WindowButton extends StatelessWidget {
-  const _WindowButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-    this.destructive = false,
-  });
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: label,
-    child: SizedBox(
-      width: 48,
-      height: 42,
-      child: TextButton(
-        onPressed: onPressed,
-        style: ButtonStyle(
-          shape: const WidgetStatePropertyAll(RoundedRectangleBorder()),
-          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-          foregroundColor: WidgetStateProperty.resolveWith(
-            (states) =>
-                destructive &&
-                    (states.contains(WidgetState.hovered) ||
-                        states.contains(WidgetState.pressed))
-                ? AppColors.windowCloseForeground
-                : context.colors.textSecondary,
-          ),
-          backgroundColor: WidgetStateProperty.resolveWith(
-            (states) =>
-                destructive &&
-                    (states.contains(WidgetState.hovered) ||
-                        states.contains(WidgetState.pressed))
-                ? AppColors.windowCloseBackground
-                : AppColors.transparent,
-          ),
-        ),
-        child: Icon(icon, size: 17, semanticLabel: label),
       ),
     ),
   );

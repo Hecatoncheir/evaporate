@@ -10,6 +10,7 @@ import '../theme.dart';
 import '../widgets/app_mark.dart';
 import '../../l10n/app_localizations.dart';
 import 'navigation.dart';
+import '../widgets/window_frame.dart';
 
 /// Верхняя рейка: бренд и действия стоят по краям, а разделы — ровно по
 /// центру доступной ширины. В узком окне разделы переезжают вниз.
@@ -24,9 +25,19 @@ class ConceptTopBar extends StatelessWidget {
     child: Stack(
       alignment: Alignment.center,
       children: [
+        // Подложка рейки тянет окно: своей полосы заголовка у приложения
+        // больше нет, и двигать окно человеку иначе нечем. Лежит ниже
+        // всего остального, поэтому клавиши и обойма забирают нажатия себе,
+        // а знак, название и просветы между ними — тянут.
+        const _WindowDragArea(),
         Row(
           children: [
-            _brand(context),
+            // Знак и название — не органы управления: нажатие проходит сквозь
+            // них к подложке, которая тянет окно. Без этого текст забирал бы
+            // нажатие себе (RenderParagraph отвечает на попадание), и окно
+            // не тянулось бы за собственное имя — самое очевидное место,
+            // чтобы взяться.
+            IgnorePointer(child: _brand(context)),
             if (compact) ...[
               // В узком окне разделы остаются в рейке, а не уезжают вниз:
               // обойма сама прячет подписи и сжимается по месту. Прежде она
@@ -41,7 +52,7 @@ class ConceptTopBar extends StatelessWidget {
           ],
         ),
         // В широком окне обойма стоит ровно по центру всей рейки, а не
-        // между бренду и действиями: для этого она и лежит в Stack.
+        // между знаком и действиями: для этого она и лежит в Stack.
         if (!compact) const ConceptNavigation(),
       ],
     ),
@@ -114,6 +125,7 @@ class ConceptTopBar extends StatelessWidget {
         ),
       ),
       const SizedBox(width: 7),
+      ..._windowActions(context),
       TopAction(
         key: const ValueKey('rail-quit'),
         tooltip: L.of(context).quitApp,
@@ -122,6 +134,34 @@ class ConceptTopBar extends StatelessWidget {
         danger: true,
         onPressed: () => unawaited(windowManager.close()),
       ),
+    ];
+  }
+
+  /// Свернуть и развернуть.
+  ///
+  /// Появляются, только когда рамку рисуем мы сами: с рамкой ОС эти клавиши
+  /// у окна уже есть, и вторых ему не нужно.
+  List<Widget> _windowActions(BuildContext context) {
+    final control = WindowControl.maybeOf(context);
+    if (control == null) return const [];
+
+    final l = L.of(context);
+    return [
+      TopAction(
+        key: const ValueKey('rail-minimize'),
+        tooltip: l.minimizeWindow,
+        icon: Icons.remove,
+        onPressed: () =>
+            unawaited(runWindowAction(context, windowManager.minimize)),
+      ),
+      const SizedBox(width: 7),
+      TopAction(
+        key: const ValueKey('rail-maximize'),
+        tooltip: control.expanded ? l.restoreWindow : l.maximizeWindow,
+        icon: control.expanded ? Icons.filter_none : Icons.crop_square,
+        onPressed: () => unawaited(control.toggleSize()),
+      ),
+      const SizedBox(width: 7),
     ];
   }
 
@@ -214,6 +254,30 @@ class _TopActionState extends State<TopAction> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Подложка, за которую таскают окно. Двойное нажатие по ней разворачивает
+/// окно — так же, как по заголовку обычного окна системы.
+///
+/// Пуста, если своей рамки нет: окном тогда распоряжается система, и
+/// перехватывать её жесты нельзя.
+class _WindowDragArea extends StatelessWidget {
+  const _WindowDragArea();
+
+  @override
+  Widget build(BuildContext context) {
+    final control = WindowControl.maybeOf(context);
+    if (control == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      key: const ValueKey('window-drag-region'),
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (_) =>
+          unawaited(runWindowAction(context, windowManager.startDragging)),
+      onDoubleTap: () => unawaited(control.toggleSize()),
+      child: const SizedBox.expand(),
     );
   }
 }
