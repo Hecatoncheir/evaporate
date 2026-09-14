@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
@@ -20,6 +19,7 @@ import '../widgets/game_drop_target.dart';
 
 import 'add_game_dialog.dart';
 import 'game_cover.dart';
+import 'primary_action.dart';
 import 'scan_folder_dialog.dart';
 import 'library_atmosphere.dart';
 import 'foil_card.dart';
@@ -160,7 +160,6 @@ class _LibraryPageState extends State<LibraryPage> {
             children: [
               if (showHeading)
                 ConceptLibraryHeading(
-                  compact: !roomy,
                   scale: scale,
                   onScale: (value) {
                     final settings = context.read<SettingsBloc>();
@@ -178,7 +177,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   sweepEnabled:
                       effects.libraryEffects && effects.heroSweepEnabled,
                   onOpen: () => nav.add(GameOpened(featured.id)),
-                  onPrimary: () => _primaryGameAction(context, featured),
+                  onPrimary: () => dispatchPrimaryAction(context, featured),
                 ),
               LibraryToolbar(
                 shelf: _shelf,
@@ -228,27 +227,6 @@ class _LibraryPageState extends State<LibraryPage> {
         );
       },
     );
-  }
-
-  void _primaryGameAction(BuildContext context, Game game) {
-    final library = context.read<LibraryBloc>();
-    final downloads = context.read<DownloadsBloc>();
-    switch (game.status) {
-      case GameStatus.running:
-        library.add(GameStopRequested(game));
-      case GameStatus.downloading:
-        downloads.add(DownloadPauseRequested(game));
-      case GameStatus.paused:
-        downloads.add(DownloadResumeRequested(game));
-      case GameStatus.installed:
-        if (game.canLaunch) library.add(GameLaunchRequested(game));
-      case GameStatus.notInstalled:
-      case GameStatus.error:
-        final source = game.source;
-        if (source != null && source.kind != GameSourceKind.localFolder) {
-          downloads.add(DownloadRequested(game: game, source: source));
-        }
-    }
   }
 
   /// Сброшенное в окно: папка становится установленной игрой, `.torrent` —

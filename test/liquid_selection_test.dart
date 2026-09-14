@@ -303,15 +303,19 @@ void main() {
         );
         await frames(20);
         expect(tester.widget<SectionCard>(effects).title, 'Живая библиотека');
-        final toggle = find.descendant(
-          of: find.byKey(const ValueKey('effects-master-toggle')),
-          matching: find.byType(Switch),
+        // Украшения гасятся набором «Выключено» — тем самым органом, что
+        // видит человек. Отдельные флаги лежат под «Подробно» и при этом
+        // сохраняются: набор трогает только общий выключатель.
+        final off = find.descendant(
+          of: find.byKey(const ValueKey('effects-preset')),
+          matching: find.text('Выключено'),
         );
-        expect(toggle, findsOneWidget);
+        expect(off, findsOneWidget);
         await capture('settings');
-        await tester.tap(toggle);
+        await tester.tap(off);
         await frames(5);
         expect(harness.settings.state.libraryEffects, isFalse);
+        expect(harness.settings.state.portalEnabled, isTrue);
         expect(tester.takeException(), isNull);
       },
     );

@@ -10,6 +10,7 @@ import '../labels.dart';
 import '../theme.dart';
 import '../widgets/game_drop_target.dart';
 import '../widgets/readout_panel.dart';
+import '../widgets/section_heading.dart';
 import '../../l10n/app_localizations.dart';
 import 'available_games.dart';
 import 'engine_status.dart';
@@ -183,53 +184,35 @@ class _Heading extends StatelessWidget {
   final EngineStatus status;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(28, 24, 28, 0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          L.of(context).conceptDownloadsLabel,
-          style: TextStyle(
-            color: context.colors.primary,
-            fontFamily: EvaporateTheme.monoFontFamily,
-            fontSize: 9.5,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.6,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              L.of(context).downloads.toUpperCase(),
-              style: const TextStyle(
-                fontFamily: EvaporateTheme.displayFontFamily,
-                fontSize: 34,
-                height: 1.0,
-                fontWeight: FontWeight.w800,
-                // Заглавными и с разрядом: широкий шрифт держит название
-                // раздела как надпись на корпусе, а прижатые заглавные
-                // слипаются.
-                letterSpacing: 1.4,
+  Widget build(BuildContext context) {
+    // Перезапуск теперь только здесь: движок принадлежит этому разделу, и
+    // неполадку замечают тоже здесь. В настройках такая же клавиша стояла
+    // второй, и две одинаковых заставляли искать между ними разницу.
+    // Заодно она показывается не только на отказе: остановленный движок
+    // поднять было нечем.
+    final stalled =
+        status.state == EngineState.failed ||
+        status.state == EngineState.stopped;
+    return SectionHeading(
+      label: L.of(context).conceptDownloadsLabel,
+      semanticsLabel: L.of(context).downloads,
+      padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+      trailing: Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          EngineStatusChip(status: status),
+          if (stalled)
+            OutlinedButton.icon(
+              onPressed: () => context.read<DownloadsBloc>().add(
+                const DownloadEngineRestartRequested(),
               ),
+              icon: const Icon(Icons.refresh, size: 16),
+              label: Text(L.of(context).restartEngine),
             ),
-            const Spacer(),
-            EngineStatusChip(status: status),
-            if (status.state == EngineState.failed) ...[
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: () => context.read<DownloadsBloc>().add(
-                  const DownloadEngineRestartRequested(),
-                ),
-                icon: const Icon(Icons.refresh, size: 16),
-                label: Text(L.of(context).restartEngine),
-              ),
-            ],
-          ],
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

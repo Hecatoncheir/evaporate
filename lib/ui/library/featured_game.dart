@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 
 import 'hero_sweep.dart';
+import 'primary_action.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Крупная обложка выбранной игры над полкой.
@@ -338,18 +339,18 @@ class _Actions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final playable = game.status != GameStatus.installed || game.canLaunch;
+    // Что делает клавиша, решает общий `primary_action.dart`: то же решение
+    // принимают кнопка X на геймпаде и карточка на странице игры. Здесь
+    // прежде стоял свой `switch`, и значок в нём был один на все состояния
+    // — «Пауза» подписывала клавишу с треугольником «играть».
+    final action = primaryActionFor(game);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         LauncherActionButton(
-          onPressed: playable ? onPrimary : null,
-          icon:
-              game.status == GameStatus.notInstalled ||
-                  game.status == GameStatus.error
-              ? Icons.download_rounded
-              : Icons.play_arrow_rounded,
-          label: _primaryLabel(context, game),
+          onPressed: canDoPrimaryAction(game) ? onPrimary : null,
+          icon: primaryActionIcon(action),
+          label: primaryActionLabel(L.of(context), action),
         ),
         const SizedBox(width: 9),
         OutlinedButton(
@@ -369,15 +370,6 @@ class _Actions extends StatelessWidget {
       ],
     );
   }
-
-  static String _primaryLabel(BuildContext context, Game game) =>
-      switch (game.status) {
-        GameStatus.running => L.of(context).stop,
-        GameStatus.downloading => L.of(context).pause,
-        GameStatus.paused => L.of(context).resume,
-        GameStatus.installed => L.of(context).play,
-        GameStatus.notInstalled || GameStatus.error => L.of(context).download,
-      };
 }
 
 /// Наигранное время — показание прибора, а не подпись: моно, крупно и с

@@ -139,17 +139,23 @@ void main() {
     ) async {
       harness.nav.add(const SectionSelected(3));
       await frames(tester);
+      final scrollable = find
+          .descendant(
+            of: find.byType(SettingsPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
       final target = find.byKey(ValueKey('effects-$name-toggle'));
-      await tester.scrollUntilVisible(
-        target,
-        350,
-        scrollable: find
-            .descendant(
-              of: find.byType(SettingsPage),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
+
+      // Наверху карточки стоит выбор из трёх наборов, а отдельные
+      // украшения — под «Подробно»: сперва раскрыть, иначе их нет в дереве.
+      if (target.evaluate().isEmpty) {
+        final details = find.byKey(const ValueKey('effects-details'));
+        await tester.scrollUntilVisible(details, 350, scrollable: scrollable);
+        await tester.tap(details);
+        await frames(tester, 20);
+      }
+      await tester.scrollUntilVisible(target, 350, scrollable: scrollable);
       await tester.ensureVisible(target);
       await frames(tester);
       await tester.tap(target);

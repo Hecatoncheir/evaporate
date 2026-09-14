@@ -87,6 +87,24 @@ void main() {
     expect(find.textContaining('Пути не заданы'), findsOneWidget);
   });
 
+  // В шапке карточки стояли три органа управления, из них два делали одно
+  // и то же — предлагали пути, — а различались только всплывающей
+  // подсказкой, которой на геймпаде нет вовсе.
+  testWidgets('поиск путей — одна клавиша с меню на два способа', (
+    tester,
+  ) async {
+    await openGame(tester);
+
+    expect(find.text('Найти пути'), findsOneWidget);
+    expect(find.text('Из базы'), findsNothing);
+
+    await tester.tap(find.text('Найти пути'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Из базы'), findsOneWidget);
+    expect(find.text('Поискать папку по названию игры'), findsOneWidget);
+  });
+
   // Снимать нечего, пока не сказано откуда: доступная кнопка обещала бы
   // работу, которой не будет.
   testWidgets('без путей снимок снять нельзя', (tester) async {

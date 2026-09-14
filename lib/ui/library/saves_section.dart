@@ -42,6 +42,80 @@ String _lookupLabel(L l, CatalogProgress? progress, {required bool busy}) {
   };
 }
 
+/// «Найти пути» — одна клавиша с меню на два способа поиска.
+///
+/// В шапке карточки стояли три органа управления: «Из базы», значок
+/// волшебной палочки без подписи и «Добавить». Первые два делают одно —
+/// предлагают пути сохранений, — и чем они различаются, можно было узнать
+/// только из всплывающей подсказки, которой на геймпаде нет вовсе.
+///
+/// Пока идёт поиск, вместо клавиши стоит его ход: первый заход качает
+/// семнадцать мегабайт и разбирает их несколько секунд, а без слов это
+/// выглядит зависанием.
+class _FindPathsButton extends StatelessWidget {
+  const _FindPathsButton({required this.game, required this.onByTitle});
+
+  final Game game;
+  final VoidCallback onByTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    final busy = context.select<LibraryBloc, bool>(
+      (bloc) => bloc.state.isBusy(LibraryBloc.savePathsKey(game.id)),
+    );
+    final progress = context.select<LibraryBloc, CatalogProgress?>(
+      (bloc) => bloc.state.savePathsProgress,
+    );
+
+    if (busy) {
+      return TextButton.icon(
+        onPressed: null,
+        icon: SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            // Пока размер неизвестен, полоса бежит сама, а не показывает
+            // выдуманное число.
+            value: progress?.fraction,
+          ),
+        ),
+        label: Text(_lookupLabel(l, progress, busy: true)),
+      );
+    }
+
+    return MenuAnchor(
+      builder: (context, controller, _) => TextButton.icon(
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        icon: const Icon(Icons.travel_explore, size: 16),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l.findPaths),
+            const Icon(Icons.arrow_drop_down, size: 18),
+          ],
+        ),
+      ),
+      menuChildren: [
+        MenuItemButton(
+          onPressed: () => context.read<LibraryBloc>().add(
+            SavePathsLookupRequested(game, refresh: true),
+          ),
+          leadingIcon: const Icon(Icons.storage_outlined, size: 18),
+          child: Text(l.fromDatabase),
+        ),
+        MenuItemButton(
+          onPressed: onByTitle,
+          leadingIcon: const Icon(Icons.auto_awesome, size: 18),
+          child: Text(l.findFolderByTitle),
+        ),
+      ],
+    );
+  }
+}
+
 class SavePathsSection extends StatelessWidget {
   const SavePathsSection({super.key, required this.game});
 
@@ -55,43 +129,9 @@ class SavePathsSection extends StatelessWidget {
       title: L.of(context).savePaths,
       icon: Icons.folder_special_outlined,
       trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Builder(
-            builder: (context) {
-              final busy = context.select<LibraryBloc, bool>(
-                (bloc) => bloc.state.isBusy(LibraryBloc.savePathsKey(game.id)),
-              );
-              final progress = context.select<LibraryBloc, CatalogProgress?>(
-                (bloc) => bloc.state.savePathsProgress,
-              );
-              return TextButton.icon(
-                onPressed: busy
-                    ? null
-                    : () => context.read<LibraryBloc>().add(
-                        SavePathsLookupRequested(game, refresh: true),
-                      ),
-                icon: busy
-                    ? SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          // Пока размер неизвестен, полоса бежит сама, а не
-                          // показывает выдуманное число.
-                          value: progress?.fraction,
-                        ),
-                      )
-                    : const Icon(Icons.travel_explore, size: 16),
-                label: Text(_lookupLabel(L.of(context), progress, busy: busy)),
-              );
-            },
-          ),
-          IconButton(
-            onPressed: () => _autoDetect(context),
-            icon: const Icon(Icons.auto_awesome, size: 16),
-            tooltip: L.of(context).findFolderByTitle,
-            visualDensity: VisualDensity.compact,
-          ),
+          _FindPathsButton(game: game, onByTitle: () => _autoDetect(context)),
           TextButton.icon(
             onPressed: () => _addRule(context),
             icon: const Icon(Icons.add, size: 16),

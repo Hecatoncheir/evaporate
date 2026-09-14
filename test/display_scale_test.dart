@@ -125,7 +125,7 @@ void main() {
     expect(harness.nav.state.selectedGameId, selected);
     harness.nav.add(const SectionSelected(3));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Увеличить: Интерфейс'));
+    await tester.tap(find.byTooltip('Увеличить: Масштаб интерфейса'));
     await tester.pumpAndSettle();
     expect(harness.settings.state.interfaceScale, 1.05);
     expect(harness.settings.state.libraryScale, 1.25);

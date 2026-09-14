@@ -35,10 +35,19 @@ void main() {
     await withGames(tester);
 
     expect(find.byType(GameCoverTile), findsNWidgets(3));
+    // Пополнение библиотеки — одна клавиша с меню: «Найти установленные» и
+    // «Указать источник» делали одно и то же и стояли рядом равными по
+    // виду, а выбирать между ними приходилось до того, как станет понятно,
+    // чем они различаются.
     expect(
-      find.widgetWithText(OutlinedButton, 'Найти установленные игры'),
+      find.widgetWithText(OutlinedButton, 'Добавить игру'),
       findsOneWidget,
     );
+    expect(find.text('Найти установленные игры'), findsNothing);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Добавить игру'));
+    await tester.pumpAndSettle();
+    expect(find.text('Найти установленные игры'), findsOneWidget);
+    expect(find.text('Magnet, .torrent или папка…'), findsOneWidget);
     // Обложек у этих игр нет, и плитка обязана назваться сама — иначе в
     // сетке остались бы три неразличимых прямоугольника.
     expect(find.text('Альфа'), findsOneWidget);

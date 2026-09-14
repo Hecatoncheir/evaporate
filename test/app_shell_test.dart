@@ -49,7 +49,7 @@ void main() {
 
     await tester.tap(find.text('НАСТРОЙКИ').first);
     await tester.pumpAndSettle();
-    expect(find.text('Масштаб'), findsOneWidget);
+    expect(find.text('Вид и язык'), findsOneWidget);
     expect(find.text('Управление'), findsOneWidget);
 
     expect(tester.takeException(), isNull);

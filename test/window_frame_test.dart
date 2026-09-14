@@ -314,7 +314,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byTooltip('Закрыть окно'), findsOneWidget);
-    expect(find.text('Найти установленные игры'), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, 'Добавить игру'),
+      findsOneWidget,
+    );
     final preview = Platform.environment['WINDOW_FRAME_PREVIEW'];
     if (preview != null) {
       await tester.runAsync(

@@ -14,6 +14,7 @@ import '../library/saves/save_tag.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/readout_panel.dart';
+import '../widgets/section_heading.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Общий экран переноса сохранений: состояние хранилища, папка синхронизации,
@@ -224,49 +225,20 @@ class _SavesPageState extends State<SavesPage> {
   }
 }
 
+/// Подпись раздела.
+///
+/// Абзац про то, что такое `.evsave`, отсюда убран: то же самое, только по
+/// делу, написано в самих карточках — «Перенос всей библиотеки» и «Папка
+/// синхронизации». Три объяснения подряд на одном экране человек не читает
+/// ни одного.
 class _Heading extends StatelessWidget {
   const _Heading();
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        L.of(context).conceptSavesLabel,
-        style: TextStyle(
-          color: context.colors.primary,
-          fontFamily: EvaporateTheme.monoFontFamily,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.6,
-        ),
-      ),
-      const SizedBox(height: 6),
-      Text(
-        L.of(context).saves.toUpperCase(),
-        style: const TextStyle(
-          fontFamily: EvaporateTheme.displayFontFamily,
-          fontSize: 34,
-          height: 1.0,
-          fontWeight: FontWeight.w800,
-          // Заглавными и с разрядом: широкий шрифт держит название раздела
-          // как надпись на корпусе, а прижатые заглавные слипаются.
-          letterSpacing: 1.4,
-        ),
-      ),
-      const SizedBox(height: 8),
-      ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: Text(
-          L.of(context).savesIntro,
-          style: TextStyle(
-            color: context.colors.textSecondary,
-            height: 1.5,
-            fontSize: 13,
-          ),
-        ),
-      ),
-    ],
+  Widget build(BuildContext context) => SectionHeading(
+    label: L.of(context).conceptSavesLabel,
+    semanticsLabel: L.of(context).saves,
+    padding: EdgeInsets.zero,
   );
 }
 

@@ -13,6 +13,7 @@ import '../../downloads/cancel_dialog.dart';
 import '../../downloads/download_activity.dart';
 import '../../widgets/common.dart';
 import '../play_button.dart';
+import '../primary_action.dart';
 import '../../../l10n/app_localizations.dart';
 
 /// Главная кнопка карточки плюс прогресс загрузки.
@@ -108,91 +109,87 @@ class ActionPanel extends StatelessWidget {
   }
 
   /// Действия над самой игрой — левая половина ряда.
+  ///
+  /// Что делает главная клавиша и можно ли на неё нажать, решает общий
+  /// `primary_action.dart`: то же решение принимают кнопка X на геймпаде и
+  /// крупный кадр библиотеки. Здесь остаётся только то, чего у них нет —
+  /// соседние клавиши и пояснения.
   List<Widget> _primaryActions(BuildContext context, bool busy) {
-    final library = context.read<LibraryBloc>();
-    final downloads = context.read<DownloadsBloc>();
+    final l = L.of(context);
+    final action = primaryActionFor(game);
+    // Занятость гасит только запуск: пауза и отмена нужны и во время работы.
+    final enabled =
+        canDoPrimaryAction(game) && !(busy && action == PrimaryAction.play);
+    final onPressed = enabled
+        ? () => dispatchPrimaryAction(context, game)
+        : null;
+    final label = primaryActionLabel(l, action);
 
-    if (game.status == GameStatus.running) {
-      return [
-        OutlinedButton.icon(
-          onPressed: () => library.add(GameStopRequested(game)),
-          icon: const Icon(Icons.stop_circle_outlined, size: 18),
-          label: Text(L.of(context).stop),
-        ),
-        const SizedBox(width: 14),
-        Text(
-          L.of(context).gameRunning,
-          style: TextStyle(color: context.colors.accent, fontSize: 13),
-        ),
-      ];
-    }
-
-    if (game.status == GameStatus.downloading ||
-        game.status == GameStatus.paused) {
-      final paused = game.status == GameStatus.paused;
-      return [
-        FilledButton.icon(
-          onPressed: () => downloads.add(
-            paused
-                ? DownloadResumeRequested(game)
-                : DownloadPauseRequested(game),
+    switch (action) {
+      case PrimaryAction.stop:
+        return [
+          OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(primaryActionIcon(action), size: 18),
+            label: Text(label),
           ),
-          icon: Icon(paused ? Icons.play_arrow : Icons.pause, size: 18),
-          label: Text(paused ? L.of(context).resume : L.of(context).pause),
-        ),
-        const SizedBox(width: 10),
-        OutlinedButton.icon(
-          onPressed: () => _cancelDownload(context),
-          icon: const Icon(Icons.close, size: 17),
-          label: Text(L.of(context).cancelDownload),
-        ),
-      ];
-    }
+          const SizedBox(width: 14),
+          Text(
+            l.gameRunning,
+            style: TextStyle(color: context.colors.accent, fontSize: 13),
+          ),
+        ];
 
-    if (game.isInstalled) {
-      return [
-        PlayButton(
-          onPressed: game.canLaunch && !busy
-              ? () => library.add(GameLaunchRequested(game))
-              : null,
-          label: L.of(context).play,
-        ),
-        // Пояснение гибкое, а не растянутое: справа стоят клавиши Steam, и
-        // растяжка отобрала бы у них половину места под пустой текст.
-        if (!game.canLaunch) ...[
+      case PrimaryAction.pause:
+      case PrimaryAction.resume:
+        return [
+          FilledButton.icon(
+            onPressed: onPressed,
+            icon: Icon(primaryActionIcon(action), size: 18),
+            label: Text(label),
+          ),
           const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              L.of(context).pickExecutableNote,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: context.colors.textSecondary,
+          OutlinedButton.icon(
+            onPressed: () => _cancelDownload(context),
+            icon: const Icon(Icons.close, size: 17),
+            label: Text(l.cancelDownload),
+          ),
+        ];
+
+      case PrimaryAction.play:
+        return [
+          PlayButton(onPressed: onPressed, label: label),
+          // Пояснение гибкое, а не растянутое: справа стоят клавиши Steam, и
+          // растяжка отобрала бы у них половину места под пустой текст.
+          if (!game.canLaunch) ...[
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                l.pickExecutableNote,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: context.colors.textSecondary,
+                ),
               ),
             ),
-          ),
-        ],
-      ];
-    }
+          ],
+        ];
 
-    // Не установлена.
-    final source = game.source;
-    final canDownload =
-        source != null && source.kind != GameSourceKind.localFolder;
-    return [
-      LauncherActionButton(
-        onPressed: canDownload
-            ? () => downloads.add(DownloadRequested(game: game, source: source))
-            : null,
-        icon: Icons.download_rounded,
-        label: L.of(context).download,
-      ),
-      const SizedBox(width: 10),
-      OutlinedButton.icon(
-        onPressed: () => _pickInstallDir(context),
-        icon: const Icon(Icons.folder_outlined, size: 17),
-        label: Text(L.of(context).setFolder),
-      ),
-    ];
+      case PrimaryAction.download:
+        return [
+          LauncherActionButton(
+            onPressed: onPressed,
+            icon: primaryActionIcon(action),
+            label: label,
+          ),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: () => _pickInstallDir(context),
+            icon: const Icon(Icons.folder_outlined, size: 17),
+            label: Text(l.setFolder),
+          ),
+        ];
+    }
   }
 
   /// Тот же вопрос, что на экране загрузок: действие одно и то же, и

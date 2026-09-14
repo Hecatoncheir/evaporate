@@ -22,7 +22,7 @@ class ConceptTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final settings = context.watch<SettingsBloc>().state;
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final mode = settings.themeMode;
     return SizedBox(
       height: 64,
       child: Stack(
@@ -87,18 +87,16 @@ class ConceptTopBar extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               TopAction(
-                tooltip: dark
-                    ? L.of(context).lightThemeAction
-                    : L.of(context).darkThemeAction,
-                icon: dark
-                    ? Icons.dark_mode_outlined
-                    : Icons.light_mode_outlined,
+                // Клавиша перебирает все три состояния, а не два: прежде она
+                // переключала тёмное со светлым и молча съедала «как в
+                // системе» — вернуть его можно было только в настройках,
+                // куда за этим никто не идёт.
+                tooltip: _themeActionLabel(context, _nextTheme(mode)),
+                icon: _themeIcon(mode),
                 onPressed: () {
                   context.read<SettingsBloc>().add(
                     SettingsChanged(
-                      settings.copyWith(
-                        themeMode: dark ? ThemeMode.light : ThemeMode.dark,
-                      ),
+                      settings.copyWith(themeMode: _nextTheme(mode)),
                     ),
                   );
                 },
@@ -119,6 +117,27 @@ class ConceptTopBar extends StatelessWidget {
       ),
     );
   }
+
+  /// Порядок перебора: из системного — в светлое, дальше в тёмное и назад в
+  /// системное. Подпись на клавише обещает то, что получится после нажатия.
+  static ThemeMode _nextTheme(ThemeMode mode) => switch (mode) {
+    ThemeMode.system => ThemeMode.light,
+    ThemeMode.light => ThemeMode.dark,
+    ThemeMode.dark => ThemeMode.system,
+  };
+
+  static IconData _themeIcon(ThemeMode mode) => switch (mode) {
+    ThemeMode.system => Icons.brightness_auto_outlined,
+    ThemeMode.light => Icons.light_mode_outlined,
+    ThemeMode.dark => Icons.dark_mode_outlined,
+  };
+
+  static String _themeActionLabel(BuildContext context, ThemeMode mode) =>
+      switch (mode) {
+        ThemeMode.system => L.of(context).systemThemeAction,
+        ThemeMode.light => L.of(context).lightThemeAction,
+        ThemeMode.dark => L.of(context).darkThemeAction,
+      };
 }
 
 /// Клавиша верхней рейки. Под курсором подсвечивается и чуть поднимается —

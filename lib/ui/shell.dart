@@ -9,10 +9,10 @@ import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
 import '../bloc/notice.dart';
 import '../models/app_settings.dart';
-import '../models/game.dart';
 import 'downloads/downloads_page.dart';
 import 'library/game_wave.dart';
 import 'library/library_page.dart';
+import 'library/primary_action.dart';
 import 'saves/saves_page.dart';
 import 'settings/settings_page.dart';
 import 'theme.dart';
@@ -26,32 +26,18 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
   /// Действие кнопки X: сделать с выбранной игрой то же, что делает
-  /// главная кнопка её карточки.
+  /// главная кнопка её карточки. Решение о том, что это за действие, —
+  /// общее (`primary_action.dart`), иначе геймпад и кадр библиотеки
+  /// однажды разошлись бы на одном состоянии игры.
   void _primaryAction(BuildContext context) {
     final nav = context.read<NavigationBloc>();
     if (nav.state.section != 0) return;
 
-    final library = context.read<LibraryBloc>();
-    final downloads = context.read<DownloadsBloc>();
-    final game = library.state.gameById(nav.state.selectedGameId);
+    final game = context.read<LibraryBloc>().state.gameById(
+      nav.state.selectedGameId,
+    );
     if (game == null) return;
-
-    switch (game.status) {
-      case GameStatus.running:
-        library.add(GameStopRequested(game));
-      case GameStatus.downloading:
-        downloads.add(DownloadPauseRequested(game));
-      case GameStatus.paused:
-        downloads.add(DownloadResumeRequested(game));
-      case GameStatus.installed:
-        if (game.canLaunch) library.add(GameLaunchRequested(game));
-      case GameStatus.notInstalled:
-      case GameStatus.error:
-        final source = game.source;
-        if (source != null && source.kind != GameSourceKind.localFolder) {
-          downloads.add(DownloadRequested(game: game, source: source));
-        }
-    }
+    dispatchPrimaryAction(context, game);
   }
 
   @override

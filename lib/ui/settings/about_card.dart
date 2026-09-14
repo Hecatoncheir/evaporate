@@ -35,6 +35,10 @@ class AboutCard extends StatefulWidget {
 }
 
 class _AboutCardState extends State<AboutCard> {
+  /// Куда ведёт «Исходный код». Отсюда же человек попадает к релизам:
+  /// ссылка на них у GitHub своя, и вторую клавишу она не заслуживает.
+  static const _repositoryUrl = 'https://github.com/Hecatoncheir/evaporate';
+
   late final UpdateCheck _check = widget.check ?? UpdateCheck();
 
   bool _busy = false;
@@ -229,6 +233,14 @@ class _AboutCardState extends State<AboutCard> {
                       )
                     : const Icon(Icons.refresh, size: 18),
                 label: Text(L.of(context).checkForUpdates),
+              ),
+              // Ссылка переехала сюда из нижней строки окна: там она
+              // занимала место навсегда, а нажимают её один раз в жизни, и
+              // остальное про сборку — версия, обновления — и так здесь.
+              FilledButton.tonalIcon(
+                onPressed: () => _openRelease(_repositoryUrl),
+                icon: const Icon(Icons.open_in_new, size: 16),
+                label: Text(L.of(context).sourceCode),
               ),
               if (_found != null) ...[
                 if (_found!.updateForThisPlatform != null)

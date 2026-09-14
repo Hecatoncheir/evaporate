@@ -11,19 +11,24 @@ void main() {
   setUp(() async => tmp = await TestHarness.makeTempDir());
   tearDown(() => TestHarness.removeTempDir(tmp));
 
-  testWidgets('новая оболочка переключает тему из верхней панели', (
-    tester,
-  ) async {
+  testWidgets('клавиша темы перебирает все три состояния', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
 
     await harness.pump(tester);
     expect(harness.settings.state.themeMode, ThemeMode.system);
 
-    await tester.tap(find.byTooltip('Светлая тема'));
-    await tester.pump();
-
-    expect(harness.settings.state.themeMode, ThemeMode.light);
+    // Прежде клавиша переключала тёмное со светлым и молча съедала «как в
+    // системе»: вернуть его было можно только в настройках.
+    for (final (tooltip, mode) in [
+      ('Светлая тема', ThemeMode.light),
+      ('Тёмная тема', ThemeMode.dark),
+      ('Как в системе', ThemeMode.system),
+    ]) {
+      await tester.tap(find.byTooltip(tooltip));
+      await tester.pumpAndSettle();
+      expect(harness.settings.state.themeMode, mode);
+    }
   });
 
   testWidgets('игра появляется в кинематографичном блоке библиотеки', (
@@ -35,7 +40,9 @@ void main() {
 
     await harness.pump(tester);
 
-    expect(find.text('ИГРЫ, КОТОРЫЕ ОСТАЮТСЯ С ВАМИ'), findsOneWidget);
+    // Раздел подписан меткой на корпусе, а лозунга и абзаца про библиотеку
+    // здесь больше нет: их место занимает сама библиотека.
+    expect(find.text('[ 01 / КОЛЛЕКЦИЯ ]'), findsOneWidget);
     expect(find.text('ТЕСТОВАЯ ОРБИТА'), findsOneWidget);
     expect(find.text('Открыть игру'), findsOneWidget);
     expect(tester.takeException(), isNull);

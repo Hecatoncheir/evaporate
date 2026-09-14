@@ -13,7 +13,9 @@ import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/scale_control.dart';
+import '../widgets/section_heading.dart';
 import 'about_card.dart';
+import 'effects_card.dart';
 import 'gamepad_settings.dart';
 import 'log_card.dart';
 import 'notification_settings.dart';
@@ -70,41 +72,49 @@ class SettingsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                L.of(context).conceptSettingsLabel,
-                style: TextStyle(
-                  color: context.colors.primary,
-                  fontFamily: EvaporateTheme.monoFontFamily,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.1,
-                ),
+              SectionHeading(
+                label: L.of(context).conceptSettingsLabel,
+                semanticsLabel: L.of(context).settings,
+                padding: EdgeInsets.zero,
               ),
-              const SizedBox(height: 6),
-              Text(
-                L.of(context).settings.toUpperCase(),
-                style: const TextStyle(
-                  fontFamily: EvaporateTheme.displayFontFamily,
-                  fontSize: 34,
-                  height: 1.0,
-                  fontWeight: FontWeight.w800,
-                  // Заглавными и с разрядом: широкий шрифт держит название раздела
-                  // как надпись на корпусе, а прижатые заглавные слипаются.
-                  letterSpacing: 1.4,
-                ),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
+              // Язык, тема и режим окна лежали в карточке «Сохранения» —
+              // не по вкусовщине, а по ошибке раскладки: искать язык в
+              // сохранениях никто не станет. Теперь вид отдельно, окно и
+              // запуск отдельно, сохранения — про сохранения.
               SectionCard(
-                title: L.of(context).displayScale,
-                icon: Icons.zoom_in,
+                title: L.of(context).appearanceAndLanguage,
+                icon: Icons.palette_outlined,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    LanguagePicker(
+                      value: settings.locale,
+                      onChanged: (code) =>
+                          update(settings.copyWith(locale: code)),
+                    ),
+                    const SizedBox(height: 12),
+                    ThemePicker(
+                      value: settings.themeMode,
+                      onChanged: (mode) =>
+                          update(settings.copyWith(themeMode: mode)),
+                    ),
+                    const SizedBox(height: 14),
+                    // Крупность обложек отсюда убрана: она стоит в самой
+                    // библиотеке, рядом с тем, на что влияет. Два ползунка с
+                    // одинаковой подписью в двух местах — это выбор, какой
+                    // из них настоящий.
                     Wrap(
                       spacing: 20,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text(L.of(context).interfaceScale),
+                        SizedBox(
+                          width: 220,
+                          child: Text(
+                            L.of(context).interfaceScale,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
                         ScaleControl(
                           key: const ValueKey('interface-scale'),
                           label: L.of(context).interfaceScale,
@@ -117,24 +127,43 @@ class SettingsPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Text(L.of(context).interfaceScaleNote),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 20,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(L.of(context).coverScale),
-                        ScaleControl(
-                          key: const ValueKey('settings-library-scale'),
-                          label: L.of(context).coverScale,
-                          value: settings.libraryScale,
-                          min: AppSettings.minLibraryScale,
-                          max: AppSettings.maxLibraryScale,
-                          step: 0.25,
-                          onChanged: (value) =>
-                              update(settings.copyWith(libraryScale: value)),
-                        ),
-                      ],
+                    const SizedBox(height: 4),
+                    Text(
+                      L.of(context).interfaceScaleNote,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        height: 1.5,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SectionCard(
+                title: L.of(context).windowAndStartup,
+                icon: Icons.desktop_windows_outlined,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    WindowStartPicker(
+                      value: settings.windowStart,
+                      onChanged: (mode) =>
+                          update(settings.copyWith(windowStart: mode)),
+                    ),
+                    const SizedBox(height: 4),
+                    SwitchListTile(
+                      value: settings.launchAtStartup,
+                      onChanged: (value) =>
+                          update(settings.copyWith(launchAtStartup: value)),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        L.of(context).launchAtStartup,
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        L.of(context).launchAtStartupNote,
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
@@ -246,16 +275,12 @@ class SettingsPage extends StatelessWidget {
                   ),
                 ),
               ),
+              // Без клавиши перезапуска: она осталась одна, на самих
+              // загрузках, где движок и живёт. Здесь про него только
+              // справка.
               SectionCard(
                 title: L.of(context).downloadEngine,
                 icon: Icons.settings_ethernet,
-                trailing: OutlinedButton.icon(
-                  onPressed: () => context.read<DownloadsBloc>().add(
-                    const DownloadEngineRestartRequested(),
-                  ),
-                  icon: const Icon(Icons.restart_alt, size: 16),
-                  label: Text(L.of(context).restart),
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -315,38 +340,6 @@ class SettingsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    LanguagePicker(
-                      value: settings.locale,
-                      onChanged: (code) =>
-                          update(settings.copyWith(locale: code)),
-                    ),
-                    const SizedBox(height: 10),
-                    ThemePicker(
-                      value: settings.themeMode,
-                      onChanged: (mode) =>
-                          update(settings.copyWith(themeMode: mode)),
-                    ),
-                    const SizedBox(height: 10),
-                    WindowStartPicker(
-                      value: settings.windowStart,
-                      onChanged: (mode) =>
-                          update(settings.copyWith(windowStart: mode)),
-                    ),
-                    const SizedBox(height: 10),
-                    SwitchListTile(
-                      value: settings.launchAtStartup,
-                      onChanged: (value) =>
-                          update(settings.copyWith(launchAtStartup: value)),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        L.of(context).launchAtStartup,
-                        style: TextStyle(fontSize: 13),
-                      ),
-                      subtitle: Text(
-                        L.of(context).launchAtStartupNote,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
                     SwitchListTile(
                       value: settings.autoSnapshotOnExit,
                       onChanged: (value) =>
@@ -379,181 +372,7 @@ class SettingsPage extends StatelessWidget {
                   ],
                 ),
               ),
-              SectionCard(
-                key: const ValueKey('living-library-settings'),
-                title: L.of(context).libraryEffects,
-                icon: Icons.auto_awesome_outlined,
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      key: const ValueKey('effects-master-toggle'),
-                      value: settings.libraryEffects,
-                      onChanged: (value) =>
-                          update(settings.copyWith(libraryEffects: value)),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).libraryEffectsEnable),
-                      subtitle: Text(L.of(context).libraryEffectsNote),
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-particles-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectParticles),
-                      value: settings.particlesEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(particlesEnabled: value),
-                            )
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-waves-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectWaves),
-                      value: settings.wavesEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) =>
-                                update(settings.copyWith(wavesEnabled: value))
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-foil-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectFoil),
-                      value: settings.foilEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) =>
-                                update(settings.copyWith(foilEnabled: value))
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-cardTilt-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectCardTilt),
-                      value: settings.cardTiltEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(cardTiltEnabled: value),
-                            )
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-liquidDistortion-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectLiquidDistortion),
-                      value: settings.liquidDistortionEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(liquidDistortionEnabled: value),
-                            )
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-liquidSelection-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectLiquidSelection),
-                      value: settings.liquidSelectionEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(liquidSelectionEnabled: value),
-                            )
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-ambient-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectAmbient),
-                      subtitle: Text(
-                        L.of(context).effectAmbientNote,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      value: settings.ambientEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) =>
-                                update(settings.copyWith(ambientEnabled: value))
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-heroSweep-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectHeroSweep),
-                      value: settings.heroSweepEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(heroSweepEnabled: value),
-                            )
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-coverBackdrop-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectCoverBackdrop),
-                      value: settings.coverBackdropEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(coverBackdropEnabled: value),
-                            )
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-drops-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectDrops),
-                      subtitle: Text(
-                        L.of(context).effectDropsNote,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      value: settings.dropsEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) =>
-                                update(settings.copyWith(dropsEnabled: value))
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-portal-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectPortal),
-                      subtitle: Text(
-                        L.of(context).effectPortalNote,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      value: settings.portalEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) =>
-                                update(settings.copyWith(portalEnabled: value))
-                          : null,
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-selectionFrame-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectSelectionFrame),
-                      subtitle: Text(
-                        L.of(context).effectSelectionFrameNote,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      value: settings.selectionFrameEnabled,
-                      // Единственный переключатель в карточке, не запертый
-                      // общим выключателем: рамка показывает место в сетке,
-                      // а не украшает её, и зажигается по прямой просьбе.
-                      onChanged: (value) => update(
-                        settings.copyWith(selectionFrameEnabled: value),
-                      ),
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('effects-interfaceAnimations-toggle'),
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(L.of(context).effectInterfaceAnimations),
-                      value: settings.interfaceAnimationsEnabled,
-                      onChanged: settings.libraryEffects
-                          ? (value) => update(
-                              settings.copyWith(
-                                interfaceAnimationsEnabled: value,
-                              ),
-                            )
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
+              const LibraryEffectsCard(),
               const LogCard(),
               const AboutCard(),
             ],
