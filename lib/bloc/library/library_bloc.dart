@@ -12,6 +12,7 @@ import '../../l10n/app_localizations_ru.dart';
 import '../../core/format.dart';
 import '../../core/json_store.dart';
 import '../../models/game.dart';
+import '../../models/game_rating.dart';
 import '../../models/save_profile.dart';
 import '../../models/bulk_report.dart';
 import '../../models/catalog_progress.dart';

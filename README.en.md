@@ -79,6 +79,9 @@ saturated colour without gradients, and black lettering on orange.
   From there it launches from Steam itself, from Big Picture, and from a TV
   over Steam Link. Steam has to be closed for this: it rewrites its own
   shortcut list on exit and would wipe what was added.
+- **Rating** — a game's page shows how it was received: Steam's verdict in
+  words, the share of positive reviews, both counts, and the Metacritic press
+  score where the game has one.
 - **Saves** — `.evsave` snapshots, an automatic snapshot after you quit a game,
   restore with a safety backup, export and import, a sync folder, and moving
   the whole library's saves in one action.

@@ -1,3 +1,4 @@
+import 'game_rating.dart';
 import 'save_profile.dart';
 
 enum GameSourceKind { magnet, torrentFile, localFolder }
@@ -44,6 +45,7 @@ class Game {
     this.coverPath,
     this.coverUrl,
     this.description,
+    this.rating,
     this.steamAppId,
     this.steamLookupAttempted = false,
     this.savePathsLookupAttempted = false,
@@ -76,6 +78,9 @@ class Game {
   /// Исходная ссылка Steam. UI использует сохранённый файл [coverPath].
   final String? coverUrl;
   final String? description;
+
+  /// Как игру оценили в Steam. `null` — не спрашивали либо не нашли.
+  final GameRating? rating;
 
   /// Идентификатор в Steam — чтобы не искать игру повторно.
   final int? steamAppId;
@@ -120,6 +125,7 @@ class Game {
     Object? coverPath = _u,
     Object? coverUrl = _u,
     Object? description = _u,
+    Object? rating = _u,
     Object? steamAppId = _u,
     bool? steamLookupAttempted,
     bool? savePathsLookupAttempted,
@@ -150,6 +156,7 @@ class Game {
       description: description == _u
           ? this.description
           : description as String?,
+      rating: rating == _u ? this.rating : rating as GameRating?,
       steamAppId: steamAppId == _u ? this.steamAppId : steamAppId as int?,
       steamLookupAttempted: steamLookupAttempted ?? this.steamLookupAttempted,
       savePathsLookupAttempted:
@@ -182,6 +189,7 @@ class Game {
     if (coverPath != null) 'coverPath': coverPath,
     if (coverUrl != null) 'coverUrl': coverUrl,
     if (description != null) 'description': description,
+    if (rating != null) 'rating': rating!.toJson(),
     if (steamAppId != null) 'steamAppId': steamAppId,
     'steamLookupAttempted': steamLookupAttempted,
     'savePathsLookupAttempted': savePathsLookupAttempted,
@@ -223,6 +231,9 @@ class Game {
       coverPath: json['coverPath'] as String?,
       coverUrl: json['coverUrl'] as String?,
       description: json['description'] as String?,
+      rating: json['rating'] == null
+          ? null
+          : GameRating.fromJson(json['rating'] as Map<String, dynamic>),
       steamAppId: json['steamAppId'] as int?,
       steamLookupAttempted:
           json['steamLookupAttempted'] as bool? ?? json['steamAppId'] != null,

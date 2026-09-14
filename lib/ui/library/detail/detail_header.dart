@@ -6,6 +6,7 @@ import '../../theme.dart';
 import '../../widgets/common.dart';
 import '../../../l10n/app_localizations.dart';
 import 'detail_cover.dart';
+import 'rating_row.dart';
 
 class DetailHeader extends StatelessWidget {
   const DetailHeader({super.key, required this.game});
@@ -42,6 +43,10 @@ class DetailHeader extends StatelessWidget {
                     height: 1.5,
                   ),
                 ),
+              ],
+              if (game.rating?.hasAnything ?? false) ...[
+                const SizedBox(height: 8),
+                RatingRow(rating: game.rating!),
               ],
               const SizedBox(height: 8),
               Row(

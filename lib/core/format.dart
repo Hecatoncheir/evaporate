@@ -23,6 +23,21 @@ String formatBytes(num bytes, {int decimals = 1}) {
 
 String formatSpeed(num bytesPerSecond) => '${formatBytes(bytesPerSecond)}/с';
 
+/// Целое с разделёнными разрядами: `222 495`.
+///
+/// Разделитель — неразрывный пробел: счётчики отзывов доходят до сотен
+/// тысяч, сплошной ряд цифр приходится пересчитывать глазом, а обычный
+/// пробел разорвал бы число переносом строки пополам.
+String formatCount(int value) {
+  final digits = value.abs().toString();
+  final buffer = StringBuffer(value < 0 ? '-' : '');
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(' ');
+    buffer.write(digits[i]);
+  }
+  return buffer.toString();
+}
+
 String formatDuration(Duration duration) {
   if (duration.inMinutes < 1) return 'меньше минуты';
   final hours = duration.inHours;

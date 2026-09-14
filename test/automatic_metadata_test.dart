@@ -24,7 +24,24 @@ class _Steam extends SteamCatalog {
     name: 'Example',
     description: 'An example game',
     headerImage: 'https://example.invalid/header.jpg',
+    metacritic: 86,
   );
+
+  int reviewCalls = 0;
+  bool reviewsFail = false;
+  SteamReviews? reviewsResult = const SteamReviews(
+    score: 8,
+    summary: 'Очень положительные',
+    positive: 90,
+    negative: 10,
+  );
+
+  @override
+  Future<SteamReviews?> reviews(int appId) async {
+    reviewCalls++;
+    if (reviewsFail) throw const SocketException('offline');
+    return reviewsResult;
+  }
 
   @override
   Future<SteamGame?> bestMatch(
@@ -328,6 +345,58 @@ void main() {
     expect(await File(game.coverPath!).exists(), isTrue);
     // Название из библиотеки не трогаем: его задавал человек или манифест.
     expect(game.title, 'Из манифеста');
+  });
+
+  group('оценка игры', () {
+    test('подпись, счётчики и оценка прессы доезжают до карточки', () async {
+      await add();
+      final game = await complete();
+
+      final rating = game.rating!;
+      expect(rating.summary, 'Очень положительные');
+      expect(rating.positive, 90);
+      expect(rating.negative, 10);
+      expect(rating.positiveShare, 90);
+      expect(rating.metacritic, 86);
+      expect(steam.reviewCalls, 1);
+    });
+
+    // Обзоры спрашиваются отдельным запросом, и его отказ — не повод
+    // оставить игру без обложки, описания и путей сохранений.
+    test('молчание об обзорах не отменяет остальные метаданные', () async {
+      steam.reviewsFail = true;
+      await add();
+      final game = await complete();
+
+      expect(game.description, 'An example game');
+      expect(game.coverPath, isNotNull);
+      expect(game.rating!.total, 0);
+      expect(game.rating!.metacritic, 86);
+    });
+
+    // Неудачное обновление не должно обеднять страницу: было что
+    // показать — пусть и остаётся, пока не появится новое.
+    test('пустой ответ не стирает уже показанную оценку', () async {
+      await add();
+      final first = await complete();
+      expect(first.rating!.positive, 90);
+
+      steam.reviewsResult = null;
+      steam.result = const SteamGame(
+        appId: 42,
+        name: 'Example',
+        description: 'Updated description',
+      );
+      library.add(SteamLookupRequested(first));
+      await _wait(
+        library,
+        (s) => s.gameById('game')?.description == 'Updated description',
+      );
+
+      final second = library.state.gameById('game')!;
+      expect(second.rating!.positive, 90);
+      expect(second.rating!.metacritic, 86);
+    });
   });
 
   test('failed Steam request survives restart; manual request retries both catalogs', () async {

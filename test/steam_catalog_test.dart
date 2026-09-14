@@ -93,6 +93,96 @@ void main() {
     });
   });
 
+  group('итог обзоров', () {
+    /// Ответ `appreviews`, снятый с настоящего запроса и урезанный.
+    const reviewsBody = '''
+    {"success": 1, "query_summary": {
+      "num_reviews": 0,
+      "review_score": 9,
+      "review_score_desc": "Крайне положительные",
+      "total_positive": 54551,
+      "total_negative": 2374,
+      "total_reviews": 56925
+    }}''';
+
+    test('счётчики и подпись доезжают как есть', () {
+      final reviews = SteamCatalog.parseReviews(reviewsBody)!;
+
+      expect(reviews.score, 9);
+      expect(reviews.summary, 'Крайне положительные');
+      expect(reviews.positive, 54551);
+      expect(reviews.negative, 2374);
+    });
+
+    test('доля считается от обоих счётчиков', () {
+      final reviews = SteamCatalog.parseReviews(reviewsBody)!;
+
+      expect(reviews.total, 56925);
+      expect(reviews.positiveShare, 96);
+    });
+
+    // «Ноль из нуля положительные» — утверждение об игре, которого никто не
+    // делал. Отсутствие обзоров обязано выглядеть отсутствием оценки.
+    test('игра без единого обзора оценки не получает', () {
+      const empty = '''
+      {"success": 1, "query_summary": {
+        "review_score": 0, "review_score_desc": "Нет обзоров пользователей",
+        "total_positive": 0, "total_negative": 0, "total_reviews": 0
+      }}''';
+
+      expect(SteamCatalog.parseReviews(empty), isNull);
+    });
+
+    test('отказ Steam даёт пустоту, а не выдуманный итог', () {
+      expect(SteamCatalog.parseReviews('{"success": 2}'), isNull);
+    });
+
+    test('ответ без сводки не роняет разбор', () {
+      expect(SteamCatalog.parseReviews('{"success": 1}'), isNull);
+    });
+
+    // Без этих трёх Steam считает обзоры на одном языке и только от
+    // купивших у него же, а к итогу прикладывает два десятка полных
+    // отзывов, которые мы всё равно выбросим.
+    test('запрос просит общий итог и ни одного текста', () async {
+      late Uri asked;
+      final catalog = SteamCatalog(
+        fetch: (uri) async {
+          asked = uri;
+          return reviewsBody;
+        },
+      );
+
+      await catalog.reviews(367520);
+
+      expect(asked.path, '/appreviews/367520');
+      expect(asked.queryParameters['language'], 'all');
+      expect(asked.queryParameters['purchase_type'], 'all');
+      expect(asked.queryParameters['num_per_page'], '0');
+    });
+  });
+
+  group('оценка прессы', () {
+    test('приходит из подробностей вместе с описанием', () {
+      const withScore = '''
+      {"367520": {"success": true, "data": {
+        "name": "Hollow Knight",
+        "metacritic": {"score": 90, "url": "https://metacritic.invalid/hk"}
+      }}}''';
+
+      expect(SteamCatalog.parseDetails(withScore, 367520)!.metacritic, 90);
+    });
+
+    // У половины каталога Metacritic нет вовсе, и ноль баллов сказал бы о
+    // таких играх ровно противоположное правде.
+    test('её отсутствие — это отсутствие, а не ноль', () {
+      expect(
+        SteamCatalog.parseDetails(detailsBody, 367520)!.metacritic,
+        isNull,
+      );
+    });
+  });
+
   group('прокси для запросов Steam', () {
     SteamCatalog withProxy(ProxySettings proxy) =>
         SteamCatalog(proxy: () => proxy);

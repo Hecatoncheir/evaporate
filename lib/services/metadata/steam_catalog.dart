@@ -18,6 +18,7 @@ class SteamGame extends Equatable {
     required this.name,
     this.headerImage,
     this.description,
+    this.metacritic,
   });
 
   final int appId;
@@ -25,15 +26,64 @@ class SteamGame extends Equatable {
   final String? headerImage;
   final String? description;
 
+  /// Оценка прессы, 0–100. Есть далеко не у всякой игры: Metacritic
+  /// оценивает то, что до него дошло, и у половины каталога её просто нет.
+  final int? metacritic;
+
   SteamGame merge(SteamGame other) => SteamGame(
     appId: appId,
     name: other.name.isNotEmpty ? other.name : name,
     headerImage: other.headerImage ?? headerImage,
     description: other.description ?? description,
+    metacritic: other.metacritic ?? metacritic,
   );
 
   @override
-  List<Object?> get props => [appId, name, headerImage, description];
+  List<Object?> get props => [
+    appId,
+    name,
+    headerImage,
+    description,
+    metacritic,
+  ];
+}
+
+/// Итог обзоров игры в Steam.
+///
+/// Отдельно от [SteamGame] потому, что приходит из другой точки: в
+/// `appdetails` обзоров нет вовсе, их считает `appreviews`.
+class SteamReviews extends Equatable {
+  const SteamReviews({
+    required this.score,
+    required this.summary,
+    required this.positive,
+    required this.negative,
+  });
+
+  /// Ступень Steam, 0–9: 5 — «Смешанные», 9 — «Крайне положительные».
+  /// В интерфейсе самого Steam числа не видно, и мы его тоже не
+  /// показываем — по нему выбирается цвет оценки. Своей границы по
+  /// проценту не заводим: у Steam она зависит ещё и от числа обзоров,
+  /// и повторять её на глаз значило бы иногда красить вопреки подписи.
+  final int score;
+
+  /// Словами и от самого Steam («Очень положительные»). Своей таблицы
+  /// «ступень → слово» не держим: ступеней десять, эмпирически проверены
+  /// не все, и придуманная подпись сказала бы о вкусах игроков то, чего мы
+  /// не знаем.
+  final String summary;
+
+  final int positive;
+  final int negative;
+
+  int get total => positive + negative;
+
+  /// Доля положительных, 0–100. То самое число, которое Steam показывает
+  /// в подсказке к оценке.
+  int get positiveShare => total == 0 ? 0 : (positive * 100 / total).round();
+
+  @override
+  List<Object?> get props => [score, summary, positive, negative];
 }
 
 class SteamLookupException implements Exception {
@@ -191,6 +241,26 @@ class SteamCatalog {
     return parseDetails(body, appId);
   }
 
+  /// Итог обзоров. Отдельным запросом, потому что `appdetails` его не несёт.
+  ///
+  /// `language=all` и `purchase_type=all` — не украшение: по умолчанию Steam
+  /// считает обзоры на одном языке и только от купивших в Steam, и итог
+  /// вышел бы меньше того, что написано у игры на странице магазина.
+  /// `num_per_page=0` отсекает сами тексты обзоров: нужен только итог, а
+  /// иначе к нему прилагаются два десятка полных отзывов.
+  Future<SteamReviews?> reviews(int appId) async {
+    final uri = Uri.https('store.steampowered.com', '/appreviews/$appId', {
+      'json': '1',
+      'language': 'all',
+      'purchase_type': 'all',
+      'num_per_page': '0',
+      'l': language,
+    });
+
+    final body = await _request(uri);
+    return parseReviews(body);
+  }
+
   /// Ищет и сразу дополняет лучший результат подробностями.
   ///
   /// [minSimilarity] отсекает случайные попадания: у поиска Steam широкая
@@ -256,11 +326,43 @@ class SteamCatalog {
     final name = data['name'];
     if (name is! String) return null;
 
+    final metacritic = data['metacritic'];
+
     return SteamGame(
       appId: appId,
       name: name,
       headerImage: data['header_image'] as String?,
       description: data['short_description'] as String?,
+      metacritic: metacritic is Map<String, dynamic>
+          ? metacritic['score'] as int?
+          : null,
+    );
+  }
+
+  /// Разбор итога обзоров.
+  ///
+  /// `null` — это и «Steam отказал», и «обзоров нет ни одного»: показывать
+  /// в обоих случаях нечего, а «0 из 0 положительные» сказало бы об игре
+  /// то, чего никто не говорил.
+  static SteamReviews? parseReviews(String body) {
+    final decoded = _decodeMap(body);
+    if (decoded['success'] != 1) return null;
+
+    final summary = decoded['query_summary'];
+    if (summary is! Map<String, dynamic>) return null;
+
+    final positive = summary['total_positive'];
+    final negative = summary['total_negative'];
+    if (positive is! int || negative is! int) return null;
+    if (positive + negative == 0) return null;
+
+    final score = summary['review_score'];
+    final description = summary['review_score_desc'];
+    return SteamReviews(
+      score: score is int ? score : 0,
+      summary: description is String ? description : '',
+      positive: positive,
+      negative: negative,
     );
   }
 

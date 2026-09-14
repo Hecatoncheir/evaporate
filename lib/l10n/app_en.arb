@@ -558,5 +558,29 @@
     "placeholders": {
       "title": {"type": "String"}
     }
+  },
+  "reviewsShare": "{percent}% of reviews are positive",
+  "@reviewsShare": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "reviewsPositiveCount": "{count} positive reviews",
+  "@reviewsPositiveCount": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "reviewsNegativeCount": "{count} negative reviews",
+  "@reviewsNegativeCount": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "metacriticScore": "Metacritic press score: {score} out of 100",
+  "@metacriticScore": {
+    "placeholders": {
+      "score": {"type": "int"}
+    }
   }
 }

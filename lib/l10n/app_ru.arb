@@ -1283,5 +1283,29 @@
     "placeholders": {
       "title": {"type": "String"}
     }
+  },
+  "reviewsShare": "{percent}% обзоров положительные",
+  "@reviewsShare": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "reviewsPositiveCount": "{count} положительных обзоров",
+  "@reviewsPositiveCount": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "reviewsNegativeCount": "{count} отрицательных обзоров",
+  "@reviewsNegativeCount": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "metacriticScore": "Оценка прессы на Metacritic: {score} из 100",
+  "@metacriticScore": {
+    "placeholders": {
+      "score": {"type": "int"}
+    }
   }
 }

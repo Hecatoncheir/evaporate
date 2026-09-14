@@ -62,6 +62,18 @@ extension _LibraryMetadata on LibraryBloc {
         return;
       }
 
+      // Обзоры — отдельным запросом: в `appdetails` их нет вовсе. Своя
+      // попытка и свой отказ: промолчи Steam об обзорах, игра всё равно
+      // получит и обложку, и описание, и пути сохранений — терять их
+      // из-за числа рядом с оценкой не за что.
+      SteamReviews? reviews;
+      try {
+        reviews = await steam.reviews(match.appId);
+      } on Object {
+        reviews = null;
+      }
+      if (_closing) return;
+
       final coverBytes = await steam.coverBytes(match);
       if (_closing) return;
       var current = state.gameById(game.id);
@@ -97,11 +109,21 @@ extension _LibraryMetadata on LibraryBloc {
 
       final index = state.games.indexWhere((g) => g.id == game.id);
       final games = [...state.games];
+      final rating = GameRating(
+        score: reviews?.score,
+        summary: reviews?.summary,
+        positive: reviews?.positive ?? 0,
+        negative: reviews?.negative ?? 0,
+        metacritic: match.metacritic,
+      );
       games[index] = current.copyWith(
         steamAppId: match.appId,
         coverUrl: match.headerImage,
         description: match.description,
         coverPath: coverPath,
+        // Пустую оценку не записываем: сорвавшийся запрос стёр бы то, что
+        // уже показано, и страница обеднела бы от неудачного обновления.
+        rating: rating.hasAnything ? rating : current.rating,
       );
       emit(
         state.copyWith(
