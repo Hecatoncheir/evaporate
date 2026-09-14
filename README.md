@@ -1,4 +1,4 @@
-<img src="site/assets/app-icon.png" alt="" width="112" height="112" />
+<a href="https://hecatoncheir.github.io/evaporate/"><img src="site/assets/app-icon.png" alt="Evaporate — сайт проекта" width="112" height="112" /></a>
 
 # Evaporate
 
