@@ -374,6 +374,29 @@ void main() {
       expect(game.rating!.metacritic, 86);
     });
 
+    // Библиотека складывалась до того, как появились обзоры: у её игр
+    // пройдена вся цепочка, и без отдельной ветки в отборе кнопка
+    // «Обновить метаданные» отвечала бы «есть у всех», а оценку пришлось бы
+    // добывать по одной игре на её странице.
+    test(
+      'кнопка обновления доводит оценку до игры, где всё остальное есть',
+      () async {
+        await add();
+        final ready = await complete();
+        expect(ready.steamAppId, isNotNull);
+        expect(ready.savePathsLookupAttempted, isTrue);
+
+        // Такой игра пришла бы из библиотеки, записанной прежней версией.
+        library.add(GameUpdated(ready.copyWith(rating: null)));
+        await _wait(library, (s) => s.gameById('game')?.rating == null);
+
+        library.add(const MetadataRetryRequested());
+        await _wait(library, (s) => s.gameById('game')?.rating != null);
+
+        expect(library.state.gameById('game')!.rating!.positive, 90);
+      },
+    );
+
     // Неудачное обновление не должно обеднять страницу: было что
     // показать — пусть и остаётся, пока не появится новое.
     test('пустой ответ не стирает уже показанную оценку', () async {

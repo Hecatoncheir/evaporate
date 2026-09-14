@@ -161,12 +161,6 @@ extension _LibraryMetadata on LibraryBloc {
     }
   }
 
-  /// Просит поискать метаданные заново для всех игр, которым их не хватает.
-  ///
-  /// Маркер «уже пробовали» снимается только здесь и только по нажатию
-  /// человека. Автоматически он не снимается никогда: иначе приложение при
-  /// каждом запуске ходило бы в Steam за играми, которых там попросту нет,
-  /// — а таких в торрент-библиотеке половина.
   /// Заводит игру в Steam сторонним ярлыком.
   ///
   /// Событием, а не вызовом из виджета: запись идёт в чужой файл и
@@ -246,15 +240,35 @@ extension _LibraryMetadata on LibraryBloc {
     }
   }
 
+  /// Просит поискать метаданные заново для всех игр, которым их не хватает.
+  ///
+  /// Маркер «уже пробовали» снимается только здесь и только по нажатию
+  /// человека. Автоматически он не снимается никогда: иначе приложение при
+  /// каждом запуске ходило бы в Steam за играми, которых там попросту нет,
+  /// — а таких в торрент-библиотеке половина.
+  ///
+  /// Нехватка — это и пустая оценка, а не только пустой `appid`. Библиотеки
+  /// собирались до того, как появились обзоры, и у сложившейся библиотеки
+  /// цепочка пройдена до конца: без этой ветки кнопка отвечала бы
+  /// «метаданные есть у всех», а оценку пришлось бы добывать по одной игре
+  /// на её странице. Игру, у которой в Steam и правда нет ни обзоров, ни
+  /// Metacritic, кнопка будет переспрашивать каждый раз — отличить «сходили
+  /// и не нашли» от «не ходили» по пустому полю нечем, а нажатие тут всегда
+  /// человеческое.
   Future<void> _onMetadataRetry(
     MetadataRetryRequested event,
     Emitter<LibraryState> emit,
   ) async {
+    // Сводить в Steam или только искать пути: у похода в Steam своё событие,
+    // и промахнись отбор — игра снимет не тот маркер и уйдёт не туда.
+    bool needsSteam(Game game) =>
+        game.steamAppId == null || game.rating == null;
+
     final pending = [
       for (final game in state.games)
         if (game.isInstalled &&
             game.installDir != null &&
-            (game.steamAppId == null || !game.savePathsLookupAttempted))
+            (needsSteam(game) || !game.savePathsLookupAttempted))
           game,
     ];
     if (pending.isEmpty) {
@@ -264,7 +278,7 @@ extension _LibraryMetadata on LibraryBloc {
 
     for (final game in pending) {
       _replaceGame(
-        game.steamAppId == null
+        needsSteam(game)
             ? game.copyWith(steamLookupAttempted: false)
             : game.copyWith(savePathsLookupAttempted: false),
         emit,
@@ -277,7 +291,7 @@ extension _LibraryMetadata on LibraryBloc {
       final current = state.gameById(game.id);
       if (current == null) continue;
       add(
-        current.steamAppId == null
+        needsSteam(current)
             ? SteamLookupRequested(current, automatic: true)
             : SavePathsLookupRequested(current, automatic: true),
       );

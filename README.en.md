@@ -18,12 +18,13 @@ key, and time played. Below it the All / Installed / Not installed shelves and
 a grid of portrait covers. The colour in the window comes from the games
 themselves — the ambient light takes its hue from the selected one.
 
-![Game page: the cover as a dimmed backdrop, launch buttons, and save folders](site/assets/screenshots/game.jpg)
+![Game page: the cover as a dimmed backdrop, the Steam rating, launch buttons, and save folders](site/assets/screenshots/game.jpg)
 
 **Game page.** The cover runs under the header as a blurred backdrop and fades
 out by the middle of the screen, so the page answers whose it is before you
-finish reading the title. Play on the left; Add to Steam and Refresh from Steam
-on the right. Below, the save folders — paths are shown as templates
+finish reading the title. Under the description sits the rating: Steam's verdict
+in words, the share of positive reviews, both counts, and Metacritic. Play on
+the left; Add to Steam and Refresh from Steam on the right. Below, the save folders — paths are shown as templates
 (`{HOME}/...`), because that is how they are stored, and that is why they
 travel to another machine.
 

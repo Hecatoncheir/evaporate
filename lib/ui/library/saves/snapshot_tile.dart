@@ -26,6 +26,13 @@ class SnapshotTile extends StatelessWidget {
     // Дата, источник, размер и число файлов лежат отдельными подписями, и
     // диктор читал бы их четырьмя объявлениями подряд. Кнопки при этом
     // остаются своими: до них надо доходить и нажимать по отдельности.
+    //
+    // Отсюда и место `ExcludeSemantics` — внутри строки, вокруг одних
+    // подписей. Снаружи, на всей плитке, он унёс бы вместе с лишними
+    // объявлениями и три действия: та же ловушка, на которой уже теряла
+    // нажатие плитка игры. А без него подпись не заменяет детей, а лишь
+    // встаёт перед ними, и диктор читает всё то же самое — только теперь
+    // пять раз вместо четырёх.
     return Semantics(
       label: L
           .of(context)
@@ -45,42 +52,44 @@ class SnapshotTile extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        formatDateTime(snapshot.createdAt),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+              child: ExcludeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          formatDateTime(snapshot.createdAt),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      SaveTag(
-                        text: snapshotOriginLabel(
-                          L.of(context),
-                          snapshot.origin,
+                        const SizedBox(width: 8),
+                        SaveTag(
+                          text: snapshotOriginLabel(
+                            L.of(context),
+                            snapshot.origin,
+                          ),
+                          color: snapshot.origin == SnapshotOrigin.imported
+                              ? context.colors.primary
+                              : context.colors.textSecondary,
                         ),
-                        color: snapshot.origin == SnapshotOrigin.imported
-                            ? context.colors.primary
-                            : context.colors.textSecondary,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${snapshot.deviceName} · '
-                    '${platformLabel(snapshot.platform)} · '
-                    '${L.of(context).filesCount(snapshot.fileCount)} · '
-                    '${formatBytes(snapshot.sizeBytes)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.colors.textSecondary,
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3),
+                    Text(
+                      '${snapshot.deviceName} · '
+                      '${platformLabel(snapshot.platform)} · '
+                      '${L.of(context).filesCount(snapshot.fileCount)} · '
+                      '${formatBytes(snapshot.sizeBytes)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.colors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             IconButton(
