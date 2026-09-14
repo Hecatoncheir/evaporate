@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 300" role="img" aria-label="Evaporate">
+  <title>Evaporate — логотип</title>
+
+  <!--
+    Знак и слово. Слово набрано Unbounded 700 заглавными с разрядкой +0.14em —
+    тем же шрифтом и с тем же разрядом, что заголовки в приложении и на сайте:
+    отдельного шрифта логотипу не заводили, иначе он перестал бы быть частью
+    системы. Разряд положительный, потому что у Unbounded прижатые заглавные
+    слипаются.
+
+    Знак ростом 210 при кегле 140 — около полутора высот прописной. Свободное
+    поле вокруг логотипа не меньше ширины штриха знака (42 при этом росте).
+
+    Слово остаётся текстом, а не кривыми: файл лежит рядом с
+    assets/fonts/Unbounded.ttf и правится правкой строки. Для чужих мест, где
+    шрифта нет, отдавайте растр.
+
+    На светлой подложке слову ставят `fill="#16181A"`; знак не перекрашивают.
+  -->
+
+  <defs>
+    <linearGradient id="liquid" gradientUnits="userSpaceOnUse" x1="60" y1="265" x2="282" y2="35">
+      <stop offset="0" stop-color="#FFD227" />
+      <stop offset="0.22" stop-color="#F97A1F" />
+      <stop offset="0.48" stop-color="#F5188C" />
+      <stop offset="0.72" stop-color="#C238C8" />
+      <stop offset="1" stop-color="#1FC5E8" />
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(60 45) scale(0.5)" fill="url(#liquid)">
+    <rect x="0" y="0" width="84" height="420" />
+    <rect x="84" y="336" width="306" height="84" />
+    <rect x="84" y="168" width="216" height="84" />
+    <rect x="84" y="0" width="118" height="84" />
+    <rect x="230" y="6" width="80" height="72" />
+    <rect x="338" y="12" width="50" height="60" />
+    <rect x="414" y="18" width="30" height="48" />
+  </g>
+
+  <text x="352" y="197" font-family="Unbounded" font-weight="700" font-size="140"
+        letter-spacing="19.6" fill="#ECE6D8">EVAPORATE</text>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 444 420" role="img" aria-label="Evaporate">
+  <title>Evaporate — знак</title>
+
+  <!--
+    Монограмма «E», у которой верхняя перекладина теряет вещество: блоки
+    короче, ниже и дальше друг от друга. Имя приложения, сказанное самой
+    буквой.
+
+    Геометрия держится на модуле: коробка 420, штрих 84, просветы тоже 84.
+    Оттого буква не разъезжается ни в строке логотипа, ни в 16 точках, а
+    блоки садятся на ту же сетку, что и перекладины.
+
+    Заливка — жидкая радуга в общих координатах, а не по каждой фигуре:
+    иначе спектр повторялся бы в каждой перекладине и буква рассыпалась бы
+    на полосатые куски.
+  -->
+
+  <defs>
+    <linearGradient id="liquid" gradientUnits="userSpaceOnUse" x1="0" y1="440" x2="440" y2="-20">
+      <stop offset="0" stop-color="#FFD227" />
+      <stop offset="0.22" stop-color="#F97A1F" />
+      <stop offset="0.48" stop-color="#F5188C" />
+      <stop offset="0.72" stop-color="#C238C8" />
+      <stop offset="1" stop-color="#1FC5E8" />
+    </linearGradient>
+  </defs>
+
+  <g fill="url(#liquid)">
+    <rect x="0" y="0" width="84" height="420" />
+    <rect x="84" y="336" width="306" height="84" />
+    <rect x="84" y="168" width="216" height="84" />
+    <rect x="84" y="0" width="118" height="84" />
+    <rect x="230" y="6" width="80" height="72" />
+    <rect x="338" y="12" width="50" height="60" />
+    <rect x="414" y="18" width="30" height="48" />
+  </g>
+</svg>
