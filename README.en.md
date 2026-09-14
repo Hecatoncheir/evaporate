@@ -9,6 +9,48 @@ file and carry to another machine.
 The app ships **no content catalogue**. You provide the source for every game
 yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 
+## What it looks like
+
+![Library: a large cover on top, shelves, and a grid of portrait covers](site/assets/screenshots/library.jpg)
+
+**Library.** On top, the game you are coming back to: a large still, the play
+key, and time played. Below it the All / Installed / Not installed shelves and
+a grid of portrait covers. The colour in the window comes from the games
+themselves — the ambient light takes its hue from the selected one.
+
+![Game page: the cover as a dimmed backdrop, launch buttons, and save folders](site/assets/screenshots/game.jpg)
+
+**Game page.** The cover runs under the header as a blurred backdrop and fades
+out by the middle of the screen, so the page answers whose it is before you
+finish reading the title. Play on the left; Add to Steam and Refresh from Steam
+on the right. Below, the save folders — paths are shown as templates
+(`{HOME}/...`), because that is how they are stored, and that is why they
+travel to another machine.
+
+![Downloads: speed readouts, the queue, and a chart for each task](site/assets/screenshots/downloads.jpg)
+
+**Downloads.** The section opens with readouts: speed, upload, how many are
+running, how many are waiting. Every task gets its own chart — the network as a
+line, the disk as bars. On the left, the "Ready to download" queue; anything
+unwanted goes with the cross, and a `.torrent` can be dropped straight into the
+window.
+
+![Saves: readouts, whole-library transfer, and the snapshot list](site/assets/screenshots/saves.jpg)
+
+**Saves.** How many snapshots, how much space, when the last one was taken.
+Next to that, moving the whole library in one action and the sync folder. Each
+snapshot shows which machine it came from.
+
+![Settings: interface scale and the gamepad layout](site/assets/screenshots/settings.jpg)
+
+**Settings.** Interface scale, and cover scale separately. Below, the gamepad:
+stick dead zone and rebinding any button by pressing it.
+
+![Light scheme: the same library on a pale chassis](site/assets/screenshots/library-light.jpg)
+
+**Light scheme.** Not a brightened dark theme but a look of its own: flat
+saturated colour without gradients, and black lettering on orange.
+
 ## What it does
 
 - **Library** — a grid of portrait covers, the way Steam does it: the All,
@@ -22,12 +64,21 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
   **SOCKS5 all the way down to peer connections**. The queue survives a restart.
   A downloaded torrent can be saved back out as a `.torrent` file — including
   one that arrived as a magnet link, assembled from the metadata it fetched.
+  Each task's progress is shown as a chart: the network as a line, the disk as
+  bars. The "Ready to download" queue is editable in place, and deleting asks
+  separately whether the downloaded files should go with it.
 - **Drag and drop** — a game folder or a `.torrent` can be dropped straight
-  into the library window: the folder is added as an installed game, the
-  torrent goes into the download queue.
+  into the window: the folder is added as an installed game, the torrent goes
+  into the download queue. Both sections accept a drop, Library and Downloads —
+  whichever is on screen.
 - **Launching** — finds the executable inside a downloaded folder, runs the
   `.app` on macOS, the `.exe` on Windows, the binary on Linux, and counts
   play time.
+- **Steam shortcut** — Add to Steam puts the game into Steam's non-Steam
+  shortcut list together with its artwork: portrait, landscape, hero and logo.
+  From there it launches from Steam itself, from Big Picture, and from a TV
+  over Steam Link. Steam has to be closed for this: it rewrites its own
+  shortcut list on exit and would wipe what was added.
 - **Saves** — `.evsave` snapshots, an automatic snapshot after you quit a game,
   restore with a safety backup, export and import, a sync folder, and moving
   the whole library's saves in one action.
@@ -98,6 +149,11 @@ The same place turns the gamepad off entirely and tunes stick dead zones.
 Holding a direction repeats the step (400 ms before the first repeat, then
 every 110 ms), and the sticks use hysteresis: the release threshold sits below
 the trigger threshold so the input does not chatter at the boundary.
+
+In search, Down, Enter and Escape return focus to the selected game (or to the
+first filtered result), while Left and Right keep editing the query; on a
+gamepad, Down, A and B do the same. The query is not cleared: you searched in
+order to get somewhere, not to start over.
 
 ## Proxy
 
@@ -384,94 +440,120 @@ about the order things happened in.
 
 ## Appearance
 
-There are two themes, light and dark, plus "follow the system", which is the
-default. The dark one is unchanged from where the app started: it lives in a
-full-screen window next to games.
+There are two schemes, and they are **two looks of their own**, not one palette
+with the brightness inverted. The night one is the inky chassis of a cinema:
+warm gold on the primary action, cold signal blue on the readouts. The day one
+is the pale chassis of a measuring instrument: flat saturated colour without
+gradients, black lettering on orange, and a key sitting on its own dark edge. A
+brightened copy of the night scheme would look washed out, and the reverse would
+too. Pick one in Settings — dark, light, or "follow the system", which is the
+default.
 
-The dark theme is built on the palette `FFFCF2 / CCC5B9 / 403D39 / 252422 /
-EB5E28`. The light theme uses the icon's ivory paper and midnight indigo,
-with flowing magenta, gold, turquoise and violet accents.
-
-Contrast was not eyeballed: a test measures the ratio for every colour against
-every surface and demands WCAG levels — 4.5 for captions and accents, 7 for
+Contrast was not eyeballed: `test/theme_test.dart` measures the ratio for every
+colour against every surface and demands WCAG levels — 4.5 for captions, 7 for
 body text. That test is also what forced the departures from the source values
-where text would otherwise be unreadable. Saturated icon colours belong to
-the decorative layer; their text variants are darker. The dark theme uses a
-lighter orange because it labels status as well as outlining focus.
+where text would otherwise be unreadable.
 
-The "Living library" settings card has individual switches for particles, waves,
-foil, tilt, Liquid Distortion, liquid selection, background colour flow and
-section fades. Waves, foil, tilt and background colour flow default on; particles,
-Liquid Distortion, liquid selection and section fades default off. The master
-switch preserves individual choices. A perspective tilt repeats every 7 seconds,
-synchronized with the rainbow reflection and specular streak.
-The normal focus border stays; the selection backdrop flows between elements,
-while Liquid Distortion elastically squeezes the card on focus changes and gently
-wobbles the active card. Selection uses `#201b31` in the light
-theme and `#e8e1cf` in the dark theme, with contrasting text and icons.
-Gradients and Matrix4 implement the foil effect directly in Flutter,
-without Dough, sensors, or additional foil/xl dependencies.
-4800 ambient particles are initially distributed evenly across the library.
-The original magnetic response returns within 180 pixels of the cursor or
-card perimeter: faster, more chaotic motion and additional local particles.
-Distant dots wander
-in `#2f0346` on light backgrounds or `#f2685a` on dark backgrounds, without glow.
-Close to a target both themes use the same saturated ink palette.
-Enabled particles remain static under reduced motion. Turning particles off
-hides them and stops their simulation. The total count
-is capped at 6800; extra dots expire after leaving a target. Painting remains
-independent of the grid.
-Grid gaps are 36 pixels horizontally and 40 vertically.
-Reduced motion leaves static foil without tilt; disabling effects removes
-the foil entirely. Animations pause on hidden tabs or when the app is inactive.
-Select the light theme in Settings if your system is dark; existing preferences
-are not changed automatically.
+**The brand colour is split into two roles, and they must not be confused.**
+`primary` is for text and icons, and it is contrast-checked on every surface;
+`primaryFill` is for fills, and you write `onPrimary` on it. The split was paid
+for by the light scheme: saturated orange is good as a block under a label and
+falls short of the threshold as text on a pale background, so a single token for
+both roles would mean either dull buttons or unreadable captions. `accent` and
+`accentFill` are separated the same way. Three more tokens describe **material**
+rather than meaning: `glow` (the halo — transparent by day, since a pale chassis
+does not glow), `depth` (the edge under a key — transparent at night) and
+`shadow`.
 
-In search, Down, Enter and Escape return to the selected game (or the first
-filtered result); Left/Right still edit the query. Gamepad Down, A and B
-return to the grid too, without clearing the query.
-Cover size is adjustable from 75–150% using −/+ above the grid or in Settings.
-The independent 85–125% interface scale enlarges text, icons, controls and
-dialogs together, leaving the window controls unchanged. Both preferences
-persist; clicking a percentage resets that scale to 100%.
+Colours are handed out by a theme extension (`context.colors.textSecondary`)
+rather than as constants: the two schemes could not otherwise coexist. All of
+them are defined in `lib/ui/app_colors.dart`, and a test rejects new colour
+literals elsewhere in the application. The geometry of the chassis is four radii
+in `EvaporateTheme`, shared by both schemes: different corners would read as two
+different applications, and numbers are never written into
+`BorderRadius.circular(…)` on the spot. Motion is tokens too
+(`EvaporateMotion`): four duration steps and the curves that go with them, and
+that is also where the system's request not to animate is honoured — checking it
+in every widget would mean forgetting it somewhere.
 
-Point size is constant. Resizing scales particle positions proportionally,
-preserving their even distribution instead of clamping dots onto the edges.
-The library and game pages share the same 26-line wave background based on
-the [#wave reference](https://hecatoncheir.github.io/).
-Play is a standard themed button without an animated background.
-The lines bend smoothly near the pointer. Everything renders locally in
-Flutter, without loading the website or rebuilding page content each frame.
-Turning waves or Living library off removes the wave background completely.
-Reduced motion keeps enabled waves static;
-animations pause on hidden pages and while the window is inactive.
+Three fonts, all bundled rather than fetched at runtime: **Unbounded** for
+headings and primary keys (wide and geometric — it sounds like lettering on a
+chassis), **Golos Text** for body text and captions, **JetBrains Mono** for
+paths, sizes and readouts. All three were drawn with Cyrillic from the start;
+they are variable fonts, one file per family. Headings are set in capitals with
+**positive** tracking: Unbounded's capitals crowd each other, and the negative
+tracking that suits narrow faces ruins the very thing the font was chosen for.
+Section labels are capitals only to the eye — a screen reader gets the ordinary
+word, because some readers spell capitals out letter by letter.
 
-All Flutter UI colours are defined in `lib/ui/app_colors.dart`: both themes,
-particles, waves, foil, artwork, shadows and window controls. `theme.dart`
-exports the palette; themed colours use `context.colors`, while fixed colours
-use `AppColors` and palette functions. A test rejects colour definitions
-elsewhere in the application.
+**Sections open with readouts, not with details.** One panel divided into a few
+columns by hairlines: on Saves, how many snapshots, how much space, when the
+last one was taken; on Downloads, speed, upload, how many are running, how many
+are waiting. This is not decoration: the same numbers used to be scattered
+across the corners of cards, and the screen did not answer the section's main
+question. They are set in monospace with tabular figures, or the line would
+twitch on every update, and a dimmed column means there is nothing to show.
 
-Three fonts, all bundled rather than fetched at runtime: Golos Text for the
-interface, Unbounded for headings and primary keys, JetBrains Mono for paths,
-sizes and readouts. All three were drawn with Cyrillic from the start; they are
-variable fonts, one file per family. The new imagegen-created icon uses cream
-and midnight indigo with three vivid multicolor vapor ribbons forming the
-Evaporate mark, offset-color outlines, and a textured print finish.
-The artwork and prompts live in `docs/branding/`; `tool/make_icon.py` exports
-macOS sizes, the Linux PNG, and multi-size Windows and tray ICO files.
+**The colour in the shell comes from the games, not from the chassis.** Three
+large gradients in the selected game's colours wash the window, and the panel
+over them is deliberately not opaque — a solid fill would snuff out the only
+colour in the window. The hue comes from the title, not from the cover's pixels:
+reading the image would mean decoding it on every move through the shelf, and
+the light is blurred to a smudge anyway. And the hues are not the whole wheel
+but six vetted anchors: a free hue from a hash sooner or later produces swamp
+green, and the shell stops looking personal and starts looking broken.
+
+On a game's page the cover itself does the same job: blurred, dimmed, fading out
+by the middle of the screen. Three layers, each of them needed — the blur so
+that no detail under the text invites reading, the dimming so white text over a
+pale cover stays text, and the fade so the backdrop has an ending rather than a
+cut edge. It is the same file already shown on the page: Flutter keeps its
+decoded form in cache, so showing it twice costs nothing.
+
+Decorations are **not one switch but a flag each**: sparks, waves, foil on the
+cover, card tilt, particles, droplets, the selection frame, ambient light, the
+sweep of light across the large cover, the cover backdrop on a game's page. They
+differ in cost and in taste, and a single switch would mean all or nothing. The
+old shared flag is still read, for profiles already written to disk.
+
+There are two scales and they are independent: the whole interface at 85–125%,
+library tiles at 75–150%. The interface one does not merely turn a text scale
+factor: the layout is computed at the enlarged logical size and then scaled as a
+whole — otherwise icons, hit areas and dialogs given in pixels would not grow
+along with the text. The window controls stay outside it: they belong to the
+system. Clicking the percentage returns that scale to 100%.
+
+The library's large cover does not hide wherever there is simply less room:
+below 760 logical pixels of height it is drawn as a strip — title on one line,
+keys to the right — and it is removed only below 520, where there would
+otherwise be no room for the shelf itself. Wide screens are capped in width and
+centred: past that the description line stops reading, a task card turns into a
+bar, and the speed chart into wallpaper.
 
 The app draws its own title bar and window controls. Drag the title area to
-move, double-click to maximize/restore, and drag an edge to resize. Corners
+move, double-click to maximize or restore, and drag an edge to resize. Corners
 are rounded on macOS, requested from DWM on Windows 11, and drawn through
-transparent pixels on Linux (requires a compositing window manager).
-Windows 10 uses square corners, as do maximized and fullscreen windows.
+transparent pixels on Linux (requires a compositing window manager). Windows 10
+uses square corners, as do maximized and fullscreen windows.
 
 Animations are short and few on purpose. The app is driven by a gamepad too,
 where the user holds a direction and expects an immediate response, and any
-transition there reads as lag. Sections cross-fade, progress bars glide toward
-their new value, and selection highlights ease in — the detail panel
-deliberately does not animate, because people flick through it quickly.
+transition there reads as lag. One clock drives every decorative frame, and it
+stops itself on the system's reduce-motion request, on a minimized window, on a
+disabled `TickerMode` and on an inactive route: decoration has no business
+burning battery behind your back.
+
+The icon was drawn with imagegen: on a cream and midnight-indigo ground, three
+vivid multicolour ribbons of vapour form the Evaporate mark, with offset-colour
+outlines and a printed texture. The artwork and prompts live in
+`docs/branding/`; `tool/make_icon.py` exports macOS sizes, the Linux PNG, and
+multi-size Windows and tray ICO files.
+
+Screenshots for this file and for the website are taken by
+[`tool/capture_window.ps1`](tool/capture_window.ps1): it captures the window
+rather than the screen, and **refuses to run** if it could not bring that window
+to the front — otherwise someone else's window would silently land in the frame,
+and you would only catch the swap by looking.
 
 ## Contributing
 
