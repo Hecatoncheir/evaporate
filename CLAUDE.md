@@ -84,7 +84,7 @@ flutter test --coverage && dart tool/check_coverage.dart
 `changelog_notes_test.dart` сторожит верхний раздел файла — тот, который
 выпустят следующим.
 
-Версия Flutter зафиксирована в `env.FLUTTER_VERSION` (3.47.2, Dart 3.13.2).
+Версия Flutter зафиксирована в `env.FLUTTER_VERSION` (3.47.4, Dart 3.13.3).
 Сборки трёх платформ идут только на теге `v*` либо ручным `workflow_dispatch`;
 на теге же архивы прикладываются к релизу и берут артефакты по маске
 `evaporate-*` — иначе к релизу уехал бы и отчёт о покрытии. Каждая сборка

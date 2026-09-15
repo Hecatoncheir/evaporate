@@ -16,7 +16,7 @@ concurrency:
 env:
   # Версия зафиксирована ради воспроизводимости. Чтобы всегда брать свежую
   # стабильную, замените на channel: stable без flutter-version.
-  FLUTTER_VERSION: 3.47.2
+  FLUTTER_VERSION: 3.47.4
 
 jobs:
   analyze:
