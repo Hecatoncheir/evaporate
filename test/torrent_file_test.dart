@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:b_encode_decode/b_encode_decode.dart' as bencode;
 import 'package:crypto/crypto.dart';
-import 'package:evaporate/services/download/dtorrent_engine.dart';
+import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:evaporate/services/download/torrent_file.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -149,7 +149,7 @@ void main() {
         final info = infoDict(hashes: pieces(seed: seed));
         final file = TorrentFile.assemble(info);
 
-        final model = DtorrentEngine.torrentFromBytes(file);
+        final model = TorrentSource.fromBytes(file);
 
         expect(
           model.infoHash,
@@ -162,7 +162,7 @@ void main() {
     test('кириллица в названии переживает разбор', () {
       final file = TorrentFile.assemble(infoDict(name: 'Ведьмак 3'));
 
-      expect(DtorrentEngine.torrentFromBytes(file).name, 'Ведьмак 3');
+      expect(TorrentSource.fromBytes(file).name, 'Ведьмак 3');
     });
   });
 
@@ -194,16 +194,14 @@ void main() {
     ]) {
       test('«${path.join('/')}» отклоняется', () {
         expect(
-          () => DtorrentEngine.torrentFromBytes(
-            TorrentFile.assemble(withPath(path)),
-          ),
+          () => TorrentSource.fromBytes(TorrentFile.assemble(withPath(path))),
           throwsA(isA<UnsafeTorrentException>()),
         );
       });
     }
 
     test('обычный вложенный путь принимается', () {
-      final model = DtorrentEngine.torrentFromBytes(
+      final model = TorrentSource.fromBytes(
         TorrentFile.assemble(withPath(['data', 'levels', 'pak01.dat'])),
       );
 
@@ -214,7 +212,7 @@ void main() {
     // это запись наружу при первом же обращении по ней.
     test('симлинк с целью за пределами папки отклоняется', () {
       expect(
-        () => DtorrentEngine.torrentFromBytes(
+        () => TorrentSource.fromBytes(
           TorrentFile.assemble(
             withPath(['data', 'link'], symlink: ['..', '..', 'secret']),
           ),
@@ -224,7 +222,7 @@ void main() {
     });
 
     test('симлинк внутрь раздачи не мешает', () {
-      final model = DtorrentEngine.torrentFromBytes(
+      final model = TorrentSource.fromBytes(
         TorrentFile.assemble(
           withPath(['data', 'link'], symlink: ['data', 'pak01.dat']),
         ),

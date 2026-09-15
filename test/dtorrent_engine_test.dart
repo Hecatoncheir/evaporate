@@ -8,6 +8,8 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/services/download/download_engine.dart';
 import 'package:evaporate/services/download/dtorrent_engine.dart';
+import 'package:evaporate/services/download/integrity_check.dart';
+import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:evaporate/services/download/torrent_file.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,7 +89,7 @@ void main() {
         }, 'utf-8'),
       );
 
-      final model = DtorrentEngine.torrentFromBytes(TorrentFile.assemble(info));
+      final model = TorrentSource.fromBytes(TorrentFile.assemble(info));
 
       expect(model.files, hasLength(2));
       expect(
@@ -518,7 +520,7 @@ void main() {
       await makeFile('game.bin', 100);
       await makeFile(p.join('data', 'assets.pak'), 50);
 
-      final report = await DtorrentEngine.checkFiles(
+      final report = await IntegrityCheck.run(
         root: tmp.path,
         expected: [
           (path: 'game.bin', length: 100),
@@ -534,7 +536,7 @@ void main() {
     test('пропавший файл обнаруживается', () async {
       await makeFile('game.bin', 100);
 
-      final report = await DtorrentEngine.checkFiles(
+      final report = await IntegrityCheck.run(
         root: tmp.path,
         expected: [
           (path: 'game.bin', length: 100),
@@ -552,7 +554,7 @@ void main() {
     test('недокачанный файл обнаруживается по размеру', () async {
       await makeFile('game.bin', 40);
 
-      final report = await DtorrentEngine.checkFiles(
+      final report = await IntegrityCheck.run(
         root: tmp.path,
         expected: [(path: 'game.bin', length: 100)],
       );
@@ -565,7 +567,7 @@ void main() {
     test('файл больше заявленного не считается ошибкой', () async {
       await makeFile('game.bin', 500);
 
-      final report = await DtorrentEngine.checkFiles(
+      final report = await IntegrityCheck.run(
         root: tmp.path,
         expected: [(path: 'game.bin', length: 100)],
       );
