@@ -41,6 +41,7 @@ class AppPaths {
     await Directory(paths.savesDir).create(recursive: true);
     await Directory(paths.blobsDir).create(recursive: true);
     await Directory(paths.coversDir).create(recursive: true);
+    await Directory(paths.shotsDir).create(recursive: true);
     await Directory(paths.torrentsDir).create(recursive: true);
     _instance = paths;
     return paths;
@@ -75,6 +76,11 @@ class AppPaths {
 
   /// Обложки, скопированные в хранилище приложения.
   String get coversDir => p.join(dataDir, 'covers');
+
+  /// Кадры из игр, сохранённые из Steam, — подложка под крупным кадром
+  /// библиотеки. Отдельно от обложек: обложку человек может выбрать сам, и
+  /// эта папка целиком наша, её можно чистить, не спрашивая.
+  String get shotsDir => p.join(dataDir, 'shots');
 
   /// Копии .torrent файлов, чтобы загрузку можно было возобновить.
   String get torrentsDir => p.join(dataDir, 'torrents');

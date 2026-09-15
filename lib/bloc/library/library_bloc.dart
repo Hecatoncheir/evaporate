@@ -64,6 +64,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
        _localizations = localizations ?? _defaultLocalizations,
        _store = store ?? JsonStore(paths.libraryFile),
        _coversDir = paths.coversDir,
+       _shotsDir = paths.shotsDir,
        _launcher = launcher ?? GameLauncher(),
        super(const LibraryState()) {
     on<LibraryLoadRequested>(_onLoadRequested);
@@ -95,6 +96,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SteamShortcutRequested>(_onSteamShortcut);
     on<SavePathsProgressChanged>(_onSavePathsProgress);
     on<MetadataRetryRequested>(_onMetadataRetry);
+    on<MetadataRefreshRequested>(_onMetadataRefresh);
     // this нужен явно: без него имя разрешается в параметр конструктора.
     this.savePaths.onProgress = (value) {
       if (!_closing) add(SavePathsProgressChanged(value));
@@ -108,6 +110,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Отключается в изолированных тестах без сетевых сервисов.
   final bool automaticMetadata;
   final String _coversDir;
+  final String _shotsDir;
+
+  /// Сколько кадров храним на игру. Больше подложка не покажет: она водит
+  /// их по кругу, и на пятом обороте смотреть уже перестают, а файл на
+  /// диске каждый лишний кадр занимает у каждой игры.
+  static const _maxShots = 5;
 
   /// Откуда брать переводы для уведомлений.
   ///
@@ -364,6 +372,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final cover = game.coverPath;
     if (cover != null && p.isWithin(_coversDir, cover)) {
       final file = File(cover);
+      if (await file.exists()) await file.delete();
+    }
+    for (final shot in game.shotPaths) {
+      if (!p.isWithin(_shotsDir, shot)) continue;
+      final file = File(shot);
       if (await file.exists()) await file.delete();
     }
     if (event.deleteFiles && game.installDir != null) {

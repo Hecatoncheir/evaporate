@@ -73,12 +73,15 @@ extension _LibraryMetadata on LibraryBloc {
 
       final previousCover = current.coverPath;
       final coverFile = await _writeSteamCover(game, coverBytes, previousCover);
+      final previousShots = current.shotPaths;
+      final shotPaths = await _writeSteamShots(game, match);
 
       // Запись файла — тоже ожидание, и за него игру могли убрать. Свежий
       // файл тогда удаляем: иначе в кэше копились бы обложки-сироты.
       current = _stillSameGame(game);
       if (current == null) {
         await _deleteCoverFile(coverFile?.path);
+        await _deleteShotFiles(shotPaths);
         _finishBusy(emit, key);
         return;
       }
@@ -91,6 +94,10 @@ extension _LibraryMetadata on LibraryBloc {
         coverUrl: match.headerImage,
         description: match.description,
         coverPath: coverPath,
+        // Пустую подборку не записываем по той же причине, что и пустую
+        // оценку: сорвавшаяся загрузка кадров стёрла бы подложку, которая
+        // уже показана.
+        shotPaths: shotPaths.isEmpty ? current.shotPaths : shotPaths,
         // Пустую оценку не записываем: сорвавшийся запрос стёр бы то, что
         // уже показано, и страница обеднела бы от неудачного обновления.
         rating: rating.hasAnything ? rating : current.rating,
@@ -109,6 +116,7 @@ extension _LibraryMetadata on LibraryBloc {
       if (coverPath != previousCover) {
         await _deleteReplacedCover(previousCover);
       }
+      if (shotPaths.isNotEmpty) await _deleteShotFiles(previousShots);
       _continueWithSavePaths(game.id, automatic: event.automatic);
     } on Object catch (error) {
       _finishBusy(emit, key, message: error.toString(), isError: true);
@@ -184,6 +192,50 @@ extension _LibraryMetadata on LibraryBloc {
       // Ошибка кэша обложки не отменяет ID, описание и поиск сейвов.
       await _deleteCoverFile(file.path);
       return null;
+    }
+  }
+
+  /// Кладёт кадры из игры в кэш приложения и возвращает их пути.
+  ///
+  /// Кадров у игры бывает два десятка, берём первые [_maxShots]: подложка
+  /// показывает их по кругу, и на пятом обороте человек уже не смотрит, а
+  /// каждый следующий — это ещё файл на диске у каждой игры библиотеки.
+  ///
+  /// Неудача одного кадра не отменяет остальные, а неудача всех не отменяет
+  /// ни идентификатор, ни описание: подложка — украшение, и терять из-за
+  /// неё метаданные не за что.
+  Future<List<String>> _writeSteamShots(Game game, SteamGame match) async {
+    final wanted = match.screenshots.take(LibraryBloc._maxShots);
+    if (wanted.isEmpty) return const [];
+
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final written = <String>[];
+    var index = 0;
+    for (final url in wanted) {
+      if (_closing) break;
+      final bytes = await steam.imageBytes(url);
+      if (bytes == null) continue;
+      final file = File(
+        p.join(_shotsDir, '${safeFileName(game.id)}-$stamp-$index.jpg'),
+      );
+      index++;
+      try {
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(bytes, flush: true);
+        written.add(file.path);
+      } on FileSystemException {
+        // Один не записавшийся кадр подборку не отменяет.
+      }
+    }
+    return written;
+  }
+
+  /// Убирает кадры, которые больше не нужны: заменённые новой подборкой или
+  /// осиротевшие, пока мы ходили в сеть. Чужое не трогаем — только свой кэш.
+  Future<void> _deleteShotFiles(List<String> paths) async {
+    for (final path in paths) {
+      if (!p.isWithin(_shotsDir, path)) continue;
+      await _deleteCoverFile(path);
     }
   }
 
@@ -351,6 +403,55 @@ extension _LibraryMetadata on LibraryBloc {
     }
     emit(
       state.copyWith(notice: _notice(_l.noticeMetadataRetry(pending.length))),
+    );
+  }
+
+  /// Спрашивает Steam заново про всю библиотеку.
+  ///
+  /// Отличие от [_onMetadataRetry] одно, и оно же весь смысл: отбора «чего
+  /// не хватает» здесь нет. Приложение прирастает точками данных — сначала
+  /// оценка, потом кадры из игры, — а у сложившейся библиотеки нехватки
+  /// нет, и прежняя кнопка честно отвечала «метаданные есть у всех».
+  /// Подправлять под каждую новую точку отбор значило бы каждый раз
+  /// вспоминать об этом месте; проще один раз сходить за всем.
+  ///
+  /// Название игры и здесь не переписывается, а обложка, выбранная
+  /// человеком, остаётся его: за это отвечают те же `_onSteamLookup` и
+  /// `_writeSteamCover`, через которые всё и пойдёт.
+  Future<void> _onMetadataRefresh(
+    MetadataRefreshRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final pending = [
+      for (final game in state.games)
+        if (game.isInstalled && game.installDir != null) game,
+    ];
+    if (pending.isEmpty) {
+      emit(state.copyWith(notice: _notice(_l.noticeMetadataNothingToDo)));
+      return;
+    }
+
+    // Снимаем оба маркера: игра пойдёт в Steam, а оттуда цепочкой за
+    // путями сохранений — тем же порядком, что при добавлении.
+    for (final game in pending) {
+      _replaceGame(
+        game.copyWith(
+          steamLookupAttempted: false,
+          savePathsLookupAttempted: false,
+        ),
+        emit,
+      );
+    }
+    await persist();
+
+    // Очередь та же: события идут по одному, залпа по Steam не будет.
+    for (final game in pending) {
+      final current = state.gameById(game.id);
+      if (current == null) continue;
+      add(SteamLookupRequested(current, automatic: true));
+    }
+    emit(
+      state.copyWith(notice: _notice(_l.noticeMetadataRefresh(pending.length))),
     );
   }
 

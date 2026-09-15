@@ -19,6 +19,7 @@ class SteamGame extends Equatable {
     this.headerImage,
     this.description,
     this.metacritic,
+    this.screenshots = const [],
   });
 
   final int appId;
@@ -29,6 +30,17 @@ class SteamGame extends Equatable {
   /// Оценка прессы, 0–100. Есть далеко не у всякой игры: Metacritic
   /// оценивает то, что до него дошло, и у половины каталога её просто нет.
   final int? metacritic;
+
+  /// Кадры из игры, миниатюрами 600×338.
+  ///
+  /// Полные 1920×1080 лежат в том же ответе, но нам они не нужны: кадры
+  /// идут под крупную обложку библиотеки размытыми и затемнёнными, а весят
+  /// всемеро больше и разворачиваются в памяти в восемь мегабайт каждый.
+  ///
+  /// Приходят даром: это тот же `appdetails`, из которого берутся описание
+  /// и Metacritic, — отдельного запроса, а значит и новой очереди к Steam,
+  /// здесь не заводится.
+  final List<String> screenshots;
 
   SteamGame merge(SteamGame other) => SteamGame(
     appId: appId,
@@ -45,6 +57,7 @@ class SteamGame extends Equatable {
     headerImage,
     description,
     metacritic,
+    screenshots,
   ];
 }
 
@@ -336,7 +349,23 @@ class SteamCatalog {
       metacritic: metacritic is Map<String, dynamic>
           ? metacritic['score'] as int?
           : null,
+      screenshots: _screenshots(data['screenshots']),
     );
+  }
+
+  /// Кадры из ответа `appdetails`.
+  ///
+  /// Берём `path_thumbnail`, а не `path_full`: подложке хватает 600×338, а
+  /// полный кадр весит всемеро больше. Пропускаем всё, что не строка: ответ
+  /// приходит из сети, и один испорченный элемент не должен уносить всю
+  /// подборку.
+  static List<String> _screenshots(Object? raw) {
+    if (raw is! List) return const [];
+    return [
+      for (final item in raw)
+        if (item is Map<String, dynamic> && item['path_thumbnail'] is String)
+          item['path_thumbnail'] as String,
+    ];
   }
 
   /// Разбор итога обзоров.

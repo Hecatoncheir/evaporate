@@ -28,6 +28,7 @@ class AppSettings extends Equatable {
     this.liquidSelectionEnabled = false,
     this.ambientEnabled = true,
     this.heroSweepEnabled = true,
+    this.shotsBackdropEnabled = true,
     this.coverBackdropEnabled = true,
     this.interfaceAnimationsEnabled = true,
     this.dropsEnabled = false,
@@ -97,6 +98,11 @@ class AppSettings extends Equatable {
   /// кадр от вклеенной картинки. Своя настройка, потому что цена у неё
   /// своя: кадры идут всё время, пока библиотека открыта.
   final bool heroSweepEnabled;
+
+  /// Кадры из игры подложкой под крупной обложкой библиотеки: показываются
+  /// по кругу и медленно ползут. Есть далеко не у всех игр — кадры приходят
+  /// из Steam, а половина торрент-библиотеки с ним не сходится.
+  final bool shotsBackdropEnabled;
 
   /// Обложка приглушённым фоном на странице игры.
   final bool coverBackdropEnabled;
@@ -171,6 +177,7 @@ class AppSettings extends Equatable {
     bool? liquidSelectionEnabled,
     bool? ambientEnabled,
     bool? heroSweepEnabled,
+    bool? shotsBackdropEnabled,
     bool? coverBackdropEnabled,
     bool? interfaceAnimationsEnabled,
     bool? dropsEnabled,
@@ -206,6 +213,7 @@ class AppSettings extends Equatable {
           liquidSelectionEnabled ?? this.liquidSelectionEnabled,
       ambientEnabled: ambientEnabled ?? this.ambientEnabled,
       heroSweepEnabled: heroSweepEnabled ?? this.heroSweepEnabled,
+      shotsBackdropEnabled: shotsBackdropEnabled ?? this.shotsBackdropEnabled,
       coverBackdropEnabled: coverBackdropEnabled ?? this.coverBackdropEnabled,
       interfaceAnimationsEnabled:
           interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
@@ -243,6 +251,7 @@ class AppSettings extends Equatable {
     'liquidSelectionEnabled': liquidSelectionEnabled,
     'ambientEnabled': ambientEnabled,
     'heroSweepEnabled': heroSweepEnabled,
+    'shotsBackdropEnabled': shotsBackdropEnabled,
     'coverBackdropEnabled': coverBackdropEnabled,
     'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
     'dropsEnabled': dropsEnabled,
@@ -280,6 +289,7 @@ class AppSettings extends Equatable {
     liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? false,
     ambientEnabled: json['ambientEnabled'] as bool? ?? true,
     heroSweepEnabled: json['heroSweepEnabled'] as bool? ?? true,
+    shotsBackdropEnabled: json['shotsBackdropEnabled'] as bool? ?? true,
     coverBackdropEnabled: json['coverBackdropEnabled'] as bool? ?? true,
     interfaceAnimationsEnabled:
         json['interfaceAnimationsEnabled'] as bool? ?? true,
@@ -330,6 +340,7 @@ class AppSettings extends Equatable {
     liquidSelectionEnabled,
     ambientEnabled,
     heroSweepEnabled,
+    shotsBackdropEnabled,
     coverBackdropEnabled,
     interfaceAnimationsEnabled,
     dropsEnabled,

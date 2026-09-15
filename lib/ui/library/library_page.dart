@@ -161,6 +161,8 @@ class _LibraryPageState extends State<LibraryPage> {
                   compact: height < _roomyHeight,
                   sweepEnabled:
                       effects.libraryEffects && effects.heroSweepEnabled,
+                  shotsEnabled:
+                      effects.libraryEffects && effects.shotsBackdropEnabled,
                   onOpen: () => nav.add(GameOpened(featured.id)),
                   onPrimary: () => dispatchPrimaryAction(context, featured),
                 ),

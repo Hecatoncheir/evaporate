@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'hero_sweep.dart';
 import 'primary_action.dart';
+import 'shots_backdrop.dart';
 
 /// Крупная обложка выбранной игры над полкой.
 ///
@@ -30,6 +31,7 @@ class FeaturedGame extends StatelessWidget {
     required this.onPrimary,
     this.compact = false,
     this.sweepEnabled = false,
+    this.shotsEnabled = false,
   });
 
   final Game game;
@@ -42,6 +44,10 @@ class FeaturedGame extends StatelessWidget {
 
   /// Полоса света, проходящая по обложке. Настройка своя — см. [HeroSweep].
   final bool sweepEnabled;
+
+  /// Кадры из игры вместо неподвижной обложки. Настройка своя — см.
+  /// [ShotsBackdrop]; у игр без кадров остаётся обложка.
+  final bool shotsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +81,12 @@ class FeaturedGame extends StatelessWidget {
               builder: (context, box) => Stack(
                 fit: StackFit.expand,
                 children: [
-                  _Art(game: game, compact: compact, sweep: sweepEnabled),
+                  _Art(
+                    game: game,
+                    compact: compact,
+                    sweep: sweepEnabled,
+                    shots: shotsEnabled,
+                  ),
                   if (compact)
                     _CompactContent(
                       game: game,
@@ -154,11 +165,17 @@ class FeaturedGame extends StatelessWidget {
 
 /// Сама картинка с затемнениями и пробегом света.
 class _Art extends StatelessWidget {
-  const _Art({required this.game, required this.compact, required this.sweep});
+  const _Art({
+    required this.game,
+    required this.compact,
+    required this.sweep,
+    required this.shots,
+  });
 
   final Game game;
   final bool compact;
   final bool sweep;
+  final bool shots;
 
   @override
   Widget build(BuildContext context) {
@@ -176,17 +193,23 @@ class _Art extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (coverPath == null)
-            fallback
-          else
-            Image.file(
-              File(coverPath),
-              key: const ValueKey('featured-game-background'),
-              fit: BoxFit.cover,
-              alignment: Alignment.center,
-              filterQuality: FilterQuality.medium,
-              errorBuilder: (context, error, stackTrace) => fallback,
-            ),
+          // Кадры из игры, а если их нет — обложка, а если нет и её —
+          // наш собственный задник. Порядок здесь и есть вся логика:
+          // подложка не обязана быть у каждой игры.
+          ShotsBackdrop(
+            shots: game.shotPaths,
+            enabled: shots,
+            fallback: coverPath == null
+                ? fallback
+                : Image.file(
+                    File(coverPath),
+                    key: const ValueKey('featured-game-background'),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (context, error, stackTrace) => fallback,
+                  ),
+          ),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(

@@ -182,6 +182,13 @@ class LibraryEffectsCard extends StatelessWidget {
       apply: (s, v) => s.copyWith(heroSweepEnabled: v),
     ),
     _Effect(
+      id: 'shotsBackdrop',
+      title: l.effectShotsBackdrop,
+      note: l.effectShotsBackdropNote,
+      value: (s) => s.shotsBackdropEnabled,
+      apply: (s, v) => s.copyWith(shotsBackdropEnabled: v),
+    ),
+    _Effect(
       id: 'coverBackdrop',
       title: l.effectCoverBackdrop,
       value: (s) => s.coverBackdropEnabled,

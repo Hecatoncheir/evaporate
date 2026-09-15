@@ -21,6 +21,22 @@ void main() {
     "short_description": "Исследуйте огромный разрушенный мир."
   }}}''';
 
+  /// Кадры приходят тем же ответом, что описание: у настоящей игры их два
+  /// десятка, здесь хватит трёх — и одного испорченного.
+  const detailsWithShots = '''
+  {"367520": {"success": true, "data": {
+    "name": "Hollow Knight",
+    "header_image": "https://cdn.steam/header.jpg",
+    "screenshots": [
+      {"id": 0, "path_thumbnail": "https://cdn.steam/ss0.600x338.jpg",
+       "path_full": "https://cdn.steam/ss0.1920x1080.jpg"},
+      {"id": 1, "path_thumbnail": "https://cdn.steam/ss1.600x338.jpg",
+       "path_full": "https://cdn.steam/ss1.1920x1080.jpg"},
+      {"id": 2, "path_full": "https://cdn.steam/ss2.1920x1080.jpg"},
+      "мусор"
+    ]
+  }}}''';
+
   /// Клиент с подменённым транспортом: ни одного сетевого запроса.
   SteamCatalog catalogWith(Map<String, String> byPath) {
     return SteamCatalog(
@@ -34,6 +50,24 @@ void main() {
   }
 
   group('разбор ответов', () {
+    test('кадры берутся миниатюрами, а битые записи пропускаются', () {
+      final game = SteamCatalog.parseDetails(detailsWithShots, 367520)!;
+
+      // Полные 1920×1080 лежат в том же ответе и не нужны: подложка
+      // показывает кадры размытыми, а весят они всемеро больше.
+      expect(game.screenshots, [
+        'https://cdn.steam/ss0.600x338.jpg',
+        'https://cdn.steam/ss1.600x338.jpg',
+      ]);
+    });
+
+    test('без кадров подборка пуста, а не сломана', () {
+      final game = SteamCatalog.parseDetails(detailsBody, 367520)!;
+
+      expect(game.screenshots, isEmpty);
+      expect(game.name, 'Hollow Knight');
+    });
+
     test('поиск даёт кандидатов с картинками', () {
       final found = SteamCatalog.parseSearch(searchBody);
 

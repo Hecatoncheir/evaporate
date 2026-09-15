@@ -160,6 +160,24 @@ final class MetadataRetryRequested extends LibraryEvent {
   List<Object?> get props => const [];
 }
 
+/// Сходить в Steam за всеми играми разом, даже если у них всё на месте.
+///
+/// [MetadataRetryRequested] спрашивает только про нехватку, и этого хватает,
+/// пока точки данных не меняются. Но они меняются: сперва к обложке и
+/// описанию добавилась оценка, потом кадры из игры, — и у сложившейся
+/// библиотеки нехватки нет, цепочка у неё пройдена до конца. Прежде под
+/// каждую новую точку правили отбор «чего не хватает»; вместо этого здесь
+/// одно честное «спросить заново про всё».
+///
+/// Отдельной кнопкой, а не заменой прежней: это десятки запросов к Steam по
+/// очереди, и делать так при каждом «поискать недостающее» незачем.
+final class MetadataRefreshRequested extends LibraryEvent {
+  const MetadataRefreshRequested();
+
+  @override
+  List<Object?> get props => const [];
+}
+
 /// Подобрать папки сохранений по открытой базе путей.
 final class SavePathsLookupRequested extends LibraryEvent {
   const SavePathsLookupRequested(

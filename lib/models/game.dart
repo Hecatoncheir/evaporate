@@ -44,6 +44,7 @@ class Game {
     this.launchArgs = const [],
     this.coverPath,
     this.coverUrl,
+    this.shotPaths = const [],
     this.description,
     this.rating,
     this.steamAppId,
@@ -77,6 +78,15 @@ class Game {
 
   /// Исходная ссылка Steam. UI использует сохранённый файл [coverPath].
   final String? coverUrl;
+
+  /// Кадры из игры, сохранённые из Steam, — подложка под крупным кадром
+  /// библиотеки. Пусто у всего, что со Steam не сошлось, и это обычное
+  /// дело: у торрент-релиза без `appid` брать их неоткуда.
+  ///
+  /// Миниатюры, а не полные кадры: подложка размыта и затемнена, разницы
+  /// не видно, а 1920×1080 разворачивается в памяти в восемь мегабайт
+  /// против восьмисот килобайт у 600×338.
+  final List<String> shotPaths;
   final String? description;
 
   /// Как игру оценили в Steam. `null` — не спрашивали либо не нашли.
@@ -124,6 +134,7 @@ class Game {
     List<String>? launchArgs,
     Object? coverPath = _u,
     Object? coverUrl = _u,
+    List<String>? shotPaths,
     Object? description = _u,
     Object? rating = _u,
     Object? steamAppId = _u,
@@ -153,6 +164,7 @@ class Game {
       launchArgs: launchArgs ?? this.launchArgs,
       coverPath: coverPath == _u ? this.coverPath : coverPath as String?,
       coverUrl: coverUrl == _u ? this.coverUrl : coverUrl as String?,
+      shotPaths: shotPaths ?? this.shotPaths,
       description: description == _u
           ? this.description
           : description as String?,
@@ -188,6 +200,7 @@ class Game {
     'launchArgs': launchArgs,
     if (coverPath != null) 'coverPath': coverPath,
     if (coverUrl != null) 'coverUrl': coverUrl,
+    if (shotPaths.isNotEmpty) 'shotPaths': shotPaths,
     if (description != null) 'description': description,
     if (rating != null) 'rating': rating!.toJson(),
     if (steamAppId != null) 'steamAppId': steamAppId,
@@ -230,6 +243,9 @@ class Game {
           .toList(),
       coverPath: json['coverPath'] as String?,
       coverUrl: json['coverUrl'] as String?,
+      shotPaths: (json['shotPaths'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList(),
       description: json['description'] as String?,
       rating: json['rating'] == null
           ? null

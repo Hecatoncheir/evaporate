@@ -42,6 +42,7 @@ void main() {
         calm.liquidSelectionEnabled,
         calm.ambientEnabled,
         calm.heroSweepEnabled,
+        calm.shotsBackdropEnabled,
         calm.dropsEnabled,
         calm.portalEnabled,
       ]) {
@@ -75,6 +76,7 @@ void main() {
         (a.liquidSelectionEnabled, b.liquidSelectionEnabled),
         (a.ambientEnabled, b.ambientEnabled),
         (a.heroSweepEnabled, b.heroSweepEnabled),
+        (a.shotsBackdropEnabled, b.shotsBackdropEnabled),
         (a.coverBackdropEnabled, b.coverBackdropEnabled),
         (a.interfaceAnimationsEnabled, b.interfaceAnimationsEnabled),
         (a.dropsEnabled, b.dropsEnabled),

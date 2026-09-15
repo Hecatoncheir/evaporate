@@ -289,13 +289,32 @@ class SettingsPage extends StatelessWidget {
     return SectionCard(
       title: l.metadataRetryTitle,
       icon: Icons.image_search_outlined,
-      trailing: OutlinedButton.icon(
-        onPressed: () =>
-            context.read<LibraryBloc>().add(const MetadataRetryRequested()),
-        icon: const Icon(Icons.refresh, size: 16),
-        label: Text(l.metadataRetryAction),
+      trailing: Wrap(
+        spacing: 8,
+        children: [
+          OutlinedButton.icon(
+            onPressed: () =>
+                context.read<LibraryBloc>().add(const MetadataRetryRequested()),
+            icon: const Icon(Icons.refresh, size: 16),
+            label: Text(l.metadataRetryAction),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => context.read<LibraryBloc>().add(
+              const MetadataRefreshRequested(),
+            ),
+            icon: const Icon(Icons.autorenew, size: 16),
+            label: Text(l.metadataRefreshAction),
+          ),
+        ],
       ),
-      child: _note(context, l.metadataRetryNote),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _note(context, l.metadataRetryNote),
+          const SizedBox(height: 8),
+          _note(context, l.metadataRefreshNote),
+        ],
+      ),
     );
   }
 

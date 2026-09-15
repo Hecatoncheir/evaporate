@@ -22,6 +22,8 @@
   "effectAmbient": "Selected game lights up the chassis",
   "effectAmbientNote": "Panels take on the colour of the selected cover, and the light flows as you move between games",
   "effectHeroSweep": "Light sweep across the featured cover",
+  "effectShotsBackdrop": "Screenshots behind the featured cover",
+  "effectShotsBackdropNote": "Steam hands them over together with the description. They cycle and drift slowly; games that did not match Steam have none, and keep the cover.",
   "effectCoverBackdrop": "Cover as the game page backdrop",
   "effectDrops": "Raindrops on the selected cover",
   "effectDropsNote": "Covers only: the drops refract the artwork, and there is nothing to refract on a title plate",
@@ -324,6 +326,8 @@
   "metadataRetryTitle": "Game metadata",
   "metadataRetryAction": "Look up for all",
   "metadataRetryNote": "Artwork, descriptions and save folders are looked up when a game is added. If there was no network then, the app will not retry on its own — ask it here.",
+  "metadataRefreshAction": "Refresh everything",
+  "metadataRefreshNote": "\"Search for all\" only asks Steam about what is missing. The app keeps gaining new pieces of data — first the rating, then screenshots from the game — and a settled library is missing nothing, so the new ones never reach it. \"Refresh everything\" asks again about every game: dozens of queries one after another, but nothing is skipped.",
   "logTitle": "Log",
   "logShow": "Show",
   "logClear": "Clear",
@@ -332,6 +336,12 @@
   "logEmpty": "The log is empty — nothing worth noting happened.",
   "logNote": "This is where the app records what it kept quiet about: a failed cleanup, an interrupted folder scan, errors you have already dismissed. The log never leaves on its own — sending it is your call.",
   "noticeMetadataRetry": "Looking up metadata for {count} games",
+  "noticeMetadataRefresh": "Refreshing metadata: {count} games",
+  "@noticeMetadataRefresh": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "noticeMetadataNothingToDo": "Every game already has metadata",
   "noticeSyncFolderNotSet": "No sync folder is set in the settings.",
   "noticeTorrentUnavailable": "No torrent file yet: the magnet link metadata has not arrived",

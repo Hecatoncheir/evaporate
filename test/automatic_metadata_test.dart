@@ -26,6 +26,10 @@ class _Steam extends SteamCatalog {
     description: 'An example game',
     headerImage: 'https://example.invalid/header.jpg',
     metacritic: 86,
+    screenshots: [
+      'https://example.invalid/ss0.jpg',
+      'https://example.invalid/ss1.jpg',
+    ],
   );
 
   int reviewCalls = 0;
@@ -71,6 +75,15 @@ class _Steam extends SteamCatalog {
   Future<List<int>?> coverBytes(SteamGame game) async {
     covers++;
     return [1, 2, 3];
+  }
+
+  /// Кадры качаются по одному через общий загрузчик картинок.
+  int shots = 0;
+
+  @override
+  Future<List<int>?> imageBytes(String url) async {
+    shots++;
+    return [4, 5, 6];
   }
 }
 
@@ -754,6 +767,84 @@ Example:
       await reopen();
       expect(steam.calls, 1);
       expect(catalog.loads, 1);
+    },
+  );
+
+  test('кадры из игры сохраняются рядом с обложкой', () async {
+    await add();
+    final game = await complete();
+
+    expect(steam.shots, 2);
+    expect(game.shotPaths, hasLength(2));
+    for (final shot in game.shotPaths) {
+      expect(p.isWithin(paths.shotsDir, shot), isTrue, reason: shot);
+      expect(await File(shot).readAsBytes(), [4, 5, 6]);
+    }
+
+    // Пути переживают перезапуск: подложка не должна пропадать оттого, что
+    // приложение закрыли.
+    await reopen();
+    expect(library.state.gameById('game')!.shotPaths, game.shotPaths);
+  });
+
+  test(
+    'игра без кадров в Steam остаётся без подложки, но с метаданными',
+    () async {
+      steam.result = const SteamGame(
+        appId: 42,
+        name: 'Example',
+        description: 'An example game',
+      );
+      await add();
+      final game = await complete();
+
+      expect(game.shotPaths, isEmpty);
+      expect(steam.shots, 0);
+      expect(game.steamAppId, 42);
+      expect(game.description, 'An example game');
+    },
+  );
+
+  test('удаление игры уносит её кадры с диска', () async {
+    await add();
+    final game = await complete();
+    final shots = [for (final path in game.shotPaths) File(path)];
+    expect(shots, hasLength(2));
+
+    library.add(GameRemoved(game));
+    await _settle(() async {
+      for (final file in shots) {
+        if (await file.exists()) return false;
+      }
+      return true;
+    });
+    for (final file in shots) {
+      expect(await file.exists(), isFalse, reason: file.path);
+    }
+  });
+
+  test(
+    '«обновить всё» идёт в Steam за игрой, у которой всё на месте',
+    () async {
+      await add();
+      await complete();
+      expect(steam.calls, 1);
+
+      // Прежняя кнопка на такой библиотеке честно отвечает «всё на месте»:
+      // цепочка пройдена до конца, и нехватки у игры нет.
+      library.add(const MetadataRetryRequested());
+      await _wait(library, (s) => s.notice != null);
+      expect(steam.calls, 1);
+
+      library.add(const MetadataRefreshRequested());
+      await _settle(() async => steam.calls > 1);
+      expect(steam.calls, 2);
+      await complete();
+      // Маркеры снова проставлены — обновление не оставило библиотеку в
+      // состоянии «сходим ещё раз при следующем запуске».
+      final game = library.state.gameById('game')!;
+      expect(game.steamLookupAttempted, isTrue);
+      expect(game.savePathsLookupAttempted, isTrue);
     },
   );
 }
