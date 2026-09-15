@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/core/format.dart';
@@ -63,9 +64,15 @@ void main() {
       automaticMetadata: false,
       paths: paths,
       settings: settings,
+    );
+    final saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
       saveRoots: () => const [],
     );
     addTearDown(() async {
+      await saves.close();
       await library.close();
       await settings.close();
     });
@@ -75,6 +82,7 @@ void main() {
         providers: [
           BlocProvider.value(value: settings),
           BlocProvider.value(value: library),
+          BlocProvider.value(value: saves),
         ],
         child: MaterialApp(
           localizationsDelegates: L.localizationsDelegates,

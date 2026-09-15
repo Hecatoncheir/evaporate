@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
@@ -16,6 +17,7 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   late LibraryBloc library;
+  late SavesBloc saves;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_hints_');
@@ -33,6 +35,11 @@ void main() {
         cacheFile: p.join(tmp.path, 'paths.json'),
         fetch: (uri) async => 'Игра:\n  files:\n',
       ),
+    );
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
       saveRoots: () => [
         SaveRoot(path: watched.path, insideKnownGamesFolder: false),
       ],
@@ -40,6 +47,7 @@ void main() {
   });
 
   tearDown(() async {
+    await saves.close();
     await library.persist();
     await library.close();
     await settings.close();
@@ -53,6 +61,13 @@ void main() {
   Future<LibraryState> waitFor(bool Function(LibraryState) condition) {
     if (condition(library.state)) return Future.value(library.state);
     return library.stream
+        .firstWhere(condition)
+        .timeout(const Duration(seconds: 10));
+  }
+
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
+    if (condition(saves.state)) return Future.value(saves.state);
+    return saves.stream
         .firstWhere(condition)
         .timeout(const Duration(seconds: 10));
   }
@@ -82,7 +97,7 @@ void main() {
     await wrote('Hollow Knight');
 
     await play(game);
-    final state = await waitFor((s) => s.hintsFor(game.id).isNotEmpty);
+    final state = await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
 
     expect(state.hintsFor(game.id), hasLength(1));
     expect(state.notice!.message, contains('Hollow Knight'));
@@ -93,22 +108,22 @@ void main() {
     await wrote('Hollow Knight');
 
     await play(game);
-    var state = await waitFor((s) => s.hintsFor(game.id).isNotEmpty);
+    final hints = await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
 
-    library.add(
+    saves.add(
       SaveHintsAccepted(
-        game: state.gameById(game.id)!,
-        suggestions: state.hintsFor(game.id),
+        game: library.state.gameById(game.id)!,
+        suggestions: hints.hintsFor(game.id),
       ),
     );
-    state = await waitFor(
+    final state = await waitFor(
       (s) => s.gameById(game.id)!.saveProfile.rules.isNotEmpty,
     );
 
     final rule = state.gameById(game.id)!.saveProfile.rules.single;
     expect(rule.resolve(), p.join(watched.path, 'Hollow Knight'));
     // Подсказка израсходована: показывать её второй раз незачем.
-    expect(state.hintsFor(game.id), isEmpty);
+    await waitForSaves((s) => s.hintsFor(game.id).isEmpty);
   });
 
   test('отказ убирает подсказки, ничего не добавляя', () async {
@@ -116,12 +131,12 @@ void main() {
     await wrote('Hollow Knight');
 
     await play(game);
-    await waitFor((s) => s.hintsFor(game.id).isNotEmpty);
+    await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
 
-    library.add(SaveHintsDismissed(game.id));
-    final state = await waitFor((s) => s.hintsFor(game.id).isEmpty);
+    saves.add(SaveHintsDismissed(game.id));
+    await waitForSaves((s) => s.hintsFor(game.id).isEmpty);
 
-    expect(state.gameById(game.id)!.saveProfile.rules, isEmpty);
+    expect(library.state.gameById(game.id)!.saveProfile.rules, isEmpty);
   });
 
   // Игра, закрытая через пять секунд, — это неудачный запуск. Обходить
@@ -134,7 +149,7 @@ void main() {
     // Дожидаемся, пока выход отработает: подсказок появиться не должно.
     await waitFor((s) => s.gameById(game.id)!.lastPlayed != null);
 
-    expect(library.state.hintsFor(game.id), isEmpty);
+    expect(saves.state.hintsFor(game.id), isEmpty);
   });
 
   // Подсказывать то, что уже задано, — верный способ приучить не читать
@@ -144,14 +159,14 @@ void main() {
     await wrote('Hollow Knight');
 
     await play(game);
-    var state = await waitFor((s) => s.hintsFor(game.id).isNotEmpty);
-    library.add(
+    final hints = await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
+    saves.add(
       SaveHintsAccepted(
-        game: state.gameById(game.id)!,
-        suggestions: state.hintsFor(game.id),
+        game: library.state.gameById(game.id)!,
+        suggestions: hints.hintsFor(game.id),
       ),
     );
-    state = await waitFor(
+    final state = await waitFor(
       (s) => s.gameById(game.id)!.saveProfile.rules.isNotEmpty,
     );
 
@@ -160,6 +175,6 @@ void main() {
     // Даём обходу отработать: подсказка не должна вернуться.
     await Future<void>.delayed(const Duration(milliseconds: 300));
 
-    expect(library.state.hintsFor(game.id), isEmpty);
+    expect(saves.state.hintsFor(game.id), isEmpty);
   });
 }

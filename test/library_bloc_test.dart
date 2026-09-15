@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
@@ -15,6 +16,7 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   late LibraryBloc library;
+  late SavesBloc saves;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_bloc_');
@@ -27,6 +29,11 @@ void main() {
       automaticMetadata: false,
       paths: paths,
       settings: settings,
+    );
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
       // Выход из игры запускает обход папок в поисках следов её работы.
       // Настоящие «Документы» и AppData в тесте обходить нечего.
       saveRoots: () => const [],
@@ -37,6 +44,7 @@ void main() {
     // Обработчики пишут состояние уже после `emit`, а тест дожидается
     // именно состояния. Своя запись встаёт в ту же очередь и тем самым
     // дожидается чужих — иначе они настигнут нас во время удаления папки.
+    if (!saves.isClosed) await saves.close();
     if (!library.isClosed) {
       await library.persist();
       await library.close();
@@ -54,6 +62,13 @@ void main() {
   Future<LibraryState> waitFor(bool Function(LibraryState) condition) {
     if (condition(library.state)) return Future.value(library.state);
     return library.stream
+        .firstWhere(condition)
+        .timeout(const Duration(seconds: 5));
+  }
+
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
+    if (condition(saves.state)) return Future.value(saves.state);
+    return saves.stream
         .firstWhere(condition)
         .timeout(const Duration(seconds: 5));
   }
@@ -176,11 +191,10 @@ void main() {
     );
   });
 
-  // Снимки пишутся в library.json вместе с играми, но обратно их до сих пор
-  // никто не читал: `toJson` покрыт записью, `fromJson` не исполнялся ни
-  // разу. Сломайся он — при следующем запуске вся история сохранений
-  // исчезла бы молча, а файлы снимков остались бы лежать сиротами.
-  test('снимки переживают перезагрузку вместе с играми', () async {
+  // `toJson` у снимка покрыт записью, а `fromJson` не исполнялся ни разу.
+  // Сломайся он — при следующем запуске вся история сохранений исчезла бы
+  // молча, а файлы снимков остались бы лежать сиротами.
+  test('снимки переживают перезагрузку', () async {
     final savesDir = Directory(p.join(tmp.path, 'сейвы'));
     await savesDir.create(recursive: true);
     await File(p.join(savesDir.path, 'slot.sav')).writeAsString('прогресс');
@@ -208,18 +222,20 @@ void main() {
       (s) => s.gameById(id)!.saveProfile.isConfigured,
     );
 
-    library.add(SnapshotRequested(configured.gameById(id)!));
-    final withSnapshot = await waitFor((s) => s.snapshotsFor(id).isNotEmpty);
+    saves.add(SnapshotRequested(configured.gameById(id)!));
+    final withSnapshot = await waitForSaves(
+      (s) => s.snapshotsFor(id).isNotEmpty,
+    );
     final before = withSnapshot.snapshotsFor(id).single;
 
-    await library.persist();
-    final reopened = LibraryBloc(
-      automaticMetadata: false,
+    await saves.persist();
+    final reopened = SavesBloc(
       paths: paths,
+      library: library,
       settings: settings,
     );
     addTearDown(reopened.close);
-    reopened.add(const LibraryLoadRequested());
+    reopened.add(const SavesLoadRequested());
     await reopened.stream.firstWhere((s) => s.loaded);
 
     final after = reopened.state.snapshotsFor(id).single;
@@ -239,13 +255,13 @@ void main() {
       final id = addGame('Без путей');
       final game = (await waitFor((s) => s.gameById(id) != null)).gameById(id)!;
 
-      library.add(SnapshotRequested(game));
-      final state = await waitFor((s) => s.notice != null);
+      saves.add(SnapshotRequested(game));
+      final state = await waitForSaves((s) => s.notice != null);
 
       expect(state.notice?.isError, isTrue);
       expect(state.notice?.message, contains('не заданы'));
       // Занятость обязана сняться даже после ошибки, иначе кнопка залипнет.
-      expect(library.state.isBusy(LibraryBloc.snapshotKey(id)), isFalse);
+      expect(saves.state.isBusy(SavesBloc.snapshotKey(id)), isFalse);
     },
   );
 
@@ -276,12 +292,12 @@ void main() {
       (s) => s.gameById(id)!.saveProfile.isConfigured,
     );
 
-    library.add(SnapshotRequested(ready.gameById(id)!));
-    final done = await waitFor((s) => s.snapshotsFor(id).isNotEmpty);
+    saves.add(SnapshotRequested(ready.gameById(id)!));
+    final done = await waitForSaves((s) => s.snapshotsFor(id).isNotEmpty);
 
     expect(done.snapshotsFor(id), hasLength(1));
-    expect(library.state.notice?.isError, isFalse);
-    expect(library.state.isBusy(LibraryBloc.snapshotKey(id)), isFalse);
+    expect(saves.state.notice?.isError, isFalse);
+    expect(saves.state.isBusy(SavesBloc.snapshotKey(id)), isFalse);
   });
 
   test('выход из игры засчитывает время и приходит событием', () async {
@@ -319,18 +335,18 @@ void main() {
     library.add(GameRemoved(game));
     await waitFor((s) => s.games.isEmpty);
 
-    expect(library.state.snapshotsFor(id), isEmpty);
+    await waitForSaves((s) => s.snapshotsFor(id).isEmpty);
   });
 
   test('два одинаковых сообщения подряд различаются по счётчику', () async {
     final id = addGame('Без путей');
     final game = (await waitFor((s) => s.gameById(id) != null)).gameById(id)!;
 
-    library.add(SnapshotRequested(game));
-    final first = (await waitFor((s) => s.notice != null)).notice!;
+    saves.add(SnapshotRequested(game));
+    final first = (await waitForSaves((s) => s.notice != null)).notice!;
 
-    library.add(SnapshotRequested(game));
-    final second = (await waitFor(
+    saves.add(SnapshotRequested(game));
+    final second = (await waitForSaves(
       (s) => s.notice != null && s.notice!.seq > first.seq,
     )).notice!;
 

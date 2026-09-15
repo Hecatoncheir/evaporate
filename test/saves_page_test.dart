@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
@@ -87,10 +88,10 @@ void main() {
     );
     await tester.pump();
 
-    harness.library.add(SnapshotRequested(harness.library.state.gameById(id)!));
+    harness.saves.add(SnapshotRequested(harness.library.state.gameById(id)!));
     await waitUntil(
       tester,
-      () => harness.library.state.snapshotsFor(id).isNotEmpty,
+      () => harness.saves.state.snapshotsFor(id).isNotEmpty,
       'снимок не снялся',
     );
     await tester.pumpAndSettle();
@@ -107,7 +108,7 @@ void main() {
   ) async {
     final (harness, id) = await openWithSnapshot(tester);
 
-    expect(harness.library.state.snapshotsFor(id), hasLength(1));
+    expect(harness.saves.state.snapshotsFor(id), hasLength(1));
     expect(find.text('СНИМКОВ'), findsOneWidget);
     expect(find.text('ЗАНЯТО'), findsOneWidget);
     expect(find.text('Тихая гавань'), findsWidgets);
@@ -137,7 +138,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      harness.library.state.snapshotsFor(id),
+      harness.saves.state.snapshotsFor(id),
       hasLength(1),
       reason: 'отказ не должен ничего удалять',
     );
@@ -147,12 +148,12 @@ void main() {
     tester,
   ) async {
     final (harness, id) = await openWithSnapshot(tester);
-    final snapshot = harness.library.state.snapshotsFor(id).single;
+    final snapshot = harness.saves.state.snapshotsFor(id).single;
 
-    harness.library.add(SnapshotDeleted(snapshot));
+    harness.saves.add(SnapshotDeleted(snapshot));
     await tester.pump();
 
-    expect(harness.library.state.snapshotsFor(id), isEmpty);
+    expect(harness.saves.state.snapshotsFor(id), isEmpty);
     // Обработчик после этого ещё убирает файл снимка и чистит хранилище —
     // настоящий ввод-вывод, которого дожидается закрытие библиотеки.
     // Не дать ему закончиться значит повесить сам тест на выходе.
@@ -174,7 +175,7 @@ void main() {
     await tester.pump();
     await drain(tester);
 
-    expect(harness.library.state.snapshotsFor(id), isEmpty);
+    expect(harness.saves.state.snapshotsFor(id), isEmpty);
     expect(find.byTooltip('Удалить'), findsNothing);
   });
 }

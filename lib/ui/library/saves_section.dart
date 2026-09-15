@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../bloc/library/library_bloc.dart';
+import '../../bloc/saves/saves_bloc.dart';
 import '../../models/catalog_progress.dart';
 import '../../core/format.dart';
 import '../../core/save_path_template.dart';
@@ -264,7 +265,7 @@ class SavePathsSection extends StatelessWidget {
 /// Список снимков: восстановление, экспорт на другое устройство, импорт.
 ///
 /// Виджет ничего не знает про ошибки и занятость — и то, и другое приходит
-/// из состояния [LibraryBloc].
+/// из состояния [SavesBloc].
 class SnapshotsSection extends StatelessWidget {
   const SnapshotsSection({super.key, required this.game});
 
@@ -272,9 +273,9 @@ class SnapshotsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final library = context.watch<LibraryBloc>().state;
-    final snapshots = library.snapshotsFor(game.id);
-    final busy = library.isBusy(LibraryBloc.snapshotKey(game.id));
+    final saves = context.watch<SavesBloc>().state;
+    final snapshots = saves.snapshotsFor(game.id);
+    final busy = saves.isBusy(SavesBloc.snapshotKey(game.id));
 
     return SectionCard(
       title: L.of(context).snapshots,
@@ -293,8 +294,7 @@ class SnapshotsSection extends StatelessWidget {
                     (!game.saveProfile.isConfigured &&
                         game.ludusaviTemplates.isEmpty)
                 ? null
-                : () =>
-                      context.read<LibraryBloc>().add(SnapshotRequested(game)),
+                : () => context.read<SavesBloc>().add(SnapshotRequested(game)),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
@@ -333,14 +333,14 @@ class SnapshotsSection extends StatelessWidget {
   }
 
   Future<void> _restore(BuildContext context, SaveSnapshot snapshot) async {
-    final library = context.read<LibraryBloc>();
+    final saves = context.read<SavesBloc>();
     final options = await showDialog<RestoreOptions>(
       context: context,
       builder: (_) => RestoreDialog(snapshot: snapshot, game: game),
     );
     if (options == null) return;
 
-    library.add(
+    saves.add(
       SnapshotRestoreRequested(
         game: game,
         snapshot: snapshot,
@@ -351,7 +351,7 @@ class SnapshotsSection extends StatelessWidget {
   }
 
   Future<void> _export(BuildContext context, SaveSnapshot snapshot) async {
-    final library = context.read<LibraryBloc>();
+    final saves = context.read<SavesBloc>();
     final suggested =
         safeFileName(
           '${snapshot.gameTitle} ${formatDateTime(snapshot.createdAt)}',
@@ -360,13 +360,13 @@ class SnapshotsSection extends StatelessWidget {
 
     final location = await getSaveLocation(suggestedName: suggested);
     if (location == null) return;
-    library.add(
+    saves.add(
       SnapshotExportRequested(snapshot: snapshot, destination: location.path),
     );
   }
 
   Future<void> _delete(BuildContext context, SaveSnapshot snapshot) async {
-    final library = context.read<LibraryBloc>();
+    final saves = context.read<SavesBloc>();
     final ok = await confirm(
       context,
       title: L.of(context).deleteSnapshotQuestion,
@@ -377,11 +377,11 @@ class SnapshotsSection extends StatelessWidget {
       destructive: true,
     );
     if (!ok) return;
-    library.add(SnapshotDeleted(snapshot));
+    saves.add(SnapshotDeleted(snapshot));
   }
 
   Future<void> _import(BuildContext context) async {
-    final library = context.read<LibraryBloc>();
+    final saves = context.read<SavesBloc>();
     final group = XTypeGroup(
       label: L.of(context).savePackage,
       extensions: const ['evsave', 'zip'],
@@ -390,7 +390,7 @@ class SnapshotsSection extends StatelessWidget {
     if (file == null || !context.mounted) return;
 
     try {
-      final info = await library.saveManager.inspectPackage(file.path);
+      final info = await saves.saveManager.inspectPackage(file.path);
       if (!context.mounted) return;
 
       final ok = await confirm(
@@ -409,7 +409,7 @@ class SnapshotsSection extends StatelessWidget {
         confirmLabel: L.of(context).importAction,
       );
       if (!ok) return;
-      library.add(SnapshotImportRequested(path: file.path, game: game));
+      saves.add(SnapshotImportRequested(path: file.path, game: game));
     } on Object catch (error) {
       // Чтение чужого файла — единственное место, где ошибка возникает
       // до входа в кубит.

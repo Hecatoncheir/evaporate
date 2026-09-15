@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/core/app_paths.dart';
@@ -62,6 +63,13 @@ class TestHarness {
       automaticMetadata: false,
       paths: paths,
       settings: settings,
+    );
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
+      store: _WidgetLibraryStore(),
+      legacyStore: _WidgetLibraryStore(),
       notifications: notifications,
       // Выход из игры запускает обход папок в поисках следов её работы:
       // настоящий файловый ввод-вывод внутри testWidgets не завершается.
@@ -106,6 +114,7 @@ class TestHarness {
 
   late final SettingsBloc settings;
   late final LibraryBloc library;
+  late final SavesBloc saves;
   late final DownloadsBloc downloads;
   late final GamepadService gamepad;
   late final NavigationBloc nav;
@@ -142,6 +151,7 @@ class TestHarness {
       providers: [
         BlocProvider.value(value: settings),
         BlocProvider.value(value: library),
+        BlocProvider.value(value: saves),
         BlocProvider.value(value: downloads),
         BlocProvider.value(value: nav),
       ],
@@ -213,6 +223,7 @@ class TestHarness {
     gamepad.dispose();
     await gamepadEvents.close();
     await downloads.close();
+    await saves.close();
     await library.close();
     await settings.close();
     await nav.close();

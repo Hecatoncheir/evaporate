@@ -48,6 +48,14 @@ class AppPaths {
 
   String get libraryFile => p.join(dataDir, 'library.json');
 
+  /// Список снимков сохранений: чей снимок, когда снят и из чего собран.
+  ///
+  /// Отдельно от библиотеки, потому что владелец у него другой —
+  /// `SavesBloc`, а не `LibraryBloc`. До версии 0.33 оба списка лежали в
+  /// [libraryFile] одним документом; при первом запуске снимки оттуда
+  /// переезжают сюда, а библиотека перестаёт их записывать.
+  String get snapshotsFile => p.join(dataDir, 'snapshots.json');
+
   String get settingsFile => p.join(dataDir, 'settings.json');
 
   /// Архивы снапшотов сейвов: `saves/<gameId>/<snapshotId>.evsave`.

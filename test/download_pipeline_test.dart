@@ -100,10 +100,6 @@ void main() {
         automaticMetadata: false,
         paths: paths,
         settings: settings,
-        notifications: notifications,
-        // Выход из игры запускает обход папок в поисках следов её работы —
-        // настоящие «Документы» тут обходить незачем.
-        saveRoots: () => const [],
       );
       downloads = DownloadsBloc(
         paths: paths,

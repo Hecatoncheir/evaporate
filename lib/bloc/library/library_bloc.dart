@@ -14,45 +14,40 @@ import '../../core/json_store.dart';
 import '../../models/game.dart';
 import '../../models/game_rating.dart';
 import '../../models/save_profile.dart';
-import '../../models/bulk_report.dart';
 import '../../models/catalog_progress.dart';
-import '../../models/save_snapshot.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/launch/steam_shortcuts.dart';
 import '../../services/metadata/steam_catalog.dart';
-import '../../services/notifications/notification_service.dart';
 import '../../services/saves/ludusavi_catalog.dart';
-import '../../services/saves/save_activity_watch.dart';
-import '../../services/saves/save_path_finder.dart';
 import '../../services/saves/save_path_globs.dart';
-import '../../services/saves/bulk_transfer.dart';
-import '../../services/saves/save_manager.dart';
 import '../../services/system/app_log.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
 part 'library_event.dart';
 part 'library_state.dart';
-part 'library_saves.dart';
 part 'library_metadata.dart';
 
 /// Библиотека игр и их сохранений — единственный источник правды для UI.
 ///
 /// Ошибки наружу не выбрасываются: обработчики кладут результат в [Notice],
 /// а экраны показывают его через `BlocListener`.
+/// Игра завершилась: кто и сколько отыграл.
+///
+/// Запись, а не класс: у неё нет ни поведения, ни собственной жизни —
+/// это пара значений, которую библиотека объявляет и тут же забывает.
+typedef GameExit = ({Game game, Duration played});
+
 class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   LibraryBloc({
     required AppPaths paths,
     required this.settings,
     JsonStore? store,
-    SaveManager? saveManager,
     GameLauncher? launcher,
-    NotificationService? notifications,
     SteamCatalog? steam,
     SteamShortcuts? steamShortcuts,
     LudusaviCatalog? savePaths,
     L Function()? localizations,
-    List<SaveRoot> Function()? saveRoots,
     this.automaticMetadata = true,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
        _steamShortcuts =
@@ -67,16 +62,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
              proxy: () => settings.state.proxy,
            ),
        _localizations = localizations ?? _defaultLocalizations,
-       notifications = notifications ?? const NoopNotificationService(),
        _store = store ?? JsonStore(paths.libraryFile),
        _coversDir = paths.coversDir,
-       _saves = saveManager ?? SaveManager(paths: paths),
        _launcher = launcher ?? GameLauncher(),
-       _saveRoots = saveRoots ?? SavePathFinder.roots,
        super(const LibraryState()) {
-    // Собирается здесь, а не в списке инициализации: там на _saves,
-    // от которого он зависит, ссылаться ещё нельзя.
-    _bulk = BulkTransfer(saves: _saves, localizations: _localizations);
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
     on<GameUpdated>(_onGameUpdated);
@@ -85,11 +74,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<GameStopRequested>(_onStopRequested);
     on<GameExited>(_onGameExited);
     on<RunningGamesChanged>(_onRunningGamesChanged);
-    on<SnapshotRequested>(_onSnapshotRequested);
-    on<SnapshotRestoreRequested>(_onRestoreRequested);
-    on<SnapshotImportRequested>(_onImportRequested);
-    on<SnapshotExportRequested>(_onExportRequested);
-    on<SnapshotDeleted>(_onSnapshotDeleted);
     // По одному запросу за раз, а не все разом. Загрузка библиотеки
     // ставит поиск метаданных каждой игре сразу, а Bloc по умолчанию
     // обрабатывает события параллельно: сорок игр давали сорок
@@ -111,17 +95,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<SteamShortcutRequested>(_onSteamShortcut);
     on<SavePathsProgressChanged>(_onSavePathsProgress);
     on<MetadataRetryRequested>(_onMetadataRetry);
-    on<SaveHintsRequested>(_onSaveHintsRequested);
-    on<SaveHintsAccepted>(_onSaveHintsAccepted);
-    on<SaveHintsDismissed>(_onSaveHintsDismissed);
     // this нужен явно: без него имя разрешается в параметр конструктора.
     this.savePaths.onProgress = (value) {
       if (!_closing) add(SavePathsProgressChanged(value));
     };
-    on<BulkExportRequested>(_onBulkExport);
-    on<BulkImportRequested>(_onBulkImport);
-    on<SyncFolderScanRequested>(_onSyncScanRequested);
-    on<SyncPackageApplied>(_onSyncPackageApplied);
 
     _launcher.runningIds.addListener(_pushRunningGames);
   }
@@ -141,10 +118,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   L get _l => _localizations();
 
-  /// Автоснимок после выхода из игры молчалив по замыслу, но его провал
-  /// пользователь обязан заметить — иначе узнает, только потеряв прогресс.
-  final NotificationService notifications;
-
   /// Каталог Steam: по имени раздачи находит название, описание и обложку.
   final SteamCatalog steam;
 
@@ -156,17 +129,31 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// пришлось бы делать руками для каждой игры.
   final LudusaviCatalog savePaths;
 
-  /// Где смотреть следы работы игры. Подменяется в тестах: настоящие
-  /// «Документы» и `AppData` там обходить незачем и небезопасно.
-  final List<SaveRoot> Function() _saveRoots;
-
   final JsonStore _store;
-  final SaveManager _saves;
 
   /// Перенос сохранений всей библиотеки: единственная операция, идущая по
   /// всем играм разом, и единственная со своим счётом исходов.
-  late final BulkTransfer _bulk;
   final GameLauncher _launcher;
+
+  /// Кто вышел из игры и сколько отыграл.
+  ///
+  /// Публикуется наружу, а не решается здесь: что делать с сохранениями
+  /// после выхода, знает `SavesBloc`. Зависимость идёт в одну сторону — он
+  /// знает библиотеку, библиотека о нём нет, — и передать ему событие
+  /// напрямую нечем.
+  Stream<GameExit> get gameExits => _exits.stream;
+
+  /// Игра ушла из библиотеки: её снимки больше никому не нужны.
+  Stream<String> get gameRemovals => _removals.stream;
+
+  /// Что сделать с сохранениями перед запуском игры.
+  ///
+  /// Ставит его блок сохранений — снимок его дело, — но **дождаться** его
+  /// должна библиотека, а события не дожидаются. Отсюда хук, а не событие.
+  Future<void> Function(Game game)? beforeLaunch;
+
+  final _exits = StreamController<GameExit>.broadcast();
+  final _removals = StreamController<String>.broadcast();
 
   Timer? _persistTimer;
   bool _closing = false;
@@ -174,13 +161,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
   /// подтверждения обращается к менеджеру напрямую.
-  SaveManager get saveManager => _saves;
 
   GameLauncher get launcher => _launcher;
 
   static L _defaultLocalizations() => LRu();
-
-  static String snapshotKey(String gameId) => 'snapshot:$gameId';
 
   static String steamKey(String gameId) => 'steam:$gameId';
 
@@ -191,14 +175,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   static String savePathsKey(String gameId) => 'paths:$gameId';
 
-  /// Ключ занятости для операций над всей библиотекой сразу.
-  static const bulkKey = 'bulk';
-
-  /// Допуск на расхождение часов при массовой загрузке. Само правило живёт
-  /// в [BulkTransfer]; здесь — чтобы на него можно было сослаться, зная
-  /// только блок.
-  static const conflictTolerance = BulkTransfer.defaultConflictTolerance;
-
   static String launchKey(String gameId) => 'launch:$gameId';
 
   void _pushRunningGames() =>
@@ -208,11 +184,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     // SnackBar живёт секунды, а рассказ о случившемся доходит через день.
     if (isError) AppLog.instance.write('библиотека: $message');
     return Notice(message: message, seq: ++_noticeSeq, isError: isError);
-  }
-
-  void _notifySystem(AppNotification notification) {
-    if (!settings.state.systemNotifications) return;
-    unawaited(notifications.show(notification));
   }
 
   Set<String> _withBusy(String key, bool value) {
@@ -254,9 +225,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     await _store.write({
       'version': 1,
       'games': state.games.map((g) => g.toJson()).toList(),
-      'snapshots': state.snapshots.map(
-        (key, value) => MapEntry(key, value.map((s) => s.toJson()).toList()),
-      ),
     });
   }
 
@@ -268,8 +236,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     final json = await _store.readAs((json) {
       if ((json['version'] ?? 1) != 1 ||
-          (json['games'] != null && json['games'] is! List) ||
-          (json['snapshots'] != null && json['snapshots'] is! Map)) {
+          (json['games'] != null && json['games'] is! List)) {
         throw const FormatException('Invalid library schema');
       }
       return json;
@@ -287,27 +254,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         damaged = true;
       }
     }
-    final snapshots = <String, List<SaveSnapshot>>{};
-    (json['snapshots'] as Map<String, dynamic>? ?? {}).forEach((gameId, value) {
-      if (value is! List) {
-        damaged = true;
-        return;
-      }
-      final recovered = <SaveSnapshot>[];
-      for (final entry in value) {
-        try {
-          recovered.add(SaveSnapshot.fromJson(entry as Map<String, dynamic>));
-        } on Object {
-          damaged = true;
-        }
-      }
-      snapshots[gameId] = recovered;
-    });
     if (damaged) await _store.quarantine();
     emit(
       state.copyWith(
         games: games,
-        snapshots: snapshots,
         loaded: true,
         notice: _storageRecoveryNotice(),
       ),
@@ -404,30 +354,18 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     final game = state.gameById(event.game.id);
     if (game == null) return;
-    final snapshots = Map<String, List<SaveSnapshot>>.from(state.snapshots);
-    final removed = snapshots.remove(game.id) ?? const <SaveSnapshot>[];
     emit(
-      state.copyWith(
-        games: state.games.where((g) => g.id != game.id).toList(),
-        snapshots: snapshots,
-      ),
+      state.copyWith(games: state.games.where((g) => g.id != game.id).toList()),
     );
     await persist();
+    // Снимки этой игры уносит блок сохранений: список их держит он.
+    _removals.add(game.id);
 
     final cover = game.coverPath;
     if (cover != null && p.isWithin(_coversDir, cover)) {
       final file = File(cover);
       if (await file.exists()) await file.delete();
     }
-    for (final snapshot in removed) {
-      try {
-        await _saves.deleteSnapshot(snapshot);
-      } on Object catch (error) {
-        // Файл мог быть уже удалён вручную.
-        AppLog.instance.write('удаление игры: снимок ${snapshot.id}', error);
-      }
-    }
-    await _collectGarbage();
     if (event.deleteFiles && game.installDir != null) {
       final dir = Directory(game.installDir!);
       // Не удаляем что-то за пределами папки установки — страховка от опечаток.
@@ -448,7 +386,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final key = launchKey(game.id);
     emit(state.copyWith(busy: _withBusy(key, true)));
     try {
-      await _snapshotBeforeLaunch(game, emit);
+      // Снимок перед запуском ставит блок сохранений, а дождаться его
+      // обязаны мы: игра начнёт писать в сейвы сразу, и копия, снятая
+      // параллельно со стартом, застаёт файлы в неизвестном состоянии.
+      await beforeLaunch?.call(game);
       await _launcher.launch(
         game,
         onExit: (exited, played, exitCode) => add(
@@ -500,69 +441,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     emit(state.copyWith(games: games));
     _schedulePersist();
 
-    if (updated.saveProfile.autoSnapshotOnExit &&
-        (updated.saveProfile.isConfigured ||
-            updated.ludusaviTemplates.isNotEmpty)) {
-      add(SnapshotRequested(updated, origin: SnapshotOrigin.autoOnExit));
-    }
-
-    // Слишком короткий сеанс — обычно неудачный запуск: игра не успела
-    // ничего записать, а обход папок стоит секунд.
-    if (event.played >= _shortestWatchedSession) {
-      add(
-        SaveHintsRequested(
-          game: updated,
-          since: DateTime.now().subtract(event.played),
-        ),
-      );
-    }
-  }
-
-  /// Короче этого запуск не считаем игрой: сейвы за такое время не заводят.
-  static const _shortestWatchedSession = Duration(seconds: 30);
-
-  /// Снимает сейв до того, как игра начнёт работать.
-  ///
-  /// Автоснимок после выхода бесполезен против игры, которая портит своё
-  /// сохранение при старте: к моменту выхода портить уже нечего, и снимок
-  /// закрепит испорченное. Поэтому снимаем именно до запуска и именно
-  /// дожидаясь: снимок, снятый параллельно со стартом игры, застаёт файлы
-  /// в неизвестном состоянии, а значит, не годится ни на что.
-  ///
-  /// Провал запускать не мешает: играть человек собрался, а резервная
-  /// копия — услуга, а не условие. Молча провалиться она при этом не
-  /// вправе — об этом сообщает система, как и о неудавшемся автоснимке
-  /// после выхода.
-  Future<void> _snapshotBeforeLaunch(
-    Game game,
-    Emitter<LibraryState> emit,
-  ) async {
-    final profile = game.saveProfile;
-    if (!profile.autoSnapshotOnLaunch) return;
-    if (!profile.isConfigured && game.ludusaviTemplates.isEmpty) return;
-
-    try {
-      final snapshot = await _saves.createSnapshot(
-        game,
-        origin: SnapshotOrigin.autoOnLaunch,
-      );
-      emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
-      await _prune(game.id, emit);
-      await persist();
-    } on SaveNothingFoundException {
-      // Сейвов ещё нет — первый запуск. Сохранять нечего, и это не беда.
-    } on Object catch (error) {
-      _notifySystem(
-        AppNotification(
-          title: _l.noticeSnapshotFailed,
-          body: _l.noticeSaveFailedBody(
-            game.title,
-            error is SaveException ? error.message : error.toString(),
-          ),
-          kind: NotificationKind.saveFailed,
-        ),
-      );
-    }
+    // Что делать с сохранениями после выхода, решает блок сохранений.
+    _exits.add((game: updated, played: event.played));
   }
 
   void _onRunningGamesChanged(
@@ -583,6 +463,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     _persistTimer?.cancel();
     if (pending) await persist();
     await _store.flush();
+    await _exits.close();
+    await _removals.close();
     _launcher.runningIds.removeListener(_pushRunningGames);
     _launcher.dispose();
     return super.close();

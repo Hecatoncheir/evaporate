@@ -7,6 +7,7 @@ import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/saves/save_manager.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../../bloc/saves/saves_bloc.dart';
 import '../../models/bulk_report.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../labels.dart';
@@ -40,11 +41,12 @@ class _SavesPageState extends State<SavesPage> {
   @override
   Widget build(BuildContext context) {
     final library = context.watch<LibraryBloc>().state;
+    final saves = context.watch<SavesBloc>().state;
     final settings = context.watch<SettingsBloc>().state;
 
     final entries = <(Game, SaveSnapshot)>[];
     for (final game in library.games) {
-      for (final snapshot in library.snapshotsFor(game.id)) {
+      for (final snapshot in saves.snapshotsFor(game.id)) {
         entries.add((game, snapshot));
       }
     }
@@ -59,11 +61,11 @@ class _SavesPageState extends State<SavesPage> {
         const _BulkTransferCard(),
         _SyncFolderCard(
           folder: settings.syncFolder,
-          packages: library.syncPackages,
-          scanning: library.scanningSync,
-          scannedOnce: library.syncScanned,
+          packages: saves.syncPackages,
+          scanning: saves.scanningSync,
+          scannedOnce: saves.syncScanned,
           onScan: () =>
-              context.read<LibraryBloc>().add(const SyncFolderScanRequested()),
+              context.read<SavesBloc>().add(const SyncFolderScanRequested()),
           onApply: _apply,
         ),
       ],
@@ -138,7 +140,7 @@ class _SavesPageState extends State<SavesPage> {
 
   /// Импорт пакета и немедленное восстановление — путь «взял и играю дальше».
   Future<void> _apply(SavePackageInfo info) async {
-    final library = context.read<LibraryBloc>();
+    final library = context.read<SavesBloc>();
     final game = await _pickGame(info);
     if (game == null || !mounted) return;
 
@@ -554,7 +556,7 @@ class _SnapshotRowState extends State<_SnapshotRow> {
   }
 
   Future<void> _export() async {
-    final library = context.read<LibraryBloc>();
+    final library = context.read<SavesBloc>();
     final suggested =
         safeFileName(widget.snapshot.gameTitle) + SaveSnapshot.fileExtension;
     final location = await getSaveLocation(suggestedName: suggested);
@@ -570,7 +572,7 @@ class _SnapshotRowState extends State<_SnapshotRow> {
   /// Удаление необратимо, поэтому спрашиваем — и называем в вопросе саму
   /// игру: в общем списке снимков разных игр одной даты недостаточно.
   Future<void> _delete() async {
-    final library = context.read<LibraryBloc>();
+    final library = context.read<SavesBloc>();
     final ok = await confirm(
       context,
       title: L.of(context).deleteSnapshotQuestion,
@@ -685,10 +687,10 @@ class _BulkTransferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final busy = context.select<LibraryBloc, bool>(
-      (bloc) => bloc.state.isBusy(LibraryBloc.bulkKey),
+    final busy = context.select<SavesBloc, bool>(
+      (bloc) => bloc.state.isBusy(SavesBloc.bulkKey),
     );
-    final report = context.select<LibraryBloc, BulkReport?>(
+    final report = context.select<SavesBloc, BulkReport?>(
       (bloc) => bloc.state.bulkReport,
     );
 
@@ -740,7 +742,7 @@ class _BulkTransferCard extends StatelessWidget {
   }
 
   Future<void> _export(BuildContext context) async {
-    final library = context.read<LibraryBloc>();
+    final library = context.read<SavesBloc>();
     final dir = await getDirectoryPath(confirmButtonText: L.of(context).export);
     if (dir == null) return;
     library.add(BulkExportRequested(dir));
@@ -776,7 +778,7 @@ class _BulkTransferCard extends StatelessWidget {
   }
 
   Future<void> _import(BuildContext context) async {
-    final library = context.read<LibraryBloc>();
+    final library = context.read<SavesBloc>();
     final dir = await getDirectoryPath(confirmButtonText: L.of(context).import);
     if (dir == null || !context.mounted) return;
 

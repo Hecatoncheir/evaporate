@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/bulk_report.dart';
@@ -18,6 +19,7 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   late LibraryBloc library;
+  late SavesBloc saves;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_bulk_');
@@ -31,9 +33,11 @@ void main() {
       paths: paths,
       settings: settings,
     );
+    saves = SavesBloc(paths: paths, library: library, settings: settings);
   });
 
   tearDown(() async {
+    await saves.close();
     await library.persist();
     await library.close();
     await settings.close();
@@ -47,6 +51,13 @@ void main() {
   Future<LibraryState> waitFor(bool Function(LibraryState) condition) {
     if (condition(library.state)) return Future.value(library.state);
     return library.stream
+        .firstWhere(condition)
+        .timeout(const Duration(seconds: 10));
+  }
+
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
+    if (condition(saves.state)) return Future.value(saves.state);
+    return saves.stream
         .firstWhere(condition)
         .timeout(const Duration(seconds: 10));
   }
@@ -96,15 +107,15 @@ void main() {
     await gameWithSaves('Вторая');
     final target = await emptyDir('вывоз');
 
-    library.add(BulkExportRequested(target.path));
-    await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null && !s.isBusy(SavesBloc.bulkKey));
 
     final packages = target
         .listSync()
         .where((e) => e.path.endsWith(SaveSnapshot.fileExtension))
         .toList();
     expect(packages, hasLength(2));
-    expect(library.state.notice!.message, contains('Выгружено игр: 2'));
+    expect(saves.state.notice!.message, contains('Выгружено игр: 2'));
   });
 
   test('игра без заданных путей пропускается, а не ломает выгрузку', () async {
@@ -113,76 +124,76 @@ void main() {
     await waitFor((s) => s.games.length == 2);
     final target = await emptyDir('вывоз2');
 
-    library.add(BulkExportRequested(target.path));
-    await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null && !s.isBusy(SavesBloc.bulkKey));
 
-    expect(library.state.notice!.message, contains('пропущено: 1'));
+    expect(saves.state.notice!.message, contains('пропущено: 1'));
   });
 
   test('игра с путями, но без файлов, считается пропущенной', () async {
     await gameWithSaves('Пустая', withFiles: false);
     final target = await emptyDir('вывоз3');
 
-    library.add(BulkExportRequested(target.path));
-    await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null && !s.isBusy(SavesBloc.bulkKey));
 
-    expect(library.state.notice!.message, contains('Выгружено игр: 0'));
-    expect(library.state.notice!.isError, isFalse);
+    expect(saves.state.notice!.message, contains('Выгружено игр: 0'));
+    expect(saves.state.notice!.isError, isFalse);
   });
 
   test('загрузка возвращает сохранения по названиям игр', () async {
     final id = await gameWithSaves('Возвращаемая');
     final target = await emptyDir('обмен');
 
-    library.add(BulkExportRequested(target.path));
-    await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null && !s.isBusy(SavesBloc.bulkKey));
 
     // Портим сохранение, как будто это другое устройство.
     final rule = library.state.gameById(id)!.saveProfile.rules.first;
     final saveFile = File(p.join(rule.template, 'slot.sav'));
     await saveFile.writeAsString('чужой прогресс');
 
-    library.add(BulkImportRequested(target.path));
-    await waitFor(
+    saves.add(BulkImportRequested(target.path));
+    await waitForSaves(
       (s) =>
-          !s.isBusy(LibraryBloc.bulkKey) &&
+          !s.isBusy(SavesBloc.bulkKey) &&
           (s.notice?.message.contains('применено') ?? false),
     );
 
     expect(await saveFile.readAsString(), 'прогресс Возвращаемая');
-    expect(library.state.notice!.message, contains('применено: 1'));
+    expect(saves.state.notice!.message, contains('применено: 1'));
   });
 
   test('пакет без подходящей игры отмечается, а не теряется молча', () async {
     await gameWithSaves('Своя игра');
     final target = await emptyDir('обмен2');
 
-    library.add(BulkExportRequested(target.path));
-    await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null && !s.isBusy(SavesBloc.bulkKey));
 
     // Убираем игру: пакет остаётся без пары.
     final game = library.state.games.first;
     library.add(GameRemoved(game));
     await waitFor((s) => s.games.isEmpty);
 
-    library.add(BulkImportRequested(target.path));
-    await waitFor(
+    saves.add(BulkImportRequested(target.path));
+    await waitForSaves(
       (s) =>
-          !s.isBusy(LibraryBloc.bulkKey) &&
+          !s.isBusy(SavesBloc.bulkKey) &&
           (s.notice?.message.contains('нет такой игры') ?? false),
     );
 
-    expect(library.state.notice!.message, contains('нет такой игры: 1'));
-    expect(library.state.notice!.isError, isTrue);
+    expect(saves.state.notice!.message, contains('нет такой игры: 1'));
+    expect(saves.state.notice!.isError, isTrue);
   });
 
   test('пустая папка не считается ошибкой', () async {
     final target = await emptyDir('пусто');
 
-    library.add(BulkImportRequested(target.path));
-    await waitFor((s) => s.notice != null && !s.isBusy(LibraryBloc.bulkKey));
+    saves.add(BulkImportRequested(target.path));
+    await waitForSaves((s) => s.notice != null && !s.isBusy(SavesBloc.bulkKey));
 
-    expect(library.state.notice!.message, contains('применено: 0'));
+    expect(saves.state.notice!.message, contains('применено: 0'));
   });
 
   // Ради этого перенос и вынесен из блока: цену переезда всей библиотеки
@@ -342,9 +353,9 @@ void main() {
     await gameWithSaves('Игра');
     final target = await emptyDir('вывоз4');
 
-    library.add(BulkExportRequested(target.path));
-    await waitFor((s) => s.notice != null);
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null);
 
-    expect(library.state.isBusy(LibraryBloc.bulkKey), isFalse);
+    expect(saves.state.isBusy(SavesBloc.bulkKey), isFalse);
   });
 }

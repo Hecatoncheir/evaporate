@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/downloads/downloads_bloc.dart';
 import '../bloc/library/library_bloc.dart';
 import '../bloc/navigation/navigation_bloc.dart';
+import '../bloc/saves/saves_bloc.dart';
 import '../bloc/settings/settings_bloc.dart';
 import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
@@ -87,6 +88,10 @@ class AppShell extends StatelessWidget {
         ),
         // Сообщения об операциях приходят из кубитов, а не из виджетов.
         BlocListener<LibraryBloc, LibraryState>(
+          listenWhen: (a, b) => a.notice != b.notice,
+          listener: (context, state) => _showNotice(context, state.notice),
+        ),
+        BlocListener<SavesBloc, SavesState>(
           listenWhen: (a, b) => a.notice != b.notice,
           listener: (context, state) => _showNotice(context, state.notice),
         ),

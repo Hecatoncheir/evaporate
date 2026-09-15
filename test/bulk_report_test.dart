@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/bulk_report.dart';
@@ -48,6 +49,7 @@ void main() {
     late AppPaths paths;
     late SettingsBloc settings;
     late LibraryBloc library;
+    late SavesBloc saves;
 
     setUp(() async {
       tmp = await Directory.systemTemp.createTemp('evaporate_report_');
@@ -61,9 +63,11 @@ void main() {
         paths: paths,
         settings: settings,
       );
+      saves = SavesBloc(paths: paths, library: library, settings: settings);
     });
 
     tearDown(() async {
+      await saves.close();
       await library.persist();
       await library.close();
       await settings.close();
@@ -79,6 +83,11 @@ void main() {
       return library.stream
           .firstWhere(test)
           .timeout(const Duration(seconds: 10));
+    }
+
+    Future<SavesState> waitForSaves(bool Function(SavesState) test) {
+      if (test(saves.state)) return Future.value(saves.state);
+      return saves.stream.firstWhere(test).timeout(const Duration(seconds: 10));
     }
 
     Future<void> addGame(String title, {bool withFiles = true}) async {
@@ -119,9 +128,9 @@ void main() {
 
       final target = Directory(p.join(tmp.path, 'вывоз'));
       await target.create(recursive: true);
-      library.add(BulkExportRequested(target.path));
-      final state = await waitFor(
-        (s) => s.bulkReport != null && !s.isBusy(LibraryBloc.bulkKey),
+      saves.add(BulkExportRequested(target.path));
+      final state = await waitForSaves(
+        (s) => s.bulkReport != null && !s.isBusy(SavesBloc.bulkKey),
       );
 
       final report = state.bulkReport!;
@@ -142,16 +151,16 @@ void main() {
       final target = Directory(p.join(tmp.path, 'обмен'));
       await target.create(recursive: true);
 
-      library.add(BulkExportRequested(target.path));
-      await waitFor((s) => s.bulkReport?.isExport ?? false);
+      saves.add(BulkExportRequested(target.path));
+      await waitForSaves((s) => s.bulkReport?.isExport ?? false);
 
       library.add(GameRemoved(library.state.games.first));
       await waitFor((s) => s.games.isEmpty);
 
-      library.add(BulkImportRequested(target.path));
-      final state = await waitFor(
+      saves.add(BulkImportRequested(target.path));
+      final state = await waitForSaves(
         (s) =>
-            (s.bulkReport?.isExport == false) && !s.isBusy(LibraryBloc.bulkKey),
+            (s.bulkReport?.isExport == false) && !s.isBusy(SavesBloc.bulkKey),
       );
 
       final unmatched = state.bulkReport!.withOutcome(BulkOutcome.unmatched);

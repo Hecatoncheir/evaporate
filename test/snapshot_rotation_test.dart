@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/save_profile.dart';
@@ -18,6 +19,7 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   late LibraryBloc library;
+  late SavesBloc saves;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_rotation_');
@@ -31,9 +33,11 @@ void main() {
       paths: paths,
       settings: settings,
     );
+    saves = SavesBloc(paths: paths, library: library, settings: settings);
   });
 
   tearDown(() async {
+    await saves.close();
     await library.persist();
     await library.close();
     await settings.close();
@@ -47,6 +51,13 @@ void main() {
   Future<LibraryState> waitFor(bool Function(LibraryState) condition) {
     if (condition(library.state)) return Future.value(library.state);
     return library.stream
+        .firstWhere(condition)
+        .timeout(const Duration(seconds: 10));
+  }
+
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
+    if (condition(saves.state)) return Future.value(saves.state);
+    return saves.stream
         .firstWhere(condition)
         .timeout(const Duration(seconds: 10));
   }
@@ -83,11 +94,11 @@ void main() {
   }
 
   Future<void> takeSnapshot(String id) async {
-    final before = library.state.snapshotsFor(id).length;
-    library.add(SnapshotRequested(library.state.gameById(id)!));
-    await waitFor(
+    final before = saves.state.snapshotsFor(id).length;
+    saves.add(SnapshotRequested(library.state.gameById(id)!));
+    await waitForSaves(
       (s) =>
-          !s.isBusy(LibraryBloc.snapshotKey(id)) &&
+          !s.isBusy(SavesBloc.snapshotKey(id)) &&
           s.snapshotsFor(id).length != before,
     );
   }
@@ -105,7 +116,7 @@ void main() {
 
   /// На что ссылаются оставшиеся снимки всех игр.
   Set<String> liveBlobs() => {
-    for (final list in library.state.snapshots.values)
+    for (final list in saves.state.snapshots.values)
       for (final snapshot in list)
         for (final blob in snapshot.blobs) blob.hash,
   };
@@ -176,7 +187,7 @@ void main() {
       await takeSnapshot(id);
     }
 
-    expect(library.state.snapshotsFor(id), hasLength(2));
+    expect(saves.state.snapshotsFor(id), hasLength(2));
     await waitForStore();
   });
 
@@ -190,21 +201,21 @@ void main() {
     // Откатываемся всякий раз к самому свежему снимку: тот, с которого
     // начинали, ротация законно унесёт, и держаться за него нельзя.
     for (var i = 0; i < 3; i++) {
-      final before = library.state.snapshotsFor(id).length;
-      library.add(
+      final before = saves.state.snapshotsFor(id).length;
+      saves.add(
         SnapshotRestoreRequested(
           game: library.state.gameById(id)!,
-          snapshot: library.state.snapshotsFor(id).first,
+          snapshot: saves.state.snapshotsFor(id).first,
         ),
       );
-      await waitFor(
+      await waitForSaves(
         (s) =>
-            !s.isBusy(LibraryBloc.snapshotKey(id)) &&
+            !s.isBusy(SavesBloc.snapshotKey(id)) &&
             s.snapshotsFor(id).length != before,
       );
     }
 
-    expect(library.state.snapshotsFor(id), hasLength(2));
+    expect(saves.state.snapshotsFor(id), hasLength(2));
     await waitForStore();
   });
 
@@ -212,27 +223,27 @@ void main() {
     final id = await gameWithSave('Импорт', keep: 2);
     await takeSnapshot(id);
     final exported = p.join(tmp.path, 'пакет${SaveSnapshot.fileExtension}');
-    await library.saveManager.exportSnapshot(
-      library.state.snapshotsFor(id).single,
+    await saves.saveManager.exportSnapshot(
+      saves.state.snapshotsFor(id).single,
       exported,
     );
 
     for (var i = 0; i < 3; i++) {
-      final before = library.state.snapshotsFor(id).length;
-      library.add(
+      final before = saves.state.snapshotsFor(id).length;
+      saves.add(
         SnapshotImportRequested(
           path: exported,
           game: library.state.gameById(id)!,
         ),
       );
-      await waitFor(
+      await waitForSaves(
         (s) =>
-            !s.isBusy(LibraryBloc.snapshotKey(id)) &&
+            !s.isBusy(SavesBloc.snapshotKey(id)) &&
             s.snapshotsFor(id).length != before,
       );
     }
 
-    expect(library.state.snapshotsFor(id), hasLength(2));
+    expect(saves.state.snapshotsFor(id), hasLength(2));
     await waitForStore();
   });
 
@@ -264,9 +275,9 @@ void main() {
     await waitFor((s) => s.gameById(id)!.saveProfile.autoSnapshotOnLaunch);
 
     library.add(GameLaunchRequested(library.state.gameById(id)!));
-    await waitFor((s) => s.snapshotsFor(id).isNotEmpty);
+    await waitForSaves((s) => s.snapshotsFor(id).isNotEmpty);
 
-    final snapshot = library.state.snapshotsFor(id).single;
+    final snapshot = saves.state.snapshotsFor(id).single;
     expect(snapshot.origin, SnapshotOrigin.autoOnLaunch);
     expect(snapshot.fileCount, 1);
   }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
@@ -295,7 +306,7 @@ void main() {
     library.add(GameLaunchRequested(library.state.gameById(id)!));
     await waitFor((s) => !s.isBusy(LibraryBloc.launchKey(id)));
 
-    expect(library.state.snapshotsFor(id), isEmpty);
+    expect(saves.state.snapshotsFor(id), isEmpty);
   }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
 
   // Ноль означает «не ротировать»: у человека может быть свой резон
@@ -307,7 +318,7 @@ void main() {
       await takeSnapshot(id);
     }
 
-    expect(library.state.snapshotsFor(id), hasLength(3));
+    expect(saves.state.snapshotsFor(id), hasLength(3));
     await waitForStore();
   });
 }

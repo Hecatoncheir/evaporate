@@ -121,70 +121,6 @@ final class RunningGamesChanged extends LibraryEvent {
   List<Object?> get props => [ids];
 }
 
-final class SnapshotRequested extends LibraryEvent {
-  const SnapshotRequested(
-    this.game, {
-    this.origin = SnapshotOrigin.manual,
-    this.note,
-  });
-
-  final Game game;
-  final SnapshotOrigin origin;
-  final String? note;
-
-  @override
-  List<Object?> get props => [game.id, origin, note];
-}
-
-final class SnapshotRestoreRequested extends LibraryEvent {
-  const SnapshotRestoreRequested({
-    required this.game,
-    required this.snapshot,
-    this.backupCurrent = true,
-    this.wipeTarget = false,
-  });
-
-  final Game game;
-  final SaveSnapshot snapshot;
-  final bool backupCurrent;
-  final bool wipeTarget;
-
-  @override
-  List<Object?> get props => [game.id, snapshot.id, backupCurrent, wipeTarget];
-}
-
-final class SnapshotImportRequested extends LibraryEvent {
-  const SnapshotImportRequested({required this.path, required this.game});
-
-  final String path;
-  final Game game;
-
-  @override
-  List<Object?> get props => [path, game.id];
-}
-
-final class SnapshotExportRequested extends LibraryEvent {
-  const SnapshotExportRequested({
-    required this.snapshot,
-    required this.destination,
-  });
-
-  final SaveSnapshot snapshot;
-  final String destination;
-
-  @override
-  List<Object?> get props => [snapshot.id, destination];
-}
-
-final class SnapshotDeleted extends LibraryEvent {
-  const SnapshotDeleted(this.snapshot);
-
-  final SaveSnapshot snapshot;
-
-  @override
-  List<Object?> get props => [snapshot.id];
-}
-
 /// Завести игру в Steam как стороннюю — то же, что «Добавить стороннюю
 /// игру в мою библиотеку» в самом Steam.
 final class SteamShortcutRequested extends LibraryEvent {
@@ -224,43 +160,6 @@ final class MetadataRetryRequested extends LibraryEvent {
   List<Object?> get props => const [];
 }
 
-/// Посмотреть, что изменилось, пока игра работала.
-///
-/// Отдельным событием, а не внутри выхода из игры: обход папок занимает
-/// секунды, а состояние после выхода должно обновиться сразу.
-final class SaveHintsRequested extends LibraryEvent {
-  const SaveHintsRequested({required this.game, required this.since});
-
-  final Game game;
-
-  /// Момент запуска игры: всё, что изменилось позже, — след её работы.
-  final DateTime since;
-
-  @override
-  List<Object?> get props => [game, since];
-}
-
-/// Принять найденные папки как правила.
-final class SaveHintsAccepted extends LibraryEvent {
-  const SaveHintsAccepted({required this.game, required this.suggestions});
-
-  final Game game;
-  final List<SavePathSuggestion> suggestions;
-
-  @override
-  List<Object?> get props => [game, suggestions];
-}
-
-/// Убрать подсказки, ничего не приняв.
-final class SaveHintsDismissed extends LibraryEvent {
-  const SaveHintsDismissed(this.gameId);
-
-  final String gameId;
-
-  @override
-  List<Object?> get props => [gameId];
-}
-
 /// Подобрать папки сохранений по открытой базе путей.
 final class SavePathsLookupRequested extends LibraryEvent {
   const SavePathsLookupRequested(
@@ -290,45 +189,4 @@ final class SavePathsProgressChanged extends LibraryEvent {
 
   @override
   List<Object?> get props => [progress];
-}
-
-/// Снять сохранения всех настроенных игр и выгрузить их в одну папку.
-final class BulkExportRequested extends LibraryEvent {
-  const BulkExportRequested(this.destinationDir);
-
-  final String destinationDir;
-
-  @override
-  List<Object?> get props => [destinationDir];
-}
-
-/// Забрать все пакеты сохранений из папки и разложить по играм.
-final class BulkImportRequested extends LibraryEvent {
-  const BulkImportRequested(this.sourceDir, {this.overwriteNewer = false});
-
-  final String sourceDir;
-
-  /// Восстанавливать и те игры, где сохранения на этом устройстве
-  /// новее пакета. По умолчанию такие пропускаются: пакет с другого
-  /// устройства может оказаться старым, а прогресс — уже не вернуть.
-  final bool overwriteNewer;
-
-  @override
-  List<Object?> get props => [sourceDir, overwriteNewer];
-}
-
-final class SyncFolderScanRequested extends LibraryEvent {
-  const SyncFolderScanRequested();
-}
-
-/// Импорт пакета с другого устройства и немедленное восстановление —
-/// путь «взял и играю дальше» одним событием.
-final class SyncPackageApplied extends LibraryEvent {
-  const SyncPackageApplied({required this.path, required this.game});
-
-  final String path;
-  final Game game;
-
-  @override
-  List<Object?> get props => [path, game.id];
 }

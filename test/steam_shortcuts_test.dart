@@ -367,7 +367,6 @@ void main() {
         automaticMetadata: false,
         paths: paths,
         settings: settings,
-        saveRoots: () => const [],
         steamShortcuts: service,
         steam: steam,
       );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../bloc/library/library_bloc.dart';
+import '../../../bloc/saves/saves_bloc.dart';
 import '../../../models/game.dart';
 import '../../../services/saves/save_path_finder.dart';
 import '../../theme.dart';
@@ -20,7 +20,7 @@ class WatchedFolders extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hints = context.select<LibraryBloc, List<SavePathSuggestion>>(
+    final hints = context.select<SavesBloc, List<SavePathSuggestion>>(
       (bloc) => bloc.state.hintsFor(game.id),
     );
     if (hints.isEmpty) return const SizedBox.shrink();
@@ -102,7 +102,7 @@ class WatchedFolders extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           TextButton(
-            onPressed: () => context.read<LibraryBloc>().add(
+            onPressed: () => context.read<SavesBloc>().add(
               SaveHintsAccepted(game: game, suggestions: [hint]),
             ),
             child: Text(l.add),
@@ -115,19 +115,19 @@ class WatchedFolders extends StatelessWidget {
   /// Отказ от всех подсказок и, когда их несколько, согласие со всеми.
   Widget _footer(BuildContext context, List<SavePathSuggestion> hints) {
     final l = L.of(context);
-    final library = context.read<LibraryBloc>();
+    final saves = context.read<SavesBloc>();
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         TextButton(
-          onPressed: () => library.add(SaveHintsDismissed(game.id)),
+          onPressed: () => saves.add(SaveHintsDismissed(game.id)),
           child: Text(l.notThis),
         ),
         const SizedBox(width: 6),
         if (hints.length > 1)
           FilledButton(
             onPressed: () =>
-                library.add(SaveHintsAccepted(game: game, suggestions: hints)),
+                saves.add(SaveHintsAccepted(game: game, suggestions: hints)),
             child: Text(l.addAll),
           ),
       ],

@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
+import 'bloc/saves/saves_bloc.dart';
 import 'bloc/navigation/navigation_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
 import 'core/app_paths.dart';
@@ -80,10 +81,20 @@ Future<void> main() async {
   final library = LibraryBloc(
     paths: paths,
     settings: settings,
-    notifications: notifications,
     localizations: localizations,
   );
   library.add(const LibraryLoadRequested());
+
+  // После библиотеки: блок сохранений подписывается на её события и
+  // ставит ей хук «снять сейв перед запуском».
+  final saves = SavesBloc(
+    paths: paths,
+    library: library,
+    settings: settings,
+    notifications: notifications,
+    localizations: localizations,
+  );
+  saves.add(const SavesLoadRequested());
 
   final downloads = DownloadsBloc(
     paths: paths,
@@ -96,9 +107,16 @@ Future<void> main() async {
   // должно открыться — библиотекой и сейвами можно пользоваться.
   downloads.add(const DownloadEngineStartRequested());
 
-  // Порядок важен: движок гасим раньше библиотеки, потому что его задачи
-  // ещё правят её игры, а настройки — последними: на них смотрят оба блока.
-  shutdownSteps.addAll([downloads.close, library.close, settings.close]);
+  // Порядок важен: движок гасим раньше сохранений и библиотеки, потому что
+  // его задачи ещё правят её игры; сохранения — раньше библиотеки, они на
+  // неё подписаны;
+  // настройки — последними: на них смотрят все.
+  shutdownSteps.addAll([
+    downloads.close,
+    saves.close,
+    library.close,
+    settings.close,
+  ]);
 
   final gamepad = GamepadService(binding: settings.state.gamepad);
   shutdownSteps.add(() async => gamepad.dispose());
@@ -117,6 +135,7 @@ Future<void> main() async {
     EvaporateApp(
       settings: settings,
       library: library,
+      saves: saves,
       downloads: downloads,
       gamepad: gamepad,
       notifications: notifications,
@@ -225,6 +244,7 @@ class EvaporateApp extends StatefulWidget {
     super.key,
     required this.settings,
     required this.library,
+    required this.saves,
     required this.downloads,
     required this.gamepad,
     required this.notifications,
@@ -233,6 +253,7 @@ class EvaporateApp extends StatefulWidget {
 
   final SettingsBloc settings;
   final LibraryBloc library;
+  final SavesBloc saves;
   final DownloadsBloc downloads;
   final GamepadService gamepad;
   final NotificationService notifications;
@@ -253,6 +274,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
   Widget build(BuildContext context) {
     final settings = widget.settings;
     final library = widget.library;
+    final saves = widget.saves;
     final downloads = widget.downloads;
     final gamepad = widget.gamepad;
     final notifications = widget.notifications;
@@ -260,6 +282,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
       providers: [
         BlocProvider.value(value: settings),
         BlocProvider.value(value: library),
+        BlocProvider.value(value: saves),
         BlocProvider.value(value: downloads),
         BlocProvider(create: (_) => NavigationBloc()),
       ],

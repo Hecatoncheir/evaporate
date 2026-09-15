@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/core/save_path_template.dart';
 import 'package:evaporate/models/game.dart';
@@ -295,7 +296,7 @@ void main() {
     /// по условию: на машине сборки обход занимает другое время.
     Future<void> askForHints(WidgetTester tester, TestHarness harness) async {
       final game = harness.library.state.games.single;
-      harness.library.add(
+      harness.saves.add(
         SaveHintsRequested(
           game: game,
           since: DateTime.now().subtract(const Duration(minutes: 5)),
@@ -303,7 +304,7 @@ void main() {
       );
 
       final deadline = DateTime.now().add(const Duration(seconds: 20));
-      while (harness.library.state.hintsFor(game.id).isEmpty) {
+      while (harness.saves.state.hintsFor(game.id).isEmpty) {
         if (DateTime.now().isAfter(deadline)) fail('подсказки не появились');
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 20)),

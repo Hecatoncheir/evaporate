@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../bloc/library/library_bloc.dart';
+import '../../../bloc/saves/saves_bloc.dart';
 import '../../../core/format.dart';
 import '../../../models/game.dart';
 import '../../../models/save_snapshot.dart';
@@ -38,9 +38,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
   /// разных файловых системах.
   bool _isNewer(DateTime? local) =>
       local != null &&
-      local.isAfter(
-        widget.snapshot.createdAt.add(LibraryBloc.conflictTolerance),
-      );
+      local.isAfter(widget.snapshot.createdAt.add(SavesBloc.conflictTolerance));
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +47,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
     // окно от него не освобождено.
     return BlocProvider(
       create: (context) =>
-          SaveFreshnessCubit(context.read<LibraryBloc>().saveManager)
+          SaveFreshnessCubit(context.read<SavesBloc>().saveManager)
             ..read(widget.game),
       child: Builder(builder: _content),
     );
@@ -58,7 +56,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
   Widget _content(BuildContext context) {
     // Спрашиваем у менеджера, а не считаем сами: раскладывать файлы будет
     // он, и обещать здесь что-то своё значит обещать не то.
-    final targets = context.read<LibraryBloc>().saveManager.previewTargets(
+    final targets = context.read<SavesBloc>().saveManager.previewTargets(
       widget.game,
       widget.snapshot,
     );

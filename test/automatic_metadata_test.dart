@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
@@ -135,6 +136,14 @@ Future<void> _wait(
   await bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
 }
 
+Future<void> _waitSaves(
+  SavesBloc bloc,
+  bool Function(SavesState) predicate,
+) async {
+  if (predicate(bloc.state)) return;
+  await bloc.stream.firstWhere(predicate).timeout(const Duration(seconds: 5));
+}
+
 void main() {
   late Directory tmp;
   late AppPaths paths;
@@ -142,12 +151,19 @@ void main() {
   late _Steam steam;
   late _Paths catalog;
   late LibraryBloc library;
+  late SavesBloc saves;
 
   LibraryBloc open() => LibraryBloc(
     paths: paths,
     settings: settings,
     steam: steam,
     savePaths: catalog,
+  );
+
+  SavesBloc openSaves() => SavesBloc(
+    paths: paths,
+    library: library,
+    settings: settings,
     saveRoots: () => [],
   );
 
@@ -161,9 +177,11 @@ void main() {
     steam = _Steam();
     catalog = _Paths(paths.savePathsCacheFile);
     library = open();
+    saves = openSaves();
   });
 
   tearDown(() async {
+    await saves.close();
     await library.close();
     await settings.close();
     await tmp.delete(recursive: true);
@@ -195,9 +213,12 @@ void main() {
   }
 
   Future<void> reopen() async {
+    await saves.close();
     await library.close();
     library = open();
+    saves = openSaves();
     library.add(const LibraryLoadRequested());
+    saves.add(const SavesLoadRequested());
     await _wait(library, (s) => s.loaded);
     // Дать событиям, поставленным загрузкой в очередь, обработаться.
     await Future<void>.delayed(const Duration(milliseconds: 30));
@@ -544,13 +565,13 @@ void main() {
       );
       await save.parent.create(recursive: true);
       await save.writeAsString('progress');
-      library.add(SnapshotRequested(game));
-      await _wait(library, (s) => (s.snapshots['game'] ?? []).isNotEmpty);
+      saves.add(SnapshotRequested(game));
+      await _waitSaves(saves, (s) => (s.snapshots['game'] ?? []).isNotEmpty);
       expect(
         library.state.gameById('game')!.saveProfile.rules.single.template,
         contains('player/saves'),
       );
-      expect(library.state.snapshots['game']!.single.fileCount, 1);
+      expect(saves.state.snapshots['game']!.single.fileCount, 1);
       expect(steam.calls, 1);
       expect(catalog.loads, 1);
     },
@@ -702,12 +723,12 @@ Example:
         library,
         (s) => s.gameById('game')!.saveProfile.rules.isEmpty,
       );
-      library.add(SnapshotRequested(library.state.gameById('game')!));
-      await _wait(
-        library,
+      saves.add(SnapshotRequested(library.state.gameById('game')!));
+      await _waitSaves(
+        saves,
         (s) =>
             s.notice?.isError == true &&
-            !s.isBusy(LibraryBloc.snapshotKey('game')),
+            !s.isBusy(SavesBloc.snapshotKey('game')),
       );
       expect(library.state.gameById('game')!.saveProfile.rules, isEmpty);
       expect(steam.calls, 1);

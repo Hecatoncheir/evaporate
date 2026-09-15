@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/save_profile.dart';
@@ -14,6 +15,7 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   late LibraryBloc library;
+  late SavesBloc saves;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_conflict_');
@@ -27,9 +29,11 @@ void main() {
       paths: paths,
       settings: settings,
     );
+    saves = SavesBloc(paths: paths, library: library, settings: settings);
   });
 
   tearDown(() async {
+    await saves.close();
     await library.persist();
     await library.close();
     await settings.close();
@@ -47,10 +51,17 @@ void main() {
         .timeout(const Duration(seconds: 10));
   }
 
-  Future<LibraryState> waitForNotice(String fragment) {
-    return waitFor(
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
+    if (condition(saves.state)) return Future.value(saves.state);
+    return saves.stream
+        .firstWhere(condition)
+        .timeout(const Duration(seconds: 10));
+  }
+
+  Future<SavesState> waitForNotice(String fragment) {
+    return waitForSaves(
       (s) =>
-          !s.isBusy(LibraryBloc.bulkKey) &&
+          !s.isBusy(SavesBloc.bulkKey) &&
           (s.notice?.message.contains(fragment) ?? false),
     );
   }
@@ -102,7 +113,7 @@ void main() {
     final when = DateTime.now().subtract(const Duration(days: 3));
     await game.save.setLastModified(when);
 
-    final changed = await library.saveManager.lastLocalChange(
+    final changed = await saves.saveManager.lastLocalChange(
       library.state.gameById(game.id)!,
     );
 
@@ -115,7 +126,7 @@ void main() {
     library.add(GameAdded(id: id, title: 'Пустая'));
     await waitFor((s) => s.gameById(id) != null);
 
-    final changed = await library.saveManager.lastLocalChange(
+    final changed = await saves.saveManager.lastLocalChange(
       library.state.gameById(id)!,
     );
 
@@ -128,12 +139,12 @@ void main() {
     final game = await gameWithSave('Заезженная');
     final folder = await emptyDir('обмен');
 
-    library.add(BulkExportRequested(folder.path));
+    saves.add(BulkExportRequested(folder.path));
     await waitForNotice('Выгружено');
 
     await touchSave(game.save, 'новый прогресс');
 
-    library.add(BulkImportRequested(folder.path));
+    saves.add(BulkImportRequested(folder.path));
     final state = await waitForNotice('здесь новее');
 
     expect(state.notice!.message, contains('здесь новее, пропущено: 1'));
@@ -149,12 +160,12 @@ void main() {
     final game = await gameWithSave('Перезаписываемая');
     final folder = await emptyDir('обмен2');
 
-    library.add(BulkExportRequested(folder.path));
+    saves.add(BulkExportRequested(folder.path));
     await waitForNotice('Выгружено');
 
     await touchSave(game.save, 'новый прогресс');
 
-    library.add(BulkImportRequested(folder.path, overwriteNewer: true));
+    saves.add(BulkImportRequested(folder.path, overwriteNewer: true));
     final state = await waitForNotice('применено: 1');
 
     expect(state.notice!.message, isNot(contains('здесь новее')));
@@ -165,7 +176,7 @@ void main() {
     final game = await gameWithSave('Отставшая');
     final folder = await emptyDir('обмен3');
 
-    library.add(BulkExportRequested(folder.path));
+    saves.add(BulkExportRequested(folder.path));
     await waitForNotice('Выгружено');
 
     // Правим файл, но отмечаем его прошлым: пакет свежее.
@@ -174,7 +185,7 @@ void main() {
       DateTime.now().subtract(const Duration(days: 5)),
     );
 
-    library.add(BulkImportRequested(folder.path));
+    saves.add(BulkImportRequested(folder.path));
     final state = await waitForNotice('применено: 1');
 
     expect(state.notice!.message, isNot(contains('здесь новее')));
@@ -187,15 +198,15 @@ void main() {
     final game = await gameWithSave('Почти одновременная');
     final folder = await emptyDir('обмен4');
 
-    library.add(BulkExportRequested(folder.path));
+    saves.add(BulkExportRequested(folder.path));
     await waitForNotice('Выгружено');
 
     await game.save.writeAsString('чуть позже');
     await game.save.setLastModified(
-      DateTime.now().add(LibraryBloc.conflictTolerance ~/ 2),
+      DateTime.now().add(SavesBloc.conflictTolerance ~/ 2),
     );
 
-    library.add(BulkImportRequested(folder.path));
+    saves.add(BulkImportRequested(folder.path));
     final state = await waitForNotice('применено: 1');
 
     expect(state.notice!.message, isNot(contains('здесь новее')));
@@ -205,13 +216,13 @@ void main() {
     final source = await gameWithSave('Донор');
     final folder = await emptyDir('обмен5');
 
-    library.add(BulkExportRequested(folder.path));
+    saves.add(BulkExportRequested(folder.path));
     await waitForNotice('Выгружено');
 
     // Убираем файлы: затирать нечего, значит и конфликта нет.
     await source.save.delete();
 
-    library.add(BulkImportRequested(folder.path));
+    saves.add(BulkImportRequested(folder.path));
     final state = await waitForNotice('применено: 1');
 
     expect(state.notice!.message, isNot(contains('здесь новее')));
@@ -221,8 +232,8 @@ void main() {
   test('снимок сохранения помнит время создания', () async {
     final game = await gameWithSave('Со снимком');
 
-    library.add(SnapshotRequested(library.state.gameById(game.id)!));
-    final state = await waitFor(
+    saves.add(SnapshotRequested(library.state.gameById(game.id)!));
+    final state = await waitForSaves(
       (s) => (s.snapshots[game.id]?.isNotEmpty ?? false),
     );
 
@@ -239,7 +250,7 @@ void main() {
     await gameWithSave('Игра С Пробелами');
     final folder = await emptyDir('обмен6');
 
-    library.add(BulkExportRequested(folder.path));
+    saves.add(BulkExportRequested(folder.path));
     await waitForNotice('Выгружено');
 
     final packages = folder

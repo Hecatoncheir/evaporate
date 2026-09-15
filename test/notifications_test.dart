@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
+import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/download_task.dart';
@@ -19,6 +20,7 @@ void main() {
   late AppPaths paths;
   late SettingsBloc settings;
   late LibraryBloc library;
+  late SavesBloc saves;
   late DownloadsBloc downloads;
   late RecordingNotificationService notifications;
 
@@ -34,7 +36,13 @@ void main() {
       automaticMetadata: false,
       paths: paths,
       settings: settings,
+    );
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
       notifications: notifications,
+      saveRoots: () => const [],
     );
     downloads = DownloadsBloc(
       paths: paths,
@@ -47,6 +55,7 @@ void main() {
   tearDown(() async {
     await library.persist();
     await downloads.close();
+    await saves.close();
     await library.close();
     await settings.close();
     try {
@@ -59,6 +68,13 @@ void main() {
   Future<LibraryState> waitForLibrary(bool Function(LibraryState) condition) {
     if (condition(library.state)) return Future.value(library.state);
     return library.stream
+        .firstWhere(condition)
+        .timeout(const Duration(seconds: 5));
+  }
+
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
+    if (condition(saves.state)) return Future.value(saves.state);
+    return saves.stream
         .firstWhere(condition)
         .timeout(const Duration(seconds: 5));
   }
@@ -147,7 +163,7 @@ void main() {
     final added = await waitForLibrary((s) => s.gameById(id) != null);
 
     // Автоснимок молчит в интерфейсе — тем важнее системное уведомление.
-    library.add(
+    saves.add(
       SnapshotRequested(added.gameById(id)!, origin: SnapshotOrigin.autoOnExit),
     );
     await settle();
@@ -156,7 +172,7 @@ void main() {
     expect(failures, hasLength(1));
     expect(failures.single.body, contains('Без путей'));
     // При этом всплывающего сообщения в интерфейсе быть не должно.
-    expect(library.state.notice, isNull);
+    expect(saves.state.notice, isNull);
   });
 
   test('ручной снимок сообщает в интерфейсе, а не системой', () async {
@@ -164,10 +180,10 @@ void main() {
     library.add(GameAdded(id: id, title: 'Ручная'));
     final added = await waitForLibrary((s) => s.gameById(id) != null);
 
-    library.add(SnapshotRequested(added.gameById(id)!));
-    await waitForLibrary((s) => s.notice != null);
+    saves.add(SnapshotRequested(added.gameById(id)!));
+    await waitForSaves((s) => s.notice != null);
 
-    expect(library.state.notice?.isError, isTrue);
+    expect(saves.state.notice?.isError, isTrue);
     expect(notifications.ofKind(NotificationKind.saveFailed), isEmpty);
   });
 }
