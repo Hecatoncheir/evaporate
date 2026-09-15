@@ -4,11 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/downloads/downloads_bloc.dart';
 import '../bloc/library/library_bloc.dart';
 import '../bloc/navigation/navigation_bloc.dart';
+import '../bloc/notice.dart';
 import '../bloc/saves/saves_bloc.dart';
 import '../bloc/settings/settings_bloc.dart';
 import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
-import '../bloc/notice.dart';
 import '../models/app_settings.dart';
 import 'downloads/downloads_page.dart';
 import 'library/game_wave.dart';
@@ -16,12 +16,12 @@ import 'library/library_page.dart';
 import 'library/primary_action.dart';
 import 'saves/saves_page.dart';
 import 'settings/settings_page.dart';
+import 'shell/app_footer.dart';
+import 'shell/top_bar.dart';
 import 'theme.dart';
 import 'widgets/ambient_light.dart';
 import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
-import 'shell/app_footer.dart';
-import 'shell/top_bar.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key});

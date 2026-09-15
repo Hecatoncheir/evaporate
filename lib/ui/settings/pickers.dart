@@ -72,7 +72,7 @@ class WindowStartPicker extends StatelessWidget {
           width: 220,
           child: Text(
             L.of(context).windowOnStart,
-            style: TextStyle(fontSize: 13),
+            style: const TextStyle(fontSize: 13),
           ),
         ),
         Expanded(
@@ -80,17 +80,17 @@ class WindowStartPicker extends StatelessWidget {
             segments: [
               ButtonSegment(
                 value: WindowStartMode.remembered,
-                icon: Icon(Icons.crop_din, size: 17),
+                icon: const Icon(Icons.crop_din, size: 17),
                 label: Text(L.of(context).windowRemembered),
               ),
               ButtonSegment(
                 value: WindowStartMode.maximized,
-                icon: Icon(Icons.fullscreen, size: 17),
+                icon: const Icon(Icons.fullscreen, size: 17),
                 label: Text(L.of(context).windowMaximized),
               ),
               ButtonSegment(
                 value: WindowStartMode.minimized,
-                icon: Icon(Icons.expand_more, size: 17),
+                icon: const Icon(Icons.expand_more, size: 17),
                 label: Text(L.of(context).windowMinimized),
               ),
             ],
@@ -134,24 +134,24 @@ class ThemePicker extends StatelessWidget {
             segments: [
               ButtonSegment(
                 value: ThemeMode.system,
-                icon: Icon(Icons.brightness_auto_outlined, size: 17),
+                icon: const Icon(Icons.brightness_auto_outlined, size: 17),
                 label: Text(L.of(context).themeSystem),
               ),
               ButtonSegment(
                 value: ThemeMode.light,
-                icon: Icon(Icons.light_mode_outlined, size: 17),
+                icon: const Icon(Icons.light_mode_outlined, size: 17),
                 label: Text(L.of(context).themeLight),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
-                icon: Icon(Icons.dark_mode_outlined, size: 17),
+                icon: const Icon(Icons.dark_mode_outlined, size: 17),
                 label: Text(L.of(context).themeDark),
               ),
             ],
             selected: {value},
             showSelectedIcon: false,
             onSelectionChanged: (selection) => onChanged(selection.first),
-            style: ButtonStyle(
+            style: const ButtonStyle(
               textStyle: WidgetStatePropertyAll(
                 TextStyle(
                   fontSize: 12.5,

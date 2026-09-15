@@ -1,20 +1,18 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-
-import 'cover_drops.dart';
-import 'portal_sparks.dart';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/nav_tile.dart';
+import 'cover_drops.dart';
 import 'foil_card.dart';
-import '../../l10n/app_localizations.dart';
+import 'portal_sparks.dart';
 
 /// Плитка библиотеки: вертикальная обложка 2:3, как в Steam.
 ///

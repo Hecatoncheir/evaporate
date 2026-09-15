@@ -4,13 +4,13 @@ import 'dart:ui' as ui;
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
-import 'package:evaporate/ui/library/library_atmosphere.dart';
 import 'package:evaporate/ui/library/foil_card.dart';
-import 'package:evaporate/ui/library/particle_field.dart';
+import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/library/game_wave.dart';
-import 'package:evaporate/ui/widgets/decorative_motion.dart';
+import 'package:evaporate/ui/library/library_atmosphere.dart';
+import 'package:evaporate/ui/library/particle_field.dart';
 import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/decorative_motion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -190,7 +190,7 @@ void main() {
             );
             bins[y * 4 + x]++;
           }
-          final expected = ParticleField.ambientCount / 16;
+          const expected = ParticleField.ambientCount / 16;
           for (final count in bins) {
             expect(count, inInclusiveRange(expected * 0.7, expected * 1.3));
           }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
-
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
 
 /// Подсказка поверх сетки, пока над окном что-то держат.
 ///

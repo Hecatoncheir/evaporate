@@ -1,17 +1,17 @@
 import 'dart:io';
 
+import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
-import 'package:evaporate/models/game.dart';
+import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
+import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
 import 'package:evaporate/ui/library/detail/action_panel.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
-import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
-import 'package:evaporate/bloc/settings/settings_bloc.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_app.dart';

@@ -1,14 +1,14 @@
 import 'dart:io';
 
+import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_en.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/window_start_mode.dart';
-import 'package:evaporate/l10n/app_localizations_ru.dart';
-import 'package:evaporate/l10n/app_localizations_en.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
-import 'package:flutter/services.dart';
-import 'package:tray_manager/tray_manager.dart';
 import 'package:evaporate/services/system/app_tray.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tray_manager/tray_manager.dart';
 
 void main() {
   group('режим запуска окна', () {

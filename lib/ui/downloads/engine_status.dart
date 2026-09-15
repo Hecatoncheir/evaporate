@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/pulse_dot.dart';
-import '../../l10n/app_localizations.dart';
 
 class EngineStatusChip extends StatelessWidget {
   const EngineStatusChip({super.key, required this.status});

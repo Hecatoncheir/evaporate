@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/library/library_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../library/remove_game_dialog.dart';
 import '../theme.dart';
-import '../../l10n/app_localizations.dart';
 import 'queue_column.dart';
 
 /// Левая колонка: игры, которые можно поставить в очередь.

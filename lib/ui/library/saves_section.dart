@@ -7,16 +7,16 @@ import 'package:uuid/uuid.dart';
 
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/saves/saves_bloc.dart';
-import '../../models/catalog_progress.dart';
 import '../../core/format.dart';
 import '../../core/save_path_template.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/catalog_progress.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../../services/saves/save_path_finder.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../../l10n/app_localizations.dart';
 import 'saves/auto_snapshot_toggle.dart';
 import 'saves/restore_dialog.dart';
 import 'saves/rule_dialog.dart';

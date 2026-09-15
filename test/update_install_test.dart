@@ -187,7 +187,7 @@ void main() {
           ? 'evaporate-9.9.9-linux.tar.gz'
           : archiveName();
       final bytes = Platform.isLinux
-          ? GZipEncoder().encodeBytes(
+          ? const GZipEncoder().encodeBytes(
               TarEncoder().encodeBytes(
                 Archive()
                   ..add(ArchiveFile.string('bundle/evaporate', 'бинарь')),

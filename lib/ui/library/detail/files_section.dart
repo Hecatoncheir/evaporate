@@ -5,11 +5,11 @@ import 'package:path/path.dart' as p;
 
 import '../../../bloc/library/library_bloc.dart';
 import '../../../core/format.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/launch/executable_finder.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
-import '../../../l10n/app_localizations.dart';
 
 class FilesSection extends StatelessWidget {
   const FilesSection({super.key, required this.game});

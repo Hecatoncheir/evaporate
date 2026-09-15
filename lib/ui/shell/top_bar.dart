@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/app_mark.dart';
-import '../../l10n/app_localizations.dart';
-import 'navigation.dart';
 import '../widgets/window_frame.dart';
+import 'navigation.dart';
 
 /// Верхняя рейка: бренд и действия стоят по краям, а разделы — ровно по
 /// центру доступной ширины. В узком окне разделы переезжают вниз.

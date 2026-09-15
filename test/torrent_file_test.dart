@@ -4,8 +4,8 @@ import 'dart:typed_data';
 
 import 'package:b_encode_decode/b_encode_decode.dart' as bencode;
 import 'package:crypto/crypto.dart';
-import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:evaporate/services/download/torrent_file.dart';
+import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Формат `.torrent`: infohash считается по байтам info-словаря, и любая

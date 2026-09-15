@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../input/gamepad_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/button_hints.dart';
 import '../widgets/pulse_dot.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Нижняя строка: подсказки управления и показания движка.
 ///

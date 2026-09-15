@@ -19,9 +19,9 @@ import 'effects_card.dart';
 import 'gamepad_settings.dart';
 import 'log_card.dart';
 import 'notification_settings.dart';
-import 'proxy_settings_card.dart';
 import 'path_setting.dart';
 import 'pickers.dart';
+import 'proxy_settings_card.dart';
 import 'speed_field.dart';
 
 /// Как правка настроек уходит в блок. Все карточки страницы получают её
@@ -184,10 +184,13 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(launchAtStartup: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.launchAtStartup, style: TextStyle(fontSize: 13)),
+            title: Text(
+              l.launchAtStartup,
+              style: const TextStyle(fontSize: 13),
+            ),
             subtitle: Text(
               l.launchAtStartupNote,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
         ],
@@ -225,7 +228,7 @@ class SettingsPage extends StatelessWidget {
                 width: 220,
                 child: Text(
                   l.concurrentDownloads,
-                  style: TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: 13),
                 ),
               ),
               DropdownButton<int>(
@@ -354,7 +357,10 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(autoExportToSync: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.copyToSyncFolder, style: TextStyle(fontSize: 13)),
+            title: Text(
+              l.copyToSyncFolder,
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
           const SizedBox(height: 6),
           SwitchListTile(
@@ -362,10 +368,10 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(autoSnapshotOnExit: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.snapshotOnExit, style: TextStyle(fontSize: 13)),
+            title: Text(l.snapshotOnExit, style: const TextStyle(fontSize: 13)),
             subtitle: Text(
               l.defaultForNewGames,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           SwitchListTile(
@@ -373,10 +379,13 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(autoSnapshotOnLaunch: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.snapshotOnLaunch, style: TextStyle(fontSize: 13)),
+            title: Text(
+              l.snapshotOnLaunch,
+              style: const TextStyle(fontSize: 13),
+            ),
             subtitle: Text(
               l.autoSnapshotOnLaunchNote,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
         ],

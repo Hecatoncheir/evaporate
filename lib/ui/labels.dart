@@ -1,16 +1,16 @@
 import 'package:gamepads/gamepads.dart';
 
+import '../core/format.dart';
 import '../input/gamepad_binding.dart';
 import '../input/gamepad_service.dart';
 import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
-import '../core/format.dart';
 import '../models/download_task.dart';
-import '../services/launch/game_roots.dart';
 import '../models/game.dart';
 import '../models/save_profile.dart';
 import '../models/save_snapshot.dart';
 import '../services/download/download_engine.dart';
+import '../services/launch/game_roots.dart';
 
 /// Переводимые подписи для того, что живёт в моделях и во вводе.
 ///

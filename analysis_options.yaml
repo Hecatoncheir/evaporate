@@ -1,12 +1,6 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
+# Настройки анализатора. В CI подсказка (info) роняет прогон наравне с
+# ошибкой, поэтому правила здесь — не пожелания, а ворота.
 
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
@@ -16,20 +10,44 @@ analyzer:
     - macos/**
     - linux/**
 
-linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
-  rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+  # Неявный `dynamic` в приложении, которое читает чужой JSON, манифесты и
+  # двоичный VDF, — это ошибка, отложенная до времени выполнения. Пусть
+  # анализатор требует написать тип там, где сам его вывести не может.
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+linter:
+  rules:
+    # Забытый `await` — здешняя болезнь. Обработчики блоков пишут на диск и
+    # ходят в сеть, и брошенная задача не падает, а тихо не успевает: так
+    # отложенная запись теряла последнее изменение при выходе.
+    - unawaited_futures
+
+    # Подписка и поток, которые некому закрыть, переживают свой блок.
+    # Библиотека публикует два потока, сохранения держат две подписки на
+    # них — и держат их ровно до `close()`.
+    - cancel_subscriptions
+    - close_sinks
+
+    # Вызов по `dynamic` не проверяется вовсе. Разбор чужих форматов —
+    # единственное место, где такое заводится само.
+    - avoid_dynamic_calls
+
+    # `const`-виджет Flutter не пересобирает. В оболочке, где кадры гонит
+    # декоративный таймер, это не стилистика, а пропущенная работа.
+    - prefer_const_constructors
+    - prefer_const_declarations
+
+    # Порядок импортов и зависимостей: их читают глазами, и предсказуемый
+    # порядок дешевле любого соглашения, которое надо помнить.
+    - directives_ordering
+    - sort_pub_dependencies
+
+    # Мелочи, которые стоят одной строки, а ловят молчаливые ошибки.
+    - throw_in_finally
+    - test_types_in_equals
+    - avoid_type_to_string
+    - use_super_parameters
+    - prefer_final_locals

@@ -1,17 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:gamepads/gamepads.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:gamepads/gamepads.dart';
 
+import '../../bloc/settings/settings_bloc.dart';
 import '../../input/gamepad_binding.dart';
 import '../../input/gamepad_service.dart';
 import '../../input/nav_action.dart';
-import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Раздел «Управление»: состояние геймпада и переназначение кнопок.
 class GamepadSettingsCard extends StatelessWidget {
@@ -55,10 +55,13 @@ class GamepadSettingsCard extends StatelessWidget {
             value: binding.enabled,
             onChanged: (value) => save(binding.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.gamepadControls, style: TextStyle(fontSize: 13)),
+            title: Text(
+              l.gamepadControls,
+              style: const TextStyle(fontSize: 13),
+            ),
             subtitle: Text(
               l.gamepadNavigationNote,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           const SizedBox(height: 8),
@@ -66,7 +69,7 @@ class GamepadSettingsCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             l.bindings,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           for (final action in _assignable)
@@ -110,7 +113,10 @@ class GamepadSettingsCard extends StatelessWidget {
     children: [
       SizedBox(
         width: 220,
-        child: Text(L.of(context).deadZone, style: TextStyle(fontSize: 13)),
+        child: Text(
+          L.of(context).deadZone,
+          style: const TextStyle(fontSize: 13),
+        ),
       ),
       Expanded(
         child: MediaQuery(
@@ -259,7 +265,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
             const SizedBox(height: 14),
             Text(
               L.of(context).pressAnyButton,
-              style: TextStyle(fontSize: 13, height: 1.5),
+              style: const TextStyle(fontSize: 13, height: 1.5),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),

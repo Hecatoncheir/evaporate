@@ -9,15 +9,15 @@ import '../../core/json_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/download_task.dart';
-import '../../models/speed_limits.dart';
 import '../../models/proxy_settings.dart';
+import '../../models/speed_limits.dart';
 import 'download_engine.dart';
-import 'torrent_file.dart';
 import 'integrity_check.dart';
+import 'torrent_file.dart';
 import 'torrent_source.dart';
 
-part 'engine_queue.dart';
 part 'engine_limits.dart';
+part 'engine_queue.dart';
 part 'engine_store.dart';
 part 'managed_download.dart';
 

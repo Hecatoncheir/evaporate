@@ -6,11 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../core/format.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/download/torrent_export.dart';
 import '../../labels.dart';
 import '../../widgets/common.dart';
-import '../../../l10n/app_localizations.dart';
 
 class InfoSection extends StatelessWidget {
   const InfoSection({super.key, required this.game});

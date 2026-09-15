@@ -4,17 +4,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../bloc/library/library_bloc.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../../services/launch/executable_finder.dart';
-import '../../labels.dart';
-import '../../theme.dart';
 import '../../downloads/cancel_dialog.dart';
 import '../../downloads/download_activity.dart';
+import '../../labels.dart';
+import '../../theme.dart';
 import '../../widgets/common.dart';
 import '../play_button.dart';
 import '../primary_action.dart';
-import '../../../l10n/app_localizations.dart';
 
 /// Главная кнопка карточки плюс прогресс загрузки.
 ///

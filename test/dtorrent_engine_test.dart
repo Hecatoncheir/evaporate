@@ -2,16 +2,15 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:b_encode_decode/b_encode_decode.dart' as bencode;
-
 import 'package:dtorrent_task_v2/dtorrent_task_v2.dart' as dt;
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/services/download/download_engine.dart';
 import 'package:evaporate/services/download/dtorrent_engine.dart';
 import 'package:evaporate/services/download/integrity_check.dart';
-import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:evaporate/services/download/torrent_file.dart';
-import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 

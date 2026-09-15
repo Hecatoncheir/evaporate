@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../l10n/app_localizations.dart';
 import '../../../services/saves/save_path_finder.dart';
 import '../../theme.dart';
-import '../../../l10n/app_localizations.dart';
 
 class SuggestionsDialog extends StatelessWidget {
   const SuggestionsDialog({super.key, required this.suggestions});

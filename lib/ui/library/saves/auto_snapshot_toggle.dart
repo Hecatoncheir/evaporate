@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/library/library_bloc.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../models/save_profile.dart';
-import '../../../l10n/app_localizations.dart';
 
 class AutoSnapshotToggle extends StatelessWidget {
   const AutoSnapshotToggle({super.key, required this.game});
@@ -25,7 +25,7 @@ class AutoSnapshotToggle extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            Expanded(child: Text(label, style: TextStyle(fontSize: 13))),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
           ],
         );
 

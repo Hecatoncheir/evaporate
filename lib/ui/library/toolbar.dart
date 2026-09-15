@@ -4,11 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
 import '../../input/input_scope.dart';
-import '../widgets/liquid_selection.dart';
-import '../theme.dart';
-import '../widgets/spatial_surface.dart';
-
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
+import '../widgets/liquid_selection.dart';
+import '../widgets/spatial_surface.dart';
 import 'shelf.dart';
 
 /// Верхняя строка: полки с числами, поиск и добавление.
@@ -334,7 +333,10 @@ class ShelfButton extends StatelessWidget {
               const SizedBox(width: 7),
               Text(
                 '$count',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),

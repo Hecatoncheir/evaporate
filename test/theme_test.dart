@@ -212,7 +212,7 @@ void main() {
   group('выбор темы хранится', () {
     test('режим переживает запись и чтение', () {
       for (final mode in ThemeMode.values) {
-        final settings = AppSettings(installDir: '/games')
+        final settings = const AppSettings(installDir: '/games')
             .copyWith(themeMode: mode);
 
         final restored = AppSettings.fromJson(settings.toJson(), '/games');

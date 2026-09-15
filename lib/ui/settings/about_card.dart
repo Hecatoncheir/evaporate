@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-import '../../bloc/settings/settings_bloc.dart';
-import '../../services/system/desktop_entry.dart';
-
 import 'package:window_manager/window_manager.dart';
 
+import '../../bloc/settings/settings_bloc.dart';
 import '../../core/app_paths.dart';
+import '../../l10n/app_localizations.dart';
+import '../../services/system/desktop_entry.dart';
+import '../../services/system/update_check.dart';
 import '../../services/system/update_download.dart';
 import '../../services/system/update_installer.dart';
-import '../../services/system/update_check.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Версия приложения и проверка обновлений.
 class AboutCard extends StatefulWidget {
@@ -238,8 +236,11 @@ class _AboutCardState extends State<AboutCard> {
               SettingsChanged(settings.copyWith(checkUpdates: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.checkUpdatesOnStart, style: TextStyle(fontSize: 13)),
-            subtitle: Text(l.updateNote, style: TextStyle(fontSize: 12)),
+            title: Text(
+              l.checkUpdatesOnStart,
+              style: const TextStyle(fontSize: 13),
+            ),
+            subtitle: Text(l.updateNote, style: const TextStyle(fontSize: 12)),
           ),
         ],
       ),

@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/downloads/downloads_bloc.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../theme.dart';
 import '../../widgets/animated_progress.dart';
-import '../../../l10n/app_localizations.dart';
 
 /// Обложка из Steam, если её удалось найти; иначе — первая буква названия.
 ///

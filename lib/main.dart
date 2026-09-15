@@ -3,20 +3,20 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:logging/logging.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
-import 'bloc/saves/saves_bloc.dart';
 import 'bloc/navigation/navigation_bloc.dart';
+import 'bloc/saves/saves_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
 import 'core/app_paths.dart';
-import 'l10n/app_localizations.dart';
 import 'core/json_store.dart';
 import 'input/gamepad_service.dart';
+import 'l10n/app_localizations.dart';
 import 'models/app_settings.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
@@ -25,13 +25,13 @@ import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/proxy_http_overrides.dart';
-import 'services/system/update_installer.dart';
 import 'services/system/update_check.dart';
+import 'services/system/update_installer.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
-import 'ui/widgets/window_frame.dart';
 import 'ui/widgets/interface_scale.dart';
+import 'ui/widgets/window_frame.dart';
 
 /// Запуск приложения — список шагов по порядку.
 ///
@@ -197,12 +197,9 @@ Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
     controller: const ManagedWindowController(),
   );
   await windowManager.waitUntilReadyToShow(
-    WindowOptions(
+    const WindowOptions(
       title: 'Evaporate',
-      minimumSize: const Size(
-        WindowGeometry.minWidth,
-        WindowGeometry.minHeight,
-      ),
+      minimumSize: Size(WindowGeometry.minWidth, WindowGeometry.minHeight),
       titleBarStyle: TitleBarStyle.hidden,
       windowButtonVisibility: false,
       // Прозрачный фон на всех системах: углы окна режет само приложение

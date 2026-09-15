@@ -5,10 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../services/notifications/notification_service.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Раздел «Уведомления»: включение, разрешение системы и проверка.
 class NotificationSettingsCard extends StatelessWidget {
@@ -33,10 +33,13 @@ class NotificationSettingsCard extends StatelessWidget {
               SettingsChanged(store.state.copyWith(systemNotifications: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.systemNotifications, style: TextStyle(fontSize: 13)),
+            title: Text(
+              l.systemNotifications,
+              style: const TextStyle(fontSize: 13),
+            ),
             subtitle: Text(
               l.systemNotificationsNote,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ),
           // Система может не уметь показывать уведомления вовсе — тогда
@@ -73,7 +76,7 @@ class NotificationSettingsCard extends StatelessWidget {
         size: 15,
         color: context.colors.warning,
       ),
-      SizedBox(width: 8),
+      const SizedBox(width: 8),
       Expanded(
         child: Text(
           text,

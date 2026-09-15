@@ -234,7 +234,7 @@ Hollow Knight:
   });
 
   test('шаблон без папки игры не разворачивается в мусор', () {
-    final rule = SavePathRule(
+    const rule = SavePathRule(
       id: 'r1',
       label: SavePathRule.defaultLabel,
       template: '{GAME}/saves',

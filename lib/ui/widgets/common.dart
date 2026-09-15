@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
 import 'spatial_surface.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Главное действие лаунчера: клавиша фирменного цвета с настоящим ходом.
 ///

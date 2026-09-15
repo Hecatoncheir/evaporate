@@ -3,11 +3,10 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 
-import 'proxy_http_overrides.dart';
 import '../../core/format.dart';
-
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import 'proxy_http_overrides.dart';
 
 /// Версия приложения.
 ///

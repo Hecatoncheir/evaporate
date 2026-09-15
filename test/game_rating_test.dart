@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/core/format.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/game_rating.dart';
 import 'package:evaporate/ui/library/detail/rating_row.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

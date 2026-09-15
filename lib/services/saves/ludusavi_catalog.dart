@@ -4,14 +4,14 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
-import '../system/proxy_http_overrides.dart';
 import '../../core/json_store.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 import '../../models/catalog_progress.dart';
 import '../../models/proxy_settings.dart';
 import '../metadata/release_name.dart';
+import '../system/proxy_http_overrides.dart';
 import 'ludusavi_manifest.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ru.dart';
 
 /// Разобранный манифест и текст для кэша.
 typedef _Parsed = ({LudusaviManifest manifest, String json});

@@ -3,12 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../../l10n/app_localizations.dart';
 import 'cancel_dialog.dart';
 import 'download_activity.dart';
 

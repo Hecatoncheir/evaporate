@@ -1,9 +1,9 @@
 import 'dart:io';
 
+import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/ui/downloads/queue_column.dart';
 import 'package:evaporate/ui/downloads/task_card.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -37,7 +37,7 @@ void main() {
       addedAt: DateTime.now(),
       status: GameStatus.downloading,
     );
-    final task = DownloadTask(
+    const task = DownloadTask(
       id: 't1',
       name: 'Качается',
       state: DownloadState.active,
@@ -174,7 +174,7 @@ void main() {
     addTearDown(harness.dispose);
     await tester.pump();
 
-    final task = DownloadTask(
+    const task = DownloadTask(
       id: 't1',
       name: 'Ждёт своего часа',
       state: DownloadState.waiting,

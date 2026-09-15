@@ -3,13 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../theme.dart';
 import '../widgets/spatial_surface.dart';
-
 import 'detail/cover_backdrop.dart';
 import 'game_detail.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Страница игры поверх сетки: заголовок с возвратом и карточка под ним.
 class GamePage extends StatelessWidget {

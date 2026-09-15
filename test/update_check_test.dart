@@ -1,8 +1,7 @@
-import 'package:evaporate/services/system/update_check.dart';
-
 import 'dart:convert';
 
 import 'package:evaporate/core/format.dart';
+import 'package:evaporate/services/system/update_check.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

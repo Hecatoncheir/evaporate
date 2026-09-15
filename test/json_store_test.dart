@@ -21,9 +21,9 @@ void main() {
   test('запись создаёт недостающие каталоги и читается обратно', () async {
     final store = JsonStore(path);
 
-    await store.write({'version': 1, 'games': []});
+    await store.write({'version': 1, 'games': <Object?>[]});
 
-    expect(await store.read(), {'version': 1, 'games': []});
+    expect(await store.read(), {'version': 1, 'games': <Object?>[]});
   });
 
   test('отсутствующий файл — это не ошибка', () async {
@@ -132,7 +132,7 @@ void main() {
   });
 
   test('данные на диске — валидный json', () async {
-    await JsonStore(path).write({'games': [], 'version': 1});
+    await JsonStore(path).write({'games': <Object?>[], 'version': 1});
 
     final decoded = jsonDecode(await File(path).readAsString());
     expect(decoded, isA<Map<String, dynamic>>());

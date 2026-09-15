@@ -6,8 +6,8 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/format.dart';
-import 'proxy_http_overrides.dart';
 import 'app_log.dart';
+import 'proxy_http_overrides.dart';
 import 'update_check.dart';
 
 /// Что сейчас происходит с обновлением.
@@ -235,7 +235,7 @@ class UpdateDownload {
     final data = Uint8List.fromList(bytes);
     try {
       return name.endsWith('.tar.gz')
-          ? TarDecoder().decodeBytes(GZipDecoder().decodeBytes(data))
+          ? TarDecoder().decodeBytes(const GZipDecoder().decodeBytes(data))
           : ZipDecoder().decodeBytes(data);
     } on Object catch (error) {
       throw UpdateException('Архив не читается: $error');

@@ -6,23 +6,23 @@ import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
-import 'package:evaporate/models/game.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/core/json_store.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/input/gamepad_service.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:flutter/material.dart';
 import 'package:evaporate/ui/widgets/interface_scale.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import 'recording_notifications.dart';
 

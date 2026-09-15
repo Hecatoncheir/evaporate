@@ -331,7 +331,7 @@ void main() {
           'gameId': 'game-1',
           'gameTitle': 'Игра',
           'createdAt': DateTime.now().toIso8601String(),
-          'rules': const [],
+          'rules': const <Object?>[],
         }),
       ),
     );

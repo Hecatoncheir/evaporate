@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'notification_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import 'notification_service.dart';
 
 /// Реализация поверх `flutter_local_notifications` для macOS, Windows и Linux.
 class SystemNotificationService implements NotificationService {

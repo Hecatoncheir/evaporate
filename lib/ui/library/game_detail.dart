@@ -3,18 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
-import '../theme.dart';
-import 'saves_section.dart';
-import '../../l10n/app_localizations.dart';
 import '../downloads/download_activity.dart';
+import '../theme.dart';
 import 'detail/action_panel.dart';
-import 'detail/downloading_header.dart';
-import 'remove_game_dialog.dart';
 import 'detail/detail_header.dart';
+import 'detail/downloading_header.dart';
 import 'detail/files_section.dart';
 import 'detail/info_section.dart';
+import 'remove_game_dialog.dart';
+import 'saves_section.dart';
 
 class GameDetail extends StatelessWidget {
   const GameDetail({super.key, required this.game});

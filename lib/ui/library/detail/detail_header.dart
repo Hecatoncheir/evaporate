@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../labels.dart';
 import '../../theme.dart';
 import '../../widgets/common.dart';
-import '../../../l10n/app_localizations.dart';
 import 'detail_cover.dart';
 import 'rating_row.dart';
 

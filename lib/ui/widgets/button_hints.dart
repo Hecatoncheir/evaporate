@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../input/gamepad_binding.dart';
 import '../../input/nav_action.dart';
+import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Подсказки управления в нижней строке — как на консольных экранах.
 ///

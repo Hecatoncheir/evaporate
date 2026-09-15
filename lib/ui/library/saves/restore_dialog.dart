@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../bloc/save_freshness_cubit.dart';
 import '../../../bloc/saves/saves_bloc.dart';
 import '../../../core/format.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../models/save_snapshot.dart';
 import '../../theme.dart';
-import '../../../bloc/save_freshness_cubit.dart';
-import '../../../l10n/app_localizations.dart';
 
 class RestoreOptions {
   const RestoreOptions({required this.backupCurrent, required this.wipeTarget});
@@ -185,7 +185,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         dense: true,
-        title: Text(l.backupFirst, style: TextStyle(fontSize: 13)),
+        title: Text(l.backupFirst, style: const TextStyle(fontSize: 13)),
       ),
       CheckboxListTile(
         value: _wipe,
@@ -193,8 +193,8 @@ class _RestoreDialogState extends State<RestoreDialog> {
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         dense: true,
-        title: Text(l.wipeBeforeUnpack, style: TextStyle(fontSize: 13)),
-        subtitle: Text(l.wipeNote, style: TextStyle(fontSize: 11.5)),
+        title: Text(l.wipeBeforeUnpack, style: const TextStyle(fontSize: 13)),
+        subtitle: Text(l.wipeNote, style: const TextStyle(fontSize: 11.5)),
       ),
     ];
   }

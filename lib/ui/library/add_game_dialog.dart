@@ -2,17 +2,17 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../models/game.dart';
-import '../../services/launch/executable_finder.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/game.dart';
+import '../../services/launch/executable_finder.dart';
 import '../labels.dart';
 import '../theme.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Возвращает идентификатор добавленной игры: событие ничего не возвращает,
 /// а вызывающему нужно выделить новую игру в списке.
@@ -111,19 +111,19 @@ class _AddGameDialogState extends State<_AddGameDialog> {
   /// Откуда берём игру: magnet-ссылка, файл раздачи или папка на диске.
   Widget _kindPicker(BuildContext context) => SegmentedButton<GameSourceKind>(
     segments: [
-      ButtonSegment(
+      const ButtonSegment(
         value: GameSourceKind.magnet,
         icon: Icon(Icons.link, size: 16),
         label: Text('Magnet'),
       ),
-      ButtonSegment(
+      const ButtonSegment(
         value: GameSourceKind.torrentFile,
         icon: Icon(Icons.description_outlined, size: 16),
         label: Text('.torrent'),
       ),
       ButtonSegment(
         value: GameSourceKind.localFolder,
-        icon: Icon(Icons.folder_outlined, size: 16),
+        icon: const Icon(Icons.folder_outlined, size: 16),
         label: Text(L.of(context).sourceFolder),
       ),
     ],

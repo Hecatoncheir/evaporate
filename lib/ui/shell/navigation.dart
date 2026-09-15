@@ -4,9 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/liquid_selection.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Разделы приложения: четыре клавиши в одной обойме и плашка выбранного,
 /// которая переезжает между ними.

@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/proxy_settings.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Раздел «Прокси» для движка загрузок.
 class ProxySettingsCard extends StatefulWidget {
@@ -75,7 +75,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             value: proxy.enabled,
             onChanged: (value) => update(proxy.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.proxyEnable, style: TextStyle(fontSize: 13)),
+            title: Text(l.proxyEnable, style: const TextStyle(fontSize: 13)),
           ),
           const SizedBox(height: 8),
           _kindPicker(context, proxy, update),
@@ -90,8 +90,11 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
                 ? (value) => update(proxy.copyWith(useForSteam: value))
                 : null,
             contentPadding: EdgeInsets.zero,
-            title: Text(l.proxyForSteam, style: TextStyle(fontSize: 13)),
-            subtitle: Text(l.proxyForSteamNote, style: TextStyle(fontSize: 12)),
+            title: Text(l.proxyForSteam, style: const TextStyle(fontSize: 13)),
+            subtitle: Text(
+              l.proxyForSteamNote,
+              style: const TextStyle(fontSize: 12),
+            ),
           ),
           const SizedBox(height: 6),
           // HTTP-прокси не умеет обмен с пирами — про это предупреждают,
@@ -118,7 +121,10 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
     children: [
       SizedBox(
         width: 220,
-        child: Text(L.of(context).proxyKind, style: TextStyle(fontSize: 13)),
+        child: Text(
+          L.of(context).proxyKind,
+          style: const TextStyle(fontSize: 13),
+        ),
       ),
       SegmentedButton<ProxyKind>(
         segments: const [

@@ -5,11 +5,11 @@ import 'dart:typed_data';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
-import '../system/proxy_http_overrides.dart';
-import '../../models/proxy_settings.dart';
-import 'release_name.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import '../../models/proxy_settings.dart';
+import '../system/proxy_http_overrides.dart';
+import 'release_name.dart';
 
 /// Игра, найденная в каталоге Steam.
 class SteamGame extends Equatable {

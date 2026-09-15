@@ -1,21 +1,19 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'dart:async';
-
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../bloc/library/library_bloc.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
 import '../theme.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Показывает ход поиска и добавляет отмеченные игры.
 ///

@@ -2,14 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-
 import 'hero_sweep.dart';
 import 'primary_action.dart';
-import '../../l10n/app_localizations.dart';
 
 /// Крупная обложка выбранной игры над полкой.
 ///

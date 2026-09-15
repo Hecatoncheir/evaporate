@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:gamepads/gamepads.dart';
 
-import 'gamepad_binding.dart';
-import 'nav_action.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/app_localizations_ru.dart';
+import 'gamepad_binding.dart';
+import 'nav_action.dart';
 
 /// Превращает поток событий геймпада в поток [NavAction].
 ///

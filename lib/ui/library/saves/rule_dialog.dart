@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/format.dart';
 import '../../../core/save_path_template.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../models/save_profile.dart';
 import '../../theme.dart';
-import '../../../l10n/app_localizations.dart';
 
 class RuleDraft {
   const RuleDraft(this.label, this.template, this.currentPlatformOnly);
@@ -105,7 +105,7 @@ class _RuleDialogState extends State<RuleDialog> {
               ),
               subtitle: Text(
                 l.onlyForPlatformNote,
-                style: TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 12),
               ),
             ),
           ],
@@ -131,7 +131,7 @@ class _RuleDialogState extends State<RuleDialog> {
         size: 15,
         color: context.colors.warning,
       ),
-      SizedBox(width: 6),
+      const SizedBox(width: 6),
       Expanded(
         child: Text(
           L.of(context).absolutePathWarning,

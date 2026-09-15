@@ -7,14 +7,14 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ru.dart';
 import '../../core/format.dart';
 import '../../core/json_store.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
+import '../../models/catalog_progress.dart';
 import '../../models/game.dart';
 import '../../models/game_rating.dart';
 import '../../models/save_profile.dart';
-import '../../models/catalog_progress.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/launch/steam_shortcuts.dart';
 import '../../services/metadata/steam_catalog.dart';
@@ -25,8 +25,8 @@ import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
 part 'library_event.dart';
-part 'library_state.dart';
 part 'library_metadata.dart';
+part 'library_state.dart';
 
 /// Библиотека игр и их сохранений — единственный источник правды для UI.
 ///

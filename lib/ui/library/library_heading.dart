@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../widgets/scale_control.dart';
 import '../widgets/section_heading.dart';
-
-import '../../l10n/app_localizations.dart';
 
 /// Подпись библиотеки и крупность обложек.
 ///
