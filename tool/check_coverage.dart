@@ -57,12 +57,17 @@ void main(List<String> arguments) {
   // Растут они следом за покрытием: добрали — подняли. Иначе однажды
   // оказывается, что порог вдвое ниже того, что есть, и можно выкинуть
   // треть тестов, не заметив этого на прогоне.
+  //
+  // Сверяют их по прогону на ubuntu — по тому самому, где покрытие и
+  // снимается. Там выполняется и то, что пропускается на Windows и macOS,
+  // поэтому местный запуск на другой системе показывает меньше: у него
+  // своя, неполная картина, и порог по ней был бы занижен.
   final scopes =
       <({String label, double minimum, bool Function(String) includes})>[
-        (label: 'Весь код (без генерации)', minimum: 74, includes: (_) => true),
+        (label: 'Весь код (без генерации)', minimum: 78, includes: (_) => true),
         (
           label: 'Ядро, модели и сервисы',
-          minimum: 77,
+          minimum: 79,
           includes: (path) => [
             'lib/core/',
             'lib/models/',
@@ -71,7 +76,7 @@ void main(List<String> arguments) {
         ),
         (
           label: 'Менеджер сохранений',
-          minimum: 88,
+          minimum: 89,
           includes: (path) =>
               path == 'lib/services/saves/save_manager.dart' ||
               path == 'lib/services/saves/restore_transaction.dart',
