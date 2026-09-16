@@ -320,7 +320,19 @@ class _LibraryPageState extends State<LibraryPage> {
 
     return MouseRegion(
       key: ValueKey(game.id),
-      onEnter: (_) => setState(() => _hoveredId = game.id),
+      // Наведение выбирает игру, а не только приподнимает плитку: крупный
+      // кадр наверху идёт за выбором, и без этого до его клавиш было бы не
+      // добраться — уведи курсор с плитки, чтобы нажать «Играть», и кадр
+      // сменился бы обратно раньше, чем рука дойдёт.
+      //
+      // Фокус при этом не трогаем. Он у клавиатуры и геймпада, и отбирать
+      // его курсором, лежащим над сеткой, значило бы уводить набор из
+      // поиска. Первое же нажатие стрелки сведёт выбор обратно к
+      // сфокусированной плитке: выбор идёт за фокусом, а не наоборот.
+      onEnter: (_) {
+        setState(() => _hoveredId = game.id);
+        if (selectedId != game.id) nav.add(GameSelected(game.id));
+      },
       onExit: (_) {
         if (mounted && _hoveredId == game.id) {
           setState(() => _hoveredId = null);

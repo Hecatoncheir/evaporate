@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/featured_game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -216,5 +217,32 @@ void main() {
 
     expect(harness.nav.state.openedGameId, isNull);
     expect(find.byType(GameCoverTile), findsNWidgets(3));
+  });
+
+  testWidgets('наведение курсора выбирает игру и держит выбор', (tester) async {
+    final harness = await withGames(tester);
+    final first = harness.library.state.games.first.id;
+    expect(harness.nav.state.selectedGameId, first);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(2)));
+    await tester.pumpAndSettle();
+
+    final third = harness.library.state.games[2].id;
+    expect(harness.nav.state.selectedGameId, third);
+    // Крупный кадр наверху идёт за выбором — ради него всё и затевалось.
+    expect(
+      tester.widget<FeaturedGame>(find.byType(FeaturedGame)).game.id,
+      third,
+    );
+
+    // Выбор остаётся, когда курсор уходит с плитки: иначе до клавиш
+    // крупного кадра было бы не добраться — он сменился бы раньше, чем
+    // рука дойдёт до «Играть».
+    await mouse.moveTo(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(harness.nav.state.selectedGameId, third);
   });
 }
