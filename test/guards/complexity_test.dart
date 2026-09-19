@@ -147,7 +147,6 @@ const _lines = [
   'lib/services/saves/restore_transaction.dart: _RestoreTransaction._buildRestorePlan: 61',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
   'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 72',
-  'lib/services/system/update_download.dart: UpdateDownload._prepare: 64',
   'lib/ui/downloads/download_activity.dart: _SpeedChartPainter.paint: 65',
   'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 71',
   'lib/ui/library/detail/action_panel.dart: ActionPanel._primaryActions: 77',

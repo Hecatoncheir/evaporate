@@ -163,21 +163,28 @@ class UpdateDownload {
     }
 
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.unpacking));
+    final root = await _stage(dir, asset.name, target.path);
+    onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
+    return root;
+  }
+
+  /// Распаковывает проверенный архив рядом и отдаёт корень сборки.
+  ///
+  /// Разбор и распаковка — десятки мегабайт синхронной работы `archive`:
+  /// на главном потоке окно замирало бы на секунды посреди полосы хода.
+  /// Изолят сам читает файл по пути — гнать его содержимое сообщением
+  /// значило бы лишний раз скопировать всё обновление.
+  static Future<String> _stage(
+    Directory dir,
+    String name,
+    String archivePath,
+  ) async {
     final staged = Directory(p.join(dir.path, 'staged'));
     if (await staged.exists()) await staged.delete(recursive: true);
     await staged.create(recursive: true);
-    // Разбор и распаковка — десятки мегабайт синхронной работы `archive`:
-    // на главном потоке окно замирало бы на секунды посреди полосы хода.
-    // Изолят сам читает файл по пути — гнать его содержимое сообщением
-    // значило бы лишний раз скопировать всё обновление.
-    final name = asset.name;
-    final archivePath = target.path;
     final stagedPath = staged.path;
     await Isolate.run(() => _unpackFile(name, archivePath, stagedPath));
-
-    final root = await _rootOf(staged);
-    onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
-    return root;
+    return _rootOf(staged);
   }
 
   /// Размер и контрольная сумма.
