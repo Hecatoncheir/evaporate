@@ -46,7 +46,6 @@ void main() {
 }
 
 const _privateWidgets = [
-  'lib/ui/downloads/downloads_page.dart: _Heading',
   'lib/ui/library/add_game_dialog.dart: _AddGameDialog',
   'lib/ui/library/add_game_dialog.dart: _PathPicker',
   'lib/ui/library/detail/rating_row.dart: _Count',
@@ -77,8 +76,6 @@ const _privateWidgets = [
 ];
 
 const _widgetFunctions = [
-  'lib/ui/downloads/downloads_page.dart: _columns',
-  'lib/ui/downloads/downloads_page.dart: _readout',
   'lib/ui/library/add_game_dialog.dart: _kindPicker',
   'lib/ui/library/add_game_dialog.dart: _startNow',
   'lib/ui/library/add_game_dialog.dart: _buildSourceFields',
@@ -124,8 +121,6 @@ const _widgetFunctions = [
 ];
 
 const _crowdedFiles = [
-  'lib/ui/downloads/downloads_page.dart: 2',
-  'lib/ui/downloads/engine_status.dart: 2',
   'lib/ui/library/add_game_dialog.dart: 2',
   'lib/ui/library/detail/detail_cover.dart: 2',
   'lib/ui/library/detail/rating_row.dart: 3',
@@ -138,7 +133,6 @@ const _crowdedFiles = [
   'lib/ui/library/shots_backdrop.dart: 3',
   'lib/ui/library/toolbar.dart: 4',
   'lib/ui/shell.dart: 2',
-  'lib/ui/shell/app_footer.dart: 2',
   'lib/ui/shell/navigation.dart: 2',
   'lib/ui/shell/top_bar.dart: 3',
   'lib/ui/widgets/animated_progress.dart: 2',

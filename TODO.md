@@ -685,7 +685,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~`saves/snapshot_history.dart`~~ | ~~`_SnapshotRow` + `_summary`~~ | сделано: `SnapshotRow` (на `HoverBuilder`), `SnapshotSummary` |
 | ~~`saves/bulk_transfer_card.dart`~~ | ~~`_BulkReportView` + диалог в `_askAboutNewer`~~ | сделано: `BulkReportView`, `BulkOutcomeGroup`, `ImportNewerDialog` |
 | ~~`saves/saves_page.dart`~~ | ~~`_Heading`, `_readout`~~ | сделано: `_Heading` удалена, `SectionHeading` по месту; `SavesReadout` |
-| `downloads/downloads_page.dart` | `_Heading`, `_columns`, `_readout` | это другой виджет, с тем же именем: чип движка, перезапуск и логика «замерло» (`:201–203`) → `DownloadsHeading`; `DownloadsColumns`, `DownloadsReadout` |
+| ~~`downloads/downloads_page.dart`~~ | ~~`_Heading`, `_columns`, `_readout`~~ | сделано: `DownloadsHeading`, `DownloadsColumns` (получает размер всей страницы — пороги считаются от неё), `DownloadsReadout` |
 | ~~`downloads/download_activity.dart`~~ | ~~`_Metric` + `_metrics`, `_amounts`~~ | сделано: `DownloadMetric`, `DownloadMetrics`, `DownloadAmounts`; соседи `DownloadHistoryScope`, `DownloadChart` (с художником графика) — своими файлами |
 | ~~`downloads/task_card.dart`~~ | ~~`_header`, `_actions`, `_stats`~~ | сделано: `TaskHeader`, `TaskActions`, `TaskStats`; ~~`_cancel` (`:21`) и `_removeFromQueue` (`queue_column.dart:18`) — один поток с разными строками, хватит одной функции~~ (сделано: `cancelDownload` в `cancel_dialog.dart`, и страница игры зовёт её же) |
 | ~~`downloads/queue_column.dart`~~ | ~~5 публичных виджетов~~ | сделано: `QueueList`, `QueuedCard`, `SectionTitle`, `QueueHint` — по файлу; игру для задачи ищет `LibraryState.gameForTask` |
@@ -693,7 +693,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | `widgets/button_hints.dart`, `animated_progress.dart` | `_HintChip`, `_Hatching` | `HintChip`, `ProgressHatching` (+ `IndeterminateProgress`, `ProgressFill`: `ClipRRect` там повторён дважды) |
 | `widgets/liquid_selection.dart` | `_LiquidInkScope` | `LiquidInkScope`; помеха: `LiquidSelectionInk` читает приватные поля чужого `State` (`:233–252`) — нужен публичный интерфейс геометрии только для чтения |
 | `widgets/window_frame.dart`, `readout_panel.dart`, `ambient_light.dart` | `_resize`, `_withBars`, локальная `wash` | `WindowResizeZone`, `ReadoutRow`, `AmbientWash`; `WindowControl` и `ReadoutCell` — своими файлами |
-| `shell/app_footer.dart`, `downloads/engine_status.dart` | по два публичных | `EngineReadout`; `EngineStatusChip`, `EngineFailure` |
+| ~~`shell/app_footer.dart`, `downloads/engine_status.dart`~~ | ~~по два публичных~~ | сделано: `EngineReadout` и `EngineFailure` — своими файлами |
 | наведение | `_hovered` в четырёх `State` (`top_bar.dart:218`, `available_games.dart:104,176`, `snapshot_history.dart:73`) | сделано: `HoverBuilder` (`widgets/hover_builder.dart`), все четыре места на нём |
 
 **Методы, возвращающие виджеты (70).** Это те же приватные виджеты, только
