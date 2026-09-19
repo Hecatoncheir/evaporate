@@ -118,10 +118,9 @@ const _fontSize = [
   'lib/ui/library/featured_game.dart: 2',
   'lib/ui/library/game_cover.dart: 1',
   'lib/ui/shell/top_bar.dart: 1',
-  // Ещё не сведены: клавиша обоймы (метка без моно — перевод на `label`
-  // заметно меняет облик и решается отдельно) и подпись подсказки геймпада.
+  // Ещё не сведена клавиша обоймы: это метка без моно, и перевод на
+  // `label` заметно меняет облик — решается отдельно.
   'lib/ui/shell/navigation.dart: 1',
-  'lib/ui/widgets/button_hints.dart: 1',
 ];
 
 const _durations = [
@@ -139,6 +138,6 @@ const _alphas = [
   'lib/ui/library/foil_card.dart: 2',
   'lib/ui/library/library_atmosphere.dart: 2',
   'lib/ui/library/portal_sparks.dart: 1',
-  'lib/ui/widgets/animated_progress.dart: 1',
+  'lib/ui/widgets/progress_hatching.dart: 1',
   'lib/ui/widgets/pulse_dot.dart: 2',
 ];

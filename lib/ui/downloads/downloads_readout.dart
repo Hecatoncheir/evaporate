@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../labels.dart';
 import '../theme.dart';
+import '../widgets/readout_cell.dart';
 import '../widgets/readout_panel.dart';
 
 /// Показания движка: то, на что смотрят первым делом.

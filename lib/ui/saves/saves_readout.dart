@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../widgets/readout_cell.dart';
 import '../widgets/readout_panel.dart';
 import 'snapshot_history.dart';
 

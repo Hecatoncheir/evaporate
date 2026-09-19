@@ -10,7 +10,8 @@ import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/app_mark.dart';
 import '../widgets/hover_builder.dart';
-import '../widgets/window_frame.dart';
+import '../widgets/window_action.dart';
+import '../widgets/window_control.dart';
 import 'navigation.dart';
 
 /// Верхняя рейка: бренд и действия стоят по краям, а разделы — ровно по

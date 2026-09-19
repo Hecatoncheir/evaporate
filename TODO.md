@@ -575,10 +575,10 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
     `effects_card.dart:82`) — ему место в `segmentedButtonTheme` (`theme.dart:211`).
   *Сделано:* роли заведены (`context.text`, производные от палитры, а не
   `ThemeExtension` — при смене схемы идут за смешанной палитрой сами),
-  из 168 кеглей по месту осталось семь. Пять из них — типографика
-  картинки (надписи на обложке и крупном кадре, знак приложения). Два
-  ещё не сведены: клавиша обоймы — метка без моно, и перевод на `label`
-  заметно меняет облик 💬; подпись подсказки геймпада.
+  из 168 кеглей по месту осталось шесть. Пять из них — типографика
+  картинки (надписи на обложке и крупном кадре, знак приложения). Не
+  сведена клавиша обоймы: это метка без моно, и перевод на `label`
+  заметно меняет облик 💬. Подпись подсказки геймпада — теперь `small`.
 - [x] Темы компонентов (по образцу из §2), в порядке числа ветвлений:
   `GlassSurface` (6) → `SpatialBackdrop` и `HardwareGrille` →
   `LauncherActionButton` → `AmbientLight` → `ReadoutPanel`, `SectionCard`,
@@ -690,9 +690,9 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~`downloads/task_card.dart`~~ | ~~`_header`, `_actions`, `_stats`~~ | сделано: `TaskHeader`, `TaskActions`, `TaskStats`; ~~`_cancel` (`:21`) и `_removeFromQueue` (`queue_column.dart:18`) — один поток с разными строками, хватит одной функции~~ (сделано: `cancelDownload` в `cancel_dialog.dart`, и страница игры зовёт её же) |
 | ~~`downloads/queue_column.dart`~~ | ~~5 публичных виджетов~~ | сделано: `QueueList`, `QueuedCard`, `SectionTitle`, `QueueHint` — по файлу; игру для задачи ищет `LibraryState.gameForTask` |
 | ~~`downloads/available_games.dart`~~ | ~~`_RemoveButton`~~ | сделано: `RemoveFromLibraryButton` (имя `RemoveGameButton` занято планом страницы игры); `DraggableGame`, `GameChip` — своими файлами |
-| `widgets/button_hints.dart`, `animated_progress.dart` | `_HintChip`, `_Hatching` | `HintChip`, `ProgressHatching` (+ `IndeterminateProgress`, `ProgressFill`: `ClipRRect` там повторён дважды) |
+| ~~`widgets/button_hints.dart`, `animated_progress.dart`~~ | ~~`_HintChip`, `_Hatching`~~ | сделано: `HintChip`, `ProgressHatching` (с художником насечек). Остались `IndeterminateProgress` и `ProgressFill`: `ClipRRect` там повторён дважды |
 | `widgets/liquid_selection.dart` | `_LiquidInkScope` | `LiquidInkScope`; помеха: `LiquidSelectionInk` читает приватные поля чужого `State` (`:233–252`) — нужен публичный интерфейс геометрии только для чтения |
-| `widgets/window_frame.dart`, `readout_panel.dart`, `ambient_light.dart` | `_resize`, `_withBars`, локальная `wash` | `WindowResizeZone`, `ReadoutRow`, `AmbientWash`; `WindowControl` и `ReadoutCell` — своими файлами |
+| ~~`widgets/window_frame.dart`, `readout_panel.dart`, `ambient_light.dart`~~ | ~~`_resize`, `_withBars`, локальная `wash`~~ | сделано: `WindowResizeZone`, `ReadoutRow`, `AmbientWash`; `WindowControl`, `ReadoutCell`, а ещё `WindowChrome` и `runWindowAction` — своими файлами, чтобы полоса у края не ссылалась на рамку по кругу |
 | ~~`shell/app_footer.dart`, `downloads/engine_status.dart`~~ | ~~по два публичных~~ | сделано: `EngineReadout` и `EngineFailure` — своими файлами |
 | наведение | `_hovered` в четырёх `State` (`top_bar.dart:218`, `available_games.dart:104,176`, `snapshot_history.dart:73`) | сделано: `HoverBuilder` (`widgets/hover_builder.dart`), все четыре места на нём |
 

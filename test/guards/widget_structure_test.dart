@@ -70,8 +70,6 @@ const _privateWidgets = [
   'lib/ui/shell.dart: _Sections',
   'lib/ui/shell/navigation.dart: _QueueBadge',
   'lib/ui/shell/top_bar.dart: _WindowDragArea',
-  'lib/ui/widgets/animated_progress.dart: _Hatching',
-  'lib/ui/widgets/button_hints.dart: _HintChip',
   'lib/ui/widgets/liquid_selection.dart: _LiquidInkScope',
 ];
 
@@ -114,10 +112,7 @@ const _widgetFunctions = [
   'lib/ui/shell/top_bar.dart: _brand',
   'lib/ui/shell/top_bar.dart: _actions',
   'lib/ui/shell/top_bar.dart: _windowActions',
-  'lib/ui/widgets/ambient_light.dart: wash',
   'lib/ui/widgets/launcher_action_button.dart: _face',
-  'lib/ui/widgets/readout_panel.dart: _withBars',
-  'lib/ui/widgets/window_frame.dart: _resize',
 ];
 
 const _crowdedFiles = [
@@ -135,10 +130,6 @@ const _crowdedFiles = [
   'lib/ui/shell.dart: 2',
   'lib/ui/shell/navigation.dart: 2',
   'lib/ui/shell/top_bar.dart: 3',
-  'lib/ui/widgets/animated_progress.dart: 2',
-  'lib/ui/widgets/button_hints.dart: 2',
   'lib/ui/widgets/liquid_selection.dart: 3',
-  'lib/ui/widgets/readout_panel.dart: 2',
   'lib/ui/widgets/spatial_surface.dart: 3',
-  'lib/ui/widgets/window_frame.dart: 2',
 ];

@@ -1,187 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../feedback/snack.dart';
-
-/// Размеры обрамления, вынесенные из виджета: их сверяет тест.
-///
-/// Полосы, за которые тянут края окна, лежат поверх всего остального — иначе
-/// до них не дотянуться. Значит они могут накрыть и то, что под ними, а
-/// орган управления под невидимой полосой — это уже не просто мёртвая точка:
-/// нажатие уходит в системный цикл изменения размера, Flutter отпускания
-/// мыши не видит, и отложенное нажатие достаётся тому, что лежит под
-/// полосой.
-///
-/// Отсюда правило: полоса тонкая (в [edge] точки), уголок берётся уголком, а
-/// не квадратом, и верхняя рейка приложения отступает от края окна дальше,
-/// чем [edge]. За отступ отвечает оболочка, и сходятся эти два числа в
-/// тесте.
-class WindowChrome {
-  const WindowChrome._();
-
-  /// Толщина полосы у края окна.
-  static const edge = 4.0;
-
-  /// Скругление углов окна — одно на все системы: рамку рисуем мы, и
-  /// выглядеть она должна одинаково.
-  ///
-  /// Заметно круглее системного, но не настолько, чтобы спорить с тенью:
-  /// тень на Windows рисует DWM по своей форме, со скруглением примерно в
-  /// восемь точек, и задать ей радиус нечем. Чем глубже рез, тем заметнее
-  /// она выглядывает из-за угла.
-  static const cornerRadius = 16.0;
-
-  /// Длина уголка вдоль каждой стороны.
-  static const corner = 8.0;
-
-  /// Полосы и уголки для окна размера [size]. Уголок — две полосы, сходящиеся
-  /// под прямым углом: квадрат восемь на восемь залез бы на кнопку, а полоса
-  /// в четыре точки под кнопками уже не проходит.
-  static List<({ResizeEdge edge, Rect rect})> resizeZones(Size size) {
-    final w = size.width;
-    final h = size.height;
-    return [
-      (
-        edge: ResizeEdge.top,
-        rect: Rect.fromLTWH(corner, 0, w - corner * 2, WindowChrome.edge),
-      ),
-      (
-        edge: ResizeEdge.bottom,
-        rect: Rect.fromLTWH(
-          corner,
-          h - WindowChrome.edge,
-          w - corner * 2,
-          WindowChrome.edge,
-        ),
-      ),
-      (
-        edge: ResizeEdge.left,
-        rect: Rect.fromLTWH(0, corner, WindowChrome.edge, h - corner * 2),
-      ),
-      (
-        edge: ResizeEdge.right,
-        rect: Rect.fromLTWH(
-          w - WindowChrome.edge,
-          corner,
-          WindowChrome.edge,
-          h - corner * 2,
-        ),
-      ),
-      (
-        edge: ResizeEdge.topLeft,
-        rect: const Rect.fromLTWH(0, 0, corner, WindowChrome.edge),
-      ),
-      (
-        edge: ResizeEdge.topLeft,
-        rect: const Rect.fromLTWH(0, 0, WindowChrome.edge, corner),
-      ),
-      (
-        edge: ResizeEdge.topRight,
-        rect: Rect.fromLTWH(w - corner, 0, corner, WindowChrome.edge),
-      ),
-      (
-        edge: ResizeEdge.topRight,
-        rect: Rect.fromLTWH(
-          w - WindowChrome.edge,
-          0,
-          WindowChrome.edge,
-          corner,
-        ),
-      ),
-      (
-        edge: ResizeEdge.bottomLeft,
-        rect: Rect.fromLTWH(
-          0,
-          h - WindowChrome.edge,
-          corner,
-          WindowChrome.edge,
-        ),
-      ),
-      (
-        edge: ResizeEdge.bottomLeft,
-        rect: Rect.fromLTWH(0, h - corner, WindowChrome.edge, corner),
-      ),
-      (
-        edge: ResizeEdge.bottomRight,
-        rect: Rect.fromLTWH(
-          w - corner,
-          h - WindowChrome.edge,
-          corner,
-          WindowChrome.edge,
-        ),
-      ),
-      (
-        edge: ResizeEdge.bottomRight,
-        rect: Rect.fromLTWH(
-          w - WindowChrome.edge,
-          h - corner,
-          WindowChrome.edge,
-          corner,
-        ),
-      ),
-    ];
-  }
-
-  /// Курсор говорит, что край можно потянуть: полосу в четыре точки иначе
-  /// не заметить вовсе.
-  static MouseCursor cursorFor(ResizeEdge edge) => switch (edge) {
-    ResizeEdge.top || ResizeEdge.bottom => SystemMouseCursors.resizeUpDown,
-    ResizeEdge.left || ResizeEdge.right => SystemMouseCursors.resizeLeftRight,
-    ResizeEdge.topLeft ||
-    ResizeEdge.bottomRight => SystemMouseCursors.resizeUpLeftDownRight,
-    ResizeEdge.topRight ||
-    ResizeEdge.bottomLeft => SystemMouseCursors.resizeUpRightDownLeft,
-  };
-}
-
-/// Что верхней рейке нужно знать об окне: развёрнуто ли оно и как это
-/// изменить.
-///
-/// Раздаётся сверху, от рамки, а не спрашивается у системы второй раз: два
-/// независимых слушателя одного события — два места, где состояние может
-/// разойтись, и разойтись им ничего не мешает.
-///
-/// Отсутствие этого виджета означает, что своей рамки нет вовсе, — тогда
-/// рейке и нечего показывать: окном распоряжается система.
-class WindowControl extends InheritedWidget {
-  const WindowControl({
-    super.key,
-    required this.expanded,
-    required this.toggleSize,
-    required super.child,
-  });
-
-  /// Развёрнуто на весь экран или растянуто во весь рабочий стол.
-  final bool expanded;
-
-  final Future<void> Function() toggleSize;
-
-  static WindowControl? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<WindowControl>();
-
-  @override
-  bool updateShouldNotify(WindowControl oldWidget) =>
-      oldWidget.expanded != expanded;
-}
-
-/// Выполняет действие над окном и говорит, если система откажет.
-///
-/// Гасить отказ нельзя: не свернувшееся по нажатию окно выглядит зависшим,
-/// а объяснить, что случилось, кроме нас некому.
-Future<void> runWindowAction(
-  BuildContext context,
-  Future<void> Function() action,
-) async {
-  try {
-    await action();
-  } on Object catch (error) {
-    if (context.mounted) showError(context, error);
-  }
-}
+import 'window_action.dart';
+import 'window_chrome.dart';
+import 'window_control.dart';
+import 'window_resize_zone.dart';
 
 /// Обрамляет весь Navigator, включая диалоги: рамки ОС нет, и скруглённые
 /// углы с полосами для изменения размера рисуем мы сами.
@@ -301,35 +128,11 @@ class _AppWindowFrameState extends State<AppWindowFrame> with WindowListener {
                 for (final zone in WindowChrome.resizeZones(
                   constraints.biggest,
                 ))
-                  _resize(zone.edge, zone.rect),
+                  WindowResizeZone(edge: zone.edge, rect: zone.rect),
             ],
           ),
         ),
       ),
     );
   }
-
-  /// Полоса у края окна.
-  ///
-  /// Слушаем нажатие, а не жест перетаскивания, и вот почему: система по
-  /// нажатию забирает мышь себе и ведёт изменение размера сама, а Flutter
-  /// отпускания уже не видит. Жест так и остался бы незавершённым, да и
-  /// начинался бы он только после того, как палец уйдёт от точки нажатия на
-  /// два десятка точек, — то есть окно дёргалось бы скачком.
-  Widget _resize(ResizeEdge edge, Rect rect) => Positioned.fromRect(
-    rect: rect,
-    child: MouseRegion(
-      cursor: WindowChrome.cursorFor(edge),
-      child: Listener(
-        key: ValueKey('window-resize-${edge.name}'),
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (event) {
-          if (event.buttons != kPrimaryButton) return;
-          unawaited(
-            runWindowAction(context, () => windowManager.startResizing(edge)),
-          );
-        },
-      ),
-    ),
-  );
 }

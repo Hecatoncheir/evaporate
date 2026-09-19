@@ -162,7 +162,7 @@ const _lines = [
   'lib/ui/settings/log_card.dart: _LogCardState.build: 65',
   'lib/ui/shell.dart: AppShell.build: 66',
   'lib/ui/widgets/liquid_selection.dart: liquidSelectionPath: 71',
-  'lib/ui/widgets/window_frame.dart: WindowChrome.resizeZones: 84',
+  'lib/ui/widgets/window_chrome.dart: WindowChrome.resizeZones: 84',
 ];
 
 const _nesting = [

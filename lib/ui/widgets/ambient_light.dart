@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import 'ambient_wash.dart';
 
 /// Свет выбранной игры, заливающий корпус приложения.
 ///
@@ -33,7 +34,6 @@ class AmbientLight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final motion = context.motion;
 
     // Без выбранной игры корпус греется своим цветом, а не гаснет: пустая
     // библиотека не должна выглядеть выключенным прибором.
@@ -41,35 +41,30 @@ class AmbientLight extends StatelessWidget {
         ? [colors.primary, colors.accent, colors.surfaceHigh]
         : gameAmbientColors(title!);
 
-    // Светлый корпус берёт свет вполсилы: на белом та же заливка читается
-    // как грязь на панели, а не как подсветка.
-    final strength = HardwareSurfaceTheme.of(context).ambientStrength;
-
-    Widget wash(Alignment center, double radius, Color tint, double alpha) =>
-        AnimatedContainer(
-          duration: motion.slow,
-          curve: EvaporateMotion.ease,
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: center,
-              radius: radius,
-              colors: [
-                tint.withValues(alpha: alpha * strength),
-                AppColors.transparent,
-              ],
-            ),
-          ),
-        );
-
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.background),
       child: Stack(
         fit: StackFit.expand,
         children: [
           if (enabled) ...[
-            wash(const Alignment(-0.75, -0.95), 1.05, tints[0], 0.38),
-            wash(const Alignment(0.85, -0.8), 0.95, tints[1], 0.32),
-            wash(const Alignment(0.1, 1.15), 1.2, tints[2], 0.42),
+            AmbientWash(
+              center: const Alignment(-0.75, -0.95),
+              radius: 1.05,
+              tint: tints[0],
+              alpha: 0.38,
+            ),
+            AmbientWash(
+              center: const Alignment(0.85, -0.8),
+              radius: 0.95,
+              tint: tints[1],
+              alpha: 0.32,
+            ),
+            AmbientWash(
+              center: const Alignment(0.1, 1.15),
+              radius: 1.2,
+              tint: tints[2],
+              alpha: 0.42,
+            ),
           ],
           // Виньетка собирает кадр и не даёт свету вытечь за края окна.
           DecoratedBox(

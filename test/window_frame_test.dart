@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/window_chrome.dart';
 import 'package:evaporate/ui/widgets/window_frame.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

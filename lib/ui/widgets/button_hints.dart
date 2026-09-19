@@ -4,7 +4,7 @@ import '../../input/gamepad_binding.dart';
 import '../../input/nav_action.dart';
 import '../../l10n/app_localizations.dart';
 import '../labels.dart';
-import '../theme.dart';
+import 'hint_chip.dart';
 
 /// Подсказки управления в нижней строке — как на консольных экранах.
 ///
@@ -45,7 +45,7 @@ class ButtonHints extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final hint in hints) ...[
-          _HintChip(glyph: hint.$1, label: hint.$2),
+          HintChip(glyph: hint.$1, label: hint.$2),
           const SizedBox(width: 10),
         ],
       ],
@@ -77,40 +77,4 @@ class ButtonHints extends StatelessWidget {
     NavAction.nextSection => l.hintSections,
     _ => navActionLabel(l, action),
   };
-}
-
-class _HintChip extends StatelessWidget {
-  const _HintChip({required this.glyph, required this.label});
-
-  final String glyph;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-          decoration: BoxDecoration(
-            color: context.colors.surfaceHigh,
-            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-            border: Border.all(color: context.colors.outline),
-          ),
-          child: Text(
-            glyph,
-            style: context.text.tag.copyWith(
-              fontWeight: FontWeight.w600,
-              color: context.colors.textPrimary,
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
-        ),
-      ],
-    );
-  }
 }
