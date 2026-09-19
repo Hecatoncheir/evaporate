@@ -85,7 +85,7 @@ class _SnapshotRowState extends State<_SnapshotRow> {
           borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
           border: Border.all(
             color: _hovered
-                ? colors.primary.withValues(alpha: 0.5)
+                ? colors.primary.withValues(alpha: EvaporateAlpha.strong)
                 : colors.outline,
           ),
         ),

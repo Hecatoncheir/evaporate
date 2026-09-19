@@ -117,10 +117,14 @@ class LibraryToolbar extends StatelessWidget {
     height: 48,
     child: DecoratedBox(
       decoration: BoxDecoration(
-        color: context.colors.railBackground.withValues(alpha: 0.78),
+        color: context.colors.railBackground.withValues(
+          alpha: EvaporateAlpha.veil,
+        ),
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         border: Border.all(
-          color: context.colors.textPrimary.withValues(alpha: 0.1),
+          color: context.colors.textPrimary.withValues(
+            alpha: EvaporateAlpha.subtle,
+          ),
         ),
       ),
       child: Padding(
@@ -244,10 +248,14 @@ class _ShelfTabsState extends State<ShelfTabs> {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: context.colors.railBackground.withValues(alpha: 0.78),
+      color: context.colors.railBackground.withValues(
+        alpha: EvaporateAlpha.veil,
+      ),
       borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
       border: Border.all(
-        color: context.colors.textPrimary.withValues(alpha: 0.1),
+        color: context.colors.textPrimary.withValues(
+          alpha: EvaporateAlpha.subtle,
+        ),
       ),
     ),
     child: Padding(

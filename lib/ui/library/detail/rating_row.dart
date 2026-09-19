@@ -141,7 +141,7 @@ class _Metacritic extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.14),
+          color: color.withValues(alpha: EvaporateAlpha.subtle),
           borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
         ),
         child: Text(

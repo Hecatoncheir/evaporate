@@ -79,7 +79,9 @@ class QueueColumn extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: highlight
-                ? context.colors.primary.withValues(alpha: 0.06)
+                ? context.colors.primary.withValues(
+                    alpha: EvaporateAlpha.subtle,
+                  )
                 : null,
             border: Border.all(
               color: highlight ? context.colors.primary : AppColors.transparent,

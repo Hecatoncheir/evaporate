@@ -120,7 +120,7 @@ class _GameChipState extends State<GameChip> {
           borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
           border: Border.all(
             color: _hovered
-                ? colors.primary.withValues(alpha: 0.55)
+                ? colors.primary.withValues(alpha: EvaporateAlpha.strong)
                 : colors.outline,
           ),
         ),

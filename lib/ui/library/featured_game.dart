@@ -67,7 +67,9 @@ class FeaturedGame extends StatelessWidget {
             borderRadius: radius,
             // Волосяной золотой кант: он отделяет кадр от корпуса, не
             // споря с самой картинкой.
-            border: Border.all(color: colors.primary.withValues(alpha: 0.24)),
+            border: Border.all(
+              color: colors.primary.withValues(alpha: EvaporateAlpha.soft),
+            ),
             boxShadow: [
               BoxShadow(
                 color: colors.shadow,

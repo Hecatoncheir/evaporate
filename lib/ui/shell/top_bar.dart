@@ -69,7 +69,9 @@ class ConceptTopBar extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            border: Border.all(color: colors.primary.withValues(alpha: 0.42)),
+            border: Border.all(
+              color: colors.primary.withValues(alpha: EvaporateAlpha.rim),
+            ),
             borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
           ),
           child: const AppMark(size: 30),
@@ -243,10 +245,12 @@ class _TopActionState extends State<TopAction> {
             minimumSize: const Size(38, 38),
             backgroundColor: _hovered
                 ? colors.surfaceHigh
-                : colors.surface.withValues(alpha: 0.5),
+                : colors.surface.withValues(alpha: EvaporateAlpha.strong),
             foregroundColor: _hovered ? accent : colors.textSecondary,
             side: BorderSide(
-              color: _hovered ? accent.withValues(alpha: 0.6) : colors.outline,
+              color: _hovered
+                  ? accent.withValues(alpha: EvaporateAlpha.strong)
+                  : colors.outline,
             ),
           ),
         ),

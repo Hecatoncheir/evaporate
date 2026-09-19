@@ -190,8 +190,8 @@ class IconAction extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       style: IconButton.styleFrom(
         foregroundColor: color,
-        backgroundColor: color.withValues(alpha: 0.14),
-        side: BorderSide(color: color.withValues(alpha: 0.34)),
+        backgroundColor: color.withValues(alpha: EvaporateAlpha.subtle),
+        side: BorderSide(color: color.withValues(alpha: EvaporateAlpha.rim)),
         minimumSize: const Size(30, 30),
         padding: EdgeInsets.zero,
       ),
@@ -224,7 +224,7 @@ class StatusChip extends StatelessWidget {
         vertical: compact ? 2 : 4,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: color.withValues(alpha: EvaporateAlpha.subtle),
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
       ),
       child: Text(

@@ -16,7 +16,9 @@ import '../support/guards.dart';
 /// - `Duration(milliseconds:` — длительность берётся из `context.motion`;
 /// - `BorderRadius.circular(<число>)` — радиус берётся из `EvaporateTheme`;
 /// - поле страницы 28, предельная ширина 1340 и подпись настройки 220 —
-///   из `EvaporateLayout`.
+///   из `EvaporateLayout`;
+/// - `withValues(alpha: <число>)` — прозрачность берётся ступенью
+///   `EvaporateAlpha`.
 ///
 /// Списки ниже — известные нарушители на момент введения правила (этап 2
 /// в `TODO.md`), с числом вхождений. Пополнять их нельзя; вынесенное —
@@ -78,6 +80,16 @@ void main() {
     );
   });
 
+  // В списке — художники, у которых прозрачность — часть расчёта
+  // анимации (фольга, искры, пульс, график), и подписи поверх обложки.
+  test('прозрачность не задаётся числом по месту', () {
+    expectRatchet(
+      found: count(RegExp(r'withValues\(\s*alpha:\s*[\d.]')),
+      known: _alphas,
+      rule: 'прозрачность — ступень EvaporateAlpha',
+    );
+  });
+
   // Расширение, которое есть у одной схемы и нет у другой, молча отдаёт
   // виджету запасное значение, а плавная смена схемы смешивает его с
   // пустотой. Проверяем и сами схемы, и их смесь посередине перехода.
@@ -135,3 +147,14 @@ const _durations = [
 ];
 
 const _radii = <String>[];
+
+const _alphas = [
+  'lib/ui/downloads/download_activity.dart: 2',
+  'lib/ui/library/featured_game.dart: 2',
+  'lib/ui/library/foil_card.dart: 2',
+  'lib/ui/library/library_atmosphere.dart: 2',
+  'lib/ui/library/portal_sparks.dart: 1',
+  'lib/ui/widgets/animated_progress.dart: 1',
+  'lib/ui/widgets/common.dart: 1',
+  'lib/ui/widgets/pulse_dot.dart: 2',
+];

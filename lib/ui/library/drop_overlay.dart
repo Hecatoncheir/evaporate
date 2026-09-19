@@ -15,7 +15,7 @@ class DropOverlay extends StatelessWidget {
     final l = L.of(context);
     return IgnorePointer(
       child: Container(
-        color: context.colors.background.withValues(alpha: 0.86),
+        color: context.colors.background.withValues(alpha: EvaporateAlpha.veil),
         padding: const EdgeInsets.all(24),
         child: DottedBorderBox(
           child: Column(

@@ -171,7 +171,7 @@ class AppShell extends StatelessWidget {
             alpha: HardwareSurfaceTheme.of(context).shellOpacity,
           ),
           border: Border.all(
-            color: context.colors.outline.withValues(alpha: 0.45),
+            color: context.colors.outline.withValues(alpha: EvaporateAlpha.rim),
           ),
           borderRadius: radius,
         ),

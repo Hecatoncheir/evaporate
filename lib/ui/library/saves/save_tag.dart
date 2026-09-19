@@ -13,7 +13,7 @@ class SaveTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
+        color: color.withValues(alpha: EvaporateAlpha.subtle),
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
       ),
       child: Text(

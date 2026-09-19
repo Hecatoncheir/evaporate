@@ -591,7 +591,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   спрашивают не «какая схема», а «есть ли у материала ореол / торец»
   (`glow.a`, `depth.a`) — так ветвление по схеме превращается в свойство
   токена.
-- [ ] Кант и заливка состояния — одна роль с четырьмя альфами (0.42–0.6):
+- [x] Кант и заливка состояния — одна роль с четырьмя альфами (0.42–0.6):
   `engine_status.dart:38–39,86–89`, `queue_column.dart:82`,
   `top_bar.dart:72,246–249`, `available_games.dart:122–127`,
   `snapshot_history.dart:90–95`; всего в `lib/ui` 41 вызов
@@ -599,6 +599,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   четырёх-пяти ступеней (`tint`, `rim`, `scrim`, `glass`). Цвет состояния
   движка выбирается одинаковым `switch` в `app_footer.dart:80–85` и
   `engine_status.dart:16–21` — в `labels.dart` или в тему. **S**
+  *Сделано:* `EvaporateAlpha` (`theme/alpha.dart`) — пять ступеней по
+  роли: `subtle` 0.12, `soft` 0.25, `rim` 0.4, `strong` 0.55, `veil`
+  0.82; двадцать четыре альфы по месту сведены к ним, страж держит
+  остальные храповиком. В нём остались художники, где прозрачность —
+  часть расчёта анимации, подписи поверх обложки и заливка SnackBar'а
+  ошибки (0.9: вуаль ослабила бы контраст белого на красном). Цвет
+  состояния движка — `EvaporatePalette.engine` в
+  `downloads/engine_state_color.dart`.
 - [x] Раскладка — тоже токены: поля 28 (`settings_page.dart:75`,
   `saves_page.dart:47`, `downloads_page.dart:85,96,207`), ширина 1340
   (`downloads_page.dart:79`, `saves_page.dart:53`), высоты 64 / 48 / 40

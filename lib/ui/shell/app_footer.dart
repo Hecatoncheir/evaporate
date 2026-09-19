@@ -6,6 +6,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../input/gamepad_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/download/download_engine.dart';
+import '../downloads/engine_state_color.dart';
 import '../labels.dart';
 import '../theme.dart';
 import '../widgets/button_hints.dart';
@@ -31,10 +32,14 @@ class AppFooter extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(
-        color: context.colors.railBackground.withValues(alpha: 0.84),
+        color: context.colors.railBackground.withValues(
+          alpha: EvaporateAlpha.veil,
+        ),
         border: Border(
           top: BorderSide(
-            color: context.colors.outline.withValues(alpha: 0.28),
+            color: context.colors.outline.withValues(
+              alpha: EvaporateAlpha.soft,
+            ),
           ),
         ),
       ),
@@ -77,12 +82,7 @@ class EngineReadout extends StatelessWidget {
     final stats = downloads.stats;
     final l = L.of(context);
 
-    final color = switch (status.state) {
-      EngineState.ready => colors.accent,
-      EngineState.starting => colors.warning,
-      EngineState.failed => colors.danger,
-      EngineState.stopped => colors.textSecondary,
-    };
+    final color = colors.engine(status.state);
     // Разрядка уже, чем у метки: в строке состояния тесно. Цифры
     // табличные — показания меняются на глазах.
     final style = context.text.label.copyWith(
