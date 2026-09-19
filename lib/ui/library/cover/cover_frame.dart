@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../theme.dart';
-import '../effects/portal_sparks.dart';
+import '../effects/portal/portal_sparks.dart';
 import 'cover_face.dart';
 
 /// Корпус плитки: искры по краю, тень, скруглённый вырез и пропорции

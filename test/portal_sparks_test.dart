@@ -3,7 +3,10 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:evaporate/ui/library/effects/portal_sparks.dart';
+import 'package:evaporate/ui/library/effects/portal/portal_outline.dart';
+import 'package:evaporate/ui/library/effects/portal/portal_spark.dart';
+import 'package:evaporate/ui/library/effects/portal/portal_spark_field.dart';
+import 'package:evaporate/ui/library/effects/portal/portal_sparks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -178,8 +181,10 @@ void main() {
   });
 
   group('кромка', () {
+    PortalOutline outline() => PortalOutline(size: size);
+
     test('обходит все четыре стороны', () {
-      final sparks = field();
+      final sparks = outline();
 
       expect(sparks.edgeAt(0.05).point.dy, 0);
       expect(sparks.edgeAt(0.35).point.dx, size.width);
@@ -190,7 +195,7 @@ void main() {
     // Доля пути считается по кругу: искра, ушедшая за единицу, срывается с
     // того же места, а не из угла.
     test('путь замыкается', () {
-      final sparks = field();
+      final sparks = outline();
 
       expect(sparks.edgeAt(1.25).point, sparks.edgeAt(0.25).point);
       expect(sparks.edgeAt(-0.75).point, sparks.edgeAt(0.25).point);
@@ -201,7 +206,7 @@ void main() {
     // срезанным — это и было видно на плитке. На дуге она поворачивается
     // плавно, и сноп огибает угол.
     test('в углах есть направление по диагонали', () {
-      final sparks = field();
+      final sparks = outline();
 
       final diagonal = List.generate(400, (i) => sparks.edgeAt(i / 400))
           .where((edge) => edge.outward.dx.abs() > 0.3)
@@ -215,7 +220,7 @@ void main() {
     });
 
     test('кромка нигде не рвётся', () {
-      final sparks = field();
+      final sparks = outline();
 
       var previous = sparks.edgeAt(0).point;
       for (var i = 1; i <= 400; i++) {
@@ -228,7 +233,7 @@ void main() {
     });
 
     test('наружу — это наружу, а вдоль перпендикулярно ему', () {
-      final sparks = field();
+      final sparks = outline();
 
       for (final at in [0.05, 0.35, 0.6, 0.9]) {
         final edge = sparks.edgeAt(at);

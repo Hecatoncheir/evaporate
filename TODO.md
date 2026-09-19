@@ -750,9 +750,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   обещает другое → `DropFrame`.
 
 Приватные `CustomPainter` виджетами не являются и под правило не попадают,
-но `portal_sparks.dart` (536 строк: виджет, художник, атлас, пачка искр,
+но ~~`portal_sparks.dart` (536 строк: виджет, художник, атлас, пачка искр,
 отрисовщик, геометрия `edgeAt` на 68 строк) стоит разложить в
-`library/effects/portal/` ради проверяемости частей. ~~Сами украшения
+`library/effects/portal/` ради проверяемости частей.~~ (сделано: кромка —
+`PortalOutline`, и проверяют её теперь без снопа, одной подстановкой
+размера; `edgeAt` ужалась вдвое поворотной симметрией контура). ~~Сами украшения
 (`portal_sparks`, `particle_field`, `cover_drops`, `game_wave`, `hero_sweep`,
 `foil_card`, `library_atmosphere`) — в `library/effects/`: папка `library/`
 сейчас мешает их со страницами.~~ (переехали; `shots_backdrop` остался в
@@ -902,7 +904,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | — | 72 | `input/input_scope.dart:188` `build`, `:118` `_move` | пять `Intent`-классов и пять `CallbackAction` (`:217–252`) дублируют `switch` в `_handleAction` → один `NavActionIntent(action)` и `const Map<ShortcutActivator, NavAction>`; `build` сжимается до полутора десятков строк — и клавиатура наконец сводится к `NavAction`, как обещает `CLAUDE.md` |
 | 12 | 32 | `bloc/library/library_bloc.dart:359` `_onGameRemoved` | три удаления — тремя методами; «своё ли это» — одной проверкой |
 | 9 | 44 | `bloc/library/library_bloc.dart:306` `_onGameUpdated` | исчезает целиком (этап 1) |
-| 10 | 68 | `ui/library/portal_sparks.dart:136` `edgeAt` | таблица из восьми сегментов контура и один цикл; `advance` отдаёт рождение искр в `_emit`, `paint` делится на обод и искры |
+| ~~10~~ | ~~68~~ | ~~`ui/library/portal_sparks.dart:136` `edgeAt`~~ | сделано иначе, чем задумано: не таблица сегментов, а половина контура и поворот — вторая половина повторяет первую, и расходиться им негде. `advance` отдал рождение искр в `_emit` |
 | 11 | 29 | `ui/library/library_atmosphere.dart:89` `_tick` | общий шаг часов — один на три копии (этап 1, риски) |
 | 4 | 53 | `ui/library/scan_folder_dialog.dart:246` | три ветки с одним стилем: сначала вычислить текст, потом один `Text`; тернарники ради побочного эффекта (`:206–212`) → `toggle` в блоке |
 

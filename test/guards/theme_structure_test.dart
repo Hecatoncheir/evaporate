@@ -139,7 +139,7 @@ const _alphas = [
   'lib/ui/library/featured/playtime_readout.dart: 1',
   'lib/ui/library/effects/foil/foil_surface.dart: 2',
   'lib/ui/library/effects/library_atmosphere.dart: 2',
-  'lib/ui/library/effects/portal_sparks.dart: 1',
+  'lib/ui/library/effects/portal/portal_atlas.dart: 1',
   'lib/ui/widgets/progress_hatching.dart: 1',
   'lib/ui/widgets/pulse_dot.dart: 2',
 ];
