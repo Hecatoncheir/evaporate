@@ -198,10 +198,7 @@ class QueuedCard extends StatelessWidget {
               width: 24,
               child: Text(
                 '$position',
-                style: TextStyle(
-                  fontFamily: EvaporateTheme.monoFontFamily,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                style: context.text.figure.copyWith(
                   color: context.colors.primary,
                 ),
               ),
@@ -211,7 +208,7 @@ class QueuedCard extends StatelessWidget {
                 game?.title ?? task.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13.5),
+                style: context.text.body,
               ),
             ),
             Text(

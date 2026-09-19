@@ -24,13 +24,7 @@ class DetailHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SelectableText(
-                game.title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              SelectableText(game.title, style: context.text.pageTitle),
               if (game.description != null) ...[
                 const SizedBox(height: 8),
                 Text(

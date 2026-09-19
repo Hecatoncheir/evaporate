@@ -61,10 +61,8 @@ class ActionPanel extends StatelessWidget {
                   Expanded(
                     child: Text(
                       game.lastError!,
-                      style: TextStyle(
-                        fontSize: 12.5,
+                      style: context.text.warning.copyWith(
                         color: context.colors.danger,
-                        height: 1.4,
                       ),
                     ),
                   ),

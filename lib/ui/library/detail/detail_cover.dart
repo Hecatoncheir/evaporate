@@ -99,8 +99,7 @@ class CoverProgress extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 10.5,
+              style: context.text.tag.copyWith(
                 fontWeight: FontWeight.w700,
                 color: AppColors.coverText,
                 height: 1.2,

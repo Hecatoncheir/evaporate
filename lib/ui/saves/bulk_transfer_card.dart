@@ -66,8 +66,7 @@ class _BulkReportView extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 6, bottom: 2),
                 child: Text(
                   '${_title(L.of(context), outcome)} — ${report.count(outcome)}',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: context.text.caption.copyWith(
                     fontWeight: FontWeight.w600,
                     color: outcome == BulkOutcome.applied
                         ? context.colors.accent

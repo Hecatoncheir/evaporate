@@ -185,9 +185,7 @@ class DownloadActivity extends StatelessWidget {
                 ? l.fetchingMetadata
                 : '${formatBytes(task.completedBytes)} / '
                       '${formatBytes(task.totalBytes)}',
-            style: TextStyle(
-              color: context.colors.textSecondary,
-              fontSize: 12,
+            style: context.text.captionMuted.copyWith(
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
@@ -195,10 +193,9 @@ class DownloadActivity extends StatelessWidget {
         if (!indeterminate)
           Text(
             '${(task.progress * 100).round()}%',
-            style: const TextStyle(
-              fontSize: 13,
+            style: context.text.bodyStrong.copyWith(
               fontWeight: FontWeight.w700,
-              fontFeatures: [FontFeature.tabularFigures()],
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
       ],
@@ -233,14 +230,7 @@ class _Metric extends StatelessWidget {
             children: [
               Text(label.toUpperCase(), style: context.text.label),
               const SizedBox(height: 1),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontFamily: EvaporateTheme.monoFontFamily,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text(value, style: context.text.figure),
             ],
           ),
         ],

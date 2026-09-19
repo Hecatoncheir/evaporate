@@ -308,11 +308,7 @@ class _ProgressStrip extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.coverText,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-              ),
+              style: context.text.chip.copyWith(color: AppColors.coverText),
             ),
             const SizedBox(height: 4),
             ClipRRect(

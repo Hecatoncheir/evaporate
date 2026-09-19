@@ -112,32 +112,16 @@ void main() {
 const _isDark = <String>[];
 
 const _fontSize = [
-  'lib/ui/downloads/download_activity.dart: 3',
-  'lib/ui/downloads/engine_status.dart: 1',
-  'lib/ui/downloads/queue_column.dart: 2',
-  'lib/ui/downloads/task_card.dart: 1',
-  'lib/ui/library/detail/action_panel.dart: 1',
-  'lib/ui/library/detail/detail_cover.dart: 2',
-  'lib/ui/library/detail/detail_header.dart: 1',
-  'lib/ui/library/detail/rating_row.dart: 4',
-  'lib/ui/library/drop_overlay.dart: 1',
-  'lib/ui/library/featured_game.dart: 3',
-  'lib/ui/library/game_cover.dart: 2',
-  'lib/ui/library/saves/restore_dialog.dart: 3',
-  'lib/ui/library/saves/rule_dialog.dart: 1',
-  'lib/ui/library/saves/save_tag.dart: 1',
-  'lib/ui/library/saves/suggestions_dialog.dart: 1',
-  'lib/ui/library/saves/watched_folders.dart: 2',
-  'lib/ui/library/scan_folder_dialog.dart: 3',
-  'lib/ui/library/toolbar.dart: 2',
-  'lib/ui/saves/bulk_transfer_card.dart: 1',
-  'lib/ui/saves/snapshot_history.dart: 2',
-  'lib/ui/settings/gamepad_settings.dart: 1',
-  'lib/ui/settings/log_card.dart: 1',
-  'lib/ui/shell/navigation.dart: 2',
+  // Типографика картинки, а не роль: надписи поверх обложки и крупного
+  // кадра, знак приложения в верхней панели.
+  'lib/ui/library/detail/detail_cover.dart: 1',
+  'lib/ui/library/featured_game.dart: 2',
+  'lib/ui/library/game_cover.dart: 1',
   'lib/ui/shell/top_bar.dart: 1',
-  'lib/ui/widgets/button_hints.dart: 2',
-  'lib/ui/widgets/common.dart: 5',
+  // Ещё не сведены: клавиша обоймы (метка без моно — перевод на `label`
+  // заметно меняет облик и решается отдельно) и подпись подсказки геймпада.
+  'lib/ui/shell/navigation.dart: 1',
+  'lib/ui/widgets/button_hints.dart: 1',
 ];
 
 const _durations = [

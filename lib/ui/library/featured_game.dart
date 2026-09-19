@@ -153,9 +153,8 @@ class FeaturedGame extends StatelessWidget {
                   : L.of(context).featuredFallbackDescription,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: context.text.note.copyWith(
                 color: AppColors.heroBody,
-                fontSize: 12.5,
                 height: 1.4,
               ),
             ),

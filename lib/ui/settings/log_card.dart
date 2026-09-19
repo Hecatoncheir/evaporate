@@ -112,12 +112,7 @@ class _LogCardState extends State<LogCard> {
                     for (final line in lines.reversed)
                       SelectableText(
                         line,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.5,
-                          fontFamily: EvaporateTheme.monoFontFamily,
-                          color: context.colors.textSecondary,
-                        ),
+                        style: context.text.pathSmall.copyWith(height: 1.5),
                       ),
                   ],
                 ),

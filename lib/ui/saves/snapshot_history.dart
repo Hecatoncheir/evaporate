@@ -30,12 +30,7 @@ class SnapshotsCard extends StatelessWidget {
     icon: Icons.history,
     trailing: Text(
       '${entries.length}',
-      style: TextStyle(
-        color: context.colors.textSecondary,
-        fontFamily: EvaporateTheme.monoFontFamily,
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      ),
+      style: context.text.figure.copyWith(color: context.colors.textSecondary),
     ),
     child: entries.isEmpty
         ? Text(L.of(context).noSnapshotsYet, style: context.text.paragraph)
@@ -148,10 +143,7 @@ class _SnapshotRowState extends State<_SnapshotRow> {
           overflow: TextOverflow.ellipsis,
           // Моноширинный с табличными цифрами: иначе строка дёргалась бы
           // на каждом обновлении списка.
-          style: TextStyle(
-            fontSize: 11.5,
-            color: colors.textSecondary,
-            fontFamily: EvaporateTheme.monoFontFamily,
+          style: context.text.pathSmall.copyWith(
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),

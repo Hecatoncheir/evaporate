@@ -42,8 +42,7 @@ class RatingRow extends StatelessWidget {
         if (summary != null && summary.isNotEmpty)
           Text(
             summary,
-            style: TextStyle(
-              fontSize: 12.5,
+            style: context.text.note.copyWith(
               fontWeight: FontWeight.w600,
               color: verdict,
             ),
@@ -53,13 +52,7 @@ class RatingRow extends StatelessWidget {
             message: l.reviewsShare(rating.positiveShare),
             child: Text(
               '${rating.positiveShare}%',
-              style: TextStyle(
-                fontFamily: EvaporateTheme.monoFontFamily,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: verdict,
-              ),
+              style: context.text.figure.copyWith(color: verdict),
             ),
           ),
           _Count(
@@ -105,10 +98,8 @@ class _Count extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               formatCount(value),
-              style: TextStyle(
-                fontFamily: EvaporateTheme.monoFontFamily,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                fontSize: 12,
+              style: context.text.figure.copyWith(
+                fontWeight: FontWeight.w400,
                 color: color,
               ),
             ),
@@ -146,11 +137,7 @@ class _Metacritic extends StatelessWidget {
         ),
         child: Text(
           'Metacritic $score',
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: color,
-          ),
+          style: context.text.chip.copyWith(color: color),
         ),
       ),
     );

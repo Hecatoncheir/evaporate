@@ -269,11 +269,9 @@ class _QueueBadge extends StatelessWidget {
       ),
       child: Text(
         '$count',
-        style: TextStyle(
+        style: context.text.label.copyWith(
           color: selected ? colors.selection : colors.onPrimary,
-          fontFamily: EvaporateTheme.monoFontFamily,
-          fontSize: 9.5,
-          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
         ),
       ),
     );

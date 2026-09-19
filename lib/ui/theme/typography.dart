@@ -94,6 +94,49 @@ class EvaporateTypography {
     fontFamily: EvaporateTheme.monoFontFamily,
     color: _colors.textSecondary,
   );
+
+  /// Путь во второй строке плотного списка и строки журнала.
+  TextStyle get pathSmall => path.copyWith(fontSize: 11.5);
+
+  /// Пояснение основным кеглем, абзацем: текст диалога, а не подпись к
+  /// органу. Цвет наследует — это то, что человек читает, а не оглядывает.
+  TextStyle get prose => const TextStyle(fontSize: 13, height: 1.5);
+
+  /// Число в строке: размер, счётчик, доля. Моно с табличными цифрами, но
+  /// кеглем строки, а не показания.
+  TextStyle get figure => const TextStyle(
+    fontFamily: EvaporateTheme.monoFontFamily,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  /// Надпись на плашке: состояние, оценка, исход переноса.
+  TextStyle get chip =>
+      const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600);
+
+  /// Самое мелкое: метка правила, подпись клавиши геймпада.
+  TextStyle get tag => const TextStyle(fontSize: 10.5, height: 1.3);
+
+  /// Надпись на главной клавише — широким шрифтом корпуса.
+  TextStyle get keycap => const TextStyle(
+    fontFamily: EvaporateTheme.displayFontFamily,
+    fontSize: 13,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.3,
+  );
+
+  /// Заголовок диалога и крупной заслонки.
+  TextStyle get title =>
+      const TextStyle(fontSize: 17, fontWeight: FontWeight.w600);
+
+  /// Заголовок карточки: имя задачи, раздел внутри карточки.
+  TextStyle get subtitle =>
+      const TextStyle(fontSize: 15, fontWeight: FontWeight.w600);
+
+  /// Заголовок страницы игры.
+  TextStyle get pageTitle =>
+      const TextStyle(fontSize: 24, fontWeight: FontWeight.w700);
 }
 
 /// Короткий доступ к ролям текста: `context.text.caption`.

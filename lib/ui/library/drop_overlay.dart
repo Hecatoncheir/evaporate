@@ -29,9 +29,7 @@ class DropOverlay extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 l.dropRelease,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
+                style: context.text.title.copyWith(
                   color: context.colors.textPrimary,
                 ),
               ),

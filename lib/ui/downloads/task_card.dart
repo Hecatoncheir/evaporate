@@ -88,7 +88,7 @@ class TaskCard extends StatelessWidget {
             game?.title ?? task.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+            style: context.text.subtitle,
           ),
         ),
         // Названия релизов длинные и обрезаются по месту: без просвета

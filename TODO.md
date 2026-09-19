@@ -537,7 +537,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `palette.dart`, `typography.dart`, `motion.dart`, `shape.dart`,
   `evaporate_theme.dart` (сборка), `decor_colors.dart` (бывший `AppColors`).
   `theme.dart` остаётся бочкой с экспортами — импорты не меняются. **S**
-- [ ] **`EvaporateTypography`** — `ThemeExtension`, собирается из палитры,
+- [x] **`EvaporateTypography`** — `ThemeExtension`, собирается из палитры,
   чтобы роль несла и цвет по умолчанию; доступ `context.text.caption`.
   Роли вывести из фактического употребления: `body` 13, `bodyMuted`,
   `bodyStrong` 13/w600, `note` 12.5 muted, `caption` 12 muted, `label` 11.5,
@@ -573,10 +573,12 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
     моно выбиваются `download_activity.dart:236` и `navigation.dart:227`;
   - стиль текста `SegmentedButton` скопирован четырежды (`pickers.dart:41,100,154`,
     `effects_card.dart:82`) — ему место в `segmentedButtonTheme` (`theme.dart:211`).
-  *Частично:* роли заведены (`context.text`, производные от палитры, а не
-  `ThemeExtension` — при смене схемы идут за смешанной палитрой сами), 90
-  из 168 кеглей по месту переведены на них; осталось 78 необычных
-  сочетаний (моно-метки, показания, заголовки) — им нужны свои роли.
+  *Сделано:* роли заведены (`context.text`, производные от палитры, а не
+  `ThemeExtension` — при смене схемы идут за смешанной палитрой сами),
+  из 168 кеглей по месту осталось семь. Пять из них — типографика
+  картинки (надписи на обложке и крупном кадре, знак приложения). Два
+  ещё не сведены: клавиша обоймы — метка без моно, и перевод на `label`
+  заметно меняет облик 💬; подпись подсказки геймпада.
 - [x] Темы компонентов (по образцу из §2), в порядке числа ветвлений:
   `GlassSurface` (6) → `SpatialBackdrop` и `HardwareGrille` →
   `LauncherActionButton` → `AmbientLight` → `ReadoutPanel`, `SectionCard`,

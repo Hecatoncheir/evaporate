@@ -55,11 +55,7 @@ class EngineStatusChip extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-              ),
+              style: context.text.chip.copyWith(color: color),
             ),
           ),
         ],

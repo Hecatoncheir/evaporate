@@ -141,13 +141,7 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
       const SizedBox(width: 8),
       Text(
         widget.label,
-        style: TextStyle(
-          color: colors.onPrimary,
-          fontFamily: EvaporateTheme.displayFontFamily,
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.3,
-        ),
+        style: context.text.keycap.copyWith(color: colors.onPrimary),
       ),
     ],
   );
@@ -229,10 +223,9 @@ class StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontSize: compact ? 11 : 12,
+        style: (compact ? context.text.chip : context.text.caption).copyWith(
           fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );
@@ -271,15 +264,7 @@ class SectionCard extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
 
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                Expanded(child: Text(title, style: context.text.subtitle)),
                 ?trailing,
               ],
             ),
@@ -316,11 +301,7 @@ class EmptyState extends StatelessWidget {
           children: [
             Icon(icon, size: 46, color: context.colors.accent),
             const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-            ),
+            Text(title, textAlign: TextAlign.center, style: context.text.title),
             if (description != null) ...[
               const SizedBox(height: 8),
               ConstrainedBox(
@@ -374,8 +355,7 @@ class InfoRow extends StatelessWidget {
           Expanded(
             child: SelectableText(
               value,
-              style: TextStyle(
-                fontSize: 13,
+              style: context.text.body.copyWith(
                 color: valueColor,
                 fontFamily: monospace ? EvaporateTheme.monoFontFamily : null,
               ),

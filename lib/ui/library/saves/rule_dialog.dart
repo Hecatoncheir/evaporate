@@ -89,9 +89,8 @@ class _RuleDialogState extends State<RuleDialog> {
             TextField(
               controller: _templateController,
               onChanged: (_) => setState(() {}),
-              style: const TextStyle(
-                fontFamily: EvaporateTheme.monoFontFamily,
-                fontSize: 13,
+              style: context.text.path.copyWith(
+                color: context.colors.textPrimary,
               ),
               decoration: InputDecoration(labelText: l.pathTemplate),
             ),

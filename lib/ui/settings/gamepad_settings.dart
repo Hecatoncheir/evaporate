@@ -259,7 +259,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
             const SizedBox(height: 14),
             Text(
               L.of(context).pressAnyButton,
-              style: const TextStyle(fontSize: 13, height: 1.5),
+              style: context.text.prose,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),

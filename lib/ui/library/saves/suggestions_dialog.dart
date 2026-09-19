@@ -20,14 +20,7 @@ class SuggestionsDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              L.of(context).foundByTitleNote,
-              style: TextStyle(
-                fontSize: 13,
-                color: context.colors.textSecondary,
-                height: 1.4,
-              ),
-            ),
+            Text(L.of(context).foundByTitleNote, style: context.text.paragraph),
             const SizedBox(height: 12),
             Flexible(
               child: ListView.builder(

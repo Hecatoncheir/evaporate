@@ -99,8 +99,7 @@ class _HintChip extends StatelessWidget {
           ),
           child: Text(
             glyph,
-            style: TextStyle(
-              fontSize: 10.5,
+            style: context.text.tag.copyWith(
               fontWeight: FontWeight.w600,
               color: context.colors.textPrimary,
             ),

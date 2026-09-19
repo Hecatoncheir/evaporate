@@ -76,7 +76,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
                 widget.snapshot.deviceName,
                 platformLabel(widget.snapshot.platform),
               ),
-              style: const TextStyle(fontSize: 13, height: 1.5),
+              style: context.text.prose,
             ),
             _localFreshness(),
             const SizedBox(height: 14),
@@ -123,12 +123,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
             const SizedBox(height: 4),
             Text(
               l.localNewerWarning,
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-                color: context.colors.warning,
-              ),
+              style: context.text.warning.copyWith(fontWeight: FontWeight.w600),
             ),
           ],
         ],
@@ -140,16 +135,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
   /// прямо: погасшая клавиша без слова выглядела бы поломкой.
   List<Widget> _targetList(BuildContext context, Map<String, String> targets) {
     if (targets.isEmpty) {
-      return [
-        Text(
-          L.of(context).noTargetFolders,
-          style: TextStyle(
-            fontSize: 12.5,
-            color: context.colors.warning,
-            height: 1.4,
-          ),
-        ),
-      ];
+      return [Text(L.of(context).noTargetFolders, style: context.text.warning)];
     }
     return [
       for (final entry in targets.entries)

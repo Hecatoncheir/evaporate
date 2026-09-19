@@ -213,16 +213,12 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
               }
             }),
             contentPadding: EdgeInsets.zero,
-            title: Text(game.title, style: const TextStyle(fontSize: 13.5)),
+            title: Text(game.title, style: context.text.body),
             subtitle: Text(
               game.executablePath,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontFamily: EvaporateTheme.monoFontFamily,
-                color: context.colors.textSecondary,
-              ),
+              style: context.text.pathSmall,
             ),
           );
         },
@@ -273,14 +269,7 @@ class _Progress extends StatelessWidget {
             ],
           ),
         ] else if (!session.isComplete && session.found.isNotEmpty)
-          Text(
-            l.scanStopped,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.4,
-              color: context.colors.textSecondary,
-            ),
-          )
+          Text(l.scanStopped, style: context.text.paragraph)
         else
           Text(
             l.scanFoundCount(session.found.length),

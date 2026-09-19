@@ -47,14 +47,7 @@ class WatchedFolders extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            l.watchedFoldersNote,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.45,
-              color: colors.textSecondary,
-            ),
-          ),
+          Text(l.watchedFoldersNote, style: context.text.paragraph),
           const SizedBox(height: 10),
           for (final hint in hints) _hintRow(context, hint),
           _footer(context, hints),
@@ -78,9 +71,8 @@ class WatchedFolders extends StatelessWidget {
                   hint.template,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: EvaporateTheme.monoFontFamily,
-                    fontSize: 12,
+                  style: context.text.path.copyWith(
+                    color: context.colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),

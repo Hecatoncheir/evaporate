@@ -16,10 +16,7 @@ class SaveTag extends StatelessWidget {
         color: color.withValues(alpha: EvaporateAlpha.subtle),
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
       ),
-      child: Text(
-        text,
-        style: TextStyle(fontSize: 10.5, color: color, height: 1.3),
-      ),
+      child: Text(text, style: context.text.tag.copyWith(color: color)),
     );
   }
 }

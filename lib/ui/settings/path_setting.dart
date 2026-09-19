@@ -25,6 +25,7 @@ class PathSetting extends StatelessWidget {
           width: EvaporateLayout.settingLabelWidth,
           child: Text(label, style: context.text.body),
         ),
+        Expanded(child: SelectableText(value, style: context.text.path)),
         TextButton(onPressed: onPick, child: Text(L.of(context).change)),
         if (onClear != null)
           IconButton(

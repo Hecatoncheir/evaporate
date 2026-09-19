@@ -332,8 +332,7 @@ class ShelfButton extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 13,
+                style: context.text.body.copyWith(
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   letterSpacing: 0.2,
                 ),
@@ -341,8 +340,7 @@ class ShelfButton extends StatelessWidget {
               const SizedBox(width: 7),
               Text(
                 '$count',
-                style: const TextStyle(
-                  fontSize: 12,
+                style: context.text.caption.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
