@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../theme.dart';
-import '../widgets/liquid_selection.dart';
+import '../widgets/liquid/liquid_selection_ink.dart';
 import 'queue_badge.dart';
 import 'rack_fit.dart';
 

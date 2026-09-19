@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme.dart';
-import '../../widgets/liquid_selection.dart';
+import '../../widgets/liquid/liquid_selection.dart';
 import '../shelf.dart';
 import '../toolbar/shelf_button.dart';
 import 'toolbar_well.dart';

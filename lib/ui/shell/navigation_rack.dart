@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
 import '../theme.dart';
-import '../widgets/liquid_selection.dart';
+import '../widgets/liquid/liquid_selection.dart';
 import 'navigation_key.dart';
 import 'rack_fit.dart';
 

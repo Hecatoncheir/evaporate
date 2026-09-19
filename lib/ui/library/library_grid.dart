@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../theme.dart';
-import '../widgets/liquid_selection.dart';
+import '../widgets/liquid/liquid_selection.dart';
 import 'library_grid_controller.dart';
 import 'library_grid_tile.dart';
 

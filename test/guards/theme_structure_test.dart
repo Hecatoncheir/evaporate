@@ -126,7 +126,7 @@ const _fontSize = [
 
 const _durations = [
   'lib/ui/widgets/animated_progress.dart: 1',
-  'lib/ui/widgets/liquid_selection.dart: 1',
+  'lib/ui/widgets/liquid/liquid_selection.dart: 1',
   'lib/ui/widgets/rise_in.dart: 1',
 ];
 
