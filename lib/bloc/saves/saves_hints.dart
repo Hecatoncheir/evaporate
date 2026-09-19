@@ -43,17 +43,14 @@ extension _SavesHints on SavesBloc {
     final current = library.state.gameById(event.game.id);
     if (current == null || event.suggestions.isEmpty) return;
 
-    final existing = current.saveProfile.rules.map((r) => r.template).toSet();
-    final templates = [
-      for (final item in event.suggestions)
-        if (!existing.contains(item.template)) item.template,
-    ];
-    if (templates.isEmpty) {
+    final added = current.saveProfile.rulesForNewPaths([
+      for (final item in event.suggestions) item.template,
+    ]);
+    if (added.isEmpty) {
       emit(state.copyWith(saveHints: _withoutHints(current.id)));
       return;
     }
 
-    final added = _rulesFor(existing, templates);
     _updateGame(
       current.copyWith(
         saveProfile: current.saveProfile.copyWith(
@@ -75,26 +72,6 @@ extension _SavesHints on SavesBloc {
     SaveHintsDismissed event,
     Emitter<SavesState> emit,
   ) => emit(state.copyWith(saveHints: _withoutHints(event.gameId)));
-}
-
-/// Правила для путей, добавляемых к уже заданным.
-///
-/// Метки считает по всему набору сразу, а не по одним новым: по метке
-/// правила сопоставляются между устройствами, и совпавшая метка склеила бы
-/// разные сейвы. Три обработчика добавляют пути из разных источников —
-/// сохранённого манифеста, подсказок после игры и ручного поиска, — и
-/// расходиться в этом им нельзя.
-List<SavePathRule> _rulesFor(Iterable<String> existing, List<String> added) {
-  final before = existing.toList();
-  final labels = SavePathRule.labelsFor([...before, ...added]);
-  return [
-    for (var i = 0; i < added.length; i++)
-      SavePathRule(
-        id: const Uuid().v4(),
-        label: labels[before.length + i],
-        template: added[i],
-      ),
-  ];
 }
 
 /// Отсеивает то, что уже покрыто заданными правилами: подсказывать

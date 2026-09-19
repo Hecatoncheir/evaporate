@@ -233,6 +233,49 @@ Hollow Knight:
     expect(state.notice!.message, contains('уже заданы'));
   });
 
+  // Метки считались по одним найденным путям: единственный найденный
+  // получал метку по умолчанию, уже занятую первым правилом. На другом
+  // устройстве перенос от двоякой метки честно отказывается — и игра
+  // переставала переноситься вовсе.
+  test('найденный путь не берёт метку уже заданного правила', () async {
+    final bloc = blocWith('''
+Hollow Knight:
+  files:
+    <home>/ИзМанифеста:
+      tags:
+        - save
+''');
+
+    final added = await addGame(bloc, 'Hollow Knight');
+    bloc.add(
+      GameUpdated(
+        added.copyWith(
+          saveProfile: const SaveProfile(
+            rules: [
+              SavePathRule(
+                id: 'своё',
+                label: SavePathRule.defaultLabel,
+                template: '{HOME}/Своё',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final game = (await waitFor(
+      bloc,
+      (s) => s.gameById(added.id)!.saveProfile.rules.isNotEmpty,
+    )).gameById(added.id)!;
+    final state = await lookup(bloc, game);
+
+    final labels = [
+      for (final rule in state.gameById(game.id)!.saveProfile.rules)
+        rule.label.toLowerCase(),
+    ];
+    expect(labels, hasLength(2));
+    expect(labels.toSet(), hasLength(2), reason: '$labels');
+  });
+
   test('шаблон без папки игры не разворачивается в мусор', () {
     const rule = SavePathRule(
       id: 'r1',

@@ -20,10 +20,15 @@ class RuleDialog extends StatefulWidget {
     required this.template,
     required this.label,
     required this.gameDir,
+    this.profile = const SaveProfile(),
   });
 
   final String template;
   final String label;
+
+  /// Уже заданные правила игры: метка нового не должна совпасть ни с одной
+  /// из них — по метке правила сходятся между устройствами.
+  final SaveProfile profile;
 
   /// Папка игры для `{GAME}` — без неё предпросмотр показал бы шаблон
   /// вместо пути.
@@ -49,6 +54,14 @@ class _RuleDialogState extends State<RuleDialog> {
   Widget build(BuildContext context) {
     final l = L.of(context);
     final template = _templateController.text;
+    final draft = _draft();
+    final labelTaken = widget.profile.labelTaken(
+      draft.label,
+      platform: draft.currentPlatformOnly ? currentPlatformKey() : null,
+    );
+    // Пустой шаблон развернулся бы в рабочую папку процесса, а занятая
+    // метка сделала бы оба правила непереносимыми.
+    final canSave = draft.template.isNotEmpty && !labelTaken;
 
     return AlertDialog(
       title: Text(l.savePath),
@@ -60,9 +73,12 @@ class _RuleDialogState extends State<RuleDialog> {
           children: [
             TextField(
               controller: _labelController,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 labelText: l.label,
                 helperText: l.labelNote,
+                errorText: labelTaken ? l.labelTaken : null,
+                errorMaxLines: 2,
               ),
             ),
             const SizedBox(height: 16),
@@ -117,7 +133,7 @@ class _RuleDialogState extends State<RuleDialog> {
           child: Text(l.cancel),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, _draft()),
+          onPressed: canSave ? () => Navigator.pop(context, draft) : null,
           child: Text(l.save),
         ),
       ],

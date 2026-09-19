@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
-import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
 import '../../core/format.dart';

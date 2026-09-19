@@ -30,7 +30,10 @@ extension _SavesSnapshots on SavesBloc {
         ...expanded,
       }.toList(),
       saveProfile: current.saveProfile.copyWith(
-        rules: [...current.saveProfile.rules, ..._rulesFor(existing, added)],
+        rules: [
+          ...current.saveProfile.rules,
+          ...current.saveProfile.rulesForNewPaths(added),
+        ],
       ),
     );
     return _updateGame(updated);

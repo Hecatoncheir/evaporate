@@ -407,7 +407,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   Отправители: `downloads_bloc.dart` (12), `saves_bloc.dart:203`,
   `saves_section.dart:218,231`, `files_section.dart:69,122`,
   `action_panel.dart:222`, `auto_snapshot_toggle.dart:24`. **M**
-- [ ] **Пустой шаблон правила разворачивается в рабочую папку процесса.**
+- [x] **Пустой шаблон правила разворачивается в рабочую папку процесса.**
   «Сохранить» в `RuleDialog` активна всегда (`rule_dialog.dart:119–122`),
   `_draft()` шаблон только обрезает. `SavePathTemplate.expand('')` отдаёт
   `p.normalize('')`, то есть `.` (`save_path_template.dart:105`), а
@@ -416,7 +416,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   заберёт рабочую папку приложения, а восстановление с очисткой цели —
   очистит её. Лечение: `resolve` возвращает `null` для пустого и
   относительного результата; клавиша гаснет на пустом шаблоне; тест на оба. **S**
-- [ ] **Четвёртый путь добавления правил считает метки не так, как три
+- [x] **Четвёртый путь добавления правил считает метки не так, как три
   остальных.** `saves_hints.dart:87` `_rulesFor` считает метки по всему
   набору правил, и комментарий там же требует, чтобы источники в этом не
   расходились. Но поиск по базе в `LibraryBloc`

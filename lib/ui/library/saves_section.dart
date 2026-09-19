@@ -203,8 +203,14 @@ class SavePathsSection extends StatelessWidget {
       context: context,
       builder: (_) => RuleDialog(
         template: template,
-        label: label ?? SavePathRule.defaultLabel,
+        // Свободная метка — та же, что дали бы найденному пути: иначе
+        // второе правило игры открывалось бы с уже занятой.
+        label:
+            label ??
+            game.saveProfile.rulesForNewPaths([template]).firstOrNull?.label ??
+            SavePathRule.defaultLabel,
         gameDir: game.installDir,
+        profile: game.saveProfile,
       ),
     );
     if (result == null) return;

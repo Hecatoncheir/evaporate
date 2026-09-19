@@ -538,7 +538,8 @@ extension _LibraryMetadata on LibraryBloc {
         return;
       }
 
-      final added = _newRulesFor(current, found);
+      // Уже заданные пути не трогаем: пользователь мог поправить их под себя.
+      final added = current.saveProfile.rulesForNewPaths(found.templates);
       final games = [...state.games];
       games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
         ludusaviTemplates: found.sourceTemplates,
@@ -567,21 +568,6 @@ extension _LibraryMetadata on LibraryBloc {
     }
   }
 
-  /// Правила для путей, которых в профиле ещё нет. Уже заданные не
-  /// трогаем: пользователь мог поправить путь под себя.
-  List<SavePathRule> _newRulesFor(Game game, _FoundPaths found) {
-    final existing = game.saveProfile.rules.map((r) => r.template).toSet();
-    return [
-      for (final template in found.templates)
-        if (!existing.contains(template))
-          SavePathRule(
-            id: const Uuid().v4(),
-            label: found.labelFor(template),
-            template: template,
-          ),
-    ];
-  }
-
   /// Что сказать человеку о найденных путях.
   String _foundPathsMessage(_FoundPaths found, int added) {
     if (found.isEmpty) return _l.noticePathsNothingFound;
@@ -608,10 +594,6 @@ class _FoundPaths {
   final List<String> registryKeys;
 
   bool get isEmpty => templates.isEmpty;
-
-  late final List<String> _labels = SavePathRule.labelsFor(templates);
-
-  String labelFor(String template) => _labels[templates.indexOf(template)];
 
   String describe(L l, int added) {
     final message = l.noticePathsAdded(l.sourceDatabase, added, title);

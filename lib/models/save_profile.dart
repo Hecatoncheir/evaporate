@@ -1,4 +1,5 @@
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 import '../core/format.dart';
 import '../core/save_path_template.dart';
@@ -93,9 +94,15 @@ class SavePathRule {
   /// папки игры, а та неизвестна — игра не установлена. Пустой строкой или
   /// путём с `{GAME}` внутри возвращать нельзя: такой путь молча не нашёлся
   /// бы, и снимок вышел бы неполным без единого слова об этом.
+  ///
+  /// Так же `null` и для пустого шаблона и для относительного пути: они
+  /// разворачиваются относительно рабочей папки процесса (пустой — в `.`),
+  /// и снимок унёс бы её, а восстановление с очисткой цели — очистило бы.
   String? resolve({String? gameDir}) {
+    if (template.trim().isEmpty) return null;
     if (needsGameDir && (gameDir == null || gameDir.isEmpty)) return null;
-    return SavePathTemplate.expand(template, gameDir: gameDir);
+    final resolved = SavePathTemplate.expand(template, gameDir: gameDir);
+    return p.isAbsolute(resolved) ? resolved : null;
   }
 
   SavePathRule copyWith({
@@ -165,6 +172,63 @@ class SaveProfile {
 
   List<SavePathRule> get rulesForCurrentPlatform =>
       rules.where((r) => r.appliesToCurrentPlatform()).toList();
+
+  /// Занята ли метка правилом, которое действует на тех же системах.
+  ///
+  /// Сравнение то же, что при сопоставлении снимка с правилом, — без
+  /// регистра и пробелов по краям: на другом устройстве две такие метки
+  /// оказались бы неразличимы, и перенос отказался бы от обеих. Правила
+  /// разных систем метку делят законно — ради этого она и существует.
+  bool labelTaken(String label, {String? platform}) {
+    final wanted = _labelKey(label);
+    return rules.any(
+      (rule) =>
+          _labelKey(rule.label) == wanted &&
+          (rule.platform == null ||
+              platform == null ||
+              rule.platform == platform),
+    );
+  }
+
+  /// Правила для путей, добавляемых к уже заданным; уже заданные шаблоны
+  /// пропускаются.
+  ///
+  /// Единственное место, где новым правилам дают метки, — путей добавления
+  /// несколько (база путей, манифест, подсказки после игры, ручной поиск), и
+  /// разойтись им нельзя. Метки считаются по всему набору шаблонов сразу, а
+  /// не по одним новым: иначе единственный найденный путь получил бы метку
+  /// по умолчанию, уже занятую первым правилом. А поверх этого метка
+  /// сверяется с уже заданными — их человек мог переименовать как угодно.
+  List<SavePathRule> rulesForNewPaths(List<String> templates) {
+    final before = [for (final rule in rules) rule.template];
+    final added = [
+      for (final template in {...templates})
+        if (!before.contains(template)) template,
+    ];
+    final labels = SavePathRule.labelsFor([...before, ...added]);
+    final taken = {for (final rule in rules) _labelKey(rule.label)};
+    return [
+      for (var i = 0; i < added.length; i++)
+        SavePathRule(
+          id: const Uuid().v4(),
+          label: _freeLabel(labels[before.length + i], taken),
+          template: added[i],
+        ),
+    ];
+  }
+
+  /// Метка, не совпадающая ни с одной из [taken]; найденная сразу
+  /// заносится туда же, чтобы следующая новая не взяла её повторно.
+  static String _freeLabel(String label, Set<String> taken) {
+    var candidate = label;
+    for (var n = 2; taken.contains(_labelKey(candidate)); n++) {
+      candidate = '$label $n';
+    }
+    taken.add(_labelKey(candidate));
+    return candidate;
+  }
+
+  static String _labelKey(String label) => label.trim().toLowerCase();
 
   SaveProfile copyWith({
     List<SavePathRule>? rules,

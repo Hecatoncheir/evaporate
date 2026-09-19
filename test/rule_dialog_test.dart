@@ -1,5 +1,6 @@
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/l10n/app_localizations_en.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/ui/library/saves/rule_dialog.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,8 @@ void main() {
     WidgetTester tester, {
     required Locale locale,
     required String label,
+    String template = r'{APPSUPPORT}/Игра/Saves',
+    SaveProfile profile = const SaveProfile(),
   }) async {
     RuleDraft? result;
     await tester.pumpWidget(
@@ -25,10 +28,11 @@ void main() {
           builder: (context) => TextButton(
             onPressed: () async => result = await showDialog<RuleDraft>(
               context: context,
-              builder: (_) => const RuleDialog(
-                template: r'{APPSUPPORT}/Игра/Saves',
+              builder: (_) => RuleDialog(
+                template: template,
                 label: 'Прежняя метка',
                 gameDir: null,
+                profile: profile,
               ),
             ),
             child: const Text('открыть'),
@@ -87,5 +91,76 @@ void main() {
     );
 
     expect(draft!.label, 'Профиль игрока');
+  });
+
+  // Пустой шаблон разворачивается в рабочую папку процесса: снимок унёс
+  // бы её, а восстановление с очисткой — очистило бы.
+  testWidgets('пустой шаблон сохранить нельзя', (tester) async {
+    final draft = await draftFrom(
+      tester,
+      locale: const Locale('ru'),
+      label: 'Метка',
+      template: '   ',
+    );
+
+    expect(draft, isNull);
+  });
+
+  // На другом устройстве две одинаковые метки неразличимы, и перенос
+  // отказался бы от обоих правил.
+  testWidgets('метку, занятую другим правилом, сохранить нельзя', (
+    tester,
+  ) async {
+    const profile = SaveProfile(
+      rules: [SavePathRule(id: 'a', label: 'Профиль', template: '{HOME}/a')],
+    );
+
+    final draft = await draftFrom(
+      tester,
+      locale: const Locale('ru'),
+      label: ' профиль ',
+      profile: profile,
+    );
+
+    expect(draft, isNull);
+    expect(find.text(LRu().labelTaken), findsOneWidget);
+  });
+
+  testWidgets('пустая метка занята, если занята метка по умолчанию', (
+    tester,
+  ) async {
+    const profile = SaveProfile(
+      rules: [
+        SavePathRule(
+          id: 'a',
+          label: SavePathRule.defaultLabel,
+          template: '{HOME}/a',
+        ),
+      ],
+    );
+
+    final draft = await draftFrom(
+      tester,
+      locale: const Locale('ru'),
+      label: '',
+      profile: profile,
+    );
+
+    expect(draft, isNull);
+  });
+
+  testWidgets('свободную метку сохраняют', (tester) async {
+    const profile = SaveProfile(
+      rules: [SavePathRule(id: 'a', label: 'Профиль', template: '{HOME}/a')],
+    );
+
+    final draft = await draftFrom(
+      tester,
+      locale: const Locale('ru'),
+      label: 'Настройки',
+      profile: profile,
+    );
+
+    expect(draft!.label, 'Настройки');
   });
 }

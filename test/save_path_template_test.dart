@@ -125,6 +125,96 @@ void main() {
     });
   });
 
+  group('метки новых правил', () {
+    const own = SavePathRule(
+      id: 'own',
+      label: SavePathRule.defaultLabel,
+      template: '{HOME}/Своё',
+    );
+
+    test('единственный новый путь не берёт метку заданного правила', () {
+      const profile = SaveProfile(rules: [own]);
+
+      final added = profile.rulesForNewPaths(['{HOME}/Найденное/Saves']);
+
+      expect(added, hasLength(1));
+      expect(profile.labelTaken(added.single.label), isFalse);
+    });
+
+    test('метка, которую человек дал сам, тоже занята', () {
+      const profile = SaveProfile(
+        rules: [SavePathRule(id: 'x', label: ' SAVES ', template: '{HOME}/a')],
+      );
+
+      final added = profile.rulesForNewPaths(['{HOME}/b/saves']);
+
+      expect(added.single.label.trim().toLowerCase(), isNot('saves'));
+    });
+
+    test('уже заданный шаблон и повтор в списке правилом не становятся', () {
+      const profile = SaveProfile(rules: [own]);
+
+      final added = profile.rulesForNewPaths([
+        own.template,
+        '{HOME}/b',
+        '{HOME}/b',
+      ]);
+
+      expect([for (final rule in added) rule.template], ['{HOME}/b']);
+    });
+
+    // Ради этого метка и существует: одна игра, разные пути на разных
+    // системах, и снимок с одной ложится в путь на другой.
+    test('правила разных систем делят метку законно', () {
+      const profile = SaveProfile(
+        rules: [
+          SavePathRule(
+            id: 'w',
+            label: SavePathRule.defaultLabel,
+            template: '{HOME}/w',
+            platform: 'windows',
+          ),
+        ],
+      );
+
+      expect(
+        profile.labelTaken(SavePathRule.defaultLabel, platform: 'macos'),
+        isFalse,
+      );
+      expect(
+        profile.labelTaken(SavePathRule.defaultLabel, platform: 'windows'),
+        isTrue,
+      );
+      expect(profile.labelTaken(SavePathRule.defaultLabel), isTrue);
+    });
+  });
+
+  // Пустой шаблон разворачивается в `.`, то есть в рабочую папку процесса:
+  // снимок унёс бы её целиком, а восстановление с очисткой цели — очистило
+  // бы. Относительный путь опасен тем же, только глубже.
+  group('правило без абсолютного пути', () {
+    SavePathRule rule(String template) =>
+        SavePathRule(id: 'r', label: 'Сохранения', template: template);
+
+    test('пустой шаблон никуда не разворачивается', () {
+      expect(rule('').resolve(), isNull);
+      expect(rule('').resolve(gameDir: p.join('/opt', 'hk')), isNull);
+      expect(rule('  ').resolve(), isNull);
+    });
+
+    test('относительный путь никуда не разворачивается', () {
+      expect(rule('Saves').resolve(), isNull);
+      expect(rule('../Saves').resolve(), isNull);
+    });
+
+    test('шаблон с корнем разворачивается как прежде', () {
+      expect(
+        rule('{GAME}/saves').resolve(gameDir: p.join('/opt', 'hk')),
+        p.normalize(p.join('/opt', 'hk', 'saves')),
+      );
+    });
+  });
+
   group('метки для набора путей', () {
     test('единственному пути — метка по умолчанию', () {
       expect(SavePathRule.labelsFor(['{HOME}/saves']), [

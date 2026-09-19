@@ -232,6 +232,7 @@
   "kilobytesPerSecond": "KB/s",
   "label": "Label",
   "labelNote": "Paths are matched between machines by label",
+  "labelTaken": "Another path already has this label — another machine could not tell them apart",
   "language": "Language",
   "languageEnglish": "English",
   "languageRussian": "Русский",

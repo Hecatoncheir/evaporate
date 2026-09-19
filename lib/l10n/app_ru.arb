@@ -902,6 +902,7 @@
   "kilobytesPerSecond": "КБ/с",
   "label": "Метка",
   "labelNote": "По метке пути сопоставляются между устройствами",
+  "labelTaken": "Эта метка уже есть у другого пути — на другом устройстве их не различить",
   "language": "Язык",
   "languageEnglish": "English",
   "languageRussian": "Русский",
