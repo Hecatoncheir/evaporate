@@ -820,11 +820,22 @@ void main() {
           ),
         );
 
-    /// Сколько файлов лежит в хранилище содержимого.
+    /// Сколько содержимого лежит в хранилище.
+    ///
+    /// Считаются файлы с именем-хешем, а не все подряд: на Windows сторонний
+    /// фильтр файловой системы (антивирус) на миг кладёт рядом с удаляемым
+    /// файлом свой `<ХЕШ>.tmp` и сам же его убирает. Попавшись в обход, он
+    /// выглядел остатком, который уборка не вынесла, хотя наше удаление
+    /// каждый раз проходило успешно.
     int blobsOnDisk() {
       final dir = Directory(paths.blobsDir);
       if (!dir.existsSync()) return 0;
-      return dir.listSync(recursive: true).whereType<File>().length;
+      final hash = RegExp(r'^[0-9a-f]{64}$');
+      return dir
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((file) => hash.hasMatch(p.basename(file.path)))
+          .length;
     }
 
     // Двадцать снимков одной игры — это двадцать полных копий её сейвов,

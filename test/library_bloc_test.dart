@@ -9,6 +9,7 @@ import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/launch/game_launcher.dart';
+import 'package:evaporate/services/system/autostart.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -20,13 +21,27 @@ void main() {
   late LibraryBloc library;
   late SavesBloc saves;
 
+  // Загрузка настроек спрашивает систему, включён ли автозапуск. Настоящий
+  // `Autostart` на Windows ради этого запускает `reg query` по реестру
+  // человека: под нагрузкой полного прогона один запуск процесса уходил за
+  // секунду, а ответ зависел от того, чья это машина. Linux-вариант с домом
+  // во временной папке отвечает «выключен», ничего не запуская.
+  SettingsBloc settingsBloc() => SettingsBloc(
+    paths,
+    autostart: Autostart(
+      operatingSystem: 'linux',
+      homeDir: tmp.path,
+      environment: const {},
+    ),
+  );
+
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_bloc_');
     paths = AppPaths.custom(
       dataDir: p.join(tmp.path, 'data'),
       defaultInstallDir: p.join(tmp.path, 'games'),
     );
-    settings = SettingsBloc(paths);
+    settings = settingsBloc();
     library = LibraryBloc(
       automaticMetadata: false,
       paths: paths,
@@ -160,7 +175,8 @@ void main() {
 
   test('загрузка настроек завершается и без изменения значений', () async {
     settings.add(const SettingsLoadRequested());
-    await settings.loaded.timeout(const Duration(seconds: 1));
+    // Предел ловит зависшую загрузку, а не медленную: тот же, что у waitFor.
+    await settings.loaded.timeout(const Duration(seconds: 5));
     expect(settings.state.installDir, paths.defaultInstallDir);
   });
 
@@ -433,7 +449,7 @@ void main() {
     settings.add(SettingsChanged(settings.state.copyWith(maxConcurrent: 5)));
     await settings.stream.firstWhere((s) => s.maxConcurrent == 5);
 
-    final reopened = SettingsBloc(paths);
+    final reopened = settingsBloc();
     reopened.add(const SettingsLoadRequested());
     await reopened.stream.firstWhere((s) => s.maxConcurrent == 5);
 
