@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
@@ -46,23 +44,16 @@ class DownloadControlActions extends StatelessWidget {
 
   /// Тот же вопрос, что на экране загрузок: действие одно и то же, и
   /// спрашивать о нём по-разному в двух местах незачем.
-  Future<void> _cancel(BuildContext context) async {
-    final downloads = context.read<DownloadsBloc>();
+  Future<void> _cancel(BuildContext context) {
     final l = L.of(context);
-    final choice = await askCancel(
+    return cancelDownload(
       context,
+      game: game,
+      task: task,
       title: l.cancelDownloadQuestion,
       message: l.cancelDownloadNote,
       confirmLabel: l.cancelDownloadConfirm,
       confirmIcon: Icons.remove_circle_outline,
-      task: task,
-    );
-    if (choice == null) return;
-    downloads.add(
-      DownloadCancelRequested(
-        game,
-        deleteFiles: choice == CancelChoice.withFiles,
-      ),
     );
   }
 }

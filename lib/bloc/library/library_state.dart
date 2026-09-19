@@ -36,6 +36,21 @@ class LibraryState extends Equatable {
     return null;
   }
 
+  /// Игра, которую качает задача с этим id.
+  ///
+  /// Сверяется и по id задачи, и по infohash. У нынешнего движка id задачи
+  /// и есть infohash раздачи, но в `downloadTaskId` у игры может лежать id,
+  /// записанный прежним движком, — тогда узнать её можно только по
+  /// infohash.
+  Game? gameForTask(String taskId) {
+    for (final game in games) {
+      if (game.downloadTaskId == taskId || game.infoHash == taskId) {
+        return game;
+      }
+    }
+    return null;
+  }
+
   bool isBusy(String key) => busy.contains(key);
 
   bool isRunning(String gameId) => runningIds.contains(gameId);

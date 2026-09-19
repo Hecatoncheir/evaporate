@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/downloads/downloads_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
+import '../../models/game.dart';
 import '../theme.dart';
 
 /// Что человек выбрал, снимая загрузку.
@@ -22,7 +25,40 @@ enum CancelChoice {
 /// «Удалить совсем вместе с файлами» набрано тревожным цветом и стоит
 /// **не** главной клавишей: снятая задача оставляет скачанное на диске, и
 /// это правильное умолчание — вернуться к нему можно, к стёртому нельзя.
-Future<CancelChoice?> askCancel(
+/// Спросить и, если человек согласился, снять загрузку игры.
+///
+/// Клавиш отмены три — на карточке задачи, в очереди и на странице игры, —
+/// и каждая прежде выписывала этот поток сама. Слова у них свои (в очереди
+/// ничего не качается прямо сейчас, и обещать «задача будет снята» было бы
+/// не про то), а ход один.
+Future<void> cancelDownload(
+  BuildContext context, {
+  required Game game,
+  required DownloadTask? task,
+  required String title,
+  required String message,
+  required String confirmLabel,
+  required IconData confirmIcon,
+}) async {
+  final downloads = context.read<DownloadsBloc>();
+  final choice = await _ask(
+    context,
+    title: title,
+    message: message,
+    confirmLabel: confirmLabel,
+    confirmIcon: confirmIcon,
+    task: task,
+  );
+  if (choice == null) return;
+  downloads.add(
+    DownloadCancelRequested(
+      game,
+      deleteFiles: choice == CancelChoice.withFiles,
+    ),
+  );
+}
+
+Future<CancelChoice?> _ask(
   BuildContext context, {
   required String title,
   required String message,

@@ -7,7 +7,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../library/remove_game_dialog.dart';
 import '../theme.dart';
-import 'queue_column.dart';
+import 'section_title.dart';
 
 /// Левая колонка: игры, которые можно поставить в очередь.
 class AvailableGames extends StatelessWidget {

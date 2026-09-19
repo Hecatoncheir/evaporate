@@ -162,7 +162,6 @@ const _crowdedFiles = [
   'lib/ui/downloads/download_activity.dart: 4',
   'lib/ui/downloads/downloads_page.dart: 2',
   'lib/ui/downloads/engine_status.dart: 2',
-  'lib/ui/downloads/queue_column.dart: 5',
   'lib/ui/library/add_game_dialog.dart: 2',
   'lib/ui/library/detail/detail_cover.dart: 2',
   'lib/ui/library/detail/rating_row.dart: 3',

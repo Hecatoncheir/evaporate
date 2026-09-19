@@ -18,28 +18,20 @@ import 'download_activity.dart';
 /// кусков теряются, а игра уходит из «качается» обратно в «не
 /// установлена». Файлы при этом остаются, но продолжить с того же места
 /// одним нажатием уже нельзя.
-Future<void> _cancel(BuildContext context, Game game, DownloadTask task) async {
-  final downloads = context.read<DownloadsBloc>();
-  final choice = await askCancel(
-    context,
-    title: L.of(context).cancelDownloadQuestion,
-    message: L.of(context).cancelDownloadNote,
-    // «Удалить», а не «Отменить»: рядом стоит «Удалить совсем вместе с
-    // файлами», и два ответа должны читаться парой, от меньшего к
-    // большему. Подсказка на самой клавише остаётся «Отменить» — там, в
-    // ряду с паузой, это точное слово.
-    confirmLabel: L.of(context).cancelDownloadConfirm,
-    confirmIcon: Icons.remove_circle_outline,
-    task: task,
-  );
-  if (choice == null) return;
-  downloads.add(
-    DownloadCancelRequested(
-      game,
-      deleteFiles: choice == CancelChoice.withFiles,
-    ),
-  );
-}
+Future<void> _cancel(BuildContext context, Game game, DownloadTask task) =>
+    cancelDownload(
+      context,
+      game: game,
+      task: task,
+      title: L.of(context).cancelDownloadQuestion,
+      message: L.of(context).cancelDownloadNote,
+      // «Удалить», а не «Отменить»: рядом стоит «Удалить совсем вместе с
+      // файлами», и два ответа должны читаться парой, от меньшего к
+      // большему. Подсказка на самой клавише остаётся «Отменить» — там, в
+      // ряду с паузой, это точное слово.
+      confirmLabel: L.of(context).cancelDownloadConfirm,
+      confirmIcon: Icons.remove_circle_outline,
+    );
 
 class TaskCard extends StatelessWidget {
   const TaskCard({super.key, required this.task, required this.game});
