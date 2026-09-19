@@ -287,6 +287,23 @@ void main() {
       expect(game.headerImage, 'https://cdn.steam/header.jpg');
     });
 
+    // Подробности сливаются с найденным по названию, и слияние забывало
+    // кадры: у всякой игры, найденной не по `appid`, подложка из кадров
+    // оставалась пустой.
+    test('кадры из подробностей доходят до найденного по имени', () async {
+      final catalog = catalogWith({
+        'storesearch': searchBody,
+        'appdetails': detailsWithShots,
+      });
+
+      final game = await catalog.bestMatch('Hollow Knight');
+
+      expect(game!.screenshots, [
+        'https://cdn.steam/ss0.600x338.jpg',
+        'https://cdn.steam/ss1.600x338.jpg',
+      ]);
+    });
+
     test('саундтрек не подменяет саму игру', () async {
       final catalog = catalogWith({
         'storesearch': searchBody,

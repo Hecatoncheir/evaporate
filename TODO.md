@@ -300,7 +300,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`restore_transaction.dart:22`), здесь такой проверки нет. На живой macOS
   не проверено. Лечение: создавать `Link` для записей-ссылок, с той же
   проверкой выхода за пределы папки; тест на архиве с симлинком. **M**
-- [ ] **`SteamGame.merge` забыл `screenshots`** (`steam_catalog.dart:45–51`).
+- [x] **`SteamGame.merge` забыл `screenshots`** (`steam_catalog.dart:45–51`).
   `bestMatch` (`:303`) сливает найденное по названию с подробностями — и
   кадры теряются: у всех игр, найденных по названию, а не по `appid`,
   подложка из кадров пуста. Тест подменяет `bestMatch` целиком

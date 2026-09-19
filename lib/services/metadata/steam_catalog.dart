@@ -48,6 +48,7 @@ class SteamGame extends Equatable {
     headerImage: other.headerImage ?? headerImage,
     description: other.description ?? description,
     metacritic: other.metacritic ?? metacritic,
+    screenshots: other.screenshots.isNotEmpty ? other.screenshots : screenshots,
   );
 
   @override
