@@ -94,7 +94,7 @@ class _HintChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
           decoration: BoxDecoration(
             color: context.colors.surfaceHigh,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
             border: Border.all(color: context.colors.outline),
           ),
           child: Text(

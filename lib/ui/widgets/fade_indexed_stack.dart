@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
+
 /// [IndexedStack], который меняет разделы затуханием, а не рывком.
 ///
 /// Обычный `AnimatedSwitcher` здесь не подходит: он выбрасывает прежнего
@@ -11,7 +13,7 @@ class FadeIndexedStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
-    this.duration = const Duration(milliseconds: 150),
+    this.duration,
     this.enabled = true,
   });
 
@@ -20,8 +22,9 @@ class FadeIndexedStack extends StatefulWidget {
   final List<Widget> children;
 
   /// Коротко по замыслу: разделы переключают и с геймпада, где любая
-  /// задержка читается как подтормаживание.
-  final Duration duration;
+  /// задержка читается как подтормаживание. По умолчанию — самая короткая
+  /// ступень темы, `motion.instant`.
+  final Duration? duration;
 
   @override
   State<FadeIndexedStack> createState() => _FadeIndexedStackState();
@@ -31,7 +34,6 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: widget.duration,
     value: 1,
   );
 
@@ -58,6 +60,7 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _controller.duration = widget.duration ?? context.motion.instant;
     if (!widget.enabled || MediaQuery.disableAnimationsOf(context)) {
       _controller.value = 1;
     }

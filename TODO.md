@@ -610,7 +610,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 - [ ] Доопределить темы Material: `textButtonTheme`, `iconButtonTheme`,
   `switchTheme`, `checkboxTheme`, `listTileTheme` (кегль), опасная заливка
   кнопки — вариантом, а не `styleFrom` по месту. **S**
-- [ ] Длительности мимо токенов: `nav_tile.dart:66,92,95` (120 мс →
+- [x] Длительности мимо токенов: `nav_tile.dart:66,92,95` (120 мс →
   `motion.instant`), `game_cover.dart:177`, `fade_indexed_stack.dart:14`,
   `liquid_selection.dart:40`, `animated_progress.dart:65`. Радиусы мимо
   токенов: `game_cover.dart:319`, `save_tag.dart:15`,

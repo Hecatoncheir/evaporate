@@ -135,16 +135,9 @@ const _fontSize = [
 ];
 
 const _durations = [
-  'lib/ui/library/game_cover.dart: 1',
   'lib/ui/widgets/animated_progress.dart: 1',
-  'lib/ui/widgets/fade_indexed_stack.dart: 1',
   'lib/ui/widgets/liquid_selection.dart: 1',
-  'lib/ui/widgets/nav_tile.dart: 3',
   'lib/ui/widgets/rise_in.dart: 1',
 ];
 
-const _radii = [
-  'lib/ui/library/game_cover.dart: 1',
-  'lib/ui/library/saves/save_tag.dart: 1',
-  'lib/ui/widgets/button_hints.dart: 1',
-];
+const _radii = <String>[];

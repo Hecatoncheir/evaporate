@@ -174,7 +174,7 @@ class _Art extends StatelessWidget {
         // иначе моргает пятнами по мере их прихода.
         frameBuilder: (context, child, frame, wasCached) => AnimatedOpacity(
           opacity: frame == null && !wasCached ? 0 : 1,
-          duration: const Duration(milliseconds: 220),
+          duration: context.motion.fast,
           child: child,
         ),
       );
@@ -316,7 +316,7 @@ class _ProgressStrip extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             ClipRRect(
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
               child: LinearProgressIndicator(
                 value: indeterminate ? null : task.progress,
                 minHeight: 3,

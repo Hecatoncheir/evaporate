@@ -63,7 +63,7 @@ class _NavTileState extends State<NavTile> {
       Scrollable.ensureVisible(
         context,
         alignment: 0.1,
-        duration: const Duration(milliseconds: 120),
+        duration: context.motion.instant,
       );
     }
   }
@@ -89,10 +89,10 @@ class _NavTileState extends State<NavTile> {
           borderRadius: BorderRadius.circular(widget.borderRadius),
           child: AnimatedScale(
             scale: _focused ? widget.focusedScale : 1,
-            duration: const Duration(milliseconds: 120),
+            duration: context.motion.instant,
             curve: Curves.easeOutCubic,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
+              duration: context.motion.instant,
               padding: widget.padding,
               decoration: BoxDecoration(
                 color: background,
