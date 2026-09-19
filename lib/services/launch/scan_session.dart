@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import '../system/app_log.dart';
 import 'game_roots.dart';
 import 'library_scanner.dart';
 import 'steam_install.dart';
@@ -91,6 +92,25 @@ class ScanSession extends ChangeNotifier {
     _directory = null;
     notifyListeners();
 
+    // Заход обязан закрыться при любом исходе: иначе признак «идёт поиск»
+    // остался бы навсегда, и окно крутило бы указатель над ничем. Сбой
+    // пишется в журнал, найденное до него остаётся, а «дошёл до конца» —
+    // нет: это было бы неправдой.
+    try {
+      await _walk(generation, roots);
+      if (generation == _generation) _completed = true;
+    } on Object catch (error, stack) {
+      AppLog.instance.write('Поиск игр прерван сбоем', error, stack);
+    } finally {
+      if (generation == _generation) {
+        _running = false;
+        _directory = null;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> _walk(int generation, List<String> roots) async {
     // Steam спрашиваем один раз на заход: он знает точные названия и
     // идентификаторы тех игр, что поставил сам.
     final steam = SteamInstall.byInstallDir(
@@ -124,12 +144,6 @@ class ScanSession extends ChangeNotifier {
 
     if (generation != _generation) return;
     await _addRegistryInstalls(generation, steam);
-
-    if (generation != _generation) return;
-    _running = false;
-    _completed = true;
-    _directory = null;
-    notifyListeners();
   }
 
   /// Добавляет игры, о которых знает только реестр Windows.

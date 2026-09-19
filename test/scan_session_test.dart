@@ -127,6 +127,31 @@ void main() {
     expect(session.found.map((g) => g.title), ['Ещё нет']);
   });
 
+  // Заход не закрывался при исключении: признак «идёт поиск» оставался
+  // навсегда, окно крутило указатель, а новый заход поверх не помогал.
+  test('сбой посреди захода не оставляет его идущим', () async {
+    await gameDir('Games', 'Найденная');
+    final session = ScanSession(
+      existingDirs: const {},
+      steamRoots: const [],
+      fixedRoots: [
+        GameRoot(path: p.join(tmp.path, 'Games'), kind: GameRootKind.games),
+      ],
+      registryQuery: (executable, args) async =>
+          throw const FileSystemException('реестр не ответил'),
+    );
+    addTearDown(session.dispose);
+
+    await session.scanKnownRoots();
+
+    expect(session.isRunning, isFalse);
+    expect(session.isComplete, isFalse, reason: 'до конца заход не дошёл');
+    expect(session.directory, isNull);
+    expect(session.found.map((g) => g.title), [
+      'Найденная',
+    ], reason: 'найденное до сбоя остаётся');
+  });
+
   test('несуществующее место не роняет заход', () async {
     final session = sessionOver(['нет-такого']);
 

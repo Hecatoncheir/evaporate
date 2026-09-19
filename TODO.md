@@ -348,7 +348,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`restore_transaction.dart:213–217`) сейвы остаются под
   `.evaporate-old-*`, а уборки таких остатков при следующем запуске нет —
   хотя `update_install.dart:91` её обещает. **M**
-- [ ] `ScanSession._run` без `try/finally` (`scan_session.dart:86`): любое
+- [x] `ScanSession._run` без `try/finally` (`scan_session.dart:86`): любое
   исключение — например, незащищённый `list().any`
   (`library_scanner.dart:170`) — оставляет `_running` навсегда. **S**
 - [ ] `_openArchive` при исключении не закрывает `InputFileStream`
