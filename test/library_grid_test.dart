@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/featured_game.dart';
@@ -192,7 +191,7 @@ void main() {
     final beta = harness.library.state.games.firstWhere(
       (game) => game.title == 'Бета',
     );
-    harness.library.add(GameUpdated(beta.copyWith(coverPath: cover.path)));
+    harness.seedGame(beta.copyWith(coverPath: cover.path));
     harness.nav.add(GameSelected(beta.id));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 500));

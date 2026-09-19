@@ -14,6 +14,7 @@ import '../../models/catalog_progress.dart';
 import '../../models/game.dart';
 import '../../models/game_rating.dart';
 import '../../models/save_profile.dart';
+import '../../services/launch/executable_finder.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/launch/steam_shortcuts.dart';
 import '../../services/metadata/steam_catalog.dart';
@@ -23,6 +24,7 @@ import '../../services/system/app_log.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
+part 'library_edits.dart';
 part 'library_event.dart';
 part 'library_metadata.dart';
 part 'library_state.dart';
@@ -68,7 +70,17 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
        super(const LibraryState()) {
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
-    on<GameUpdated>(_onGameUpdated);
+    on<GameStatusChanged>(_onStatusChanged);
+    on<GameDownloadStarted>(_onDownloadStarted);
+    on<GameDownloadLinked>(_onDownloadLinked);
+    on<GameDownloadDropped>(_onDownloadDropped);
+    on<GameDownloadFinished>(_onDownloadFinished);
+    on<GameDownloadRejected>(_onDownloadRejected);
+    on<GameExecutableSet>(_onExecutableSet);
+    on<GameInstallDirSet>(_onInstallDirSet);
+    on<SaveRulesAdded>(_onSaveRulesAdded);
+    on<SaveRuleRemoved>(_onSaveRuleRemoved);
+    on<AutoSnapshotChanged>(_onAutoSnapshotChanged);
     on<GameRemoved>(_onGameRemoved);
     on<GameLaunchRequested>(_onLaunchRequested);
     on<GameStopRequested>(_onStopRequested);
@@ -302,51 +314,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     _queueMetadata(game);
   }
 
-  void _onGameUpdated(GameUpdated event, Emitter<LibraryState> emit) {
-    final index = state.games.indexWhere((g) => g.id == event.game.id);
-    if (index == -1) return;
-    final previous = state.games[index];
-    // Событие загрузки/редактора могло захватить игру до ответа каталога.
-    final updated = event.game.copyWith(
-      steamLookupAttempted:
-          previous.steamLookupAttempted || event.game.steamLookupAttempted,
-      savePathsLookupAttempted:
-          previous.savePathsLookupAttempted ||
-          event.game.savePathsLookupAttempted,
-      steamAppId: event.game.steamAppId ?? previous.steamAppId,
-      coverUrl: event.game.coverUrl ?? previous.coverUrl,
-      coverPath: event.game.coverPath ?? previous.coverPath,
-      description: event.game.description ?? previous.description,
-      ludusaviTemplates: event.game.ludusaviTemplates.isEmpty
-          ? previous.ludusaviTemplates
-          : event.game.ludusaviTemplates,
-      ludusaviResolvedPaths: {
-        ...previous.ludusaviResolvedPaths,
-        ...event.game.ludusaviResolvedPaths,
-      }.toList(),
-      saveProfile:
-          previous.savePathsLookupAttempted &&
-              !event.game.savePathsLookupAttempted
-          ? event.game.saveProfile.copyWith(
-              rules: [
-                ...event.game.saveProfile.rules,
-                for (final rule in previous.saveProfile.rules)
-                  if (previous.ludusaviResolvedPaths.contains(rule.template) &&
-                      !event.game.saveProfile.rules.any(
-                        (r) => r.template == rule.template,
-                      ))
-                    rule,
-              ],
-            )
-          : event.game.saveProfile,
-    );
-    final games = [...state.games];
-    games[index] = updated;
-    emit(state.copyWith(games: games));
-    _schedulePersist();
-    _queueMetadata(updated, query: event.metadataQuery);
-  }
-
   void _replaceGame(Game game, Emitter<LibraryState> emit) {
     final index = state.games.indexWhere((item) => item.id == game.id);
     if (index == -1) return;
@@ -408,17 +375,14 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           GameExited(gameId: exited.id, played: played, exitCode: exitCode),
         ),
       );
-      final index = state.games.indexWhere((g) => g.id == game.id);
-      if (index != -1) {
-        final games = [...state.games];
-        games[index] = game.copyWith(
-          status: GameStatus.running,
-          lastError: null,
-        );
-        emit(state.copyWith(games: games, busy: _withBusy(key, false)));
-        _schedulePersist();
-        return;
-      }
+      // Игра из события захвачена до снимка и запуска — секунды назад;
+      // правка, пришедшая за это время, живёт только в состоянии.
+      _edit(
+        game.id,
+        emit,
+        (current) =>
+            current.copyWith(status: GameStatus.running, lastError: null),
+      );
       emit(state.copyWith(busy: _withBusy(key, false)));
     } on Object catch (error) {
       emit(

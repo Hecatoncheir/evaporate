@@ -24,19 +24,11 @@ extension _SavesSnapshots on SavesBloc {
         )
         .toList();
     if (added.isEmpty) return current;
-    final updated = current.copyWith(
-      ludusaviResolvedPaths: {
-        ...current.ludusaviResolvedPaths,
-        ...expanded,
-      }.toList(),
-      saveProfile: current.saveProfile.copyWith(
-        rules: [
-          ...current.saveProfile.rules,
-          ...current.saveProfile.rulesForNewPaths(added),
-        ],
-      ),
+    return _addRules(
+      current,
+      current.saveProfile.rulesForNewPaths(added),
+      resolvedPaths: expanded.toList(),
     );
-    return _updateGame(updated);
   }
 
   Future<void> _onSnapshotRequested(

@@ -99,23 +99,15 @@ void main() {
       }
 
       library.add(GameAdded(id: id, title: title));
-      final added = await waitFor((s) => s.gameById(id) != null);
+      await waitFor((s) => s.gameById(id) != null);
       library.add(
-        GameUpdated(
-          added
-              .gameById(id)!
-              .copyWith(
-                saveProfile: SaveProfile(
-                  rules: [
-                    SavePathRule(
-                      id: const Uuid().v4(),
-                      label: 'Сохранения',
-                      template: dir.path,
-                    ),
-                  ],
-                ),
-              ),
-        ),
+        SaveRulesAdded(id, [
+          SavePathRule(
+            id: const Uuid().v4(),
+            label: 'Сохранения',
+            template: dir.path,
+          ),
+        ]),
       );
       await waitFor((s) => s.gameById(id)!.saveProfile.isConfigured);
     }

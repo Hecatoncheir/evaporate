@@ -159,13 +159,16 @@ void main() {
     Future<Game> downloadingGame({String taskId = 'task-1'}) async {
       final id = const Uuid().v4();
       library.add(GameAdded(id: id, title: 'Игра'));
-      final added = await waitForLibrary((s) => s.gameById(id) != null);
+      await waitForLibrary((s) => s.gameById(id) != null);
 
       library.add(
-        GameUpdated(
-          added
-              .gameById(id)!
-              .copyWith(status: GameStatus.downloading, downloadTaskId: taskId),
+        GameDownloadStarted(
+          id,
+          const GameSource(
+            kind: GameSourceKind.magnet,
+            value: 'magnet:?xt=urn:btih:test',
+          ),
+          taskId,
         ),
       );
       final ready = await waitForLibrary(

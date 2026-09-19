@@ -59,7 +59,7 @@ class TestHarness {
       gamepadEvents = StreamController<NormalizedGamepadEvent>.broadcast() {
     settings = SettingsBloc(paths, store: _WidgetLibraryStore());
     library = LibraryBloc(
-      store: _WidgetLibraryStore(),
+      store: _libraryStore,
       automaticMetadata: false,
       paths: paths,
       settings: settings,
@@ -107,6 +107,21 @@ class TestHarness {
 
   final Directory tmp;
   final AppPaths paths;
+  final _libraryStore = _WidgetLibraryStore();
+
+  /// Кладёт игру в библиотеку такой, как если бы она такой лежала на
+  /// диске, — см. `seedGame` в `library_seed.dart`. Событие загрузки
+  /// обработается на ближайшем `pump`.
+  void seedGame(Game game) {
+    _libraryStore.data = {
+      'version': 1,
+      'games': [
+        for (final item in library.state.games)
+          (item.id == game.id ? game : item).toJson(),
+      ],
+    };
+    library.add(const LibraryLoadRequested());
+  }
 
   /// Уведомления в тестах никуда не уходят — только записываются.
   final RecordingNotificationService notifications =

@@ -12,6 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import 'support/library_seed.dart';
+
 /// Ротация снимков: `keepSnapshots` обязан держать в узде все пути, какими
 /// снимок попадает в состояние, а не только кнопку «Снять».
 void main() {
@@ -71,25 +73,26 @@ void main() {
 
     library.add(GameAdded(id: id, title: title));
     final added = await waitFor((s) => s.gameById(id) != null);
-    library.add(
-      GameUpdated(
-        added
-            .gameById(id)!
-            .copyWith(
-              saveProfile: SaveProfile(
-                keepSnapshots: keep,
-                rules: [
-                  SavePathRule(
-                    id: const Uuid().v4(),
-                    label: SavePathRule.defaultLabel,
-                    template: dir.path,
-                  ),
-                ],
-              ),
+    // Предел снимков снаружи не правят вовсе, поэтому игра кладётся
+    // такой, как если бы такой лежала на диске.
+    await seedGame(
+      library,
+      paths,
+      added
+          .gameById(id)!
+          .copyWith(
+            saveProfile: SaveProfile(
+              keepSnapshots: keep,
+              rules: [
+                SavePathRule(
+                  id: const Uuid().v4(),
+                  label: SavePathRule.defaultLabel,
+                  template: dir.path,
+                ),
+              ],
             ),
-      ),
+          ),
     );
-    await waitFor((s) => s.gameById(id)!.saveProfile.isConfigured);
     return id;
   }
 
@@ -256,22 +259,9 @@ void main() {
     await script.writeAsString('#!/bin/sh\nexit 0\n');
     await Process.run('chmod', ['+x', script.path]);
 
-    library.add(
-      GameUpdated(
-        library.state
-            .gameById(id)!
-            .copyWith(
-              executablePath: script.path,
-              saveProfile: library.state
-                  .gameById(id)!
-                  .saveProfile
-                  .copyWith(
-                    autoSnapshotOnLaunch: true,
-                    autoSnapshotOnExit: false,
-                  ),
-            ),
-      ),
-    );
+    library
+      ..add(GameExecutableSet(id, script.path))
+      ..add(AutoSnapshotChanged(id, onLaunch: true, onExit: false));
     await waitFor((s) => s.gameById(id)!.saveProfile.autoSnapshotOnLaunch);
 
     library.add(GameLaunchRequested(library.state.gameById(id)!));
@@ -288,19 +278,9 @@ void main() {
     await script.writeAsString('#!/bin/sh\nexit 0\n');
     await Process.run('chmod', ['+x', script.path]);
 
-    library.add(
-      GameUpdated(
-        library.state
-            .gameById(id)!
-            .copyWith(
-              executablePath: script.path,
-              saveProfile: library.state
-                  .gameById(id)!
-                  .saveProfile
-                  .copyWith(autoSnapshotOnExit: false),
-            ),
-      ),
-    );
+    library
+      ..add(AutoSnapshotChanged(id, onExit: false))
+      ..add(GameExecutableSet(id, script.path));
     await waitFor((s) => s.gameById(id)!.executablePath != null);
 
     library.add(GameLaunchRequested(library.state.gameById(id)!));

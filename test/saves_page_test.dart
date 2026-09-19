@@ -70,21 +70,14 @@ void main() {
     );
     await harness.pump(tester);
 
-    final game = harness.library.state.gameById(id)!;
     harness.library.add(
-      GameUpdated(
-        game.copyWith(
-          saveProfile: SaveProfile(
-            rules: [
-              SavePathRule(
-                id: 'rule-1',
-                label: SavePathRule.defaultLabel,
-                template: savesDir.path,
-              ),
-            ],
-          ),
+      SaveRulesAdded(id, [
+        SavePathRule(
+          id: 'rule-1',
+          label: SavePathRule.defaultLabel,
+          template: savesDir.path,
         ),
-      ),
+      ]),
     );
     await tester.pump();
 

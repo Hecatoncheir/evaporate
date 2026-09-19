@@ -7,7 +7,6 @@ import '../../../bloc/library/library_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
-import '../../../services/launch/executable_finder.dart';
 import '../../downloads/cancel_dialog.dart';
 import '../../downloads/download_activity.dart';
 import '../../labels.dart';
@@ -217,19 +216,7 @@ class ActionPanel extends StatelessWidget {
     final library = context.read<LibraryBloc>();
     final dir = await getDirectoryPath();
     if (dir == null) return;
-
-    final candidates = await ExecutableFinder.scan(dir);
-    library.add(
-      GameUpdated(
-        game.copyWith(
-          installDir: dir,
-          status: GameStatus.installed,
-          executablePath:
-              game.executablePath ??
-              (candidates.isEmpty ? null : candidates.first.path),
-        ),
-      ),
-    );
+    library.add(GameInstallDirSet(game.id, dir));
   }
 }
 

@@ -221,30 +221,11 @@ class SavePathsSection extends StatelessWidget {
       template: result.template,
       platform: result.currentPlatformOnly ? currentPlatformKey() : null,
     );
-    library.add(
-      GameUpdated(
-        game.copyWith(
-          saveProfile: game.saveProfile.copyWith(
-            rules: [...game.saveProfile.rules, rule],
-          ),
-        ),
-      ),
-    );
+    library.add(SaveRulesAdded(game.id, [rule]));
   }
 
   void _removeRule(BuildContext context, SavePathRule rule) {
-    final library = context.read<LibraryBloc>();
-    library.add(
-      GameUpdated(
-        game.copyWith(
-          saveProfile: game.saveProfile.copyWith(
-            rules: game.saveProfile.rules
-                .where((r) => r.id != rule.id)
-                .toList(),
-          ),
-        ),
-      ),
-    );
+    context.read<LibraryBloc>().add(SaveRuleRemoved(game.id, rule.id));
   }
 
   Future<void> _autoDetect(BuildContext context) async {

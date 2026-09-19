@@ -201,16 +201,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
           return;
       }
 
-      library.add(
-        GameUpdated(
-          event.game.copyWith(
-            source: event.source,
-            status: GameStatus.downloading,
-            downloadTaskId: taskId,
-            lastError: null,
-          ),
-        ),
-      );
+      library.add(GameDownloadStarted(event.game.id, event.source, taskId));
       emit(state.copyWith(notice: _notice(_l.noticeDownloadStarted)));
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
@@ -265,7 +256,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     if (taskId == null) return;
     try {
       await engine.pause(taskId);
-      library.add(GameUpdated(event.game.copyWith(status: GameStatus.paused)));
+      library.add(GameStatusChanged(event.game.id, GameStatus.paused));
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
     }
@@ -279,9 +270,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     if (taskId == null) return;
     try {
       await engine.resume(taskId);
-      library.add(
-        GameUpdated(event.game.copyWith(status: GameStatus.downloading)),
-      );
+      library.add(GameStatusChanged(event.game.id, GameStatus.downloading));
     } on Object catch (error) {
       emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
     }
@@ -307,14 +296,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
       }
     }
-    library.add(
-      GameUpdated(
-        event.game.copyWith(
-          status: GameStatus.notInstalled,
-          downloadTaskId: null,
-        ),
-      ),
-    );
+    library.add(GameDownloadDropped(event.game.id));
   }
 
   // ------------------------------------------------------ синхронизация
@@ -356,14 +338,14 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   void _relinkByInfoHash(Game game, List<DownloadTask> tasks) {
     final task = _taskByInfoHash(tasks, game.infoHash);
     if (task == null) return;
-    library.add(GameUpdated(game.copyWith(downloadTaskId: task.id)));
+    library.add(GameDownloadLinked(game.id, taskId: task.id));
   }
 
   /// Запоминает infohash, который движок узнал уже в работе: по
   /// magnet-ссылке он приходит вместе с метаданными, а не сразу.
   void _syncInfoHash(Game game, DownloadTask task) {
     if (task.infoHash == null || game.infoHash == task.infoHash) return;
-    library.add(GameUpdated(game.copyWith(infoHash: task.infoHash)));
+    library.add(GameDownloadLinked(game.id, infoHash: task.infoHash));
   }
 
   /// Переводит взгляд на задачу, которую породила нынешняя.
@@ -374,7 +356,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   bool _followsNewTask(Game game, DownloadTask task) {
     final next = task.followedBy;
     if (next == null || next == game.downloadTaskId) return false;
-    library.add(GameUpdated(game.copyWith(downloadTaskId: next)));
+    library.add(GameDownloadLinked(game.id, taskId: next));
     return true;
   }
 
@@ -395,14 +377,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       case DownloadState.waiting:
         _setStatus(game, GameStatus.downloading);
       case DownloadState.removed:
-        library.add(
-          GameUpdated(
-            game.copyWith(
-              status: GameStatus.notInstalled,
-              downloadTaskId: null,
-            ),
-          ),
-        );
+        library.add(GameDownloadDropped(game.id));
     }
   }
 
@@ -410,7 +385,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   /// опрашивается раз в секунду, и лишнее событие тут — лишняя запись.
   void _setStatus(Game game, GameStatus status) {
     if (game.status == status) return;
-    library.add(GameUpdated(game.copyWith(status: status)));
+    library.add(GameStatusChanged(game.id, status));
   }
 
   /// Отмечает сорвавшуюся загрузку и один раз сообщает о ней системой.
@@ -429,7 +404,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       );
     }
     library.add(
-      GameUpdated(game.copyWith(status: GameStatus.error, lastError: reason)),
+      GameStatusChanged(game.id, GameStatus.error, lastError: reason),
     );
   }
 
@@ -454,19 +429,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     if (!_finalizing.add(game.id)) return;
     try {
       final installDir = deriveInstallDir(task) ?? settings.state.installDir;
-      var updated = game.copyWith(
-        status: GameStatus.installed,
-        installDir: installDir,
-        downloadTaskId: null,
-        sizeBytes: task.totalBytes,
-        lastError: null,
-      );
-
-      if (updated.executablePath == null) {
+      String? executable;
+      if (game.executablePath == null) {
         final candidates = await ExecutableFinder.scan(installDir);
-        if (candidates.isNotEmpty) {
-          updated = updated.copyWith(executablePath: candidates.first.path);
-        }
+        if (candidates.isNotEmpty) executable = candidates.first.path;
       }
       // Хеши кусков сверяются при скачивании, но пропавший или обрезанный
       // файл протокол уже не заметит — проверяем перед тем, как объявить
@@ -474,13 +440,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       final report = await engine.verify(task.id);
       if (!report.isValid) {
         library.add(
-          GameUpdated(
-            game.copyWith(
-              status: GameStatus.error,
-              installDir: installDir,
-              downloadTaskId: null,
-              lastError: _l.noticeDownloadIncompleteBody(report.describe(_l)),
-            ),
+          GameDownloadRejected(
+            game.id,
+            installDir: installDir,
+            reason: _l.noticeDownloadIncompleteBody(report.describe(_l)),
           ),
         );
         await library.persist();
@@ -502,7 +465,15 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         return;
       }
 
-      library.add(GameUpdated(updated, metadataQuery: task.name));
+      library.add(
+        GameDownloadFinished(
+          game.id,
+          installDir: installDir,
+          sizeBytes: task.totalBytes,
+          executablePath: executable,
+          metadataQuery: task.name,
+        ),
+      );
       await library.persist();
 
       emit(

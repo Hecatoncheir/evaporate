@@ -51,13 +51,7 @@ extension _SavesHints on SavesBloc {
       return;
     }
 
-    _updateGame(
-      current.copyWith(
-        saveProfile: current.saveProfile.copyWith(
-          rules: [...current.saveProfile.rules, ...added],
-        ),
-      ),
-    );
+    _addRules(current, added);
     emit(
       state.copyWith(
         saveHints: _withoutHints(current.id),

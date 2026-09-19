@@ -46,7 +46,7 @@ part 'saves_bulk.dart';
 /// было бы нечем.
 ///
 /// Правку игры блок считает у себя и пользуется ею сразу, а библиотеке
-/// шлёт [GameUpdated] вдогонку: событие ничего не возвращает, и ждать, пока
+/// шлёт [SaveRulesAdded] вдогонку: событие ничего не возвращает, и ждать, пока
 /// оно доедет до чужого состояния, значило бы вставить паузу в середину
 /// каждой операции.
 class SavesBloc extends Bloc<SavesEvent, SavesState> {
@@ -193,14 +193,28 @@ class SavesBloc extends Bloc<SavesEvent, SavesState> {
     );
   }
 
-  /// Правит игру у себя и сообщает библиотеке.
+  /// Добавляет игре правила у себя и сообщает о них библиотеке.
   ///
   /// Возвращает поправленную игру, потому что пользоваться ею нужно тут же:
   /// событие ничего не возвращает, и дожидаться, пока оно доедет до чужого
-  /// состояния, значило бы вставить паузу в середину операции.
-  Game _updateGame(Game game) {
-    library.add(GameUpdated(game));
-    return game;
+  /// состояния, значило бы вставить паузу в середину операции. Библиотеке
+  /// уходят сами правила, а не игра: она применит их к своей текущей игре
+  /// и ничего из пришедшего тем временем не затрёт.
+  Game _addRules(
+    Game game,
+    List<SavePathRule> rules, {
+    List<String> resolvedPaths = const [],
+  }) {
+    library.add(SaveRulesAdded(game.id, rules, resolvedPaths: resolvedPaths));
+    return game.copyWith(
+      ludusaviResolvedPaths: {
+        ...game.ludusaviResolvedPaths,
+        ...resolvedPaths,
+      }.toList(),
+      saveProfile: game.saveProfile.copyWith(
+        rules: [...game.saveProfile.rules, ...rules],
+      ),
+    );
   }
 
   Future<void> persist() async {

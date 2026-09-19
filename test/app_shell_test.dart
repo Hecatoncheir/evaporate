@@ -156,10 +156,14 @@ void main() {
     await harness.pump(tester);
 
     // Привязываем игру к задаче движка и подаём прогресс 42%.
-    final game = harness.library.state.gameById(id)!;
     harness.library.add(
-      GameUpdated(
-        game.copyWith(status: GameStatus.downloading, downloadTaskId: 'task-1'),
+      GameDownloadStarted(
+        id,
+        const GameSource(
+          kind: GameSourceKind.magnet,
+          value: 'magnet:?xt=urn:btih:test',
+        ),
+        'task-1',
       ),
     );
     harness.downloads.add(

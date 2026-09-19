@@ -383,7 +383,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 **Блоки и экраны**
 
-- [ ] **Потерянное обновление в `GameUpdated`.** Событие несёт целую игру —
+- [x] **Потерянное обновление в `GameUpdated`.** Событие несёт целую игру —
   снимок на момент отправки. Обработчик (`library_bloc.dart:306–349`)
   спасает от затирания поля поимённо, и список спасаемых отстал от модели:
   в нём нет `rating` и `shotPaths`. Сценарий: добавили папку → пошёл
@@ -464,7 +464,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   необработанным — человек бросил файл, и не произошло ничего, ни
   сообщения, ни записи в журнале. Лечение — событие `FilesDropped(paths)` в
   `LibraryBloc` (этап 4). **M**
-- [ ] **Запуск пишет устаревшую игру.** `library_bloc.dart:415`:
+- [x] **Запуск пишет устаревшую игру.** `library_bloc.dart:415`:
   `games[index] = game.copyWith(status: running)`, где `game` — из события, а
   перед этим два ожидания (снимок перед запуском идёт секунды). Брать
   `state.games[index]`. **S**

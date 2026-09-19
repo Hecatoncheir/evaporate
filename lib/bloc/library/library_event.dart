@@ -50,19 +50,175 @@ final class GameAdded extends LibraryEvent {
   ];
 }
 
-final class GameUpdated extends LibraryEvent {
-  const GameUpdated(this.game, {this.metadataQuery});
+// Правки игры — намерения, а не снимки.
+//
+// Прежде правку несла целая игра, `GameUpdated(game)`, захваченная в миг
+// отправки. Между захватом и обработкой проходили ожидания — системный
+// диалог выбора файла, ответ Steam, выход из игры, — и снимок затирал всё,
+// что успело прийти за это время: оценку, кадры, наигранное время. Список
+// полей, которые обработчик спасал поимённо, отставал от модели при
+// каждом новом поле. Теперь событие называет, что меняется, а блок
+// применяет это к **текущей** игре: затереть чужое ему нечем.
 
-  final Game game;
+/// Состояние игры сменилось: загрузка встала на паузу, пошла дальше или
+/// сорвалась. [lastError] пишется только вместе с [GameStatus.error].
+final class GameStatusChanged extends LibraryEvent {
+  const GameStatusChanged(this.gameId, this.status, {this.lastError});
+
+  final String gameId;
+  final GameStatus status;
+  final String? lastError;
+
+  @override
+  List<Object?> get props => [gameId, status, lastError];
+}
+
+/// Движок принял раздачу: игра качается из [source] задачей [taskId].
+final class GameDownloadStarted extends LibraryEvent {
+  const GameDownloadStarted(this.gameId, this.source, this.taskId);
+
+  final String gameId;
+  final GameSource source;
+  final String taskId;
+
+  @override
+  List<Object?> get props => [gameId, source, taskId];
+}
+
+/// Игру заново связали с задачей движка: после перезапуска у задач новые
+/// идентификаторы, а infohash раздачи по magnet приходит не сразу.
+final class GameDownloadLinked extends LibraryEvent {
+  const GameDownloadLinked(this.gameId, {this.taskId, this.infoHash});
+
+  final String gameId;
+  final String? taskId;
+  final String? infoHash;
+
+  @override
+  List<Object?> get props => [gameId, taskId, infoHash];
+}
+
+/// Загрузку сняли — отменой или из самого движка: игра снова не
+/// установлена.
+final class GameDownloadDropped extends LibraryEvent {
+  const GameDownloadDropped(this.gameId);
+
+  final String gameId;
+
+  @override
+  List<Object?> get props => [gameId];
+}
+
+/// Загрузка закончилась и прошла проверку: игра установлена в
+/// [installDir]. [executablePath] — догадка, и уже выбранный человеком файл
+/// она не заменяет. [metadataQuery] — имя раздачи, по которому искать игру
+/// в Steam.
+final class GameDownloadFinished extends LibraryEvent {
+  const GameDownloadFinished(
+    this.gameId, {
+    required this.installDir,
+    required this.sizeBytes,
+    this.executablePath,
+    this.metadataQuery,
+  });
+
+  final String gameId;
+  final String installDir;
+  final int sizeBytes;
+  final String? executablePath;
   final String? metadataQuery;
 
   @override
   List<Object?> get props => [
-    game.id,
-    game.status,
-    game.saveProfile.rules,
+    gameId,
+    installDir,
+    sizeBytes,
+    executablePath,
     metadataQuery,
   ];
+}
+
+/// Загрузка закончилась, но проверку не прошла: игра в [installDir] есть,
+/// а объявить её готовой нельзя.
+final class GameDownloadRejected extends LibraryEvent {
+  const GameDownloadRejected(
+    this.gameId, {
+    required this.installDir,
+    required this.reason,
+  });
+
+  final String gameId;
+  final String installDir;
+  final String reason;
+
+  @override
+  List<Object?> get props => [gameId, installDir, reason];
+}
+
+/// Человек выбрал, что запускать.
+final class GameExecutableSet extends LibraryEvent {
+  const GameExecutableSet(this.gameId, this.path);
+
+  final String gameId;
+  final String path;
+
+  @override
+  List<Object?> get props => [gameId, path];
+}
+
+/// Человек указал, куда игра уже установлена. Что в ней запускать, блок
+/// ищет сам, если это ещё не выбрано.
+final class GameInstallDirSet extends LibraryEvent {
+  const GameInstallDirSet(this.gameId, this.dir);
+
+  final String gameId;
+  final String dir;
+
+  @override
+  List<Object?> get props => [gameId, dir];
+}
+
+/// Правила сохранений, добавленные к уже заданным.
+///
+/// Несёт готовые правила, а не шаблоны: тот, кто их добавил, мог уже снять
+/// по ним снимок, и id с метками у правил в библиотеке обязаны быть теми же.
+/// Правило с шаблоном, который у игры уже есть, пропускается.
+/// [resolvedPaths] — развёрнутые пути базы, которые больше не предлагать.
+final class SaveRulesAdded extends LibraryEvent {
+  const SaveRulesAdded(
+    this.gameId,
+    this.rules, {
+    this.resolvedPaths = const [],
+  });
+
+  final String gameId;
+  final List<SavePathRule> rules;
+  final List<String> resolvedPaths;
+
+  @override
+  List<Object?> get props => [gameId, rules, resolvedPaths];
+}
+
+final class SaveRuleRemoved extends LibraryEvent {
+  const SaveRuleRemoved(this.gameId, this.ruleId);
+
+  final String gameId;
+  final String ruleId;
+
+  @override
+  List<Object?> get props => [gameId, ruleId];
+}
+
+/// Когда снимать сохранения самому; `null` — не трогать.
+final class AutoSnapshotChanged extends LibraryEvent {
+  const AutoSnapshotChanged(this.gameId, {this.onExit, this.onLaunch});
+
+  final String gameId;
+  final bool? onExit;
+  final bool? onLaunch;
+
+  @override
+  List<Object?> get props => [gameId, onExit, onLaunch];
 }
 
 final class GameRemoved extends LibraryEvent {

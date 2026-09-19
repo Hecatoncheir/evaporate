@@ -248,19 +248,13 @@ Hollow Knight:
 
     final added = await addGame(bloc, 'Hollow Knight');
     bloc.add(
-      GameUpdated(
-        added.copyWith(
-          saveProfile: const SaveProfile(
-            rules: [
-              SavePathRule(
-                id: 'своё',
-                label: SavePathRule.defaultLabel,
-                template: '{HOME}/Своё',
-              ),
-            ],
-          ),
+      SaveRulesAdded(added.id, const [
+        SavePathRule(
+          id: 'своё',
+          label: SavePathRule.defaultLabel,
+          template: '{HOME}/Своё',
         ),
-      ),
+      ]),
     );
     final game = (await waitFor(
       bloc,

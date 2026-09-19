@@ -6,13 +6,14 @@ import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/launch/library_scanner.dart';
 import 'package:evaporate/services/metadata/steam_catalog.dart';
 import 'package:evaporate/services/saves/ludusavi_catalog.dart';
 import 'package:evaporate/services/saves/ludusavi_manifest.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+
+import 'support/library_seed.dart';
 
 class _Steam extends SteamCatalog {
   int calls = 0;
@@ -240,7 +241,7 @@ void main() {
   test(
     'local addition saves Steam metadata, image and future paths once',
     () async {
-      final stale = await add();
+      await add();
       final game = await complete();
       expect(game.steamAppId, 42);
       expect(game.description, 'An example game');
@@ -249,8 +250,11 @@ void main() {
       expect(game.ludusaviTemplates, ['{GAME}/profiles/*/saves']);
       expect(game.saveProfile.rules, isEmpty);
       expect(catalog.lastId, 42);
-      library.add(GameUpdated(stale.copyWith(notes: 'edited')));
-      await _wait(library, (s) => s.gameById('game')?.notes == 'edited');
+      library.add(const GameExecutableSet('game', '/games/example.exe'));
+      await _wait(
+        library,
+        (s) => s.gameById('game')?.executablePath == '/games/example.exe',
+      );
       await reopen();
       final loaded = library.state.gameById('game')!;
       expect(loaded.steamLookupAttempted, isTrue);
@@ -271,8 +275,10 @@ void main() {
       final queued = await add(status: GameStatus.downloading);
       expect(steam.calls, 0);
       library.add(
-        GameUpdated(
-          queued.copyWith(status: GameStatus.installed),
+        GameDownloadFinished(
+          queued.id,
+          installDir: queued.installDir!,
+          sizeBytes: 0,
           metadataQuery: 'Example.Release',
         ),
       );
@@ -421,8 +427,7 @@ void main() {
         expect(ready.savePathsLookupAttempted, isTrue);
 
         // Такой игра пришла бы из библиотеки, записанной прежней версией.
-        library.add(GameUpdated(ready.copyWith(rating: null)));
-        await _wait(library, (s) => s.gameById('game')?.rating == null);
+        await seedGame(library, paths, ready.copyWith(rating: null));
 
         library.add(const MetadataRetryRequested());
         await _wait(library, (s) => s.gameById('game')?.rating != null);
@@ -700,18 +705,27 @@ Example:
     expect(real.find(title: 'Example')!.steamId, 42);
   });
 
+  // Правка, отправленная человеком, пока шёл поиск, прежде несла игру
+  // целиком — такой, какой её захватили до ответа каталога, — и стирала
+  // найденные пути, отметки и оценку. Теперь правка называет, что меняется.
   test(
-    'stale updates retain concrete catalog paths and attempt markers',
+    'правка после поиска не стирает найденные пути, отметки и оценку',
     () async {
       catalog.result = const LudusaviEntry(
         title: 'Example',
         steamId: 42,
         templates: ['{GAME}/saves'],
       );
-      final stale = await add();
+      await add();
       await complete();
-      library.add(GameUpdated(stale.copyWith(notes: 'stale edit')));
-      await _wait(library, (s) => s.gameById('game')?.notes == 'stale edit');
+      library
+        ..add(const GameExecutableSet('game', '/games/example.exe'))
+        ..add(const AutoSnapshotChanged('game', onLaunch: true));
+      await _wait(
+        library,
+        (s) => s.gameById('game')!.saveProfile.autoSnapshotOnLaunch,
+      );
+      expect(library.state.gameById('game')!.rating, isNotNull);
       await reopen();
       final game = library.state.gameById('game')!;
       expect(game.saveProfile.rules.single.template, '{GAME}/saves');
@@ -731,7 +745,9 @@ Example:
       );
       await add();
       final game = await complete();
-      library.add(GameUpdated(game.copyWith(saveProfile: const SaveProfile())));
+      for (final rule in game.saveProfile.rules) {
+        library.add(SaveRuleRemoved(game.id, rule.id));
+      }
       await _wait(
         library,
         (s) => s.gameById('game')!.saveProfile.rules.isEmpty,
@@ -755,7 +771,7 @@ Example:
       steam.pending = Completer<SteamGame?>();
       final game = await add();
       library.add(SteamLookupRequested(game, automatic: true));
-      library.add(GameUpdated(game));
+      library.add(SteamLookupRequested(game, automatic: true));
       // Отметку занятости первый запрос ставит до записи на диск, а повтор
       // отскакивает от неё сразу — значит, к моменту первого обращения к
       // каталогу повтор уже отработал и второго обращения не будет.

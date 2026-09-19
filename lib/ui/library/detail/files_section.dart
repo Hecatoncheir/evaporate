@@ -66,7 +66,7 @@ class FilesSection extends StatelessWidget {
     final library = context.read<LibraryBloc>();
     final file = await openFile();
     if (file == null) return;
-    library.add(GameUpdated(game.copyWith(executablePath: file.path)));
+    library.add(GameExecutableSet(game.id, file.path));
   }
 
   Future<void> _autoDetect(BuildContext context) async {
@@ -119,6 +119,6 @@ class FilesSection extends StatelessWidget {
       ),
     );
     if (chosen == null) return;
-    library.add(GameUpdated(game.copyWith(executablePath: chosen.path)));
+    library.add(GameExecutableSet(game.id, chosen.path));
   }
 }

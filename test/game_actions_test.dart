@@ -34,13 +34,7 @@ void main() {
       status: GameStatus.installed,
     );
     await harness.pump(tester);
-    harness.library.add(
-      GameUpdated(
-        harness.library.state
-            .gameById(id)!
-            .copyWith(executablePath: '/tmp/game/game.exe'),
-      ),
-    );
+    harness.library.add(GameExecutableSet(id, '/tmp/game/game.exe'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Тестовая игра').first);

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/core/format.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/game.dart';
@@ -128,10 +127,8 @@ void main() {
       );
       await harness.pump(tester);
       if (value != null) {
-        harness.library.add(
-          GameUpdated(
-            harness.library.state.gameById(id)!.copyWith(rating: value),
-          ),
+        harness.seedGame(
+          harness.library.state.gameById(id)!.copyWith(rating: value),
         );
         // Правку библиотеки блок кладёт на диск через 400 мс после события,
         // и это время тесту надо отмотать: иначе таймер переживёт дерево

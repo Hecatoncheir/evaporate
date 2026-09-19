@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/core/save_path_template.dart';
@@ -52,12 +51,10 @@ void main() {
 
     if (rules.isNotEmpty || ludusaviTemplates.isNotEmpty) {
       final game = harness.library.state.gameById(id)!;
-      harness.library.add(
-        GameUpdated(
-          game.copyWith(
-            ludusaviTemplates: ludusaviTemplates,
-            saveProfile: game.saveProfile.copyWith(rules: rules),
-          ),
+      harness.seedGame(
+        game.copyWith(
+          ludusaviTemplates: ludusaviTemplates,
+          saveProfile: game.saveProfile.copyWith(rules: rules),
         ),
       );
       await tester.pumpAndSettle();

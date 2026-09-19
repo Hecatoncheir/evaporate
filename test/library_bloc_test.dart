@@ -7,6 +7,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
+import 'package:evaporate/services/launch/game_launcher.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -200,23 +201,15 @@ void main() {
     await File(p.join(savesDir.path, 'slot.sav')).writeAsString('прогресс');
 
     final id = addGame('Игра');
-    final added = await waitFor((s) => s.gameById(id) != null);
+    await waitFor((s) => s.gameById(id) != null);
     library.add(
-      GameUpdated(
-        added
-            .gameById(id)!
-            .copyWith(
-              saveProfile: SaveProfile(
-                rules: [
-                  SavePathRule(
-                    id: 'rule-1',
-                    label: 'Сохранения',
-                    template: savesDir.path,
-                  ),
-                ],
-              ),
-            ),
-      ),
+      SaveRulesAdded(id, [
+        SavePathRule(
+          id: 'rule-1',
+          label: 'Сохранения',
+          template: savesDir.path,
+        ),
+      ]),
     );
     final configured = await waitFor(
       (s) => s.gameById(id)!.saveProfile.isConfigured,
@@ -271,22 +264,16 @@ void main() {
     await File(p.join(savesDir.path, 'slot.sav')).writeAsString('прогресс');
 
     final id = addGame('С путями');
-    final game = (await waitFor((s) => s.gameById(id) != null)).gameById(id)!;
+    await waitFor((s) => s.gameById(id) != null);
 
     library.add(
-      GameUpdated(
-        game.copyWith(
-          saveProfile: SaveProfile(
-            rules: [
-              SavePathRule(
-                id: const Uuid().v4(),
-                label: 'Сохранения',
-                template: savesDir.path,
-              ),
-            ],
-          ),
+      SaveRulesAdded(id, [
+        SavePathRule(
+          id: const Uuid().v4(),
+          label: 'Сохранения',
+          template: savesDir.path,
         ),
-      ),
+      ]),
     );
     final ready = await waitFor(
       (s) => s.gameById(id)!.saveProfile.isConfigured,
@@ -392,4 +379,118 @@ void main() {
     expect(reopened.state.maxConcurrent, 7);
     await reopened.close();
   });
+  group('правка игры — намерение, а не снимок', () {
+    // Правка прежде несла всю игру, захваченную в миг отправки. Три правки
+    // подряд, собранные от одной и той же игры, оставляли в библиотеке
+    // только последнюю: каждая затирала поля остальных своими старыми.
+    test('правки, отправленные подряд, не отменяют друг друга', () async {
+      final id = addGame('Игра');
+      await waitFor((s) => s.gameById(id) != null);
+
+      library
+        ..add(GameExecutableSet(id, '/games/game.exe'))
+        ..add(AutoSnapshotChanged(id, onLaunch: true))
+        ..add(
+          SaveRulesAdded(id, const [
+            SavePathRule(id: 'r', label: 'Сохранения', template: '/saves'),
+          ]),
+        );
+      final state = await waitFor(
+        (s) => s.gameById(id)!.saveProfile.rules.isNotEmpty,
+      );
+
+      final game = state.gameById(id)!;
+      expect(game.executablePath, '/games/game.exe');
+      expect(game.saveProfile.autoSnapshotOnLaunch, isTrue);
+      expect(game.saveProfile.rules.single.id, 'r');
+    });
+
+    // Правило с тем же шаблоном дважды — это один и тот же путь в двух
+    // снимках разом и две метки на одну папку.
+    test('уже заданный путь вторым правилом не ложится', () async {
+      final id = addGame('Игра');
+      await waitFor((s) => s.gameById(id) != null);
+      const rule = SavePathRule(id: 'a', label: 'A', template: '/saves');
+
+      library
+        ..add(SaveRulesAdded(id, const [rule]))
+        ..add(
+          SaveRulesAdded(id, const [
+            SavePathRule(id: 'b', label: 'B', template: '/saves'),
+          ]),
+        )
+        ..add(SaveRuleRemoved(id, 'нет такого'));
+      await waitFor((s) => s.gameById(id)!.saveProfile.rules.isNotEmpty);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(library.state.gameById(id)!.saveProfile.rules.map((r) => r.id), [
+        'a',
+      ]);
+    });
+
+    // Снимок перед запуском идёт секунды. Правка, пришедшая за это время,
+    // стиралась: запуск записывал игру из события, захваченную до снимка.
+    test('запуск не стирает правку, пришедшую во время снимка', () async {
+      final launching = LibraryBloc(
+        automaticMetadata: false,
+        paths: paths,
+        settings: settings,
+        launcher: _QuietLauncher(),
+      );
+      addTearDown(launching.close);
+      final id = const Uuid().v4();
+      launching.add(GameAdded(id: id, title: 'Игра'));
+      final stale = (await launching.stream.firstWhere(
+        (s) => s.gameById(id) != null,
+      )).gameById(id)!;
+      launching.beforeLaunch = (_) async {
+        launching.add(
+          SaveRulesAdded(id, const [
+            SavePathRule(id: 'r', label: 'Сохранения', template: '/saves'),
+          ]),
+        );
+        await launching.stream.firstWhere(
+          (s) => s.gameById(id)!.saveProfile.rules.isNotEmpty,
+        );
+      };
+
+      launching.add(GameLaunchRequested(stale));
+      final state = await launching.stream
+          .firstWhere((s) => s.gameById(id)!.status == GameStatus.running)
+          .timeout(const Duration(seconds: 5));
+
+      expect(state.gameById(id)!.saveProfile.rules, hasLength(1));
+    });
+
+    // Обход папки идёт секунды, и выбранное за это время человеком догадка
+    // заменять не вправе.
+    test('указанная папка не заменяет выбранный исполняемый файл', () async {
+      final dir = Directory(p.join(tmp.path, 'games', 'Готовая'));
+      await dir.create(recursive: true);
+      await File(p.join(dir.path, 'game.exe')).writeAsString('MZ');
+      final id = addGame('Готовая');
+      await waitFor((s) => s.gameById(id) != null);
+
+      library
+        ..add(GameExecutableSet(id, '/выбрано/человеком.exe'))
+        ..add(GameInstallDirSet(id, dir.path));
+      final state = await waitFor(
+        (s) => s.gameById(id)!.status == GameStatus.installed,
+      );
+
+      final game = state.gameById(id)!;
+      expect(game.installDir, dir.path);
+      expect(game.executablePath, '/выбрано/человеком.exe');
+    });
+  });
+}
+
+/// Лаунчер, который ничего не запускает: тесту нужен только путь события
+/// через блок, а не процесс.
+class _QuietLauncher extends GameLauncher {
+  @override
+  Future<void> launch(
+    Game game, {
+    required void Function(Game game, Duration played, int exitCode) onExit,
+  }) async {}
 }
