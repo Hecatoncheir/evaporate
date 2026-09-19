@@ -67,6 +67,9 @@ class _RiseInState extends State<RiseIn> with SingleTickerProviderStateMixin {
 
   @override
   void dispose() {
+    // Кривая вешает слушателя на контроллер — освобождаем её первой.
+    final curve = _curve;
+    if (curve is CurvedAnimation) curve.dispose();
     _controller.dispose();
     super.dispose();
   }

@@ -35,6 +35,13 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
     value: 1,
   );
 
+  /// Кривая заводится один раз: заведённая в `build`, она вешала бы на
+  /// контроллер, живущий всю сессию, по слушателю на каждую пересборку.
+  late final CurvedAnimation _opacity = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOut,
+  );
+
   @override
   void didUpdateWidget(FadeIndexedStack oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -58,6 +65,7 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
 
   @override
   void dispose() {
+    _opacity.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -65,7 +73,7 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
-      opacity: CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      opacity: _opacity,
       child: IndexedStack(
         index: widget.index,
         children: [

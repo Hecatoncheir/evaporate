@@ -496,7 +496,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 Риски помельче (P2), каждый — **S**:
 
-- [ ] Шейдер капель не освобождается при замене и сбросе
+- [x] Шейдер капель не освобождается при замене и сбросе
   (`cover_drops.dart:96,110`): `dispose()` зовётся только в `dispose`
   виджета, а замена случается на каждый уход выделения с плитки. Кодек не
   освобождается, если `getNextFrame` бросит (`:86–88`).
@@ -515,7 +515,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   запускает второй обход и второй диалог.
 - [ ] В строке правила нет `Flexible`: метка и три тега в `Row`
   переполнятся на длинной метке (`saves/rule_tile.dart:54–84`).
-- [ ] `CurvedAnimation` создаётся в каждом `build` и не освобождается
+- [x] `CurvedAnimation` создаётся в каждом `build` и не освобождается
   (`widgets/fade_indexed_stack.dart:68`): на контроллере, живущем всю
   сессию, остаётся по слушателю на каждую смену раздела. То же, мягче, в
   `widgets/rise_in.dart:61`. Завести один раз полем и освобождать.

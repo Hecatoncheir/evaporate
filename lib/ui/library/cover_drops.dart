@@ -84,8 +84,13 @@ class _CoverDropsState extends State<CoverDrops> {
       final program = await CoverDrops.program();
       final bytes = await File(path).readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      codec.dispose();
+      final ui.FrameInfo frame;
+      // Кодек держит расшифровщик: сорвись кадр — он остался бы жить.
+      try {
+        frame = await codec.getNextFrame();
+      } finally {
+        codec.dispose();
+      }
       if (!mounted || generation != _generation) {
         frame.image.dispose();
         return;
@@ -93,6 +98,9 @@ class _CoverDropsState extends State<CoverDrops> {
       setState(() {
         _cover?.dispose();
         _cover = frame.image;
+        // Прежний шейдер освобождаем при замене, а не только с виджетом:
+        // замена случается на каждый уход выделения с плитки.
+        _shader?.dispose();
         _shader = program.fragmentShader();
       });
     } on Object {
@@ -107,6 +115,7 @@ class _CoverDropsState extends State<CoverDrops> {
     setState(() {
       _cover?.dispose();
       _cover = null;
+      _shader?.dispose();
       _shader = null;
     });
   }
