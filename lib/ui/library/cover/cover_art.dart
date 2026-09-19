@@ -19,21 +19,6 @@ class CoverArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final path = game.coverPath;
 
-    Widget image(String path, {required Widget Function() onError}) {
-      return Image.file(
-        File(path),
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stack) => onError(),
-        // Проявление вместо рывка: обложки приходят вразнобой, и сетка
-        // иначе моргает пятнами по мере их прихода.
-        frameBuilder: (context, child, frame, wasCached) => AnimatedOpacity(
-          opacity: frame == null && !wasCached ? 0 : 1,
-          duration: context.motion.fast,
-          child: child,
-        ),
-      );
-    }
-
     final fallback = CoverTitlePlate(game: game, underStrip: underStrip);
     if (path == null) return fallback;
 
@@ -43,7 +28,20 @@ class CoverArt extends StatelessWidget {
         // Подложка лежит под картинкой всегда: пока обложка грузится, плитка
         // не должна быть пустой дырой.
         fallback,
-        image(path, onError: () => const SizedBox.shrink()),
+        Image.file(
+          File(path),
+          fit: BoxFit.cover,
+          // Не прочиталась — остаётся подложка под ней: пустая дыра на
+          // месте плитки хуже, чем плитка без картинки.
+          errorBuilder: (context, error, stack) => const SizedBox.shrink(),
+          // Проявление вместо рывка: обложки приходят вразнобой, и сетка
+          // иначе моргает пятнами по мере их прихода.
+          frameBuilder: (context, child, frame, wasCached) => AnimatedOpacity(
+            opacity: frame == null && !wasCached ? 0 : 1,
+            duration: context.motion.fast,
+            child: child,
+          ),
+        ),
       ],
     );
   }

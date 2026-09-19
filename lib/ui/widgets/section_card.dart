@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'spatial_surface.dart';
+import 'glass_surface.dart';
 
 class SectionCard extends StatelessWidget {
   const SectionCard({

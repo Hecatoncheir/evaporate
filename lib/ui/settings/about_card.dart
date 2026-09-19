@@ -11,9 +11,10 @@ import '../../services/system/update_check.dart';
 import '../../services/system/update_download.dart';
 import '../../services/system/update_installer.dart';
 import '../theme.dart';
-import '../widgets/busy_spinner.dart';
 import '../widgets/info_row.dart';
 import '../widgets/section_card.dart';
+import 'about_actions.dart';
+import 'menu_entry_row.dart';
 import 'setting_switch.dart';
 
 /// Версия приложения и проверка обновлений.
@@ -123,29 +124,6 @@ class _AboutCardState extends State<AboutCard> {
     await _refreshMenuState();
   }
 
-  /// Сборка под Linux — папка с файлом, а не установленный пакет, поэтому
-  /// в меню приложений оно само не появляется.
-  Widget _menuEntryRow(BuildContext context) {
-    final l = L.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _inMenu ?? false ? l.menuEntryAdded : l.menuEntryMissing,
-              style: context.text.note,
-            ),
-          ),
-          TextButton(
-            onPressed: _toggleMenuEntry,
-            child: Text(_inMenu ?? false ? l.menuEntryRemove : l.menuEntryAdd),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Идёт подготовка обновления.
   bool _updating = false;
 
@@ -216,7 +194,15 @@ class _AboutCardState extends State<AboutCard> {
         children: [
           InfoRow(label: l.version, value: AppVersion.current),
           const SizedBox(height: 6),
-          _buttons(context),
+          AboutActions(
+            busy: _busy,
+            updating: _updating,
+            found: _found,
+            onCheck: _lookForUpdate,
+            onSourceCode: () => _openRelease(_repositoryUrl),
+            onInstall: _install,
+            onReleasePage: () => _openRelease(_found!.url),
+          ),
           if (_message != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -228,7 +214,8 @@ class _AboutCardState extends State<AboutCard> {
               ),
             ),
           ],
-          if (_desktop.isSupported) _menuEntryRow(context),
+          if (_desktop.isSupported)
+            MenuEntryRow(inMenu: _inMenu ?? false, onToggle: _toggleMenuEntry),
           SettingSwitch(
             value: settings.checkUpdates,
             onChanged: (value) => context.read<SettingsBloc>().add(
@@ -241,51 +228,4 @@ class _AboutCardState extends State<AboutCard> {
       ),
     );
   }
-
-  /// Клавиши карточки. Две последние появляются, только когда проверка
-  /// нашла версию новее нашей.
-  ///
-  /// Wrap, а не Row: две кнопки с длинными немецкими по духу подписями
-  /// в узком окне не умещаются в строку, и вторая уезжает за край.
-  Widget _buttons(BuildContext context) {
-    final l = L.of(context);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        FilledButton.tonalIcon(
-          onPressed: _busy ? null : _lookForUpdate,
-          icon: _busy ? _spinner : const Icon(Icons.refresh, size: 18),
-          label: Text(l.checkForUpdates),
-        ),
-        // Ссылка переехала сюда из нижней строки окна: там она занимала
-        // место навсегда, а нажимают её один раз в жизни, и остальное про
-        // сборку — версия, обновления — и так здесь.
-        FilledButton.tonalIcon(
-          onPressed: () => _openRelease(_repositoryUrl),
-          icon: const Icon(Icons.open_in_new, size: 16),
-          label: Text(l.sourceCode),
-        ),
-        if (_found != null) ...[
-          if (_found!.updateForThisPlatform != null)
-            FilledButton.icon(
-              onPressed: _updating ? null : _install,
-              icon: _updating
-                  ? _spinner
-                  : const Icon(Icons.system_update_alt, size: 16),
-              label: Text(l.updateInstall),
-            ),
-          FilledButton.tonalIcon(
-            onPressed: () => _openRelease(_found!.url),
-            icon: const Icon(Icons.open_in_new, size: 16),
-            label: Text(l.openReleasePage),
-          ),
-        ],
-      ],
-    );
-  }
-
-  /// Кружок вместо значка, пока клавиша занята работой. Размер тот же, что
-  /// у значка: иначе ряд дёргался бы на каждое нажатие.
-  static const _spinner = BusySpinner();
 }

@@ -19,18 +19,19 @@ import 'add/add_game_form.dart';
 Future<String?> showAddGameDialog(BuildContext context) {
   return showDialog<String>(
     context: context,
-    builder: (_) => const _AddGameDialog(),
+    builder: (_) => const AddGameDialog(),
   );
 }
 
-class _AddGameDialog extends StatefulWidget {
-  const _AddGameDialog();
+/// Окно «Добавить игру»: папка установки, `.torrent` или magnet-ссылка.
+class AddGameDialog extends StatefulWidget {
+  const AddGameDialog({super.key});
 
   @override
-  State<_AddGameDialog> createState() => _AddGameDialogState();
+  State<AddGameDialog> createState() => _AddGameDialogState();
 }
 
-class _AddGameDialogState extends State<_AddGameDialog> {
+class _AddGameDialogState extends State<AddGameDialog> {
   GameSourceKind _kind = GameSourceKind.magnet;
   final _titleController = TextEditingController();
   final _magnetController = TextEditingController();

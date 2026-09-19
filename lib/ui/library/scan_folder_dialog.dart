@@ -31,20 +31,21 @@ Future<int?> showScanFolderDialog(BuildContext context, ScanSession session) {
     // Закрывать поиск случайным нажатием мимо окна незачем: он идёт долго,
     // и начинать заново обидно.
     barrierDismissible: false,
-    builder: (_) => _ScanFolderDialog(session: session),
+    builder: (_) => ScanFolderDialog(session: session),
   );
 }
 
-class _ScanFolderDialog extends StatefulWidget {
-  const _ScanFolderDialog({required this.session});
+/// Окно поиска установленных игр: ход обхода и список найденного.
+class ScanFolderDialog extends StatefulWidget {
+  const ScanFolderDialog({super.key, required this.session});
 
   final ScanSession session;
 
   @override
-  State<_ScanFolderDialog> createState() => _ScanFolderDialogState();
+  State<ScanFolderDialog> createState() => _ScanFolderDialogState();
 }
 
-class _ScanFolderDialogState extends State<_ScanFolderDialog> {
+class _ScanFolderDialogState extends State<ScanFolderDialog> {
   /// Папку держат над окном — показываем, что бросить её можно сюда.
   bool _dragging = false;
 

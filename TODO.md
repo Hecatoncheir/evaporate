@@ -651,6 +651,9 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 ### Этап 3. Виджеты: один файл — один публичный виджет (P1)
 
+**Закрыт: все три списка стража пусты.** Ниже — как оно было и чем стало;
+записи оставлены ради «почему так названо» и «почему не проще».
+
 Порядок работы над файлом: приватные классы → методы-виджеты → соседи по
 файлу. Имена и папки — ниже; после каждого файла вычёркивать его из
 списка стража.
@@ -719,9 +722,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 `launcher_action_button.dart`, `icon_action.dart`, `status_chip.dart`,
 `section_card.dart`, `empty_state.dart`, `info_row.dart`, а `showError` /
 `showInfo` / `confirm` → `lib/ui/feedback/`~~ (сделано: сборник удалён, у
-каждого импортёра — точный импорт, а не реэкспорт); `downloads/queue_column.dart`
+каждого импортёра — точный импорт, а не реэкспорт); ~~`downloads/queue_column.dart`
 (5); по три — `toolbar.dart`, `download_activity.dart`,
-`available_games.dart`, `spatial_surface.dart`, `pickers.dart`.
+`available_games.dart`, `spatial_surface.dart`, `pickers.dart`.~~ (тоже
+разошлись; из `spatial_surface.dart` вышли `GlassSurface` и
+`HardwareGrille`, а `SpatialBackdrop` удалён — его не звал никто).
 
 **Повторы, которые вынос обнажит** — их сводят в общие виджеты, а не
 копируют по новым файлам:

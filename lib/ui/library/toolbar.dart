@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import '../widgets/spatial_surface.dart';
+import '../widgets/glass_surface.dart';
 import 'shelf.dart';
 import 'toolbar/add_game_menu_button.dart';
 import 'toolbar/library_search_field.dart';

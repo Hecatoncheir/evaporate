@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/ui/widgets/spatial_surface.dart';
+import 'package:evaporate/ui/widgets/glass_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

@@ -45,19 +45,8 @@ void main() {
   });
 }
 
-const _privateWidgets = [
-  'lib/ui/library/add_game_dialog.dart: _AddGameDialog',
-  'lib/ui/library/scan_folder_dialog.dart: _ScanFolderDialog',
-];
+const _privateWidgets = <String>[];
 
-const _widgetFunctions = [
-  'lib/ui/library/cover/cover_art.dart: image',
-  'lib/ui/settings/about_card.dart: _menuEntryRow',
-  'lib/ui/settings/about_card.dart: _buttons',
-  'lib/ui/widgets/launcher_action_button.dart: _face',
-];
+const _widgetFunctions = <String>[];
 
-const _crowdedFiles = [
-  'lib/ui/library/detail/detail_cover.dart: 2',
-  'lib/ui/widgets/spatial_surface.dart: 3',
-];
+const _crowdedFiles = <String>[];
