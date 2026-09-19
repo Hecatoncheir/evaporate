@@ -14,7 +14,9 @@ import '../support/guards.dart';
 /// - `isDark` — различие схем записывается данными темы, а не кодом;
 /// - `fontSize:` — кегль берётся из ролей типографики;
 /// - `Duration(milliseconds:` — длительность берётся из `context.motion`;
-/// - `BorderRadius.circular(<число>)` — радиус берётся из `EvaporateTheme`.
+/// - `BorderRadius.circular(<число>)` — радиус берётся из `EvaporateTheme`;
+/// - поле страницы 28, предельная ширина 1340 и подпись настройки 220 —
+///   из `EvaporateLayout`.
 ///
 /// Списки ниже — известные нарушители на момент введения правила (этап 2
 /// в `TODO.md`), с числом вхождений. Пополнять их нельзя; вынесенное —
@@ -64,6 +66,18 @@ void main() {
     );
   });
 
+  // Ловит только числа, которые уже были токенами: 28 бывает и отступом
+  // сетки, и размытием, и запрет «любого 28» бил бы мимо.
+  test('размеры раскладки не задаются числом по месту', () {
+    expectRatchet(
+      found: count(
+        RegExp(r'fromLTRB\(\s*28\b|maxWidth:\s*1340\b|width:\s*220\b'),
+      ),
+      known: const [],
+      rule: 'поля, ширины и высоты полос — постоянные EvaporateLayout',
+    );
+  });
+
   // Расширение, которое есть у одной схемы и нет у другой, молча отдаёт
   // виджету запасное значение, а плавная смена схемы смешивает его с
   // пустотой. Проверяем и сами схемы, и их смесь посередине перехода.
@@ -108,7 +122,6 @@ const _fontSize = [
   'lib/ui/saves/snapshot_history.dart: 2',
   'lib/ui/settings/gamepad_settings.dart: 1',
   'lib/ui/settings/log_card.dart: 1',
-  'lib/ui/settings/path_setting.dart: 1',
   'lib/ui/shell/navigation.dart: 2',
   'lib/ui/shell/top_bar.dart: 1',
   'lib/ui/widgets/button_hints.dart: 2',

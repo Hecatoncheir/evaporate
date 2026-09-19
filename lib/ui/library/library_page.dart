@@ -284,7 +284,7 @@ class _LibraryPageState extends State<LibraryPage> {
         controller: _scroll,
         findChildIndexCallback: (key) =>
             key is ValueKey<String> ? indices[key.value] : null,
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 34),
+        padding: EvaporateLayout.inset(top: 24, bottom: 34),
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
           // По ширине, а не по числу столбцов: обложка должна остаться
           // читаемой и в узком окне, и на весь экран телевизора.

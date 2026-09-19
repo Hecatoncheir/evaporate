@@ -27,7 +27,7 @@ class AppFooter extends StatelessWidget {
     final settings = context.watch<SettingsBloc>().state;
     final gamepad = context.read<GamepadService>();
     return Container(
-      height: 40,
+      height: EvaporateLayout.footerHeight,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       decoration: BoxDecoration(

@@ -21,7 +21,7 @@ class ConceptTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 64,
+    height: EvaporateLayout.topBarHeight,
     child: Stack(
       alignment: Alignment.center,
       children: [

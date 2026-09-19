@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
+import '../theme.dart';
 import '../widgets/scale_control.dart';
 import '../widgets/section_heading.dart';
 
@@ -28,7 +29,7 @@ class ConceptLibraryHeading extends StatelessWidget {
   Widget build(BuildContext context) => SectionHeading(
     label: L.of(context).conceptLibraryLabel,
     semanticsLabel: L.of(context).library,
-    padding: const EdgeInsets.fromLTRB(28, 18, 28, 8),
+    padding: EvaporateLayout.inset(top: 18, bottom: 8),
     trailing: ScaleControl(
       key: const ValueKey('library-scale'),
       label: L.of(context).coverScale,

@@ -24,7 +24,12 @@ class SectionHeading extends StatelessWidget {
     required this.label,
     required this.semanticsLabel,
     this.trailing,
-    this.padding = const EdgeInsets.fromLTRB(28, 20, 28, 10),
+    this.padding = const EdgeInsets.fromLTRB(
+      EvaporateLayout.gutter,
+      20,
+      EvaporateLayout.gutter,
+      10,
+    ),
   });
 
   /// Метка на корпусе — та самая, в скобках.

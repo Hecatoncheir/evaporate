@@ -5,6 +5,7 @@ import '../../bloc/library/library_bloc.dart';
 import '../../bloc/saves/saves_bloc.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
 import '../widgets/readout_panel.dart';
 import '../widgets/section_heading.dart';
 import 'bulk_transfer_card.dart';
@@ -44,13 +45,13 @@ class SavesPage extends StatelessWidget {
       builder: (context, box) {
         final wide = box.maxWidth >= 1080;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+          padding: EvaporateLayout.pagePadding,
           children: [
             Center(
               // Шире некуда: строка описания за этой границей перестаёт
               // читаться, а карточки превращаются в полосы.
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1340),
+                constraints: EvaporateLayout.contentConstraints,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

@@ -21,7 +21,10 @@ class LanguagePicker extends StatelessWidget {
     final l = L.of(context);
     return Row(
       children: [
-        SizedBox(width: 220, child: Text(l.language, style: context.text.body)),
+        SizedBox(
+          width: EvaporateLayout.settingLabelWidth,
+          child: Text(l.language, style: context.text.body),
+        ),
         Expanded(
           child: SegmentedButton<String>(
             segments: [
@@ -58,7 +61,7 @@ class WindowStartPicker extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 220,
+          width: EvaporateLayout.settingLabelWidth,
           child: Text(L.of(context).windowOnStart, style: context.text.body),
         ),
         Expanded(
@@ -106,7 +109,7 @@ class ThemePicker extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 220,
+          width: EvaporateLayout.settingLabelWidth,
           child: Text(L.of(context).appearance, style: context.text.body),
         ),
         Expanded(

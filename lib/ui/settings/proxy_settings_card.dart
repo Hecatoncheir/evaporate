@@ -117,7 +117,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       SizedBox(
-        width: 220,
+        width: EvaporateLayout.settingLabelWidth,
         child: Text(L.of(context).proxyKind, style: context.text.body),
       ),
       SegmentedButton<ProxyKind>(
@@ -196,7 +196,10 @@ class _Field extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          SizedBox(width: 220, child: Text(label, style: context.text.body)),
+          SizedBox(
+            width: EvaporateLayout.settingLabelWidth,
+            child: Text(label, style: context.text.body),
+          ),
           SizedBox(
             width: 260,
             child: TextField(

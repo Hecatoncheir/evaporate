@@ -21,16 +21,9 @@ class PathSetting extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(width: 220, child: Text(label, style: context.text.body)),
-        Expanded(
-          child: SelectableText(
-            value,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              color: context.colors.textSecondary,
-            ),
-          ),
+        SizedBox(
+          width: EvaporateLayout.settingLabelWidth,
+          child: Text(label, style: context.text.body),
         ),
         TextButton(onPressed: onPick, child: Text(L.of(context).change)),
         if (onClear != null)

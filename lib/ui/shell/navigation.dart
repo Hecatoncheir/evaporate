@@ -89,7 +89,7 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
 
     return Container(
       key: const ValueKey('concept-navigation'),
-      height: 48,
+      height: EvaporateLayout.railHeight,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: colors.railBackground,

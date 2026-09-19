@@ -599,12 +599,18 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   четырёх-пяти ступеней (`tint`, `rim`, `scrim`, `glass`). Цвет состояния
   движка выбирается одинаковым `switch` в `app_footer.dart:80–85` и
   `engine_status.dart:16–21` — в `labels.dart` или в тему. **S**
-- [ ] Раскладка — тоже токены: поля 28 (`settings_page.dart:75`,
+- [x] Раскладка — тоже токены: поля 28 (`settings_page.dart:75`,
   `saves_page.dart:47`, `downloads_page.dart:85,96,207`), ширина 1340
   (`downloads_page.dart:79`, `saves_page.dart:53`), высоты 64 / 48 / 40
   (`top_bar.dart:24`, `navigation.dart:92`, `app_footer.dart:30`), подпись
   настройки шириной 220 (11 раз) → `EvaporateLayout` и общий
   `ContentFrame` (центр, предельная ширина, поля). **S**
+  *Сделано:* `EvaporateLayout` с `pagePadding`, `inset()` и
+  `contentConstraints`, страж ловит 28/1340/220 по месту. `ContentFrame`
+  не заведён: сохранения прокручиваются списком, а у загрузок снизу
+  `Expanded` на всю высоту — общая обёртка вышла бы с флагами на оба
+  случая. `_wide = 1340` в панели библиотеки — точка перелома, а не
+  ширина содержимого, и осталась своей.
 - [x] Украшения: `ambientParticleColor(isDark)`, `waveColors(isDark)` и
   ветвления в `library_atmosphere.dart:68,213,235`, `portal_sparks.dart:279`,
   `game_wave.dart:82` — в расширение `EffectsPalette` (`waveColors`,

@@ -85,7 +85,7 @@ class SettingsPage extends StatelessWidget {
           ),
         },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+          padding: EvaporateLayout.pagePadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -149,7 +149,7 @@ class SettingsPage extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SizedBox(
-                width: 220,
+                width: EvaporateLayout.settingLabelWidth,
                 child: Text(l.interfaceScale, style: context.text.body),
               ),
               ScaleControl(
@@ -226,7 +226,7 @@ class SettingsPage extends StatelessWidget {
           Row(
             children: [
               SizedBox(
-                width: 220,
+                width: EvaporateLayout.settingLabelWidth,
                 child: Text(l.concurrentDownloads, style: context.text.body),
               ),
               DropdownButton<int>(

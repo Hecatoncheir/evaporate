@@ -106,7 +106,7 @@ class GamepadSettingsCard extends StatelessWidget {
   ) => Row(
     children: [
       SizedBox(
-        width: 220,
+        width: EvaporateLayout.settingLabelWidth,
         child: Text(L.of(context).deadZone, style: context.text.body),
       ),
       Expanded(
@@ -181,7 +181,7 @@ class _BindingRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 220,
+            width: EvaporateLayout.settingLabelWidth,
             child: Text(
               navActionLabel(L.of(context), action),
               style: context.text.body,

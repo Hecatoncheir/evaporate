@@ -54,8 +54,9 @@ class FeaturedGame extends StatelessWidget {
     final colors = context.colors;
     final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
 
+    final (top, bottom) = compact ? (6.0, 8.0) : (8.0, 10.0);
     return Padding(
-      padding: EdgeInsets.fromLTRB(28, compact ? 6 : 8, 28, compact ? 8 : 10),
+      padding: EvaporateLayout.inset(top: top, bottom: bottom),
       child: SizedBox(
         // Выше полного кадра делать нельзя: в окне 1280x900 первый ряд
         // обложек уходит под нижний край, и полка перестаёт читаться с
@@ -114,7 +115,7 @@ class FeaturedGame extends StatelessWidget {
     final textWidth = (width * 0.44).clamp(320.0, 760.0);
     return [
       Positioned(
-        left: 28,
+        left: EvaporateLayout.gutter,
         top: 24,
         bottom: 24,
         width: textWidth,

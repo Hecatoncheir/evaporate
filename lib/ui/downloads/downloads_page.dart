@@ -74,13 +74,13 @@ class DownloadsPage extends StatelessWidget {
         child: GameDropTarget(
           selectAfterDrop: false,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1340),
+            constraints: EvaporateLayout.contentConstraints,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Heading(status: downloads.engine),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+                  padding: EvaporateLayout.inset(top: 14),
                   child: _readout(
                     context,
                     stats: downloads.stats,
@@ -91,7 +91,7 @@ class DownloadsPage extends StatelessWidget {
                 ),
                 if (downloads.engine.state == EngineState.failed)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(28, 14, 28, 0),
+                    padding: EvaporateLayout.inset(top: 14),
                     child: EngineFailure(message: downloads.engine.message),
                   ),
                 Expanded(
@@ -202,7 +202,7 @@ class _Heading extends StatelessWidget {
     return SectionHeading(
       label: L.of(context).conceptDownloadsLabel,
       semanticsLabel: L.of(context).downloads,
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+      padding: EvaporateLayout.inset(top: 20),
       trailing: Wrap(
         spacing: 10,
         runSpacing: 8,

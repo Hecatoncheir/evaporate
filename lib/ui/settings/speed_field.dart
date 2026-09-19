@@ -80,7 +80,7 @@ class _SpeedFieldState extends State<SpeedField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 220,
+            width: EvaporateLayout.settingLabelWidth,
             child: Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(widget.label, style: context.text.body),

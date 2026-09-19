@@ -46,7 +46,7 @@ class GameDetail extends StatelessWidget {
     return _wrapHistory(
       task: downloading ? task : null,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(28, 24, 28, 32),
+        padding: EvaporateLayout.pagePadding,
         children: [
           if (downloading)
             DownloadingHeader(game: game, task: task)
