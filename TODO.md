@@ -992,7 +992,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 CI:
 
-- [ ] `permissions: contents: read` на уровне `ci.yml` (сейчас права заданы
+- [x] `permissions: contents: read` на уровне `ci.yml` (сейчас права заданы
   только у `release`, `:318`) и `timeout-minutes` каждому заданию:
   зависший ввод-вывод в `testWidgets` — это до шести часов на трёх
   раннерах. **S**

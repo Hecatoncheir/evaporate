@@ -13,6 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# По умолчанию заданиям нужно только читать репозиторий. Писать — выкладывать
+# релиз — вправе одно задание, и права оно получает само, ниже.
+permissions:
+  contents: read
+
 env:
   # Версия зафиксирована ради воспроизводимости. Чтобы всегда брать свежую
   # стабильную, замените на channel: stable без flutter-version.
@@ -22,6 +27,9 @@ jobs:
   analyze:
     name: Формат и анализ
     runs-on: ubuntu-latest
+    # Зависший ввод-вывод в тесте без предела держал бы раннер шесть часов —
+    # на трёх системах разом. Пределы — втрое-вчетверо от обычного хода.
+    timeout-minutes: 10
     outputs:
       version: ${{ steps.version.outputs.value }}
     steps:
@@ -83,6 +91,7 @@ jobs:
   test:
     name: Тесты (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
     strategy:
       # Падение на одной системе не должно скрывать состояние остальных:
       # «сломалось везде» и «сломалось только на Windows» — разные диагнозы.
@@ -131,6 +140,7 @@ jobs:
   build-macos:
     name: Сборка macOS
     runs-on: macos-latest
+    timeout-minutes: 30
     needs: [analyze, test]
     # Только для тегов и ручного запуска: на пуше в main три сборки
     # выясняли бы то же, что и тесты, вчетверо дольше — сборка macOS
@@ -189,6 +199,7 @@ jobs:
   build-linux:
     name: Сборка Linux
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [analyze, test]
     # Только для тегов и ручного запуска — см. сборку macOS.
     if: >-
@@ -249,6 +260,7 @@ jobs:
   build-windows:
     name: Сборка Windows
     runs-on: windows-latest
+    timeout-minutes: 30
     needs: [analyze, test]
     # Только для тегов и ручного запуска — см. сборку macOS.
     if: >-
@@ -312,6 +324,7 @@ jobs:
   release:
     name: Выпустить релиз
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [build-macos, build-linux, build-windows]
     # Только для тегов: на обычных пушах выпускать нечего.
     if: startsWith(github.ref, 'refs/tags/v')
