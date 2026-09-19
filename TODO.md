@@ -682,7 +682,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | `settings/pickers.dart` | три публичных виджета | все три — «подпись шириной 220 + `SegmentedButton`» → один обобщённый `SegmentedSetting<T>`; рядом `SettingRow` и `SettingSwitch` (`SwitchListTile` с нулевыми полями выписан 10 раз) |
 | `settings/effects_card.dart`, `notification_settings.dart` | `_presets`, `_details`; `_warning`, `_buttons` | `EffectPresetPicker`, `EffectDetails`; `NotificationActions` |
 | `saves/sync_folder_card.dart` | `_PackageRow` + диалог в `_pickGame` (62 строки) | `SyncPackageRow`, `PickGameDialog`; правило «совпавшая по названию — первой» (`:212–218`) — чистой функцией в сервисы |
-| `saves/snapshot_history.dart` | `_SnapshotRow` + `_summary` | `SnapshotRow`, `SnapshotSummary` |
+| ~~`saves/snapshot_history.dart`~~ | ~~`_SnapshotRow` + `_summary`~~ | сделано: `SnapshotRow` (на `HoverBuilder`), `SnapshotSummary` |
 | `saves/bulk_transfer_card.dart` | `_BulkReportView` + диалог в `_askAboutNewer` | `BulkReportView`, `BulkOutcomeGroup`, `ImportNewerDialog` |
 | `saves/saves_page.dart` | `_Heading`, `_readout` | `_Heading` — пустая обёртка из трёх аргументов (`:136–140`): удалить, звать `SectionHeading` по месту, как в `settings_page.dart:79–83`; `SavesReadout` |
 | `downloads/downloads_page.dart` | `_Heading`, `_columns`, `_readout` | это другой виджет, с тем же именем: чип движка, перезапуск и логика «замерло» (`:201–203`) → `DownloadsHeading`; `DownloadsColumns`, `DownloadsReadout` |
@@ -694,7 +694,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | `widgets/liquid_selection.dart` | `_LiquidInkScope` | `LiquidInkScope`; помеха: `LiquidSelectionInk` читает приватные поля чужого `State` (`:233–252`) — нужен публичный интерфейс геометрии только для чтения |
 | `widgets/window_frame.dart`, `readout_panel.dart`, `ambient_light.dart` | `_resize`, `_withBars`, локальная `wash` | `WindowResizeZone`, `ReadoutRow`, `AmbientWash`; `WindowControl` и `ReadoutCell` — своими файлами |
 | `shell/app_footer.dart`, `downloads/engine_status.dart` | по два публичных | `EngineReadout`; `EngineStatusChip`, `EngineFailure` |
-| наведение | `_hovered` в четырёх `State` (`top_bar.dart:218`, `available_games.dart:104,176`, `snapshot_history.dart:73`) | `HoverBuilder` заведён (`widgets/hover_builder.dart`), три места из четырёх на нём; строка снимка перейдёт вместе с разбором `snapshot_history.dart` |
+| наведение | `_hovered` в четырёх `State` (`top_bar.dart:218`, `available_games.dart:104,176`, `snapshot_history.dart:73`) | сделано: `HoverBuilder` (`widgets/hover_builder.dart`), все четыре места на нём |
 
 **Методы, возвращающие виджеты (70).** Это те же приватные виджеты, только
 без своего `Element`: нет границы перестроения, нет `const`, в дереве
