@@ -374,9 +374,9 @@ void main() {
 
     final reopened = SettingsBloc(paths);
     reopened.add(const SettingsLoadRequested());
-    await reopened.stream.firstWhere((s) => s.maxConcurrent == 7);
+    await reopened.stream.firstWhere((s) => s.maxConcurrent == 5);
 
-    expect(reopened.state.maxConcurrent, 7);
+    expect(reopened.state.maxConcurrent, 5);
     await reopened.close();
   });
   group('правка игры — намерение, а не снимок', () {
