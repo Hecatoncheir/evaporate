@@ -519,7 +519,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`widgets/fade_indexed_stack.dart:68`): на контроллере, живущем всю
   сессию, остаётся по слушателю на каждую смену раздела. То же, мягче, в
   `widgets/rise_in.dart:61`. Завести один раз полем и освобождать.
-- [ ] Два определения «активной задачи»: метка в обойме считает по
+- [x] Два определения «активной задачи»: метка в обойме считает по
   `activeTasks` (`bloc/downloads/downloads_state.dart:16`), страница
   загрузок — по-своему, с ошибочными и без очереди
   (`downloads_page.dart:54–56`), и это число уходит в показание «N / max».

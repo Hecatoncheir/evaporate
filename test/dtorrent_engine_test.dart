@@ -309,6 +309,7 @@ void main() {
       final failed = engine.taskById(hashA)!;
       expect(failed.state, DownloadState.error);
       expect(failed.errorMessage, LRu().metadataNotFound);
+      expect(failed.isQueued, isFalse, reason: 'очередь её обходит');
     });
 
     test('исключение при запуске тоже освобождает слот', () async {

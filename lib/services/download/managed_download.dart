@@ -126,7 +126,9 @@ class _ManagedDownload {
       errorMessage: error,
       isMetadata: isFetchingMetadata,
       infoHash: infoHash,
-      isQueued: !started && !pausedByUser,
+      // Сорвавшаяся задача слота не ждёт: очередь её обходит, пока её не
+      // возобновят.
+      isQueued: !started && !pausedByUser && error == null,
     );
   }
 

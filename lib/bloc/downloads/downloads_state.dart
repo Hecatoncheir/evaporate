@@ -13,9 +13,26 @@ class DownloadsState extends Equatable {
   final EngineStatus engine;
   final Notice? notice;
 
-  List<DownloadTask> get activeTasks => tasks
-      .where((t) => t.isRunning || t.state == DownloadState.paused)
-      .toList();
+  /// Всё незавершённое вне очереди: идущее, на паузе и сорвавшееся. Это и
+  /// колонка «в работе» на странице загрузок, и число на метке в обойме —
+  /// одно определение на оба места.
+  List<DownloadTask> get inWork => [
+    for (final t in tasks)
+      if (!t.isQueued && t.state != DownloadState.complete) t,
+  ];
+
+  /// Держат слот очереди только идущие: пауза и ошибка его освобождают.
+  /// По ним — показание «N / предел».
+  List<DownloadTask> get holdingSlots => [
+    for (final t in inWork)
+      if (t.isRunning) t,
+  ];
+
+  /// Ждущие свободного слота, в порядке очереди.
+  List<DownloadTask> get queued => [
+    for (final t in tasks)
+      if (t.isQueued) t,
+  ];
 
   DownloadTask? taskById(String? id) {
     if (id == null) return null;

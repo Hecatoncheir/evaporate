@@ -55,7 +55,7 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
       (bloc) => bloc.state.section,
     );
     final count = context.select<DownloadsBloc, int>(
-      (bloc) => bloc.state.activeTasks.length,
+      (bloc) => bloc.state.inWork.length,
     );
     final labels = [
       L.of(context).library,

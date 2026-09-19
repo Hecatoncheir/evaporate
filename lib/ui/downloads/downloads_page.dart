@@ -51,10 +51,8 @@ class DownloadsPage extends StatelessWidget {
     );
 
     // Порядок задач в состоянии — это и есть порядок очереди.
-    final active = downloads.tasks
-        .where((t) => !t.isQueued && t.state != DownloadState.complete)
-        .toList();
-    final queued = downloads.tasks.where((t) => t.isQueued).toList();
+    final active = downloads.inWork;
+    final queued = downloads.queued;
 
     final sources = AvailableGames(library: library, tasks: downloads.tasks);
     final queue = QueueColumn(
@@ -86,7 +84,7 @@ class DownloadsPage extends StatelessWidget {
                   child: _readout(
                     context,
                     stats: downloads.stats,
-                    active: active.length,
+                    active: downloads.holdingSlots.length,
                     queued: queued.length,
                     maxConcurrent: maxConcurrent,
                   ),
