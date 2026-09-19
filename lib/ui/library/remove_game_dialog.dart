@@ -20,42 +20,54 @@ enum RemoveChoice {
 /// Один диалог на все места, откуда игру убирают: со страницы игры и из
 /// списка «Можно скачать» на загрузках. Спрашивают об одном и том же, и
 /// расходиться словам незачем.
+Future<RemoveChoice?> askRemoveGame(BuildContext context, Game game) {
+  return showDialog<RemoveChoice>(
+    context: context,
+    builder: (context) => RemoveGameDialog(game: game),
+  );
+}
+
+/// Вопрос об удалении игры.
 ///
 /// «Вместе с файлами» предлагают, только когда папка установки и правда
 /// есть: у игры, которую ещё не качали, её нет вовсе, и выбор был бы ни о
 /// чём. Снимки сохранений уходят в любом случае — об этом сказано в самом
 /// вопросе, потому что вернуть их будет нечем.
-Future<RemoveChoice?> askRemoveGame(BuildContext context, Game game) {
-  final dir = game.installDir;
-  final hasFiles = dir != null && Directory(dir).existsSync();
+class RemoveGameDialog extends StatelessWidget {
+  const RemoveGameDialog({super.key, required this.game});
 
-  return showDialog<RemoveChoice>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(L.of(context).removeQuestion(game.title)),
+  final Game game;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    final dir = game.installDir;
+    final hasFiles = dir != null && Directory(dir).existsSync();
+
+    return AlertDialog(
+      title: Text(l.removeQuestion(game.title)),
       content: Text(
         hasFiles
-            ? '${L.of(context).removeSnapshotsNote}\n\n'
-                  '${L.of(context).removeFilesNote(dir)}'
-            : L.of(context).removeSnapshotsNote,
-        style: const TextStyle(height: 1.5),
+            ? '${l.removeSnapshotsNote}\n\n${l.removeFilesNote(dir)}'
+            : l.removeSnapshotsNote,
+        style: context.text.prose,
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(L.of(context).cancel),
+          child: Text(l.cancel),
         ),
         if (hasFiles)
           TextButton(
             onPressed: () => Navigator.pop(context, RemoveChoice.withFiles),
             style: context.buttons.dangerText,
-            child: Text(L.of(context).removeWithFiles),
+            child: Text(l.removeWithFiles),
           ),
         FilledButton(
           onPressed: () => Navigator.pop(context, RemoveChoice.libraryOnly),
-          child: Text(L.of(context).removeFromLibrary),
+          child: Text(l.removeFromLibrary),
         ),
       ],
-    ),
-  );
+    );
+  }
 }

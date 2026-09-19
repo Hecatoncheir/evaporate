@@ -1,10 +1,8 @@
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:path/path.dart' as p;
 
 import '../../../bloc/library/library_bloc.dart';
-import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/launch/executable_finder.dart';
@@ -12,6 +10,7 @@ import '../../feedback/snack.dart';
 import '../../theme.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/section_card.dart';
+import 'executable_picker_dialog.dart';
 
 class FilesSection extends StatelessWidget {
   const FilesSection({super.key, required this.game});
@@ -85,36 +84,8 @@ class FilesSection extends StatelessWidget {
 
     final chosen = await showDialog<ExecutableCandidate>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(L.of(context).whatToRunQuestion),
-        content: SizedBox(
-          width: 560,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: candidates.length,
-            itemBuilder: (context, index) {
-              final candidate = candidates[index];
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.play_circle_outline, size: 18),
-                title: Text(candidate.name, style: context.text.body),
-                subtitle: Text(
-                  '${p.relative(candidate.path, from: dir)} · '
-                  '${formatBytes(candidate.sizeBytes)}',
-                  style: context.text.small,
-                ),
-                onTap: () => Navigator.pop(context, candidate),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(L.of(context).cancel),
-          ),
-        ],
-      ),
+      builder: (context) =>
+          ExecutablePickerDialog(candidates: candidates, installDir: dir),
     );
     if (chosen == null) return;
     library.add(GameExecutableSet(game.id, chosen.path));
