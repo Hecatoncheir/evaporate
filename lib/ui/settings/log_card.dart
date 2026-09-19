@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/system/app_log.dart';
+import '../feedback/snack.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Показ журнала приложения.
 ///

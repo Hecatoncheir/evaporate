@@ -8,8 +8,10 @@ import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/launch/executable_finder.dart';
+import '../../feedback/snack.dart';
 import '../../theme.dart';
-import '../../widgets/common.dart';
+import '../../widgets/info_row.dart';
+import '../../widgets/section_card.dart';
 
 class FilesSection extends StatelessWidget {
   const FilesSection({super.key, required this.game});

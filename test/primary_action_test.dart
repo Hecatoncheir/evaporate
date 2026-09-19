@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/primary_action.dart';
-import 'package:evaporate/ui/widgets/common.dart';
+import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

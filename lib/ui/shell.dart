@@ -11,6 +11,7 @@ import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
 import '../models/app_settings.dart';
 import 'downloads/downloads_page.dart';
+import 'feedback/snack.dart';
 import 'library/game_wave.dart';
 import 'library/library_page.dart';
 import 'library/primary_action.dart';
@@ -20,7 +21,6 @@ import 'shell/app_footer.dart';
 import 'shell/top_bar.dart';
 import 'theme.dart';
 import 'widgets/ambient_light.dart';
-import 'widgets/common.dart';
 import 'widgets/fade_indexed_stack.dart';
 
 class AppShell extends StatelessWidget {

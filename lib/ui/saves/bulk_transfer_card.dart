@@ -6,7 +6,7 @@ import '../../bloc/saves/saves_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/bulk_report.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Подробности последней массовой операции.
 ///

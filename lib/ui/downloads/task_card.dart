@@ -8,7 +8,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/icon_action.dart';
 import 'cancel_dialog.dart';
 import 'download_activity.dart';
 

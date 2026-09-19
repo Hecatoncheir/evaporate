@@ -5,8 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/proxy_settings.dart';
+import '../feedback/snack.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Раздел «Прокси» для движка загрузок.
 class ProxySettingsCard extends StatefulWidget {

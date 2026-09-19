@@ -7,7 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/icon_action.dart';
 import 'cancel_dialog.dart';
 import 'task_card.dart';
 

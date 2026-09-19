@@ -156,7 +156,7 @@ const _widgetFunctions = [
   'lib/ui/shell/top_bar.dart: _actions',
   'lib/ui/shell/top_bar.dart: _windowActions',
   'lib/ui/widgets/ambient_light.dart: wash',
-  'lib/ui/widgets/common.dart: _face',
+  'lib/ui/widgets/launcher_action_button.dart: _face',
   'lib/ui/widgets/readout_panel.dart: _withBars',
   'lib/ui/widgets/window_frame.dart: _resize',
 ];
@@ -192,7 +192,6 @@ const _crowdedFiles = [
   'lib/ui/shell/top_bar.dart: 3',
   'lib/ui/widgets/animated_progress.dart: 2',
   'lib/ui/widgets/button_hints.dart: 2',
-  'lib/ui/widgets/common.dart: 6',
   'lib/ui/widgets/liquid_selection.dart: 3',
   'lib/ui/widgets/readout_panel.dart: 2',
   'lib/ui/widgets/spatial_surface.dart: 3',

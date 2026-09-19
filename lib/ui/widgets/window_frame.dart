@@ -5,7 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'common.dart';
+import '../feedback/snack.dart';
 
 /// Размеры обрамления, вынесенные из виджета: их сверяет тест.
 ///

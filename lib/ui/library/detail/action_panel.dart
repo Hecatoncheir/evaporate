@@ -11,7 +11,7 @@ import '../../downloads/cancel_dialog.dart';
 import '../../downloads/download_activity.dart';
 import '../../labels.dart';
 import '../../theme.dart';
-import '../../widgets/common.dart';
+import '../../widgets/launcher_action_button.dart';
 import '../play_button.dart';
 import '../primary_action.dart';
 

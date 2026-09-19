@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/ui/settings/pickers.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
-import 'package:evaporate/ui/widgets/common.dart';
 import 'package:evaporate/ui/widgets/scale_control.dart';
+import 'package:evaporate/ui/widgets/section_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

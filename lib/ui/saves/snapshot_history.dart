@@ -7,10 +7,11 @@ import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
+import '../feedback/confirm.dart';
 import '../labels.dart';
 import '../library/saves/save_tag.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Снимок вместе с игрой, которой он принадлежит.
 ///

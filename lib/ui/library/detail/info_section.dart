@@ -9,8 +9,10 @@ import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/download/torrent_export.dart';
+import '../../feedback/snack.dart';
 import '../../labels.dart';
-import '../../widgets/common.dart';
+import '../../widgets/info_row.dart';
+import '../../widgets/section_card.dart';
 
 class InfoSection extends StatelessWidget {
   const InfoSection({super.key, required this.game});

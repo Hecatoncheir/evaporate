@@ -11,7 +11,8 @@ import '../../services/system/update_check.dart';
 import '../../services/system/update_download.dart';
 import '../../services/system/update_installer.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/info_row.dart';
+import '../widgets/section_card.dart';
 
 /// Версия приложения и проверка обновлений.
 class AboutCard extends StatefulWidget {

@@ -6,7 +6,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../../models/effect_preset.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Живая библиотека: набор одним выбором, отдельные украшения — под
 /// «Подробно».

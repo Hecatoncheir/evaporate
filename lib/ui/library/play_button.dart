@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/common.dart';
+import '../widgets/launcher_action_button.dart';
 
 /// Обычная кнопка запуска в цветах темы, без декоративных эффектов.
 class PlayButton extends StatelessWidget {

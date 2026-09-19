@@ -712,10 +712,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 данных (`List<_Effect>`), а не виджеты, — так и надо, таблица вместо
 тринадцати выписанных переключателей и есть снижение сложности.
 
-**Файлы-сборники:** `widgets/common.dart` (6 виджетов и 3 функции) →
+**Файлы-сборники:** ~~`widgets/common.dart` (6 виджетов и 3 функции) →
 `launcher_action_button.dart`, `icon_action.dart`, `status_chip.dart`,
 `section_card.dart`, `empty_state.dart`, `info_row.dart`, а `showError` /
-`showInfo` / `confirm` → `lib/ui/feedback/`; `downloads/queue_column.dart`
+`showInfo` / `confirm` → `lib/ui/feedback/`~~ (сделано: сборник удалён, у
+каждого импортёра — точный импорт, а не реэкспорт); `downloads/queue_column.dart`
 (5); по три — `toolbar.dart`, `download_activity.dart`,
 `available_games.dart`, `spatial_surface.dart`, `pickers.dart`.
 

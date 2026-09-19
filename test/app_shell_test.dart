@@ -6,7 +6,7 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/ui/widgets/common.dart';
+import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:evaporate/ui/widgets/spatial_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

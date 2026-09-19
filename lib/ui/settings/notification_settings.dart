@@ -7,8 +7,9 @@ import 'package:provider/provider.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/notifications/notification_service.dart';
+import '../feedback/snack.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Раздел «Уведомления»: включение, разрешение системы и проверка.
 class NotificationSettingsCard extends StatelessWidget {

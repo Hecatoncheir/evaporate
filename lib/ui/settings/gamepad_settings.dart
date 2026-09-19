@@ -11,7 +11,8 @@ import '../../input/nav_action.dart';
 import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/info_row.dart';
+import '../widgets/section_card.dart';
 
 /// Раздел «Управление»: состояние геймпада и переназначение кнопок.
 class GamepadSettingsCard extends StatelessWidget {

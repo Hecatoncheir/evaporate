@@ -9,8 +9,10 @@ import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../services/saves/save_manager.dart';
+import '../feedback/confirm.dart';
+import '../feedback/snack.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/section_card.dart';
 
 /// Папка синхронизации: где лежат пакеты с других устройств и что с ними
 /// делать.

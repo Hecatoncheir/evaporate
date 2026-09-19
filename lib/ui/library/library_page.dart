@@ -13,7 +13,7 @@ import '../../models/game.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
 import '../theme.dart';
-import '../widgets/common.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/game_drop_target.dart';
 import '../widgets/liquid_selection.dart';
 import '../widgets/rise_in.dart';
