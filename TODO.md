@@ -344,14 +344,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`snapshot_store.dart:112,115`). Игра дописала сейв между чтениями — под
   хешем ляжет другое содержимое, и позже это ничем не ловится. Считать хеш
   с тех же байтов, что пишутся. **S**
-- [ ] После падения между двумя переименованиями
+- [x] После падения между двумя переименованиями
   (`restore_transaction.dart:213–217`) сейвы остаются под
   `.evaporate-old-*`, а уборки таких остатков при следующем запуске нет —
   хотя `update_install.dart:91` её обещает. **M**
 - [x] `ScanSession._run` без `try/finally` (`scan_session.dart:86`): любое
   исключение — например, незащищённый `list().any`
   (`library_scanner.dart:170`) — оставляет `_running` навсегда. **S**
-- [ ] `_openArchive` при исключении не закрывает `InputFileStream`
+- [x] `_openArchive` при исключении не закрывает `InputFileStream`
   (`save_manager.dart:705–715`): на Windows битый `.evsave` остаётся заперт
   до выхода. `_importPackage` (`:624–641`) не проверяет размер, в отличие
   от плана восстановления. **S**

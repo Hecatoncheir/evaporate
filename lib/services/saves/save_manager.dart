@@ -12,6 +12,7 @@ import '../../l10n/app_localizations_ru.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
+import '../system/app_log.dart';
 import 'snapshot_store.dart';
 
 part 'restore_transaction.dart';
@@ -80,6 +81,7 @@ class SaveManager {
     Future<FileSystemEntity> Function(FileSystemEntity, String)?
     renameForRestore,
     Future<void> Function(ZipFileEncoder, File, String)? addToArchive,
+    this.maxSnapshotBytes = defaultMaxSnapshotBytes,
   }) : _paths = paths ?? AppPaths.instance,
        _renameForRestore = renameForRestore ?? _rename,
        _addToArchive = addToArchive ?? _addFile,
@@ -123,7 +125,11 @@ class SaveManager {
   static const _skipNames = {'.DS_Store', 'Thumbs.db', 'desktop.ini'};
 
   /// Предохранитель от «указал папку игры целиком вместо папки сейвов».
-  static const _maxSnapshotBytes = 4 * 1024 * 1024 * 1024;
+  static const defaultMaxSnapshotBytes = 4 * 1024 * 1024 * 1024;
+
+  /// Предел размера снимка; подменяется в тестах — пакет на четыре
+  /// гигабайта там не собрать.
+  final int maxSnapshotBytes;
 
   /// Снимает сейвы игры.
   ///
@@ -134,7 +140,10 @@ class SaveManager {
     Game game, {
     SnapshotOrigin origin = SnapshotOrigin.manual,
     String? note,
-  }) => store.guard(() => _createSnapshot(game, origin: origin, note: note));
+  }) => store.guard(() async {
+    await _recoverInterrupted(game);
+    return _createSnapshot(game, origin: origin, note: note);
+  });
 
   Future<SaveSnapshot> _createSnapshot(
     Game game, {
@@ -178,7 +187,7 @@ class SaveManager {
     if (entries.isEmpty) {
       throw SaveNothingFoundException(_l.saveNothingFound);
     }
-    if (totalBytes > _maxSnapshotBytes) {
+    if (totalBytes > maxSnapshotBytes) {
       throw SaveException(_l.saveTooLarge(formatBytes(totalBytes)));
     }
 
@@ -364,14 +373,15 @@ class SaveManager {
     required SaveSnapshot snapshot,
     bool backupCurrent = true,
     bool wipeTarget = false,
-  }) => store.guard(
-    () => _restoreSnapshot(
+  }) => store.guard(() async {
+    await _recoverInterrupted(game);
+    return _restoreSnapshot(
       game: game,
       snapshot: snapshot,
       backupCurrent: backupCurrent,
       wipeTarget: wipeTarget,
-    ),
-  );
+    );
+  });
 
   Future<RestoreReport> _restoreSnapshot({
     required Game game,
@@ -389,18 +399,18 @@ class SaveManager {
         : null;
     final path = source?.path ?? snapshot.archivePath;
 
-    final archive = await _openArchive(path);
     try {
-      return await _restoreFrom(
-        archive: archive,
-        game: game,
-        snapshot: snapshot,
-        backupCurrent: backupCurrent,
-        wipeTarget: wipeTarget,
+      return await _withArchive(
+        path,
+        (archive) => _restoreFrom(
+          archive: archive,
+          game: game,
+          snapshot: snapshot,
+          backupCurrent: backupCurrent,
+          wipeTarget: wipeTarget,
+        ),
       );
     } finally {
-      // Освобождаем файловые хендлы, которые держит распакованный архив.
-      await archive.clear();
       if (source != null && await source.exists()) await source.delete();
     }
   }
@@ -485,8 +495,6 @@ class SaveManager {
     );
   }
 
-  /// Путь из внешнего манифеста никогда не становится локальной целью.
-  /// Сопоставляем только с явно настроенными у игры путями: id -> метка.
   /// Куда лягут файлы снимка на этом устройстве: метка правила → путь.
   ///
   /// Нужно диалогу восстановления, который показывает это до нажатия:
@@ -512,6 +520,8 @@ class SaveManager {
     return targets;
   }
 
+  /// Путь из внешнего манифеста никогда не становится локальной целью.
+  /// Сопоставляем только с явно настроенными у игры путями: id -> метка.
   SavePathRule? _matchLocalRule(Game game, SavePathRule incoming) {
     final local = game.saveProfile.rulesForCurrentPlatform;
     for (final rule in local) {
@@ -564,9 +574,10 @@ class SaveManager {
 
   /// Читает манифест пакета, ничего не распаковывая.
   Future<SavePackageInfo> inspectPackage(String path) async {
-    final archive = await _openArchive(path);
-    final manifest = _readManifest(archive);
-    await archive.clear();
+    final manifest = await _withArchive(
+      path,
+      (archive) async => _readManifest(archive),
+    );
     if (manifest == null) {
       throw SaveException(_l.saveNotEvaporatePackage);
     }
@@ -619,29 +630,14 @@ class SaveManager {
     await dir.create(recursive: true);
     final blobs = <SnapshotBlob>[];
 
-    final archive = await _openArchive(path);
-    try {
+    await _withArchive(path, (archive) async {
+      _checkDeclaredSize(archive);
       for (final file in archive.files) {
         if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
         if (_parseEntryName(file.name) == null) continue;
-        final tmp = File(
-          p.join(dir.path, '.import-${DateTime.now().microsecondsSinceEpoch}'),
-        );
-        final output = OutputFileStream(tmp.path);
-        try {
-          file.writeContent(output);
-        } finally {
-          await output.close();
-        }
-        try {
-          blobs.add(await store.put(file.name, tmp));
-        } finally {
-          if (await tmp.exists()) await tmp.delete();
-        }
+        blobs.add(await _importEntry(file, dir));
       }
-    } finally {
-      await archive.clear();
-    }
+    });
 
     if (blobs.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
 
@@ -661,6 +657,37 @@ class SaveManager {
       origin: SnapshotOrigin.imported,
       blobs: blobs,
     );
+  }
+
+  /// Предел — тот же, что у плана восстановления, и проверяется до первой
+  /// записи: пакет, который не развернуть, незачем переливать в хранилище
+  /// гигабайтами.
+  void _checkDeclaredSize(Archive archive) {
+    var declared = 0;
+    for (final file in archive.files) {
+      if (file.isFile) declared += file.size;
+    }
+    if (declared > maxSnapshotBytes) {
+      throw SaveException(_l.saveTooLarge(formatBytes(declared)));
+    }
+  }
+
+  /// Переливает одну запись пакета в хранилище через временный файл.
+  Future<SnapshotBlob> _importEntry(ArchiveFile file, Directory dir) async {
+    final tmp = File(
+      p.join(dir.path, '.import-${DateTime.now().microsecondsSinceEpoch}'),
+    );
+    final output = OutputFileStream(tmp.path);
+    try {
+      file.writeContent(output);
+    } finally {
+      await output.close();
+    }
+    try {
+      return await store.put(file.name, tmp);
+    } finally {
+      if (await tmp.exists()) await tmp.delete();
+    }
   }
 
   /// Убирает снимок.
@@ -694,23 +721,48 @@ class SaveManager {
       if (!entity.path.endsWith(SaveSnapshot.fileExtension)) continue;
       try {
         result.add(await inspectPackage(entity.path));
-      } on Object {
-        // Битый или чужой файл просто пропускаем.
+      } on Object catch (error) {
+        // Битый или чужой файл пропускаем, но не молча: иначе человек не
+        // узнал бы, почему пакет с другого устройства не виден в списке.
+        AppLog.instance.write(
+          'папка синхронизации: пропущен ${entity.path}',
+          error,
+        );
       }
     }
     result.sort((a, b) => b.snapshot.createdAt.compareTo(a.snapshot.createdAt));
     return result;
   }
 
-  Future<Archive> _openArchive(String path) async {
-    final file = File(path);
-    if (!await file.exists()) {
+  /// Открывает пакет, отдаёт его [use] и закрывает всё, что открыл.
+  ///
+  /// Закрывать приходится двоих: архив держит потоки своих записей, а
+  /// разборщик — поток самого файла, и `Archive.clear` его не трогает. На
+  /// Windows незакрытый поток держит пакет запертым до выхода из
+  /// приложения: ни удалить битый, ни заменить исправным, ни убрать
+  /// временный пакет после восстановления.
+  Future<T> _withArchive<T>(
+    String path,
+    Future<T> Function(Archive archive) use,
+  ) async {
+    if (!await File(path).exists()) {
       throw SaveException(_l.fileNotFound(path));
     }
+    final input = InputFileStream(path);
     try {
-      return ZipDecoder().decodeStream(InputFileStream(path));
-    } on Object catch (error) {
-      throw SaveException(_l.saveArchiveReadFailed('$error'));
+      final Archive archive;
+      try {
+        archive = ZipDecoder().decodeStream(input);
+      } on Object catch (error) {
+        throw SaveException(_l.saveArchiveReadFailed('$error'));
+      }
+      try {
+        return await use(archive);
+      } finally {
+        await archive.clear();
+      }
+    } finally {
+      await input.close();
     }
   }
 

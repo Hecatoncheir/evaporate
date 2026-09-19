@@ -3,6 +3,65 @@ part of 'save_manager.dart';
 /// Проверка пакета, подготовка новых целей и откат файловой транзакции.
 /// Ни один исходный путь не изменяется до полной подготовки всех целей.
 extension _RestoreTransaction on SaveManager {
+  /// Приводит в порядок следы прерванной раскладки у целей игры.
+  ///
+  /// Раскладка отодвигает цель в `<цель>.evaporate-old-*` и ставит на её
+  /// место подготовленное `.<цель>.evaporate-new-*`. Упади приложение между
+  /// двумя переименованиями — сейвы остаются только под резервным именем:
+  /// игра их не видит, а снимок, снятый следом, вышел бы пустым. Поэтому
+  /// перед любой работой с сейвами игры:
+  ///
+  /// - цели нет, а резервная копия есть — копия возвращается на место;
+  /// - заготовки `evaporate-new` убираются: сейвом они не бывают никогда;
+  /// - при целой цели резервная копия остаётся: замена могла дойти до
+  ///   конца, а могла и нет, и копия бывает единственной прежней версией.
+  ///   Её судьбу решает человек, а в журнал уходит, где она лежит.
+  Future<void> _recoverInterrupted(Game game) async {
+    for (final rule in game.saveProfile.rulesForCurrentPlatform) {
+      final target = rule.resolve(gameDir: game.installDir);
+      if (target != null) await _recoverTarget(target);
+    }
+  }
+
+  Future<void> _recoverTarget(String target) async {
+    final parent = Directory(p.dirname(target));
+    if (!await parent.exists()) return;
+    final name = p.basename(target);
+    final stranded = <FileSystemEntity>[];
+    await for (final entity in parent.list(followLinks: false)) {
+      final entry = p.basename(entity.path);
+      if (entry.startsWith('.$name.evaporate-new-')) {
+        await _dropQuietly(entity);
+      } else if (entry.startsWith('$name.evaporate-old-')) {
+        stranded.add(entity);
+      }
+    }
+    if (stranded.isEmpty) return;
+
+    final missing =
+        await FileSystemEntity.type(target, followLinks: false) ==
+        FileSystemEntityType.notFound;
+    if (missing) {
+      // Самая свежая копия — та, что отодвинули последней.
+      stranded.sort(
+        (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
+      );
+      await stranded.removeAt(0).rename(target);
+      AppLog.instance.write('сейвы возвращены в $target после сбоя');
+    }
+    for (final left in stranded) {
+      AppLog.instance.write('рядом с сейвами осталась копия: ${left.path}');
+    }
+  }
+
+  Future<void> _dropQuietly(FileSystemEntity entity) async {
+    try {
+      await entity.delete(recursive: true);
+    } on FileSystemException {
+      // Не вышло — уберём в другой раз: заготовка не мешает.
+    }
+  }
+
   /// Собирает план: какой файл пакета в какое место ляжет.
   ///
   /// План строится целиком до первой записи на диск. Пакет приходит извне,
@@ -52,7 +111,7 @@ extension _RestoreTransaction on SaveManager {
       }
 
       bytes += file.size;
-      if (bytes > SaveManager._maxSnapshotBytes) {
+      if (bytes > maxSnapshotBytes) {
         throw SaveException(_l.saveTooLarge(formatBytes(bytes)));
       }
       entries.add(

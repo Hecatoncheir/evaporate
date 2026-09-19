@@ -8,6 +8,7 @@ import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/services/saves/save_manager.dart';
+import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -643,6 +644,131 @@ void main() {
       expect(info.isCompatible, isTrue);
     },
   );
+
+  // Раскладка отодвигает цель в `.evaporate-old-*` и ставит на её место
+  // подготовленное. Падение между двумя переименованиями оставляло сейвы
+  // только под резервным именем: игра их не видела, следующий снимок
+  // выходил пустым, а убрать остаток было некому.
+  test(
+    'сейвы, застрявшие под резервным именем, возвращаются на место',
+    () async {
+      final saves = await writeSaves('прерванная', {'slot.sav': 'прогресс'});
+      final stranded = '${saves.path}.evaporate-old-1234';
+      await saves.rename(stranded);
+      final prepared = Directory(
+        p.join(
+          p.dirname(saves.path),
+          '.${p.basename(saves.path)}.evaporate-new-5678',
+        ),
+      );
+      await prepared.create();
+      final game = gameWith(
+        id: 'прерванная',
+        title: 'Прерванная',
+        rules: [
+          SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
+        ],
+      );
+
+      final snapshot = await manager.createSnapshot(game);
+
+      expect(snapshot.fileCount, 1);
+      expect(
+        File(p.join(saves.path, 'slot.sav')).readAsStringSync(),
+        'прогресс',
+      );
+      expect(Directory(stranded).existsSync(), isFalse);
+      expect(prepared.existsSync(), isFalse, reason: 'заготовка — не сейв');
+    },
+  );
+
+  // Цель на месте — значит, замена дошла до конца или откатилась, а копия
+  // под резервным именем может оказаться единственной прежней версией.
+  // Молча её удалять нельзя.
+  test('при целой цели резервная копия не трогается', () async {
+    final saves = await writeSaves('целая', {'slot.sav': 'новое'});
+    final old = Directory('${saves.path}.evaporate-old-1');
+    await old.create();
+    await File(p.join(old.path, 'slot.sav')).writeAsString('старое');
+    final game = gameWith(
+      id: 'целая',
+      title: 'Целая',
+      rules: [
+        SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
+      ],
+    );
+
+    await manager.createSnapshot(game);
+
+    expect(File(p.join(saves.path, 'slot.sav')).readAsStringSync(), 'новое');
+    expect(old.existsSync(), isTrue);
+  });
+
+  // Битый пакет в папке синхронизации пропускался без следа, и человек не
+  // мог узнать, почему снимок с другого устройства не виден в списке.
+  test('пропущенный пакет папки синхронизации остаётся в журнале', () async {
+    final log = AppLog(
+      path: p.join(tmp.path, 'evaporate.log'),
+      previousPath: p.join(tmp.path, 'evaporate.log.1'),
+    );
+    final previous = AppLog.instance;
+    AppLog.instance = log;
+    addTearDown(() => AppLog.instance = previous);
+    final folder = Directory(p.join(tmp.path, 'синхронизация'));
+    await folder.create();
+    final broken = File(
+      p.join(folder.path, 'битый${SaveSnapshot.fileExtension}'),
+    );
+    await broken.writeAsString('не zip');
+
+    final found = await manager.scanSyncFolder(folder.path);
+    await log.flush();
+
+    expect(found, isEmpty);
+    expect(
+      (await log.tail()).any((line) => line.contains(broken.path)),
+      isTrue,
+    );
+  });
+
+  // Поток к файлу открывался до разбора и при ошибке разбора не
+  // закрывался: на Windows битый пакет оставался заперт до выхода из
+  // приложения — ни удалить, ни заменить исправным.
+  test('битый пакет после неудачного чтения не остаётся запертым', () async {
+    final broken = File(p.join(tmp.path, 'битый${SaveSnapshot.fileExtension}'));
+    await broken.writeAsString('это не zip, а обрывок чего-то');
+
+    await expectLater(
+      manager.inspectPackage(broken.path),
+      throwsA(isA<SaveException>()),
+    );
+
+    await broken.delete();
+    expect(broken.existsSync(), isFalse);
+  });
+
+  // План восстановления предел размера проверял, а импорт — нет: пакет,
+  // который никогда не удалось бы развернуть, целиком переливался в
+  // хранилище, занимая гигабайты.
+  test('пакет больше предела не импортируется', () async {
+    final saves = await writeSaves('big', {'slot.sav': 'x' * 2048});
+    final game = gameWith(
+      id: 'big',
+      title: 'Большая',
+      rules: [
+        SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
+      ],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    final package = p.join(tmp.path, 'большой${SaveSnapshot.fileExtension}');
+    await manager.exportSnapshot(snapshot, package);
+    final strict = SaveManager(paths: paths, maxSnapshotBytes: 1024);
+
+    await expectLater(
+      strict.importPackage(package, game: game),
+      throwsA(isA<SaveException>()),
+    );
+  });
 
   test('оборвавшаяся выгрузка не оставляет недописанный пакет', () async {
     final saves = await writeSaves('partial', {
