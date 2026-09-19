@@ -51,7 +51,11 @@ class JsonStore {
     final file = File(path);
     if (!await file.exists()) return null;
     try {
-      final content = await file.readAsString();
+      // Байты и явный разбор UTF-8, а не `readAsString`: негодную кодировку
+      // тот бросает `FileSystemException`, и она проходила мимо карантина —
+      // библиотека не загружалась вовсе. `utf8.decode` бросает
+      // `FormatException`, как и испорченный JSON.
+      final content = utf8.decode(await file.readAsBytes());
       if (content.trim().isEmpty) return null;
       final decoded = jsonDecode(content);
       if (decoded is Map<String, dynamic>) return decoded;
@@ -85,9 +89,11 @@ class JsonStore {
     final file = File(path);
     if (!await file.exists()) return null;
     try {
-      final content = await file.readAsString();
+      final content = utf8.decode(await file.readAsBytes());
       return content.trim().isEmpty ? null : content;
     } on FileSystemException {
+      return null;
+    } on FormatException {
       return null;
     }
   }

@@ -255,11 +255,14 @@ class Game {
           json['steamLookupAttempted'] as bool? ?? json['steamAppId'] != null,
       savePathsLookupAttempted:
           json['savePathsLookupAttempted'] as bool? ?? false,
-      ludusaviTemplates: (json['ludusaviTemplates'] as List<dynamic>? ?? [])
-          .cast<String>(),
-      ludusaviResolvedPaths:
-          (json['ludusaviResolvedPaths'] as List<dynamic>? ?? [])
-              .cast<String>(),
+      // `List.from`, а не `.cast`: `.cast` ленив, и не-строка ронялась бы не
+      // здесь, в `try` загрузки, а при первом чтении поля.
+      ludusaviTemplates: List<String>.from(
+        json['ludusaviTemplates'] as List<dynamic>? ?? const [],
+      ),
+      ludusaviResolvedPaths: List<String>.from(
+        json['ludusaviResolvedPaths'] as List<dynamic>? ?? const [],
+      ),
       notes: json['notes'] as String?,
       saveProfile: json['saveProfile'] == null
           ? const SaveProfile()

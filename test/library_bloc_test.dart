@@ -192,6 +192,66 @@ void main() {
     );
   });
 
+  // Негодная кодировка приходила не `FormatException`, а
+  // `FileSystemException`, которое чтение не ловило: библиотека так и не
+  // загружалась, и окно оставалось пустым без единого слова.
+  test(
+    'библиотека с битой кодировкой уводится в сторону, а не вешает загрузку',
+    () async {
+      await Directory(paths.dataDir).create(recursive: true);
+      await File(paths.libraryFile).writeAsBytes([
+        ...utf8.encode('{"version": 1, "games": [{"title": "'),
+        0xFF,
+        0xFE,
+        0xC3,
+        ...utf8.encode('"}]}'),
+      ]);
+
+      library.add(const LibraryLoadRequested());
+      await waitFor((state) => state.loaded);
+
+      expect(library.state.games, isEmpty);
+      expect(library.state.notice?.isError, isTrue);
+      expect(
+        Directory(paths.dataDir)
+            .listSync()
+            .where((file) => file.path.contains('.corrupt-')),
+        hasLength(1),
+      );
+    },
+  );
+
+  // `.cast<String>()` ленив: не-строка в списке ронялась не при разборе, в
+  // его `try`, а при первом чтении поля — посреди отрисовки или снимка.
+  test('не-строка в списке путей бракует запись при чтении', () async {
+    await Directory(paths.dataDir).create(recursive: true);
+    final good = Game(id: 'valid', title: 'Исправная', addedAt: DateTime.now());
+    await File(paths.libraryFile).writeAsString(
+      jsonEncode({
+        'version': 1,
+        'games': [
+          good.toJson(),
+          {
+            ...Game(
+              id: 'bad',
+              title: 'Битая',
+              addedAt: DateTime.now(),
+            ).toJson(),
+            'ludusaviTemplates': [1, 2],
+          },
+        ],
+      }),
+    );
+
+    library.add(const LibraryLoadRequested());
+    await waitFor((state) => state.loaded);
+
+    expect(library.state.games.map((game) => game.id), ['valid']);
+    for (final game in library.state.games) {
+      expect(() => game.ludusaviTemplates.toList(), returnsNormally);
+    }
+  });
+
   // `toJson` у снимка покрыт записью, а `fromJson` не исполнялся ни разу.
   // Сломайся он — при следующем запуске вся история сохранений исчезла бы
   // молча, а файлы снимков остались бы лежать сиротами.

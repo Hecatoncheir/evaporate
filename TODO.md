@@ -328,7 +328,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   мгновения», но `_writeText` сначала пишет содержимое, потом зовёт `chmod
   600` (`json_store.dart:123–127`), и код возврата не проверяет. Порядок
   обратный: создать пустой файл, сменить права, записать. **S**
-- [ ] **Битый UTF-8 в `library.json` — приложение не дождётся библиотеки.**
+- [x] **Битый UTF-8 в `library.json` — приложение не дождётся библиотеки.**
   `JsonStore.read` ловит только `FormatException` (`json_store.dart:48`), а
   негодная кодировка приходит `FileSystemException`; карантина нет, у
   `_onLoadRequested` (`library_bloc.dart:245`) своего `catch` нет, и
