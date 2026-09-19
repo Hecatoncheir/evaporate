@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
+import '../widgets/frame_step.dart';
 import '../widgets/window_visibility.dart';
 import 'particle_field.dart';
 
@@ -37,7 +38,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
   final _repaint = _PaintSignal();
   final _viewport = GlobalKey();
   late final Ticker _ticker = createTicker(_tick);
-  Duration? _previous;
+  final _step = FrameStep();
   bool _visible = true;
   bool _motion = false;
   double _ambientTime = 0;
@@ -71,11 +72,11 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
         TickerMode.valuesOf(context).enabled &&
         _visible;
     if (_motion && !_ticker.isActive) {
-      _previous = null;
+      _step.reset();
       _ticker.start();
     } else if (!_motion && _ticker.isActive) {
       _ticker.stop();
-      _previous = null;
+      _step.reset();
       field.pointer = null;
     }
   }
@@ -87,9 +88,8 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
   }
 
   void _tick(Duration elapsed) {
-    if (_previous != null && (elapsed - _previous!).inMicroseconds < 16000) {
-      return;
-    }
+    final dt = _step.next(elapsed);
+    if (dt == null) return;
     final box = _viewport.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return;
     if (widget.particlesEnabled) field.resize(box.size);
@@ -103,12 +103,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
     }
     targetRect = rect;
     targetIdentity = rect == null ? null : key;
-    final dt = _previous == null
-        ? 1 / 60
-        : (elapsed - _previous!).inMicroseconds /
-              Duration.microsecondsPerSecond;
-    _previous = elapsed;
-    _ambientTime += dt.clamp(0.0, 1 / 30);
+    _ambientTime += dt;
     if (widget.particlesEnabled) {
       field.card = rect?.inflate(8);
       field.step(dt);

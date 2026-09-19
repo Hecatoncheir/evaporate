@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'frame_step.dart';
 import 'window_visibility.dart';
 
 /// Часы перерисовки: гонят кадры анимации, ни разу не пересобирая то,
@@ -25,7 +26,7 @@ class DecorativeMotionState extends State<DecorativeMotion>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _time = ValueNotifier(0.0);
   late final Ticker _ticker = createTicker(_tick);
-  Duration? _previous;
+  final _step = FrameStep();
   bool _visible = true;
   bool get isAnimating => _ticker.isActive && !_ticker.muted;
   double get time => _time.value;
@@ -58,27 +59,19 @@ class DecorativeMotionState extends State<DecorativeMotion>
         TickerMode.valuesOf(context).enabled &&
         (ModalRoute.isCurrentOf(context) ?? true);
     if (run && !_ticker.isActive) {
-      _previous = null;
+      _step.reset();
       _ticker.start();
     }
     if (!run && _ticker.isActive) {
       _ticker.stop();
-      _previous = null;
+      _step.reset();
     }
     if (!widget.enabled || reduced) _time.value = 0;
   }
 
   void _tick(Duration elapsed) {
-    if (_previous != null && (elapsed - _previous!).inMicroseconds < 16000) {
-      return;
-    }
-    final dt = _previous == null
-        ? 1 / 60
-        : ((elapsed - _previous!).inMicroseconds /
-                  Duration.microsecondsPerSecond)
-              .clamp(0.0, 1 / 30);
-    _previous = elapsed;
-    _time.value += dt;
+    final dt = _step.next(elapsed);
+    if (dt != null) _time.value += dt;
   }
 
   @override

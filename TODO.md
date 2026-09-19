@@ -505,7 +505,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 - [ ] Ошибки мимо `Notice` и журнала: `showError` и `SnackBar` прямо из
   виджетов — `saves_section.dart:250,416`, `detail/info_section.dart:111`
   (там же `Process.run` в виджете, `:102–113`), `detail/files_section.dart:80`.
-- [ ] Часов украшений три, а не одни, как обещает `CLAUDE.md`: шаг с
+- [x] Часов украшений три, а не одни, как обещает `CLAUDE.md`: шаг с
   ограничением `dt` скопирован в `library_atmosphere.dart:90–110`,
   `foil_card.dart:110–119` и `widgets/decorative_motion.dart:71–82`, причём
   атмосфера не смотрит на `lifecycleState` (`:47–50`), в отличие от двух других.

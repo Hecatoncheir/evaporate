@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../theme.dart';
+import '../widgets/frame_step.dart';
 import '../widgets/window_visibility.dart';
 
 /// Перспектива, голографический перелив и упругая деформация — три
@@ -35,7 +36,7 @@ class FoilCardState extends State<FoilCard>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final _motion = _FoilMotion();
   late final Ticker _ticker = createTicker(_tick);
-  Duration? _previous;
+  final _step = FrameStep();
   bool _visible = true;
   bool get isAnimating => _ticker.isActive && !_ticker.muted;
   Matrix4 get perspective => _motion.perspective;
@@ -99,7 +100,7 @@ class FoilCardState extends State<FoilCard>
   /// показывал бы шаг длиной во всю паузу.
   void _runTicker(bool run) {
     if (run == _ticker.isActive) return;
-    _previous = null;
+    _step.reset();
     if (run) {
       _ticker.start();
     } else {
@@ -108,15 +109,8 @@ class FoilCardState extends State<FoilCard>
   }
 
   void _tick(Duration elapsed) {
-    if (_previous != null && (elapsed - _previous!).inMicroseconds < 16000) {
-      return;
-    }
-    final dt = _previous == null
-        ? 1 / 60
-        : ((elapsed - _previous!).inMicroseconds /
-                  Duration.microsecondsPerSecond)
-              .clamp(0.0, 1 / 30);
-    _previous = elapsed;
+    final dt = _step.next(elapsed);
+    if (dt == null) return;
     _motion.strength = (_motion.strength + (widget.active ? dt : -dt) / 0.3)
         .clamp(0.0, 1.0);
     _motion.phase = (_motion.phase + dt * math.pi * 2 / 7) % (math.pi * 2);
