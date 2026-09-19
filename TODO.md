@@ -700,9 +700,12 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 без своего `Element`: нет границы перестроения, нет `const`, в дереве
 инспектора их не видно. Лидеры: `settings_page.dart` (7; `_downloadsCard` —
 83 строки, `_savesCard` — 65) → по карточке на файл в `settings/cards/`;
-`library_page.dart` (7: `_heading`, `_toolbar`, `_measuredGrid`, `_grid`,
-`_tile`, `_cover`, `_empty`) → `LibraryGrid`, `LibraryGridTile`,
-`LibraryEmptyState`; `restore_dialog.dart` (5: `_content`,
+~~`library_page.dart` (7: `_heading`, `_toolbar`, `_measuredGrid`, `_grid`,
+`_tile`, `_cover`, `_empty`)~~ — сделано: `LibraryGrid`, `LibraryGridTile`,
+`LibraryEmptyState`, `LibraryHeadingBar`, `LibraryShelfBar`,
+`LibraryFeaturedSlot`, а память сетки (ключи плиток, фокусы, наведение,
+прокрутка) — `LibraryGridController`; отбор по полке — `gamesOnShelf` в
+`shelf.dart`; `restore_dialog.dart` (5: `_content`,
 `_localFreshness`, `_targetList`, `_options`, `_actions`); по три —
 `top_bar.dart` (`_brand`, `_actions`, `_windowActions`), `shell.dart`,
 `proxy_settings_card.dart`, `add_game_dialog.dart`, `task_card.dart`
