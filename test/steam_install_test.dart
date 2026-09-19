@@ -6,6 +6,8 @@ import 'package:evaporate/services/launch/vdf.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Steam держит на диске то, что приложение иначе угадывает: точный `appid`
 /// и точное название. По идентификатору ищутся пути сохранений, и каталог
 /// прямо оговаривает, что совпадение названия другой игры подставило бы
@@ -86,7 +88,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     });
 
     /// Раскладка настоящей установки Steam в миниатюре.
@@ -205,7 +207,7 @@ void main() {
     });
 
     tearDown(() async {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     });
 
     test('библиотеки Steam попадают в список мест', () async {

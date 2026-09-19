@@ -9,6 +9,8 @@ import 'package:evaporate/models/save_snapshot.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Снимки живут в своём файле, но до 0.33 лежали в library.json
 /// вместе с играми: такие библиотеки лежат у людей на дисках.
 void main() {
@@ -38,7 +40,7 @@ void main() {
     await library.close();
     await settings.close();
     try {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

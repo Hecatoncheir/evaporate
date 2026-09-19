@@ -5,6 +5,8 @@ import 'package:evaporate/ui/library/cover_drops.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/temp_dir.dart';
+
 /// Капли рисует шейдер, а шейдер собирается вместе с приложением — в прогоне
 /// тестов его нет. Проверить здесь можно и нужно другое: что плитка при
 /// любом отказе остаётся плиткой. Сама картинка проверяется глазами, а вот
@@ -33,7 +35,7 @@ void main() {
 
   tearDown(() async {
     CoverDrops.useProgram(null);
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Future<void> show(

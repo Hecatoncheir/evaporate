@@ -7,6 +7,8 @@ import 'package:evaporate/services/saves/ludusavi_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// База путей — десятки тысяч записей, и всё, что с ней делают на главном
 /// потоке, видно глазом: анимация на фоне дёргается.
 void main() {
@@ -19,7 +21,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   /// Манифест из нескольких игр в том виде, в каком его отдаёт Ludusavi.

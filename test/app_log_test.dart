@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Журнал нужен ровно затем, что семь десятков мест в приложении гасят
 /// ошибку молча: без него на «снимок не снялся» смотреть нечего.
 void main() {
@@ -23,7 +25,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   test('запись доходит до файла вместе со временем', () async {

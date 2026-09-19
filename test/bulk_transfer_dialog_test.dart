@@ -13,6 +13,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Клавиши массовой загрузки решают судьбу чужого прогресса, и проверять
 /// надо именно их, а не защиту под ними.
 ///
@@ -67,7 +69,7 @@ void main() {
     await library.close();
     await settings.close();
     try {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

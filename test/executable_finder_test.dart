@@ -4,6 +4,8 @@ import 'package:evaporate/services/launch/executable_finder.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
 
@@ -12,7 +14,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   /// Создаёт файл нужного размера и, если нужно, делает его исполняемым.

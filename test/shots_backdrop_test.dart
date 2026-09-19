@@ -4,6 +4,8 @@ import 'package:evaporate/ui/library/shots_backdrop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/temp_dir.dart';
+
 /// Подложка из кадров игры под крупной обложкой библиотеки.
 ///
 /// Проверяется не красота, а то, чем она отличается от обычной картинки:
@@ -35,7 +37,7 @@ void main() {
     }
   });
 
-  tearDown(() async => tmp.delete(recursive: true));
+  tearDown(() => deleteTempDir(tmp));
 
   Widget wrap(Widget child, {bool reduceMotion = false}) => MediaQuery(
     data: MediaQueryData(disableAnimations: reduceMotion),

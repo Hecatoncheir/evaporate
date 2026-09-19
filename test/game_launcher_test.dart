@@ -6,6 +6,8 @@ import 'package:evaporate/services/launch/game_launcher.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
   late GameLauncher launcher;
@@ -17,7 +19,7 @@ void main() {
 
   tearDown(() async {
     launcher.dispose();
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   /// Скрипт вместо игры: запускается так же, как обычный исполняемый файл.

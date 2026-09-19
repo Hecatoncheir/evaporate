@@ -8,6 +8,8 @@ import 'package:evaporate/services/system/window_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Поддельное окно: настоящее в тестовой среде не создать.
 class FakeWindow implements WindowController {
   FakeWindow({Rect? bounds, this.maximized = false})
@@ -60,7 +62,7 @@ void main() {
 
   tearDown(() async {
     try {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

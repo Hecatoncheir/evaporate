@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/temp_dir.dart';
+
 /// Обложка приглушённым фоном страницы игры.
 ///
 /// Проверяется по нарисованному: фон обязан быть вверху и сходить на нет к
@@ -35,7 +37,7 @@ void main() {
   });
 
   tearDownAll(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Game gameWith({String? path}) =>

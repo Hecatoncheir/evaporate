@@ -6,6 +6,8 @@ import 'package:evaporate/services/launch/steam_install.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory root;
 
@@ -15,7 +17,7 @@ void main() {
 
   tearDown(() async {
     try {
-      if (await root.exists()) await root.delete(recursive: true);
+      await deleteTempDir(root);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

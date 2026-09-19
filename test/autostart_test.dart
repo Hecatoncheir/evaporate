@@ -4,6 +4,8 @@ import 'package:evaporate/services/system/autostart.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory home;
 
@@ -13,7 +15,7 @@ void main() {
 
   tearDown(() async {
     try {
-      if (await home.exists()) await home.delete(recursive: true);
+      await deleteTempDir(home);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

@@ -5,6 +5,8 @@ import 'package:evaporate/core/json_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
   late String path;
@@ -15,7 +17,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   test('запись создаёт недостающие каталоги и читается обратно', () async {

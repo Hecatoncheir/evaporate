@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/library_seed.dart';
+import 'support/temp_dir.dart';
 
 class _Steam extends SteamCatalog {
   int calls = 0;
@@ -198,7 +199,7 @@ void main() {
     await saves.close();
     await library.close();
     await settings.close();
-    await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Future<Game> add({GameStatus status = GameStatus.installed}) async {

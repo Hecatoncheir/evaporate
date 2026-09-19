@@ -5,6 +5,8 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// «Удалить совсем вместе с файлами» стирает без возврата, и ошибиться тут
 /// можно ровно один раз — чужой библиотекой игр.
 void main() {
@@ -15,7 +17,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await root.exists()) await root.delete(recursive: true);
+    await deleteTempDir(root);
   });
 
   Future<String> write(String relative) async {

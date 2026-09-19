@@ -15,6 +15,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Диалог восстановления — последнее, что человек видит перед перезаписью
 /// своих сохранений. Всё, что он обещает, обязано совпадать с тем, что
 /// сделает раскладка.
@@ -27,8 +29,8 @@ void main() {
     tmp = await Directory.systemTemp.createTemp('evaporate_restore_');
   });
 
-  tearDown(() {
-    if (tmp.existsSync()) tmp.deleteSync(recursive: true);
+  tearDown(() async {
+    await deleteTempDir(tmp);
   });
 
   SaveSnapshot snapshotWith(String template) => SaveSnapshot(

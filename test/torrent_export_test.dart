@@ -5,6 +5,8 @@ import 'package:evaporate/services/download/torrent_export.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Скачанную раздачу человек вправе унести с собой: в другой клиент, на
 /// другое устройство, в архив. Файл при этом лежит в разных местах, и
 /// поиск обязан находить его во всех.
@@ -19,7 +21,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Future<String> writeTorrent(String path) async {

@@ -11,6 +11,8 @@ import 'package:evaporate/services/system/update_installer.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Обновление по нажатию — единственное место, где приложение переписывает
 /// само себя. Неудачная замена оставит человека без работающего
 /// приложения, поэтому проверяется каждый шаг: что скачали то самое, что
@@ -23,7 +25,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Future<Process> dummyProcess() => Platform.isWindows

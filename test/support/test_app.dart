@@ -25,6 +25,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'recording_notifications.dart';
+import 'temp_dir.dart';
 
 /// Файловый I/O проверяется отдельными тестами. В fake-async виджетов
 /// он не завершается, а закрытие библиотеки теперь дожидается всех записей.
@@ -99,7 +100,7 @@ class TestHarness {
 
   static Future<void> removeTempDir(Directory dir) async {
     try {
-      if (await dir.exists()) await dir.delete(recursive: true);
+      await deleteTempDir(dir);
     } on FileSystemException {
       // Фоновая запись могла успеть создать файл — для теста это неважно.
     }

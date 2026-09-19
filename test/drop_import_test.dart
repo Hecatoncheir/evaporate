@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
 import 'support/test_app.dart';
 
 /// Что происходит с тем, что перетащили в окно библиотеки.
@@ -19,7 +20,7 @@ void main() {
 
   tearDown(() async {
     try {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

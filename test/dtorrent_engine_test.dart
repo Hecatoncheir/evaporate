@@ -15,6 +15,8 @@ import 'package:evaporate/services/download/torrent_source.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   group('во что складывается состояние задачи', () {
     DownloadState stateOf({
@@ -146,7 +148,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   /// Движок без автозапуска: очередь и состояние проверяются без сети.

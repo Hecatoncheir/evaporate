@@ -12,6 +12,8 @@ import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
   late AppPaths paths;
@@ -27,7 +29,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Future<Directory> writeSaves(String name, Map<String, String> files) async {

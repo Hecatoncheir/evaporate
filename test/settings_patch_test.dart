@@ -5,6 +5,8 @@ import 'package:evaporate/core/app_paths.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Правка настроек после ожидания — системного диалога выбора папки.
 ///
 /// Настройки захватывались до `await getDirectoryPath()`, и правка, которую
@@ -25,11 +27,7 @@ void main() {
 
   tearDown(() async {
     await settings.close();
-    try {
-      await tmp.delete(recursive: true);
-    } on FileSystemException {
-      // Остатки временной папки на результат теста не влияют.
-    }
+    await deleteTempDir(tmp);
   });
 
   test('правка ложится на текущие настройки, а не на прежние', () async {

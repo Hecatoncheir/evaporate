@@ -5,6 +5,8 @@ import 'package:evaporate/services/launch/scan_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Обход дисков идёт секундами, а то и дольше. Пока он идёт, человеку надо
 /// показывать, на чём приложение стоит, и уметь его прервать: выбор папки в
 /// системном окне отменяет начатый заход, а не встаёт за ним в очередь.
@@ -16,7 +18,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   /// Папка с исполняемым файлом внутри — то, что сканер считает игрой.

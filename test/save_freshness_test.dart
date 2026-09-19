@@ -8,6 +8,8 @@ import 'package:evaporate/services/saves/save_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 /// Строка «когда здешние сохранения менялись» стоит в диалоге, где человек
 /// решает, затирать ли свой прогресс. Врать ей нельзя, а молчать — можно.
 void main() {
@@ -23,7 +25,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   Game gameWith(String template) => Game(

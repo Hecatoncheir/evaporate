@@ -11,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
   late AppPaths paths;
@@ -35,7 +37,7 @@ void main() {
     opened.clear();
     await settings.close();
     try {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

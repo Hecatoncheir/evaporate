@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import 'support/library_seed.dart';
+import 'support/temp_dir.dart';
 
 /// Ротация снимков: `keepSnapshots` обязан держать в узде все пути, какими
 /// снимок попадает в состояние, а не только кнопку «Снять».
@@ -44,7 +45,7 @@ void main() {
     await library.close();
     await settings.close();
     try {
-      if (await tmp.exists()) await tmp.delete(recursive: true);
+      await deleteTempDir(tmp);
     } on FileSystemException {
       // Остатки временной папки на результат теста не влияют.
     }

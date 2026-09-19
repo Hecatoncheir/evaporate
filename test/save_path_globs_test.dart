@@ -5,6 +5,8 @@ import 'package:evaporate/services/saves/save_path_globs.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
 
@@ -13,7 +15,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   test('шаблон без маски возвращается как есть', () async {
@@ -82,7 +84,7 @@ void main() {
     final dir = Directory(p.join(home, '.evaporate_globs_test'));
     await dir.create();
     addTearDown(() async {
-      if (await dir.exists()) await dir.delete(recursive: true);
+      await deleteTempDir(dir);
     });
 
     final found = await SavePathGlobs.expand('{HOME}/.evaporate_globs_te*');

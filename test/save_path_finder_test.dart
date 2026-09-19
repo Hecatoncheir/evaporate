@@ -5,6 +5,8 @@ import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
 
@@ -13,7 +15,7 @@ void main() {
   });
 
   tearDown(() async {
-    if (await tmp.exists()) await tmp.delete(recursive: true);
+    await deleteTempDir(tmp);
   });
 
   /// Папка с сохранениями: пустые каталоги поиск намеренно пропускает.

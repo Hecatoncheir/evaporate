@@ -7,17 +7,13 @@ import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/temp_dir.dart';
+
 void main() {
   late Directory tmp;
 
   setUp(() async => tmp = await Directory.systemTemp.createTemp('ev_store_'));
-  tearDown(() async {
-    try {
-      await tmp.delete(recursive: true);
-    } on FileSystemException {
-      // Остатки временной папки на результат теста не влияют.
-    }
-  });
+  tearDown(() => deleteTempDir(tmp));
 
   String root() => p.join(tmp.path, 'blobs');
 

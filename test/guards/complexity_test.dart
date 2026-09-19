@@ -161,8 +161,6 @@ const _lines = [
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 67',
   'lib/ui/settings/effects_card.dart: LibraryEffectsCard._effects: 92',
   'lib/ui/settings/log_card.dart: _LogCardState.build: 65',
-  'lib/ui/settings/settings_page.dart: SettingsPage._downloadsCard: 77',
-  'lib/ui/settings/settings_page.dart: SettingsPage.build: 68',
   'lib/ui/shell.dart: AppShell.build: 66',
   'lib/ui/widgets/liquid_selection.dart: liquidSelectionPath: 71',
   'lib/ui/widgets/window_frame.dart: WindowChrome.resizeZones: 84',
