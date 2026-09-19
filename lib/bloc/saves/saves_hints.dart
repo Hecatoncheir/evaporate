@@ -36,6 +36,46 @@ extension _SavesHints on SavesBloc {
     );
   }
 
+  /// Ищет папку по названию игры в местах, где сохранения держат обычно.
+  ///
+  /// Обход идёт секундами, а клавиша всё это время на экране: без ключа
+  /// занятости второе нажатие запускало бы второй обход и второй разговор
+  /// об одном и том же.
+  Future<void> _onSavePathSuggestionsRequested(
+    SavePathSuggestionsRequested event,
+    Emitter<SavesState> emit,
+  ) async {
+    final key = SavesBloc.suggestKey(event.game.id);
+    if (state.isBusy(key)) return;
+    emit(state.copyWith(busy: _withBusy(key, true)));
+
+    final List<SavePathSuggestion> found;
+    try {
+      found = await SavePathFinder.suggest(
+        event.game.title,
+        searchRoots: _saveRoots(),
+      );
+    } on Object catch (error) {
+      AppLog.instance.write('поиск папок «${event.game.title}»', error);
+      _finishBusy(emit, key, message: _l.noSimilarFolders, isError: true);
+      return;
+    }
+
+    final fresh = _withoutKnownPaths(event.game, found);
+    if (fresh.isEmpty) {
+      _finishBusy(emit, key, message: _l.noSimilarFolders);
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        busy: _withBusy(key, false),
+        saveHints: {...state.saveHints, event.game.id: fresh},
+        notice: _notice(_l.noticeSavePathsFound(fresh.length)),
+      ),
+    );
+  }
+
   Future<void> _onSaveHintsAccepted(
     SaveHintsAccepted event,
     Emitter<SavesState> emit,
@@ -56,7 +96,11 @@ extension _SavesHints on SavesBloc {
       state.copyWith(
         saveHints: _withoutHints(current.id),
         notice: _notice(
-          _l.noticePathsAdded(_l.sourceWatch, added.length, current.title),
+          _l.noticePathsAdded(
+            _sourceLabel(_l, event.suggestions.first.origin),
+            added.length,
+            current.title,
+          ),
         ),
       ),
     );
@@ -67,6 +111,12 @@ extension _SavesHints on SavesBloc {
     Emitter<SavesState> emit,
   ) => emit(state.copyWith(saveHints: _withoutHints(event.gameId)));
 }
+
+/// Откуда пришли подсказки — словом, для сообщения человеку.
+String _sourceLabel(L l, SavePathOrigin origin) => switch (origin) {
+  SavePathOrigin.watch => l.sourceWatch,
+  SavePathOrigin.title => l.sourceTitle,
+};
 
 /// Отсеивает то, что уже покрыто заданными правилами: подсказывать
 /// известное — значит приучить не читать подсказки вовсе.

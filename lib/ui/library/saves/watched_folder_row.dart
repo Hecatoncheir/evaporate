@@ -35,7 +35,11 @@ class WatchedFolderRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  l.watchedFilesChanged(hint.fileCount),
+                  // У наблюдения число говорит «столько изменилось за игру»,
+                  // у поиска по имени — просто «столько лежит».
+                  hint.origin == SavePathOrigin.watch
+                      ? l.watchedFilesChanged(hint.fileCount)
+                      : l.guessedFilesCount(hint.fileCount),
                   style: context.text.small.copyWith(
                     color: context.colors.textSecondary,
                   ),

@@ -454,6 +454,13 @@
       }
     }
   },
+  "@noticeSavePathsFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "@noticeSavedTo": {
     "placeholders": {
       "path": {
@@ -641,16 +648,6 @@
       }
     }
   },
-  "@suggestionLine": {
-    "placeholders": {
-      "template": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "@torrentNamed": {
     "placeholders": {
       "hash": {
@@ -676,6 +673,13 @@
     "placeholders": {
       "size": {
         "type": "String"
+      }
+    }
+  },
+  "@guessedFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },
@@ -814,7 +818,6 @@
   "findFolderByTitle": "Поискать папку по названию игры",
   "findInSteam": "Найти в Steam",
   "folderMissing": "Папка не найдена.",
-  "foundByTitleNote": "Найдено по названию игры. Проверьте, что это действительно папка сохранений.",
   "fromDatabase": "Из базы",
   "gameFiles": "Файлы игры",
   "gameFolder": "Папка с игрой",
@@ -959,6 +962,7 @@
   "noticeRestoredFiles": "Восстановлено {files} файлов ({size}).",
   "noticeSaveFailedBody": "«{title}»: {error}",
   "noticeSaveHints": "Пока «{title}» работала, изменились папки: {count}. Загляните в «Папки сохранений».",
+  "noticeSavePathsFound": "Похожих папок нашлось: {count}. Отметьте подходящие ниже.",
   "noticeSavedTo": "Сохранено: {path}",
   "noticeSnapshotFailed": "Сохранения не сняты",
   "noticeSnapshotImported": "Снимок импортирован",
@@ -1124,6 +1128,7 @@
       }
     }
   },
+  "searchingFolders": "Смотрим папки…",
   "searchHint": "Поиск  ( / )",
   "seedRatio": "Раздавать до рейтинга",
   "seedRatioNote": "В сотых долях: 150 — это 1,5. Ноль — раздавать без предела",
@@ -1131,7 +1136,6 @@
   "seedsCount": "сидов: {count}",
   "setFolder": "Указать папку",
   "settings": "Настройки",
-  "similarFolders": "Похожие папки",
   "sizeLabel": "Размер",
   "snapshotFrom": "Снимок от {when}, устройство «{device}» ({platform}).",
   "snapshotOnExit": "Снимать сохранения после выхода из игры",
@@ -1142,7 +1146,8 @@
   "sourceFolder": "Папка",
   "sourceMagnet": "Magnet-ссылка",
   "sourceTorrent": "Torrent-файл",
-  "sourceWatch": "из наблюдения",
+  "sourceTitle": "поиска по названию",
+  "sourceWatch": "наблюдения",
   "speedPerSecond": "{value}/с",
   "startDownloadNow": "Начать загрузку сразу",
   "stateCompleted": "Готово",
@@ -1180,7 +1185,6 @@
   "steamStatus": "Steam ответил {status}",
   "steamUnexpectedAnswer": "Steam вернул неожиданный ответ",
   "stop": "Остановить",
-  "suggestionLine": "{template} · {count} файлов",
   "syncFolder": "Папка синхронизации",
   "syncFolderNote": "Укажите папку, которая синхронизируется между устройствами — Dropbox, iCloud, Syncthing. Новые снимки будут попадать туда автоматически, а на другом устройстве появятся в этом списке.",
   "systemNotifications": "Системные уведомления",
@@ -1224,6 +1228,9 @@
   "uploadedTotal": "отдано {size}",
   "version": "Версия",
   "waitingInQueue": "ждёт очереди",
+  "guessedFolders": "Похожи на сохранения",
+  "guessedFoldersNote": "Папки с похожим на название игры именем. Это догадка по имени и не больше: решать вам.",
+  "guessedFilesCount": "файлов: {count}",
   "watchedFilesChanged": "изменено файлов: {count}",
   "watchedFolders": "Изменились, пока игра работала",
   "watchedFoldersNote": "Эти папки менялись, пока игра работала. Похоже на сохранения — но рядом с ними игры пишут и логи, и кэш, поэтому решать вам.",

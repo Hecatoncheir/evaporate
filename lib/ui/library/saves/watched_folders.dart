@@ -10,12 +10,17 @@ import '../../widgets/inset_tile.dart';
 import 'watched_folder_row.dart';
 import 'watched_folders_actions.dart';
 
-/// Папки, изменившиеся, пока игра работала.
+/// Папки, которые кто-то заподозрил в сохранениях: наблюдение за игрой или
+/// поиск по названию.
 ///
 /// Показываются отдельно от правил и требуют подтверждения: рядом с сейвами
 /// игры пишут логи и кэш, и отличить одно от другого наверняка нельзя. Зато
 /// это единственный источник для игр, которых нет в базе путей, — а таких у
 /// торрент-лончера половина библиотеки.
+///
+/// Подпись зависит от того, откуда подсказки пришли: «изменились, пока игра
+/// работала» про найденное по имени было бы неправдой ровно там, где человек
+/// решает, доверять ли догадке.
 class WatchedFolders extends StatelessWidget {
   const WatchedFolders({super.key, required this.game});
 
@@ -30,6 +35,7 @@ class WatchedFolders extends StatelessWidget {
 
     final l = L.of(context);
     final colors = context.colors;
+    final watched = hints.first.origin == SavePathOrigin.watch;
 
     return InsetTile(
       margin: const EdgeInsets.only(top: 12),
@@ -40,13 +46,23 @@ class WatchedFolders extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.visibility_outlined, size: 16, color: colors.primary),
+              Icon(
+                watched ? Icons.visibility_outlined : Icons.travel_explore,
+                size: 16,
+                color: colors.primary,
+              ),
               const SizedBox(width: 8),
-              Text(l.watchedFolders, style: context.text.bodyStrong),
+              Text(
+                watched ? l.watchedFolders : l.guessedFolders,
+                style: context.text.bodyStrong,
+              ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(l.watchedFoldersNote, style: context.text.paragraph),
+          Text(
+            watched ? l.watchedFoldersNote : l.guessedFoldersNote,
+            style: context.text.paragraph,
+          ),
           const SizedBox(height: 10),
           for (final hint in hints) WatchedFolderRow(game: game, hint: hint),
           WatchedFoldersActions(game: game, hints: hints),

@@ -148,6 +148,7 @@ class SaveActivityWatch {
         path: entry.path,
         template: SavePathTemplate.collapse(entry.path, gameDir: gameDir),
         label: SavePathRule.defaultLabel,
+        origin: SavePathOrigin.watch,
         score: score,
         fileCount: touched.count,
       );

@@ -11,14 +11,12 @@ import '../../../core/save_path_template.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../models/save_profile.dart';
-import '../../../services/saves/save_path_finder.dart';
 import '../../theme.dart';
 import '../../widgets/section_card.dart';
 import '../saves/auto_snapshot_toggle.dart';
 import '../saves/find_paths_button.dart';
 import '../saves/rule_dialog.dart';
 import '../saves/rule_tile.dart';
-import '../saves/suggestions_dialog.dart';
 import '../saves/watched_folders.dart';
 
 class SavePathsSection extends StatelessWidget {
@@ -36,7 +34,7 @@ class SavePathsSection extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FindPathsButton(game: game, onByTitle: () => _autoDetect(context)),
+          FindPathsButton(game: game),
           TextButton.icon(
             onPressed: () => _addRule(context),
             icon: const Icon(Icons.add, size: 16),
@@ -126,25 +124,5 @@ class SavePathsSection extends StatelessWidget {
 
   void _removeRule(BuildContext context, SavePathRule rule) {
     context.read<LibraryBloc>().add(SaveRuleRemoved(game.id, rule.id));
-  }
-
-  Future<void> _autoDetect(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final suggestions = await SavePathFinder.suggest(game.title);
-    if (!context.mounted) return;
-
-    if (suggestions.isEmpty) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(L.of(context).noSimilarFolders)),
-      );
-      return;
-    }
-
-    final chosen = await showDialog<SavePathSuggestion>(
-      context: context,
-      builder: (_) => SuggestionsDialog(suggestions: suggestions),
-    );
-    if (chosen == null || !context.mounted) return;
-    await _saveRule(context, template: chosen.template, label: chosen.label);
   }
 }

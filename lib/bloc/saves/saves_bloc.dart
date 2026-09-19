@@ -80,6 +80,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState> {
     on<SnapshotExportRequested>(_onExportRequested);
     on<SnapshotDeleted>(_onSnapshotDeleted);
     on<SaveHintsRequested>(_onSaveHintsRequested);
+    on<SavePathSuggestionsRequested>(_onSavePathSuggestionsRequested);
     on<SaveHintsAccepted>(_onSaveHintsAccepted);
     on<SaveHintsDismissed>(_onSaveHintsDismissed);
     on<BulkExportRequested>(_onBulkExport);
@@ -141,6 +142,9 @@ class SavesBloc extends Bloc<SavesEvent, SavesState> {
   static L _defaultLocalizations() => LRu();
 
   static String snapshotKey(String gameId) => 'snapshot:$gameId';
+
+  /// Ключ занятости поиска папок по названию игры.
+  static String suggestKey(String gameId) => 'suggest:$gameId';
 
   /// Ключ занятости для операций над всей библиотекой сразу.
   static const bulkKey = 'bulk';

@@ -29,7 +29,10 @@ void main() {
   }
 
   Future<List<SavePathSuggestion>> suggest(String title) =>
-      SavePathFinder.suggest(title, searchRoots: [tmp.path]);
+      SavePathFinder.suggest(
+        title,
+        searchRoots: [SaveRoot(path: tmp.path, insideKnownGamesFolder: false)],
+      );
 
   test('папка с точным совпадением имени находится', () async {
     await makeSaveDir('Hollow Knight');
@@ -105,7 +108,12 @@ void main() {
   test('несуществующий корень не роняет поиск', () async {
     final found = await SavePathFinder.suggest(
       'Что угодно',
-      searchRoots: [p.join(tmp.path, 'нет-такой-папки')],
+      searchRoots: [
+        SaveRoot(
+          path: p.join(tmp.path, 'нет-такой-папки'),
+          insideKnownGamesFolder: false,
+        ),
+      ],
     );
 
     expect(found, isEmpty);

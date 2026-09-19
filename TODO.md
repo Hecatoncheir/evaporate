@@ -509,10 +509,15 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   ограничением `dt` скопирован в `library_atmosphere.dart:90–110`,
   `foil_card.dart:110–119` и `widgets/decorative_motion.dart:71–82`, причём
   атмосфера не смотрит на `lifecycleState` (`:47–50`), в отличие от двух других.
-- [ ] Поиск папок сохранений из виджета идёт мимо подменяемого `_saveRoots`
+- [x] Поиск папок сохранений из виджета идёт мимо подменяемого `_saveRoots`
   блока: `SavePathFinder.suggest` зовётся статически
   (`saves_section.dart:246`), в тестах его не подменить, а повторное нажатие
   запускает второй обход и второй диалог.
+  *Сделано:* `SavePathSuggestionsRequested` в `SavesBloc` с ключом
+  занятости, корни подаёт блок, найденное ложится в те же `saveHints` —
+  диалога догадок больше нет. Подсказки помечены источником
+  (`SavePathOrigin`): «изменились, пока игра работала» про найденное по
+  имени было бы неправдой ровно там, где человек решает, доверять ли ей.
 - [x] В строке правила нет `Flexible`: метка и три тега в `Row`
   переполнятся на длинной метке (`saves/rule_tile.dart:54–84`).
 - [x] `CurvedAnimation` создаётся в каждом `build` и не освобождается
@@ -813,8 +818,8 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   а проверок нет вовсе (см. пустой шаблон и занятую метку в этапе 1).
   Контроллеры текста остаются в `State`. **S**
 - [ ] В `SavesBloc` — события вместо логики в `saves_section.dart`:
-  `SavePathSuggestionsRequested(game)` с ключом занятости и результатом в
-  уже существующие `saveHints`; `SnapshotImportInspectRequested(path, game)`
+  ~~`SavePathSuggestionsRequested(game)` с ключом занятости и результатом в
+  уже существующие `saveHints`;~~ (сделано, см. этап 1) `SnapshotImportInspectRequested(path, game)`
   с полем `pendingImport` (сейчас `inspectPackage` и `try/catch` в виджете,
   `:392–417`). В `LibraryBloc` — `GameExecutableDetectRequested(id)` и
   `GameFolderOpenRequested(id)`. **M**

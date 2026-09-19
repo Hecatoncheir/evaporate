@@ -1,10 +1,14 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/save_path_template.dart';
 import '../../models/save_profile.dart';
+
+/// Откуда взялась подсказка. Обе — догадки, но разные: одна смотрела, что
+/// изменилось за время игры, другая искала по названию. Сказать человеку,
+/// которая именно, — значит дать ему чем решать.
+enum SavePathOrigin { watch, title }
 
 class SavePathSuggestion {
   const SavePathSuggestion({
@@ -12,8 +16,11 @@ class SavePathSuggestion {
     required this.template,
     required this.label,
     required this.score,
+    required this.origin,
     this.fileCount = 0,
   });
+
+  final SavePathOrigin origin;
 
   final String path;
 
@@ -29,21 +36,18 @@ class SavePathSuggestion {
 /// Это догадка, а не истина: пользователь подтверждает выбор в UI.
 class SavePathFinder {
   ///
-  /// [searchRoots] подменяет системные корни — иначе поиск проверялся бы
-  /// только на содержимом настоящей домашней папки.
+  /// [searchRoots] подменяет системные корни. Их подаёт и блок: обход
+  /// настоящей домашней папки в прогоне не заканчивается никогда, а место
+  /// поиска — не знание виджета и не знание этого класса.
   static Future<List<SavePathSuggestion>> suggest(
     String gameTitle, {
-    @visibleForTesting List<String>? searchRoots,
+    List<SaveRoot>? searchRoots,
   }) async {
     final needle = _normalize(gameTitle);
     if (needle.isEmpty) return const [];
 
-    final roots = searchRoots == null
-        ? _roots()
-        : [for (final path in searchRoots) _Root(path: path)];
-
     final results = <String, SavePathSuggestion>{};
-    for (final root in roots) {
+    for (final root in searchRoots ?? roots()) {
       await _scanRoot(root, needle, gameTitle, results);
     }
 
@@ -56,24 +60,19 @@ class SavePathFinder {
   ///
   /// Нужны не только поиску по названию: по этим же папкам смотрят, что
   /// изменилось, пока игра работала.
-  static List<SaveRoot> roots() => [
-    for (final root in _roots())
-      SaveRoot(path: root.path, insideKnownGamesFolder: root.suffix != null),
-  ];
-
-  static List<_Root> _roots() {
+  static List<SaveRoot> roots() {
     final placeholders = SavePathTemplate.placeholders;
-    final roots = <_Root>[];
+    final roots = <SaveRoot>[];
 
     void add(String token, [List<String> subPaths = const []]) {
       final base = placeholders[token];
       if (base == null) return;
-      roots.add(_Root(path: base));
+      roots.add(SaveRoot(path: base, insideKnownGamesFolder: false));
       for (final sub in subPaths) {
         roots.add(
-          _Root(
+          SaveRoot(
             path: p.join(base, sub.replaceAll('/', p.separator)),
-            suffix: sub,
+            insideKnownGamesFolder: true,
           ),
         );
       }
@@ -88,14 +87,16 @@ class SavePathFinder {
     if (Platform.isLinux) {
       final home = placeholders[SavePathTemplate.home];
       if (home != null) {
-        roots.add(_Root(path: p.join(home, '.config'), suffix: '.config'));
+        roots.add(
+          SaveRoot(path: p.join(home, '.config'), insideKnownGamesFolder: true),
+        );
       }
     }
     return roots;
   }
 
   static Future<void> _scanRoot(
-    _Root root,
+    SaveRoot root,
     String needle,
     String gameTitle,
     Map<String, SavePathSuggestion> out,
@@ -125,7 +126,8 @@ class SavePathFinder {
         path: entity.path,
         template: SavePathTemplate.collapse(entity.path),
         label: SavePathRule.defaultLabel,
-        score: score + (root.suffix != null ? 15 : 0),
+        origin: SavePathOrigin.title,
+        score: score + (root.insideKnownGamesFolder ? 15 : 0),
         fileCount: fileCount,
       );
     }
@@ -186,11 +188,4 @@ class SaveRoot {
   /// Папка вроде «My Games» или «Saved Games» — то, что уже само по себе
   /// говорит о назначении, и найденное в ней заслуживает больше доверия.
   final bool insideKnownGamesFolder;
-}
-
-class _Root {
-  const _Root({required this.path, this.suffix});
-
-  final String path;
-  final String? suffix;
 }

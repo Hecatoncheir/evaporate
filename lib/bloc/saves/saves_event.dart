@@ -105,6 +105,19 @@ final class SaveHintsRequested extends SavesEvent {
   List<Object?> get props => [game, since];
 }
 
+/// Поискать папку сохранений по названию игры.
+///
+/// Догадка, как и наблюдение за игрой, поэтому и ложится туда же — в
+/// подсказки: человек отмечает подходящее, а не получает записанное молча.
+final class SavePathSuggestionsRequested extends SavesEvent {
+  const SavePathSuggestionsRequested(this.game);
+
+  final Game game;
+
+  @override
+  List<Object?> get props => [game];
+}
+
 /// Принять найденные папки как правила.
 final class SaveHintsAccepted extends SavesEvent {
   const SaveHintsAccepted({required this.game, required this.suggestions});

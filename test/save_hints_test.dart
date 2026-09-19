@@ -179,4 +179,76 @@ void main() {
 
     expect(saves.state.hintsFor(game.id), isEmpty);
   });
+
+  group('поиск по названию', () {
+    test('найденное по имени ложится в те же подсказки', () async {
+      final game = await addGame('Hollow Knight');
+      await wrote('Hollow Knight');
+
+      saves.add(SavePathSuggestionsRequested(game));
+      final state = await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
+
+      expect(state.hintsFor(game.id).single.origin, SavePathOrigin.title);
+      expect(state.isBusy(SavesBloc.suggestKey(game.id)), isFalse);
+    });
+
+    // Обход папок идёт секундами, и клавиша всё это время на экране.
+    test('второе нажатие не заводит второй обход', () async {
+      final game = await addGame('Hollow Knight');
+      await wrote('Hollow Knight');
+
+      // Сообщения считаем по счётчику: два обхода нашли бы одно и то же и
+      // рассказали бы об этом дважды, а состояние в конце было бы то же.
+      final told = <int>{};
+      final watch = saves.stream.listen((state) {
+        final notice = state.notice;
+        if (notice != null && notice.message.contains('Похожих папок')) {
+          told.add(notice.seq);
+        }
+      });
+
+      saves.add(SavePathSuggestionsRequested(game));
+      await waitForSaves((s) => s.isBusy(SavesBloc.suggestKey(game.id)));
+      saves.add(SavePathSuggestionsRequested(game));
+
+      await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await watch.cancel();
+
+      expect(told, hasLength(1));
+      expect(saves.state.hintsFor(game.id), hasLength(1));
+    });
+
+    test('похожих папок нет — человеку говорят об этом', () async {
+      final game = await addGame('Hollow Knight');
+
+      saves.add(SavePathSuggestionsRequested(game));
+      final state = await waitForSaves((s) => s.notice != null);
+
+      expect(state.hintsFor(game.id), isEmpty);
+      expect(state.notice!.message, contains('Похожих папок не нашлось'));
+    });
+
+    // Подпись у сообщения чужая: «из наблюдения» про найденное по имени —
+    // неправда ровно там, где человек решает, доверять ли догадке.
+    test('принятая догадка называет свой источник', () async {
+      final game = await addGame('Hollow Knight');
+      await wrote('Hollow Knight');
+
+      saves.add(SavePathSuggestionsRequested(game));
+      final hints = await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
+
+      saves.add(
+        SaveHintsAccepted(
+          game: library.state.gameById(game.id)!,
+          suggestions: hints.hintsFor(game.id),
+        ),
+      );
+      final state = await waitForSaves(
+        (s) => s.notice?.message.contains('Добавлено путей') ?? false,
+      );
+
+      expect(state.notice!.message, contains('поиска по названию'));
+    });
+  });
 }
