@@ -11,9 +11,8 @@ import '../../bloc/library/library_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../services/launch/executable_finder.dart';
-import '../labels.dart';
-import '../theme.dart';
 import '../widgets/busy_spinner.dart';
+import 'add/add_game_form.dart';
 
 /// Возвращает идентификатор добавленной игры: событие ничего не возвращает,
 /// а вызывающему нужно выделить новую игру в списке.
@@ -58,35 +57,21 @@ class _AddGameDialogState extends State<_AddGameDialog> {
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _kindPicker(context),
-              const SizedBox(height: 20),
-              ..._buildSourceFields(),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: l.title,
-                  hintText: l.titleHint,
-                ),
-              ),
-              // У папки на диске качать нечего: она уже установлена.
-              if (_kind != GameSourceKind.localFolder) ...[
-                const SizedBox(height: 8),
-                _startNow(
-                  context,
-                  ready: engine.isReady,
-                  engineState: engineStateLabel(l, engine.state),
-                ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: TextStyle(color: context.colors.danger)),
-              ],
-            ],
+          child: AddGameForm(
+            kind: _kind,
+            onKind: (value) => setState(() => _kind = value),
+            magnetController: _magnetController,
+            titleController: _titleController,
+            filePath: _filePath,
+            folderPath: _folderPath,
+            onMagnetChanged: _onMagnetChanged,
+            onPickTorrent: _pickTorrent,
+            onPickFolder: _pickFolder,
+            startImmediately: _startImmediately,
+            onStartImmediately: (value) =>
+                setState(() => _startImmediately = value),
+            engine: engine,
+            error: _error,
           ),
         ),
       ),
@@ -101,96 +86,6 @@ class _AddGameDialogState extends State<_AddGameDialog> {
         ),
       ],
     );
-  }
-
-  /// Откуда берём игру: magnet-ссылка, файл раздачи или папка на диске.
-  Widget _kindPicker(BuildContext context) => SegmentedButton<GameSourceKind>(
-    segments: [
-      const ButtonSegment(
-        value: GameSourceKind.magnet,
-        icon: Icon(Icons.link, size: 16),
-        label: Text('Magnet'),
-      ),
-      const ButtonSegment(
-        value: GameSourceKind.torrentFile,
-        icon: Icon(Icons.description_outlined, size: 16),
-        label: Text('.torrent'),
-      ),
-      ButtonSegment(
-        value: GameSourceKind.localFolder,
-        icon: const Icon(Icons.folder_outlined, size: 16),
-        label: Text(L.of(context).sourceFolder),
-      ),
-    ],
-    selected: {_kind},
-    onSelectionChanged: (value) => setState(() => _kind = value.first),
-  );
-
-  /// Ставить ли загрузку сразу.
-  ///
-  /// Пока движок не поднялся, галочка погашена, и рядом сказано почему:
-  /// иначе она выглядела бы сломанной.
-  Widget _startNow(
-    BuildContext context, {
-    required bool ready,
-    required String engineState,
-  }) {
-    final l = L.of(context);
-    return CheckboxListTile(
-      value: _startImmediately && ready,
-      onChanged: ready
-          ? (value) => setState(() => _startImmediately = value ?? false)
-          : null,
-      contentPadding: EdgeInsets.zero,
-      controlAffinity: ListTileControlAffinity.leading,
-      title: Text(l.startDownloadNow),
-      subtitle: ready
-          ? null
-          : Text(
-              l.engineUnavailable(engineState),
-              style: context.text.caption.copyWith(
-                color: context.colors.warning,
-              ),
-            ),
-    );
-  }
-
-  List<Widget> _buildSourceFields() {
-    switch (_kind) {
-      case GameSourceKind.magnet:
-        return [
-          TextField(
-            controller: _magnetController,
-            maxLines: 3,
-            minLines: 2,
-            onChanged: _onMagnetChanged,
-            decoration: InputDecoration(
-              labelText: L.of(context).sourceMagnet,
-              hintText: 'magnet:?xt=urn:btih:...',
-            ),
-          ),
-        ];
-      case GameSourceKind.torrentFile:
-        return [
-          _PathPicker(
-            label: L.of(context).sourceTorrent,
-            value: _filePath,
-            icon: Icons.description_outlined,
-            onPick: _pickTorrent,
-          ),
-        ];
-      case GameSourceKind.localFolder:
-        return [
-          _PathPicker(
-            label: L.of(context).gameFolder,
-            value: _folderPath,
-            icon: Icons.folder_outlined,
-            onPick: _pickFolder,
-          ),
-          const SizedBox(height: 8),
-          Text(L.of(context).localFolderNote, style: context.text.paragraph),
-        ];
-    }
   }
 
   /// В magnet-ссылке имя лежит в параметре `dn` — подставляем его в название.
@@ -351,62 +246,6 @@ class _AddRequest {
   /// Источник, который можно качать. У папки на диске его нет: она уже
   /// установлена.
   final GameSource? download;
-}
-
-class _PathPicker extends StatelessWidget {
-  const _PathPicker({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.onPick,
-  });
-
-  final String label;
-  final String? value;
-  final IconData icon;
-  final VoidCallback onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onPick,
-      borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: context.colors.surfaceHigh,
-          borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-          border: Border.all(color: context.colors.outline),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: context.colors.textSecondary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: context.text.captionMuted),
-                  const SizedBox(height: 2),
-                  Text(
-                    value ?? L.of(context).tapToChoose,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.text.body.copyWith(
-                      color: value == null
-                          ? context.colors.textSecondary
-                          : context.colors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.more_horiz, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Ввод, с которым игру не завести; [message] показывается как есть.

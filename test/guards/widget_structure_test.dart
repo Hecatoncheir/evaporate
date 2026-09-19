@@ -47,20 +47,14 @@ void main() {
 
 const _privateWidgets = [
   'lib/ui/library/add_game_dialog.dart: _AddGameDialog',
-  'lib/ui/library/add_game_dialog.dart: _PathPicker',
   'lib/ui/library/detail/rating_row.dart: _Count',
   'lib/ui/library/detail/rating_row.dart: _Metacritic',
   'lib/ui/library/foil_card.dart: _FoilScope',
   'lib/ui/library/scan_folder_dialog.dart: _ScanFolderDialog',
-  'lib/ui/library/scan_folder_dialog.dart: _Progress',
-  'lib/ui/library/scan_folder_dialog.dart: _DropArea',
   'lib/ui/widgets/liquid_selection.dart: _LiquidInkScope',
 ];
 
 const _widgetFunctions = [
-  'lib/ui/library/add_game_dialog.dart: _kindPicker',
-  'lib/ui/library/add_game_dialog.dart: _startNow',
-  'lib/ui/library/add_game_dialog.dart: _buildSourceFields',
   'lib/ui/library/cover/cover_art.dart: image',
   'lib/ui/library/saves/restore_dialog.dart: _content',
   'lib/ui/library/saves/restore_dialog.dart: _localFreshness',
@@ -72,19 +66,16 @@ const _widgetFunctions = [
   'lib/ui/library/saves/snapshot_tile.dart: _action',
   'lib/ui/library/saves/watched_folders.dart: _hintRow',
   'lib/ui/library/saves/watched_folders.dart: _footer',
-  'lib/ui/library/scan_folder_dialog.dart: _list',
   'lib/ui/settings/about_card.dart: _menuEntryRow',
   'lib/ui/settings/about_card.dart: _buttons',
   'lib/ui/widgets/launcher_action_button.dart: _face',
 ];
 
 const _crowdedFiles = [
-  'lib/ui/library/add_game_dialog.dart: 2',
   'lib/ui/library/detail/detail_cover.dart: 2',
   'lib/ui/library/detail/rating_row.dart: 3',
   'lib/ui/library/drop_overlay.dart: 2',
   'lib/ui/library/foil_card.dart: 3',
-  'lib/ui/library/scan_folder_dialog.dart: 3',
   'lib/ui/widgets/liquid_selection.dart: 3',
   'lib/ui/widgets/spatial_surface.dart: 3',
 ];

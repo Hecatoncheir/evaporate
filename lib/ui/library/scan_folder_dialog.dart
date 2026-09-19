@@ -5,7 +5,6 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../bloc/library/library_bloc.dart';
@@ -14,6 +13,9 @@ import '../../models/game.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
 import '../theme.dart';
+import 'scan/scan_drop_area.dart';
+import 'scan/scan_progress.dart';
+import 'scan/scanned_games_list.dart';
 
 /// Показывает ход поиска и добавляет отмеченные игры.
 ///
@@ -134,6 +136,22 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
     Navigator.pop(context, games.length);
   }
 
+  /// Уверенно найденные игры отмечены сразу, поэтому у списка две
+  /// половины: снятые с уверенных и поставленные на сомнительных.
+  void _toggle(ScannedGame game, {required bool selected}) {
+    setState(() {
+      if (game.confident) {
+        selected
+            ? _unchecked.remove(game.installDir)
+            : _unchecked.add(game.installDir);
+      } else {
+        selected
+            ? _checked.add(game.installDir)
+            : _checked.remove(game.installDir);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
@@ -148,9 +166,9 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Progress(session: session),
+            ScanProgress(session: session),
             const SizedBox(height: 12),
-            _DropArea(
+            ScanDropArea(
               dragging: _dragging,
               wrongDrop: _wrongDrop,
               onTap: _pickFolder,
@@ -160,7 +178,13 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
             ),
             if (games.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Flexible(child: _list(games)),
+              Flexible(
+                child: ScannedGamesList(
+                  games: games,
+                  isSelected: (game) => _selected.contains(game.installDir),
+                  onToggle: _toggle,
+                ),
+              ),
             ] else if (!session.isRunning && session.isComplete) ...[
               const SizedBox(height: 12),
               Text(
@@ -187,176 +211,6 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
           child: Text(l.addCount(_selected.length)),
         ),
       ],
-    );
-  }
-
-  Widget _list(List<ScannedGame> games) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 320),
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: games.length,
-        itemBuilder: (context, index) {
-          final game = games[index];
-          return CheckboxListTile(
-            value: _selected.contains(game.installDir),
-            onChanged: (checked) => setState(() {
-              final on = checked ?? false;
-              if (game.confident) {
-                on
-                    ? _unchecked.remove(game.installDir)
-                    : _unchecked.add(game.installDir);
-              } else {
-                on
-                    ? _checked.add(game.installDir)
-                    : _checked.remove(game.installDir);
-              }
-            }),
-            contentPadding: EdgeInsets.zero,
-            title: Text(game.title, style: context.text.body),
-            subtitle: Text(
-              game.executablePath,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.text.pathSmall,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// Что происходит прямо сейчас.
-///
-/// Обход дисков идёт секундами: окно с одной вертушкой ничем не отличается
-/// от зависшего, а название осматриваемой папки показывает, что работа идёт
-/// и сколько её осталось на глаз.
-class _Progress extends StatelessWidget {
-  const _Progress({required this.session});
-
-  final ScanSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    final directory = session.directory;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (session.isRunning) ...[
-          Row(
-            children: [
-              const SizedBox(
-                width: 14,
-                height: 14,
-                // Сколько всего папок, заранее неизвестно: считать их —
-                // тот же обход, только дважды.
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  directory == null
-                      ? l.scanFoundCount(session.found.length)
-                      : l.scanLooking(p.basename(directory)),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.text.note,
-                ),
-              ),
-            ],
-          ),
-        ] else if (!session.isComplete && session.found.isNotEmpty)
-          Text(l.scanStopped, style: context.text.paragraph)
-        else
-          Text(
-            l.scanFoundCount(session.found.length),
-            style: context.text.note,
-          ),
-      ],
-    );
-  }
-}
-
-/// Куда бросить папку и куда нажать, чтобы её выбрать.
-///
-/// Системное окно выбора само не открывается: человек нажал «найти игры», а
-/// не «выбери папку», — поиск к этому времени уже идёт, и окно поверх него
-/// было бы требованием, а не предложением. Здесь же и приём броском: папку
-/// проще притащить из файлового менеджера, чем искать заново в чужом окне.
-class _DropArea extends StatelessWidget {
-  const _DropArea({
-    required this.dragging,
-    required this.wrongDrop,
-    required this.onTap,
-    required this.onEntered,
-    required this.onExited,
-    required this.onDrop,
-  });
-
-  final bool dragging;
-  final bool wrongDrop;
-  final VoidCallback onTap;
-  final VoidCallback onEntered;
-  final VoidCallback onExited;
-  final void Function(DropDoneDetails) onDrop;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = L.of(context);
-    final colors = context.colors;
-    final accent = dragging ? colors.primary : colors.outline;
-
-    return DropTarget(
-      onDragEntered: (_) => onEntered(),
-      onDragExited: (_) => onExited(),
-      onDragDone: onDrop,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          decoration: BoxDecoration(
-            color: dragging ? colors.surfaceHigh : null,
-            borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-            border: Border.all(color: accent, width: dragging ? 2 : 1),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.drive_folder_upload_outlined,
-                size: 22,
-                color: dragging ? colors.primary : colors.textSecondary,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l.scanDropHere,
-                textAlign: TextAlign.center,
-                style: context.text.body,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                l.scanPickFolder,
-                textAlign: TextAlign.center,
-                style: context.text.caption.copyWith(
-                  color: colors.textSecondary,
-                ),
-              ),
-              if (wrongDrop) ...[
-                const SizedBox(height: 8),
-                Text(
-                  l.scanNotAFolder,
-                  textAlign: TextAlign.center,
-                  style: context.text.caption.copyWith(color: colors.warning),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
