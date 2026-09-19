@@ -7,8 +7,9 @@ import '../../../models/app_settings.dart';
 import '../../theme.dart';
 import '../../widgets/scale_control.dart';
 import '../../widgets/section_card.dart';
-import '../pickers.dart';
+import '../language_picker.dart';
 import '../setting_note.dart';
+import '../theme_picker.dart';
 
 /// Язык, тема и крупность интерфейса.
 ///

@@ -5,13 +5,13 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/proxy_settings.dart';
 import '../feedback/snack.dart';
-import '../theme.dart';
 import '../widgets/inline_warning.dart';
 import '../widgets/section_card.dart';
 import 'proxy_address_fields.dart';
 import 'proxy_apply_row.dart';
 import 'proxy_kind_picker.dart';
 import 'setting_note.dart';
+import 'setting_switch.dart';
 
 /// Раздел «Прокси» для движка загрузок.
 class ProxySettingsCard extends StatefulWidget {
@@ -76,11 +76,10 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SwitchListTile(
+          SettingSwitch(
             value: proxy.enabled,
             onChanged: (value) => update(proxy.copyWith(enabled: value)),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.proxyEnable, style: context.text.body),
+            title: l.proxyEnable,
           ),
           const SizedBox(height: 8),
           ProxyKindPicker(proxy: proxy, onChanged: update),
@@ -95,14 +94,13 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
           const SizedBox(height: 10),
           ProxyApplyRow(proxy: proxy, onApply: () => _apply(proxy)),
           const SizedBox(height: 6),
-          SwitchListTile(
+          SettingSwitch(
             value: proxy.useForSteam,
             onChanged: proxy.enabled
                 ? (value) => update(proxy.copyWith(useForSteam: value))
                 : null,
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.proxyForSteam, style: context.text.body),
-            subtitle: Text(l.proxyForSteamNote, style: context.text.caption),
+            title: l.proxyForSteam,
+            note: l.proxyForSteamNote,
           ),
           const SizedBox(height: 6),
           // HTTP-прокси не умеет обмен с пирами — про это предупреждают,

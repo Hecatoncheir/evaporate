@@ -7,11 +7,11 @@ import 'package:provider/provider.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/notifications/notification_service.dart';
-import '../theme.dart';
 import '../widgets/inline_warning.dart';
 import '../widgets/section_card.dart';
 import 'notification_actions.dart';
 import 'setting_note.dart';
+import 'setting_switch.dart';
 
 /// Раздел «Уведомления»: включение, разрешение системы и проверка.
 class NotificationSettingsCard extends StatelessWidget {
@@ -30,17 +30,13 @@ class NotificationSettingsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SwitchListTile(
+          SettingSwitch(
             value: enabled,
             onChanged: (value) => store.add(
               SettingsChanged(store.state.copyWith(systemNotifications: value)),
             ),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.systemNotifications, style: context.text.body),
-            subtitle: Text(
-              l.systemNotificationsNote,
-              style: context.text.caption,
-            ),
+            title: l.systemNotifications,
+            note: l.systemNotificationsNote,
           ),
           // Система может не уметь показывать уведомления вовсе — тогда
           // включённый переключатель обещал бы то, чего не будет.

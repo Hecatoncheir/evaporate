@@ -13,6 +13,7 @@ import '../../services/system/update_installer.dart';
 import '../theme.dart';
 import '../widgets/info_row.dart';
 import '../widgets/section_card.dart';
+import 'setting_switch.dart';
 
 /// Версия приложения и проверка обновлений.
 class AboutCard extends StatefulWidget {
@@ -227,14 +228,13 @@ class _AboutCardState extends State<AboutCard> {
             ),
           ],
           if (_desktop.isSupported) _menuEntryRow(context),
-          SwitchListTile(
+          SettingSwitch(
             value: settings.checkUpdates,
             onChanged: (value) => context.read<SettingsBloc>().add(
               SettingsChanged(settings.copyWith(checkUpdates: value)),
             ),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.checkUpdatesOnStart, style: context.text.body),
-            subtitle: Text(l.updateNote, style: context.text.caption),
+            title: l.checkUpdatesOnStart,
+            note: l.updateNote,
           ),
         ],
       ),

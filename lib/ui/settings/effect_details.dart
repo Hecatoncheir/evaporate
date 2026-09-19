@@ -5,6 +5,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../theme.dart';
+import 'setting_switch.dart';
 
 /// «Подробно»: общий выключатель и по галочке на каждое украшение.
 class EffectDetails extends StatelessWidget {
@@ -23,22 +24,18 @@ class EffectDetails extends StatelessWidget {
       childrenPadding: EdgeInsets.zero,
       title: Text(l.effectsDetails, style: context.text.bodyStrong),
       children: [
-        SwitchListTile(
+        SettingSwitch(
           key: const ValueKey('effects-master-toggle'),
           value: settings.libraryEffects,
           onChanged: (value) =>
               update(settings.copyWith(libraryEffects: value)),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l.libraryEffectsEnable),
+          title: l.libraryEffectsEnable,
         ),
         for (final effect in _effects(l))
-          SwitchListTile(
+          SettingSwitch(
             key: ValueKey('effects-${effect.id}-toggle'),
-            contentPadding: EdgeInsets.zero,
-            title: Text(effect.title),
-            subtitle: effect.note == null
-                ? null
-                : Text(effect.note!, style: context.text.caption),
+            title: effect.title,
+            note: effect.note,
             value: effect.value(settings),
             // Рамка выбора живёт мимо общего выключателя: она показывает
             // место в сетке, а не украшает её, и зажигается по прямой

@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../theme.dart';
 import '../../widgets/section_card.dart';
-import '../pickers.dart';
+import '../setting_switch.dart';
+import '../window_start_picker.dart';
 
 /// Каким показывается окно при запуске и запускаться ли с системой.
 class WindowStartupCard extends StatelessWidget {
@@ -30,14 +30,13 @@ class WindowStartupCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          SwitchListTile(
+          SettingSwitch(
             value: settings.launchAtStartup,
             onChanged: (value) => store.add(
               SettingsChanged(settings.copyWith(launchAtStartup: value)),
             ),
-            contentPadding: EdgeInsets.zero,
-            title: Text(l.launchAtStartup, style: context.text.body),
-            subtitle: Text(l.launchAtStartupNote, style: context.text.caption),
+            title: l.launchAtStartup,
+            note: l.launchAtStartupNote,
           ),
         ],
       ),
