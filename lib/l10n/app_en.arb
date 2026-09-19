@@ -131,6 +131,7 @@
   "deleteSnapshotNote": "The snapshot from {when} will be deleted for good.",
   "deleteSnapshotQuestion": "Delete the snapshot?",
   "detailNewerHere": "local saves are newer than the package",
+  "detailNewerPackage": "the folder has a newer package of this game",
   "detailNoMatchingGame": "no game with this title in the library",
   "detailNoSavePaths": "no save folders set",
   "detailNoSavesYet": "no saves yet",

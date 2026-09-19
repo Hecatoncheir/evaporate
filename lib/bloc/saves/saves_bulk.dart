@@ -7,30 +7,46 @@ extension _SavesBulk on SavesBloc {
     Emitter<SavesState> emit,
   ) async {
     emit(state.copyWith(busy: _withBusy(SavesBloc.bulkKey, true)));
+    // Сбой по отдельной игре — строка отчёта, а не исключение; сюда
+    // доходит только провал всей операции: не записался список снимков,
+    // не прошла ротация. Занятость гасится и тогда — иначе клавиши
+    // переноса погасли бы до перезапуска.
+    try {
+      for (final game in library.state.games) {
+        await _resolveStoredPaths(game, emit);
+      }
 
-    for (final game in library.state.games) {
-      await _resolveStoredPaths(game, emit);
+      final result = await _bulk.exportAll(
+        games: library.state.games,
+        destinationDir: event.destinationDir,
+        // Снимок ложится в состояние сразу, а не всей пачкой в конце:
+        // выгрузка большой библиотеки идёт минуты.
+        onSnapshot: (snapshot) =>
+            emit(state.copyWith(snapshots: _withSnapshot(snapshot))),
+      );
+
+      await _pruneAll(emit);
+      await persist();
+      _finishBulk(emit, result);
+    } on Object catch (error) {
+      _failBulk(emit, error);
     }
-
-    final result = await _bulk.exportAll(
-      games: library.state.games,
-      destinationDir: event.destinationDir,
-      // Снимок ложится в состояние сразу, а не всей пачкой в конце:
-      // выгрузка большой библиотеки идёт минуты.
-      onSnapshot: (snapshot) =>
-          emit(state.copyWith(snapshots: _withSnapshot(snapshot))),
-    );
-
-    await _pruneAll(emit);
-    await persist();
-    emit(
-      state.copyWith(
-        busy: _withBusy(SavesBloc.bulkKey, false),
-        bulkReport: result.report,
-        notice: _notice(result.message, isError: result.isError),
-      ),
-    );
   }
+
+  void _finishBulk(Emitter<SavesState> emit, BulkResult result) => emit(
+    state.copyWith(
+      busy: _withBusy(SavesBloc.bulkKey, false),
+      bulkReport: result.report,
+      notice: _notice(result.message, isError: result.isError),
+    ),
+  );
+
+  void _failBulk(Emitter<SavesState> emit, Object error) => emit(
+    state.copyWith(
+      busy: _withBusy(SavesBloc.bulkKey, false),
+      notice: _notice(error.toString(), isError: true),
+    ),
+  );
 
   /// Ротация по всей библиотеке разом.
   ///
@@ -48,37 +64,22 @@ extension _SavesBulk on SavesBloc {
     Emitter<SavesState> emit,
   ) async {
     emit(state.copyWith(busy: _withBusy(SavesBloc.bulkKey, true)));
-
-    final BulkResult result;
+    // Папку не прочитать — разбирать нечего: это провал всей операции, а
+    // не исход отдельной игры, и отчёта по играм тут не будет.
     try {
-      result = await _bulk.importAll(
+      final result = await _bulk.importAll(
         games: library.state.games,
         sourceDir: event.sourceDir,
         overwriteNewer: event.overwriteNewer,
         onSnapshot: (snapshot) =>
             emit(state.copyWith(snapshots: _withSnapshot(snapshot))),
       );
+      await _pruneAll(emit);
+      await persist();
+      _finishBulk(emit, result);
     } on Object catch (error) {
-      // Папку не прочитать — разбирать нечего: это провал всей операции,
-      // а не исход отдельной игры, и отчёта по играм тут не будет.
-      emit(
-        state.copyWith(
-          busy: _withBusy(SavesBloc.bulkKey, false),
-          notice: _notice(error.toString(), isError: true),
-        ),
-      );
-      return;
+      _failBulk(emit, error);
     }
-
-    await _pruneAll(emit);
-    await persist();
-    emit(
-      state.copyWith(
-        busy: _withBusy(SavesBloc.bulkKey, false),
-        bulkReport: result.report,
-        notice: _notice(result.message, isError: result.isError),
-      ),
-    );
   }
 
   Future<void> _onSyncScanRequested(

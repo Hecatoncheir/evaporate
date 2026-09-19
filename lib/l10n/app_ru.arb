@@ -787,6 +787,7 @@
   "deleteSnapshotNote": "Снимок от {when} будет удалён без возможности восстановления.",
   "deleteSnapshotQuestion": "Удалить снимок?",
   "detailNewerHere": "здешние сохранения новее пакета",
+  "detailNewerPackage": "в папке есть пакет этой игры новее",
   "detailNoMatchingGame": "в библиотеке нет игры с таким названием",
   "detailNoSavePaths": "папки сохранений не заданы",
   "detailNoSavesYet": "сохранений пока нет",

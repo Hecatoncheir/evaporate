@@ -4,6 +4,7 @@ import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/bulk_report.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
@@ -299,6 +300,11 @@ void main() {
       expect(await slot.readAsString(), 'свежий прогресс');
       expect(result.report.count(BulkOutcome.applied), 1);
       expect(result.report.count(BulkOutcome.skipped), 1);
+      // Старший пакет пропущен потому, что рядом лежит пакет новее, а не
+      // потому, что здешние сохранения новее: отчёт говорил последнее и
+      // врал — здесь их никто и не сравнивал.
+      final skipped = result.report.withOutcome(BulkOutcome.skipped).single;
+      expect(skipped.detail, LRu().detailNewerPackage);
     });
 
     // Папка синхронизации живёт в Dropbox или на флешке и вполне может
@@ -339,6 +345,21 @@ void main() {
 
       expect(BulkTransfer.matchGame(games, 'GAME'), isNull);
     });
+  });
+
+  // Выгрузка шла без `try`: исключение оставляло ключ занятости взведённым,
+  // и клавиши переноса гасли до перезапуска приложения.
+  test('сорвавшаяся выгрузка не оставляет занятость навсегда', () async {
+    await gameWithSaves('Игра');
+    final target = await emptyDir('вывоз-сбой');
+    // Запись списка снимков в конце выгрузки падает: на месте файла папка.
+    await Directory(paths.snapshotsFile).create(recursive: true);
+
+    saves.add(BulkExportRequested(target.path));
+    await waitForSaves((s) => s.notice != null);
+
+    expect(saves.state.isBusy(SavesBloc.bulkKey), isFalse);
+    expect(saves.state.notice?.isError, isTrue);
   });
 
   test('занятость снимается после массовой операции', () async {

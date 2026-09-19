@@ -167,7 +167,7 @@ class BulkTransfer {
           BulkEntry(
             title: game.title,
             outcome: BulkOutcome.skipped,
-            detail: _l.detailNewerHere,
+            detail: _l.detailNewerPackage,
           ),
         );
         continue;

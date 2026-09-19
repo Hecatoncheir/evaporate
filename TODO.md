@@ -364,7 +364,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`save_manager.dart:243`), чтение и разбор всего обновления в памяти
   (`update_download.dart:168,234`). При снимке в гигабайты это секунды
   замершего окна. `Isolate.run`, как уже сделано для базы путей. **M**
-- [ ] Отчёт массовой загрузки врёт: старший дубликат пакета помечается
+- [x] Отчёт массовой загрузки врёт: старший дубликат пакета помечается
   «здешние сохранения новее» (`bulk_transfer.dart:165–172`). **S**
 - [ ] «Не понял — не трогай» у ярлыков Steam дыряво: `allowMalformed` с
   перекодированием молча меняют чужие не-UTF-8 строки
@@ -468,7 +468,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `games[index] = game.copyWith(status: running)`, где `game` — из события, а
   перед этим два ожидания (снимок перед запуском идёт секунды). Брать
   `state.games[index]`. **S**
-- [ ] **Занятость, которую некому погасить.** `saves_bulk.dart:5–33`:
+- [x] **Занятость, которую некому погасить.** `saves_bulk.dart:5–33`:
   `_onBulkExport` без `try` — исключение из `_resolveStoredPaths`, `_pruneAll`
   или `persist` оставит ключ `bulk` взведённым, и клавиши переноса погаснут
   до перезапуска. Лечится общим помощником (этап 4), у которого гашение — в
