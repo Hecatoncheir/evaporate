@@ -11,6 +11,7 @@ import '../../l10n/app_localizations_ru.dart';
 import '../../models/download_task.dart';
 import '../../models/proxy_settings.dart';
 import '../../models/speed_limits.dart';
+import '../system/app_log.dart';
 import 'download_engine.dart';
 import 'integrity_check.dart';
 import 'torrent_file.dart';
@@ -35,6 +36,7 @@ class DtorrentEngine implements DownloadEngine {
     this.maxConcurrent = 3,
     this.autoStart = true,
     L Function()? localizations,
+    @visibleForTesting this._fetchMetadata,
   }) : _localizations = localizations ?? _defaultLocalizations,
        _store = JsonStore(stateFile) {
     _proxy = proxy;
@@ -61,6 +63,9 @@ class DtorrentEngine implements DownloadEngine {
   /// В тестах выключается, чтобы движок не лез в сеть: очередь и состояние
   /// проверяются без единого соединения.
   final bool autoStart;
+
+  /// Получение метаданных вместо сети — для тестов запуска задачи.
+  final Future<dt.TorrentModel?> Function(String infoHash)? _fetchMetadata;
   final JsonStore _store;
   late ProxySettings _proxy;
 
@@ -336,6 +341,9 @@ class DtorrentEngine implements DownloadEngine {
     if (managed == null) return;
     managed.pausedByUser = false;
     managed.started = false;
+    // «Возобновить» у сорвавшейся задачи — это «попробовать снова»: без
+    // снятия ошибки очередь обходила бы её до перезапуска приложения.
+    managed.error = null;
     pumpQueue();
     await _persist();
     await refresh();

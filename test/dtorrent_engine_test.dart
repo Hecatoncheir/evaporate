@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -260,6 +261,89 @@ void main() {
       expect(withoutAuth.buildProxyConfig()!.password, isNull);
       withAuth.dispose();
       withoutAuth.dispose();
+    });
+  });
+
+  // Сорвавшийся запуск оставлял задачу занимающей слот, «Возобновить»
+  // ошибку не снимало, а ненайденные метаданные давали тихий выход — задача
+  // навсегда «получала метаданные». Три таких при пределе в три запирали
+  // очередь до перезапуска приложения.
+  group('сорвавшийся запуск', () {
+    /// Движок с автозапуском, но без сети: метаданные отдаёт [fetch].
+    DtorrentEngine launching(
+      Future<dt.TorrentModel?> Function(String infoHash) fetch, {
+      int maxConcurrent = 1,
+    }) {
+      final engine = DtorrentEngine(
+        downloadDir: p.join(tmp.path, 'games'),
+        stateFile: p.join(tmp.path, 'downloads.json'),
+        torrentsDir: p.join(tmp.path, 'torrents'),
+        maxConcurrent: maxConcurrent,
+        fetchMetadata: fetch,
+      );
+      addTearDown(engine.dispose);
+      return engine;
+    }
+
+    Future<void> until(bool Function() condition) async {
+      for (var i = 0; i < 200 && !condition(); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+    }
+
+    /// Метаданные, которые так и не придут — сеть без пиров.
+    Future<dt.TorrentModel?> never(String _) =>
+        Completer<dt.TorrentModel?>().future;
+
+    test('ненайденные метаданные — ошибка, и слот уходит следующей', () async {
+      final engine = launching(
+        (hash) async => hash == hashA ? null : never(hash),
+      );
+
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await until(() => engine.startedIds.contains(hashB));
+      await engine.refresh();
+
+      expect(engine.startedIds, {hashB});
+      final failed = engine.taskById(hashA)!;
+      expect(failed.state, DownloadState.error);
+      expect(failed.errorMessage, LRu().metadataNotFound);
+    });
+
+    test('исключение при запуске тоже освобождает слот', () async {
+      final engine = launching(
+        (hash) async => hash == hashA
+            ? throw const FileSystemException('диск отказал')
+            : never(hash),
+      );
+
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await until(() => engine.startedIds.contains(hashB));
+      await engine.refresh();
+
+      expect(engine.startedIds, {hashB});
+      expect(engine.taskById(hashA)!.state, DownloadState.error);
+      expect(engine.taskById(hashA)!.errorMessage, contains('диск отказал'));
+    });
+
+    test('«Возобновить» снимает ошибку и пробует снова', () async {
+      var attempts = 0;
+      final engine = launching(
+        (hash) async => ++attempts == 1 ? null : never(hash),
+        maxConcurrent: 2,
+      );
+
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await until(() => !engine.startedIds.contains(hashA));
+      await engine.resume(hashA);
+      await until(() => attempts == 2);
+      await engine.refresh();
+
+      expect(attempts, 2);
+      expect(engine.startedIds, {hashA});
+      expect(engine.taskById(hashA)!.state, isNot(DownloadState.error));
     });
   });
 

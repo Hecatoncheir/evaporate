@@ -259,6 +259,7 @@
   "menuEntryAdded": "The app is in the menu",
   "menuEntryMissing": "The app is not in the system menu",
   "menuEntryRemove": "Remove from menu",
+  "metadataNotFound": "The torrent description never arrived: no peer sent it",
   "metadataShort": "metadata",
   "missingOnDisk": "not on disk",
   "navDown": "Down",

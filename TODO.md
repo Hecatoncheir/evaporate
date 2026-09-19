@@ -305,7 +305,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   кадры теряются: у всех игр, найденных по названию, а не по `appid`,
   подложка из кадров пуста. Тест подменяет `bestMatch` целиком
   (`automatic_metadata_test.dart:52`) и этого не ловит. **S**
-- [ ] **Ошибка загрузки вечна и держит слот.** `catch` в `_launch`
+- [x] **Ошибка загрузки вечна и держит слот.** `catch` в `_launch`
   (`engine_queue.dart:103–107`) ставит `error`, но оставляет `started`, и
   `_activeCount` (`:37`) продолжает считать задачу; `pumpQueue` (`:23`)
   задачу с ошибкой пропускает, а `resume` (`dtorrent_engine.dart:334`)

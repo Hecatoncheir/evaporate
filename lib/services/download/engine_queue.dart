@@ -65,21 +65,19 @@ extension EngineQueue on DtorrentEngine {
   /// Поднимает задачу: для magnet сначала качаются метаданные.
   Future<void> _launch(_ManagedDownload managed) async {
     final generation = managed.generation;
+    bool stillWanted() =>
+        generation == managed.generation &&
+        !managed.pausedByUser &&
+        managed.started;
     try {
       managed.error = null;
-      var model = managed.model;
-
-      // Файл могли удалить у нас за спиной — тогда остаётся magnet-ссылка.
-      if (model == null &&
-          managed.torrentPath != null &&
-          await File(managed.torrentPath!).exists()) {
-        model = await TorrentSource.fromFile(managed.torrentPath!);
-      }
-      model ??= await managed.fetchMetadata();
-      if (model == null ||
-          generation != managed.generation ||
-          managed.pausedByUser ||
-          !managed.started) {
+      final model = await _modelFor(managed);
+      if (!stillWanted()) return;
+      // Метаданные не пришли — это ошибка со словами, а не тихий выход:
+      // иначе задача навсегда оставалась бы «получающей метаданные» и
+      // держала слот очереди.
+      if (model == null) {
+        await _fail(managed, _l.metadataNotFound);
         return;
       }
 
@@ -102,8 +100,33 @@ extension EngineQueue on DtorrentEngine {
       _limitTask(task);
     } on Object catch (error) {
       if (generation == managed.generation) {
-        managed.error = error.toString();
+        await _fail(managed, error.toString());
       }
     }
+  }
+
+  /// Файл раздачи, если он есть, иначе метаданные из сети.
+  Future<dt.TorrentModel?> _modelFor(_ManagedDownload managed) async {
+    final known = managed.model;
+    if (known != null) return known;
+    // Файл могли удалить у нас за спиной — тогда остаётся magnet-ссылка.
+    final path = managed.torrentPath;
+    if (path != null && await File(path).exists()) {
+      return TorrentSource.fromFile(path);
+    }
+    final fetch = _fetchMetadata;
+    return fetch != null ? fetch(managed.infoHash) : managed.fetchMetadata();
+  }
+
+  /// Задача сорвалась: она уступает слот следующей, а ошибку снимает
+  /// «Возобновить».
+  ///
+  /// Прежде ошибка оставляла задачу занимающей слот: очередь её обходила,
+  /// но считала запущенной, и три сорвавшиеся задачи при пределе в три
+  /// запирали очередь до перезапуска приложения.
+  Future<void> _fail(_ManagedDownload managed, String message) async {
+    await managed.dispose();
+    managed.error = message;
+    pumpQueue();
   }
 }

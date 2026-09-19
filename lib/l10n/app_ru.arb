@@ -929,6 +929,7 @@
   "menuEntryAdded": "Приложение есть в меню",
   "menuEntryMissing": "Приложения нет в меню системы",
   "menuEntryRemove": "Убрать из меню",
+  "metadataNotFound": "Описание раздачи не получено: никто из пиров его не прислал",
   "metadataShort": "метаданные",
   "missingOnDisk": "нет на диске",
   "navDown": "Вниз",

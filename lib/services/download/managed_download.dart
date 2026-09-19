@@ -93,9 +93,10 @@ class _ManagedDownload {
       await file.writeAsBytes(bytes, flush: true);
       torrentPath = file.path;
       await engine._persist();
-    } on Object {
+    } on Object catch (error) {
       // Не записался — раздача от этого не страдает, просто метаданные
       // придётся искать заново.
+      AppLog.instance.write('файл раздачи $infoHash не записан', error);
     }
     return model;
   }
