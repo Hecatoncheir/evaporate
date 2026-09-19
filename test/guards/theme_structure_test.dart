@@ -117,10 +117,10 @@ const _fontSize = [
   'lib/ui/library/detail/detail_cover.dart: 1',
   'lib/ui/library/featured_game.dart: 2',
   'lib/ui/library/game_cover.dart: 1',
-  'lib/ui/shell/top_bar.dart: 1',
+  'lib/ui/shell/top_bar_brand.dart: 1',
   // Ещё не сведена клавиша обоймы: это метка без моно, и перевод на
   // `label` заметно меняет облик — решается отдельно.
-  'lib/ui/shell/navigation.dart: 1',
+  'lib/ui/shell/navigation_key.dart: 1',
 ];
 
 const _durations = [

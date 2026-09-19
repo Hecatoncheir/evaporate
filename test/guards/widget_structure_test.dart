@@ -67,9 +67,6 @@ const _privateWidgets = [
   'lib/ui/library/shots_backdrop.dart: _Slideshow',
   'lib/ui/library/shots_backdrop.dart: _Shot',
   'lib/ui/library/toolbar.dart: _AddGameButton',
-  'lib/ui/shell.dart: _Sections',
-  'lib/ui/shell/navigation.dart: _QueueBadge',
-  'lib/ui/shell/top_bar.dart: _WindowDragArea',
   'lib/ui/widgets/liquid_selection.dart: _LiquidInkScope',
 ];
 
@@ -104,14 +101,6 @@ const _widgetFunctions = [
   'lib/ui/library/toolbar.dart: _search',
   'lib/ui/settings/about_card.dart: _menuEntryRow',
   'lib/ui/settings/about_card.dart: _buttons',
-  'lib/ui/shell.dart: _layout',
-  'lib/ui/shell.dart: _panel',
-  'lib/ui/shell.dart: _footer',
-  'lib/ui/shell/navigation.dart: _rack',
-  'lib/ui/shell/navigation.dart: _button',
-  'lib/ui/shell/top_bar.dart: _brand',
-  'lib/ui/shell/top_bar.dart: _actions',
-  'lib/ui/shell/top_bar.dart: _windowActions',
   'lib/ui/widgets/launcher_action_button.dart: _face',
 ];
 
@@ -127,9 +116,6 @@ const _crowdedFiles = [
   'lib/ui/library/scan_folder_dialog.dart: 3',
   'lib/ui/library/shots_backdrop.dart: 3',
   'lib/ui/library/toolbar.dart: 4',
-  'lib/ui/shell.dart: 2',
-  'lib/ui/shell/navigation.dart: 2',
-  'lib/ui/shell/top_bar.dart: 3',
   'lib/ui/widgets/liquid_selection.dart: 3',
   'lib/ui/widgets/spatial_surface.dart: 3',
 ];
