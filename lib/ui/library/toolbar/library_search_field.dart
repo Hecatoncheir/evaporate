@@ -1,0 +1,85 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../../input/input_scope.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
+
+/// Поле поиска по библиотеке.
+///
+/// Вниз, Escape и Enter возвращают из него в сетку обложек: иначе,
+/// спустившись сюда с клавиатуры, человек в поле и застревал.
+class LibrarySearchField extends StatelessWidget {
+  const LibrarySearchField({
+    super.key,
+    required this.focusNode,
+    required this.onQuery,
+    required this.onReturnToGames,
+  });
+
+  final FocusNode focusNode;
+  final ValueChanged<String> onQuery;
+  final VoidCallback onReturnToGames;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('library-search'),
+      width: 144,
+      height: 48,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.colors.railBackground.withValues(
+            alpha: EvaporateAlpha.veil,
+          ),
+          borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
+          border: Border.all(
+            color: context.colors.textPrimary.withValues(
+              alpha: EvaporateAlpha.subtle,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 3, right: 3, left: 3),
+          child: Actions(
+            actions: {
+              ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
+                onInvoke: (_) {
+                  onReturnToGames();
+                  return null;
+                },
+              ),
+            },
+            child: Shortcuts(
+              shortcuts: const {
+                SingleActivator(LogicalKeyboardKey.arrowDown):
+                    ReturnToLibraryIntent(),
+                SingleActivator(LogicalKeyboardKey.escape):
+                    ReturnToLibraryIntent(),
+                SingleActivator(LogicalKeyboardKey.enter):
+                    ReturnToLibraryIntent(),
+                SingleActivator(LogicalKeyboardKey.numpadEnter):
+                    ReturnToLibraryIntent(),
+              },
+              child: TextField(
+                focusNode: focusNode,
+                onChanged: onQuery,
+                onSubmitted: (_) => onReturnToGames(),
+                decoration: InputDecoration(
+                  hintText: L.of(context).searchHint,
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  filled: false,
+                  isDense: true,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -6,7 +6,7 @@ import 'package:evaporate/core/save_path_template.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
-import 'package:evaporate/ui/library/saves_section.dart';
+import 'package:evaporate/ui/library/saves/save_paths_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;

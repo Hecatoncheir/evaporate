@@ -664,14 +664,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~`library/shots_backdrop.dart`~~ | ~~`_Slideshow`, `_Shot`~~ | сделано: `ShotsSlideshow`, `ShotFrame` в `library/featured/` |
 | `library/scan_folder_dialog.dart` | `_ScanFolderDialog`, `_Progress`, `_DropArea` + `_list` | `library/scan/`: `ScanFolderDialog`, `ScanProgress`, `ScanDropArea`, `ScannedGamesList` + `ScannedGameTile` |
 | `library/add_game_dialog.dart` | `_AddGameDialog`, `_PathPicker` + 3 метода | `library/add/`: `AddGameDialog`, `SourceKindPicker`, `SourceFields`, `StartNowTile`; `PathPickerField` — в `widgets/` |
-| `library/toolbar.dart` | `_AddGameButton` + `_arrange`, `_search` | `library/toolbar/`: `AddGameMenuButton`, `ToolbarLayout`, `LibrarySearchField`; соседи `ShelfTabs`, `ShelfButton` — своими файлами |
-| `library/saves_section.dart` | `_FindPathsButton` | `library/saves/find_paths_button.dart`; `SavePathsSection` и `SnapshotsSection` — двумя файлами |
+| ~~`library/toolbar.dart`~~ | ~~`_AddGameButton` + `_arrange`, `_search`~~ | сделано: `AddGameMenuButton`, `ToolbarLayout`, `LibrarySearchField`, `ShelfTabs` и `ShelfButton` — по файлу в `library/toolbar/` |
+| ~~`library/saves_section.dart`~~ | ~~`_FindPathsButton`~~ | сделано: `FindPathsButton`, `SavePathsSection` и `SnapshotsSection` — по файлу в `library/saves/`; сам сборник удалён |
 | ~~`library/detail/action_panel.dart`~~ | ~~`_SteamShortcutButton`, `_SteamLookupButton` + `_buildRow`, `_primaryActions` (77 строк)~~ | сделано: `BusyOutlinedButton` (в `widgets/`) и `SteamActions`; `PrimaryActions` выбирает одну из четырёх веток — `RunningGameActions`, `DownloadControlActions`, `PlayActions`, `DownloadStartActions`; `DownloadSummary` и `GameErrorNote` — своими файлами |
 | `library/detail/rating_row.dart` | `_Count`, `_Metacritic` | `library/detail/`: `ReviewCount`, `MetacriticBadge` |
 | `library/foil_card.dart` | `_FoilScope` (+ `_FoilMotion`, общий для `FoilCard` и `FoilSurface`) | `library/effects/foil/`: `FoilScope`, `FoilMotion`, `FoilCard`, `FoilSurface` |
 | `library/saves/restore_dialog.dart` | 5 методов | `RestoreDialogBody`, `LocalFreshnessNote`, `RestoreTargetList`, `RestoreOptionsForm`, `RestoreDialogActions`; модель `RestoreOptions` — своим файлом |
 | `library/saves/*` | `_summary`, `_action`, `_hintRow`, `_footer`, `_absoluteWarning`, локальная `row()` | `SnapshotSummary`; `_action` — это готовый `IconAction`; `SaveHintRow`, `SaveHintsFooter`; общий `InlineWarning`; `LabeledSwitchRow` |
-| `library/game_detail.dart`, `game_page.dart` | `_content`, `_wrapHistory` | `GameDetailBody`, `RemoveGameButton`, `BackToLibraryButton` |
+| ~~`library/game_detail.dart`, `game_page.dart`~~ | ~~`_content`, `_wrapHistory`~~ | сделано: `GameDetailBody`, `RemoveGameButton`, `BackToLibraryButton` |
 | диалоги, собранные внутри методов | `files_section.dart:84–120`, `remove_game_dialog.dart:32–60` | `ExecutablePickerDialog`, `RemoveGameDialog` |
 | ~~`shell.dart`~~ | ~~`_Sections` + `_layout`, `_panel`, `_footer`~~ | сделано: `ShellLayout`, `ShellPanel`, `ShellFooterStrip`, `ShellSections`; раздел и волну панель выбирает сама, а не получает сквозь два метода |
 | ~~`shell/top_bar.dart`~~ | ~~`_WindowDragArea` + `_brand`, `_actions`, `_windowActions`~~ | сделано: `WindowDragArea`, `TopBarBrand`, `TopBarActions`, `ThemeCycleAction`, `WindowActions`, `TopAction` — по файлу |
