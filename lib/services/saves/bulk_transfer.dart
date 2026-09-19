@@ -7,6 +7,7 @@ import '../../models/bulk_report.dart';
 import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
 import 'save_manager.dart';
+import 'title_match.dart';
 
 /// Чем закончился массовый перенос: отчёт для экрана и строка для SnackBar.
 ///
@@ -243,10 +244,9 @@ class BulkTransfer {
   /// Идентификаторы игр на разных устройствах не совпадают, поэтому
   /// пакеты сопоставляются по названию.
   static Game? matchGame(List<Game> games, String title) {
-    final wanted = title.trim().toLowerCase();
     Game? match;
     for (final game in games) {
-      if (game.title.trim().toLowerCase() != wanted) continue;
+      if (!sameGameTitle(game.title, title)) continue;
       if (match != null) return null;
       match = game;
     }

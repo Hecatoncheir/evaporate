@@ -157,7 +157,6 @@ const _lines = [
   'lib/ui/library/portal_sparks.dart: PortalSparkField.edgeAt: 68',
   'lib/ui/library/saves/rule_dialog.dart: _RuleDialogState.build: 83',
   'lib/ui/library/saves/rule_tile.dart: RuleTile.build: 72',
-  'lib/ui/saves/bulk_transfer_card.dart: _BulkReportView.build: 67',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 67',
   'lib/ui/settings/effect_details.dart: EffectDetails._effects: 92',
   'lib/ui/settings/log_card.dart: _LogCardState.build: 65',

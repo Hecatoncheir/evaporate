@@ -3,12 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/saves/saves_bloc.dart';
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
-import '../widgets/readout_panel.dart';
 import '../widgets/section_heading.dart';
 import 'bulk_transfer_card.dart';
+import 'saves_readout.dart';
 import 'snapshot_history.dart';
 import 'sync_folder_card.dart';
 
@@ -33,7 +32,6 @@ class SavesPage extends StatelessWidget {
     final saves = context.watch<SavesBloc>().state;
 
     final entries = _allSnapshots(library, saves);
-    final stored = entries.fold<int>(0, (sum, e) => sum + e.$2.sizeBytes);
     final configured = library.games
         .where((g) => g.saveProfile.isConfigured)
         .length;
@@ -55,9 +53,16 @@ class SavesPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _Heading(),
+                    // Абзац про то, что такое .evsave, здесь не стоит: то
+                    // же, только по делу, написано в самих карточках, а три
+                    // объяснения подряд человек не читает ни одного.
+                    SectionHeading(
+                      label: L.of(context).conceptSavesLabel,
+                      semanticsLabel: L.of(context).saves,
+                      padding: EdgeInsets.zero,
+                    ),
                     const SizedBox(height: 20),
-                    _readout(context, entries, stored, configured),
+                    SavesReadout(entries: entries, configured: configured),
                     const SizedBox(height: 18),
                     if (wide)
                       Row(
@@ -97,46 +102,4 @@ class SavesPage extends StatelessWidget {
     entries.sort((a, b) => b.$2.createdAt.compareTo(a.$2.createdAt));
     return entries;
   }
-
-  /// Показания хранилища: что спрашивают в первую очередь.
-  Widget _readout(
-    BuildContext context,
-    List<SnapshotEntry> entries,
-    int stored,
-    int configured,
-  ) {
-    final l = L.of(context);
-    final last = entries.isEmpty ? null : entries.first.$2.createdAt;
-    return ReadoutPanel(
-      cells: [
-        ReadoutCell(label: l.savesStatSnapshots, value: '${entries.length}'),
-        ReadoutCell(label: l.savesStatSize, value: formatBytes(stored)),
-        ReadoutCell(label: l.savesStatGames, value: '$configured'),
-        ReadoutCell(
-          label: l.savesStatLast,
-          value: last == null ? l.savesStatNever : formatDateTime(last),
-          // Дата длиннее числа и в тот же кегль не влезает.
-          compact: true,
-          dim: last == null,
-        ),
-      ],
-    );
-  }
-}
-
-/// Подпись раздела.
-///
-/// Абзац про то, что такое `.evsave`, отсюда убран: то же самое, только по
-/// делу, написано в самих карточках — «Перенос всей библиотеки» и «Папка
-/// синхронизации». Три объяснения подряд на одном экране человек не читает
-/// ни одного.
-class _Heading extends StatelessWidget {
-  const _Heading();
-
-  @override
-  Widget build(BuildContext context) => SectionHeading(
-    label: L.of(context).conceptSavesLabel,
-    semanticsLabel: L.of(context).saves,
-    padding: EdgeInsets.zero,
-  );
 }
