@@ -436,7 +436,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   обработчик берёт `selection.first`. Нажатие на выбранный сегмент отдаёт
   пустое множество. Лечение: пустой выбор — не действие
   (`if (selection.isEmpty) return`), тест нажатием. **S**
-- [ ] **Поле скорости теряет набранное.** `speed_field.dart:77–78`: значение
+- [x] **Поле скорости теряет набранное.** `speed_field.dart:77–78`: значение
   фиксируется только по Enter и щелчку мимо, а `settings_page.dart:63–72`
   нарочно уводит фокус из полей стрелками — поле продолжает показывать
   число, которое никуда не записано. Свой `onTapOutside` к тому же отменяет
@@ -450,7 +450,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   листают разделы. Захватывается и крестовина — вопреки правилу в `:20–21`,
   `assign` её не фильтрует (`input/gamepad_binding.dart:66`). Лечится блоком
   захвата, который на своё время глушит действия (этап 4). **S**
-- [ ] **`SettingsChanged` — та же болезнь, что у `GameUpdated`:** событие
+- [x] **`SettingsChanged` — та же болезнь, что у `GameUpdated`:** событие
   несёт весь `AppSettings`. `settings_page.dart:218–222,364–368`: настройки
   захвачены до `await getDirectoryPath()`, и правка, сделанная, пока открыт
   системный диалог, затирается. Окно узкое, но корень тот же. Правильно
@@ -523,7 +523,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `_maximized`, `_fullScreen` и трюк с `_revision` против гонок — при двух
   уже существующих в `services/system/managed_window.dart:39,91`, о чём
   предупреждает собственный комментарий (`window_frame.dart:144–146`).
-- [ ] Чужой док-комментарий в `speed_field.dart:6–10` (остался от
+- [x] Чужой док-комментарий в `speed_field.dart:6–10` (остался от
   `ThemePicker`, а сам `ThemePicker` в `pickers.dart:115` — без описания).
 
 ### Этап 2. Тема (P1)

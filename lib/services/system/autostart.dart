@@ -98,7 +98,8 @@ class Autostart {
     return File(file).exists();
   }
 
-  Future<void> setEnabled(bool value) => value ? _enable() : _disable();
+  Future<void> setEnabled({required bool enabled}) =>
+      enabled ? _enable() : _disable();
 
   Future<void> _enable() async {
     if (_isWindows) {

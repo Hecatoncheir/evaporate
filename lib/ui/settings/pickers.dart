@@ -112,6 +112,11 @@ class WindowStartPicker extends StatelessWidget {
   }
 }
 
+/// Выбор оформления.
+///
+/// Три кнопки, а не переключатель: «как в системе» — не середина между
+/// светлой и тёмной, а отдельный вариант, и выпадающим списком его пришлось
+/// бы искать.
 class ThemePicker extends StatelessWidget {
   const ThemePicker({super.key, required this.value, required this.onChanged});
 

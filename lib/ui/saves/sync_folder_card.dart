@@ -73,9 +73,7 @@ class SyncFolderCard extends StatelessWidget {
                 final dir = await getDirectoryPath();
                 if (dir == null) return;
                 settingsStore.add(
-                  SettingsChanged(
-                    settingsStore.state.copyWith(syncFolder: dir),
-                  ),
+                  SettingsPatched((s) => s.copyWith(syncFolder: dir)),
                 );
               },
               icon: const Icon(Icons.folder_outlined, size: 16),

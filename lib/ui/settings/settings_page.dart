@@ -28,6 +28,19 @@ import 'speed_field.dart';
 /// одинаково: собрали новые настройки целиком — отдали.
 typedef _Update = void Function(AppSettings next);
 
+/// Спрашивает папку и кладёт её в настройки правкой, а не снимком: пока
+/// открыт системный диалог, настройки могли поменяться, и снимок, взятый
+/// до него, затёр бы это.
+Future<void> _pickFolder(
+  BuildContext context,
+  AppSettings Function(AppSettings current, String dir) apply,
+) async {
+  final store = context.read<SettingsBloc>();
+  final dir = await getDirectoryPath();
+  if (dir == null) return;
+  store.add(SettingsPatched((s) => apply(s, dir)));
+}
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -215,11 +228,8 @@ class SettingsPage extends StatelessWidget {
           PathSetting(
             label: l.gamesFolder,
             value: settings.installDir,
-            onPick: () async {
-              final dir = await getDirectoryPath();
-              if (dir == null) return;
-              update(settings.copyWith(installDir: dir));
-            },
+            onPick: () =>
+                _pickFolder(context, (s, dir) => s.copyWith(installDir: dir)),
           ),
           const SizedBox(height: 16),
           Row(
@@ -361,11 +371,8 @@ class SettingsPage extends StatelessWidget {
           PathSetting(
             label: l.syncFolder,
             value: settings.syncFolder ?? l.notSet,
-            onPick: () async {
-              final dir = await getDirectoryPath();
-              if (dir == null) return;
-              update(settings.copyWith(syncFolder: dir));
-            },
+            onPick: () =>
+                _pickFolder(context, (s, dir) => s.copyWith(syncFolder: dir)),
             onClear: settings.syncFolder == null
                 ? null
                 : () => update(settings.copyWith(syncFolder: null)),

@@ -3,11 +3,6 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 
-/// Выбор оформления.
-///
-/// Три кнопки, а не переключатель: «как в системе» — не середина между
-/// светлой и тёмной, а отдельный вариант, и выпадающим списком его пришлось
-/// бы искать.
 /// Поле скорости в килобайтах в секунду. Пустое значение и ноль означают
 /// «без ограничения» — так понятнее, чем отдельная галочка рядом с числом.
 class SpeedField extends StatefulWidget {
@@ -36,18 +31,45 @@ class SpeedField extends StatefulWidget {
 
 class _SpeedFieldState extends State<SpeedField> {
   late final TextEditingController _controller = TextEditingController(
-    text: widget.value > 0 ? '${widget.value}' : '',
+    text: _textFor(widget.value),
   );
+  final _focus = FocusNode();
+
+  static String _textFor(int value) => value > 0 ? '$value' : '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Фиксируем на любой потере фокуса, а не только по Enter и щелчку
+    // мимо: страница настроек уводит фокус стрелками, и набранное иначе
+    // оставалось бы в поле, никуда не записавшись.
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _submit(_controller.text);
+    });
+  }
+
+  @override
+  void didUpdateWidget(SpeedField old) {
+    super.didUpdateWidget(old);
+    // Значение могли поменять и не здесь. Пока человек набирает, его не
+    // трогаем; иначе поле показывало бы прежнее и записало бы его поверх
+    // нового при следующем уходе фокуса.
+    if (widget.value != old.value && !_focus.hasFocus) {
+      _controller.text = _textFor(widget.value);
+    }
+  }
 
   @override
   void dispose() {
+    _focus.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   void _submit(String raw) {
     final parsed = int.tryParse(raw.trim()) ?? 0;
-    widget.onChanged(parsed > 0 ? parsed : 0);
+    final value = parsed > 0 ? parsed : 0;
+    if (value != widget.value) widget.onChanged(value);
   }
 
   @override
@@ -68,6 +90,7 @@ class _SpeedFieldState extends State<SpeedField> {
             width: 130,
             child: TextField(
               controller: _controller,
+              focusNode: _focus,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 isDense: true,
@@ -75,7 +98,8 @@ class _SpeedFieldState extends State<SpeedField> {
                 suffixText: widget.unit ?? L.of(context).kilobytesPerSecond,
               ),
               onSubmitted: _submit,
-              onTapOutside: (_) => _submit(_controller.text),
+              // Щелчок мимо снимает фокус, а запись делает его слушатель.
+              onTapOutside: (_) => _focus.unfocus(),
             ),
           ),
           if (widget.hint != null)

@@ -20,7 +20,7 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
       _store = store ?? JsonStore(paths.settingsFile, private: true),
       super(AppSettings(installDir: paths.defaultInstallDir)) {
     on<SettingsLoadRequested>(_onLoadRequested);
-    on<SettingsChanged>(
+    on<SettingsWrite>(
       _onChanged,
       transformer: (events, mapper) => events.asyncExpand(mapper),
     );
@@ -59,15 +59,18 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
   }
 
   Future<void> _onChanged(
-    SettingsChanged event,
+    SettingsWrite event,
     Emitter<AppSettings> emit,
   ) async {
-    if (event.settings == state) return;
+    var next = switch (event) {
+      SettingsChanged(:final settings) => settings,
+      SettingsPatched(:final patch) => patch(state),
+    };
+    if (next == state) return;
 
-    var next = event.settings;
     if (next.launchAtStartup != state.launchAtStartup) {
       try {
-        await _autostart.setEnabled(next.launchAtStartup);
+        await _autostart.setEnabled(enabled: next.launchAtStartup);
       } on Object {
         // Не вышло — переключатель не должен показывать несбывшееся.
         next = next.copyWith(launchAtStartup: state.launchAtStartup);

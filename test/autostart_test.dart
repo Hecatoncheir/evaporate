@@ -93,11 +93,11 @@ void main() {
 
       expect(await auto.isEnabled(), isFalse);
 
-      await auto.setEnabled(true);
+      await auto.setEnabled(enabled: true);
       expect(await auto.isEnabled(), isTrue);
       expect(await File(file).readAsString(), isNotEmpty);
 
-      await auto.setEnabled(false);
+      await auto.setEnabled(enabled: false);
       expect(await auto.isEnabled(), isFalse);
       expect(await File(file).exists(), isFalse);
     });
@@ -105,8 +105,8 @@ void main() {
     test('повторное выключение не считается ошибкой', () async {
       final auto = make();
 
-      await auto.setEnabled(false);
-      await auto.setEnabled(false);
+      await auto.setEnabled(enabled: false);
+      await auto.setEnabled(enabled: false);
 
       expect(await auto.isEnabled(), isFalse);
     });
@@ -116,8 +116,8 @@ void main() {
       final file = auto.entryFile;
       if (file == null) return;
 
-      await auto.setEnabled(true);
-      await auto.setEnabled(true);
+      await auto.setEnabled(enabled: true);
+      await auto.setEnabled(enabled: true);
 
       final dir = Directory(p.dirname(file));
       expect(dir.listSync().whereType<File>(), hasLength(1));
@@ -129,7 +129,7 @@ void main() {
       if (file == null) return;
 
       expect(Directory(p.dirname(file)).existsSync(), isFalse);
-      await auto.setEnabled(true);
+      await auto.setEnabled(enabled: true);
 
       expect(await File(file).exists(), isTrue);
     });
@@ -143,7 +143,7 @@ void main() {
         run: (exe, args) async => ProcessResult(0, 1, '', 'Access denied'),
       );
       await expectLater(
-        auto.setEnabled(true),
+        auto.setEnabled(enabled: true),
         throwsA(isA<ProcessException>()),
       );
     });
@@ -160,7 +160,7 @@ void main() {
         ),
       );
       await expectLater(
-        auto.setEnabled(false),
+        auto.setEnabled(enabled: false),
         throwsA(isA<ProcessException>()),
       );
     });
@@ -197,12 +197,12 @@ void main() {
       final auto = Autostart(
         executablePath: r'C:\Program Files\Evaporate\Evaporate.exe',
       );
-      addTearDown(() => auto.setEnabled(false));
+      addTearDown(() => auto.setEnabled(enabled: false));
 
-      await auto.setEnabled(true);
+      await auto.setEnabled(enabled: true);
       expect(await auto.isEnabled(), isTrue);
 
-      await auto.setEnabled(false);
+      await auto.setEnabled(enabled: false);
       expect(await auto.isEnabled(), isFalse);
     }, skip: Platform.isWindows ? false : 'реестр есть только на Windows');
   });
@@ -219,7 +219,7 @@ void main() {
         );
 
         // Ничего не сделаем, но и не уроним приложение.
-        await auto.setEnabled(true);
+        await auto.setEnabled(enabled: true);
         expect(await auto.isEnabled(), isFalse);
       });
     }

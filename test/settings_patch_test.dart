@@ -1,0 +1,58 @@
+import 'dart:io';
+
+import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/core/app_paths.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+
+/// Правка настроек после ожидания — системного диалога выбора папки.
+///
+/// Настройки захватывались до `await getDirectoryPath()`, и правка, которую
+/// человек успевал сделать, пока диалог открыт, затиралась снимком.
+void main() {
+  late Directory tmp;
+  late SettingsBloc settings;
+
+  setUp(() async {
+    tmp = await Directory.systemTemp.createTemp('evaporate_patch_');
+    settings = SettingsBloc(
+      AppPaths.custom(
+        dataDir: p.join(tmp.path, 'data'),
+        defaultInstallDir: p.join(tmp.path, 'games'),
+      ),
+    );
+  });
+
+  tearDown(() async {
+    await settings.close();
+    try {
+      await tmp.delete(recursive: true);
+    } on FileSystemException {
+      // Остатки временной папки на результат теста не влияют.
+    }
+  });
+
+  test('правка ложится на текущие настройки, а не на прежние', () async {
+    final before = settings.state;
+    // Пока «открыт диалог», человек меняет другое.
+    settings
+      ..add(SettingsChanged(before.copyWith(maxConcurrent: 5)))
+      ..add(SettingsPatched((s) => s.copyWith(syncFolder: '/sync')));
+
+    final state = await settings.stream
+        .firstWhere((s) => s.syncFolder == '/sync')
+        .timeout(const Duration(seconds: 5));
+
+    expect(state.maxConcurrent, 5, reason: 'правка не затёрла соседнюю');
+  });
+
+  test('правка без изменений на диск не пишет', () async {
+    settings.add(SettingsPatched((s) => s));
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+
+    expect(
+      File(p.join(tmp.path, 'data', 'settings.json')).existsSync(),
+      isFalse,
+    );
+  });
+}
