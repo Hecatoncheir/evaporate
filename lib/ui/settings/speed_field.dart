@@ -83,7 +83,7 @@ class _SpeedFieldState extends State<SpeedField> {
             width: 220,
             child: Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text(widget.label, style: const TextStyle(fontSize: 13)),
+              child: Text(widget.label, style: context.text.body),
             ),
           ),
           SizedBox(
@@ -106,13 +106,7 @@ class _SpeedFieldState extends State<SpeedField> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 12, top: 12),
-                child: Text(
-                  widget.hint!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.colors.textSecondary,
-                  ),
-                ),
+                child: Text(widget.hint!, style: context.text.captionMuted),
               ),
             ),
         ],

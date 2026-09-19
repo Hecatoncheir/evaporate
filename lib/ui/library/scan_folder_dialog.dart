@@ -267,10 +267,7 @@ class _Progress extends StatelessWidget {
                       : l.scanLooking(p.basename(directory)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: context.colors.textSecondary,
-                  ),
+                  style: context.text.note,
                 ),
               ),
             ],
@@ -287,10 +284,7 @@ class _Progress extends StatelessWidget {
         else
           Text(
             l.scanFoundCount(session.found.length),
-            style: TextStyle(
-              fontSize: 12.5,
-              color: context.colors.textSecondary,
-            ),
+            style: context.text.note,
           ),
       ],
     );
@@ -352,20 +346,22 @@ class _DropArea extends StatelessWidget {
               Text(
                 l.scanDropHere,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13),
+                style: context.text.body,
               ),
               const SizedBox(height: 2),
               Text(
                 l.scanPickFolder,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                style: context.text.caption.copyWith(
+                  color: colors.textSecondary,
+                ),
               ),
               if (wrongDrop) ...[
                 const SizedBox(height: 8),
                 Text(
                   l.scanNotAFolder,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: colors.warning),
+                  style: context.text.caption.copyWith(color: colors.warning),
                 ),
               ],
             ],

@@ -68,7 +68,9 @@ class TaskCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               task.errorMessage!,
-              style: TextStyle(fontSize: 12, color: context.colors.danger),
+              style: context.text.caption.copyWith(
+                color: context.colors.danger,
+              ),
             ),
           ],
         ],
@@ -94,8 +96,7 @@ class TaskCard extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           task.isMetadata ? l.stateMetadata : downloadStateLabel(l, task.state),
-          style: TextStyle(
-            fontSize: 12,
+          style: context.text.caption.copyWith(
             color: task.state == DownloadState.error
                 ? context.colors.danger
                 : context.colors.textSecondary,
@@ -138,7 +139,7 @@ class TaskCard extends StatelessWidget {
   Widget _stats(BuildContext context) {
     final l = L.of(context);
     return DefaultTextStyle(
-      style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+      style: context.text.captionMuted,
       child: Wrap(
         spacing: 12,
         runSpacing: 6,

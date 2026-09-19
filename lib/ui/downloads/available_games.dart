@@ -45,11 +45,7 @@ class AvailableGames extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 0, 16, 16),
                   child: Text(
                     L.of(context).allGamesQueued,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: context.colors.textSecondary,
-                      height: 1.5,
-                    ),
+                    style: context.text.paragraph,
                   ),
                 )
               : ListView.builder(
@@ -141,7 +137,7 @@ class _GameChipState extends State<GameChip> {
                 game.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13),
+                style: context.text.body,
               ),
             ),
             // Убрать игру можно и отсюда: список этот для многих —

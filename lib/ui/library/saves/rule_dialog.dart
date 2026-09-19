@@ -100,10 +100,7 @@ class _RuleDialogState extends State<RuleDialog> {
               l.expandsTo(
                 SavePathTemplate.expand(template, gameDir: widget.gameDir),
               ),
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textSecondary,
-              ),
+              style: context.text.captionMuted,
             ),
             // Путь без плейсхолдера на другом устройстве не развернётся
             // ни во что осмысленное — об этом предупреждают сразу.
@@ -120,11 +117,11 @@ class _RuleDialogState extends State<RuleDialog> {
               controlAffinity: ListTileControlAffinity.leading,
               title: Text(
                 l.onlyForPlatform(platformLabel(currentPlatformKey())),
-                style: const TextStyle(fontSize: 13),
+                style: context.text.body,
               ),
               subtitle: Text(
                 l.onlyForPlatformNote,
-                style: const TextStyle(fontSize: 12),
+                style: context.text.caption,
               ),
             ),
           ],
@@ -154,11 +151,7 @@ class _RuleDialogState extends State<RuleDialog> {
       Expanded(
         child: Text(
           L.of(context).absolutePathWarning,
-          style: TextStyle(
-            fontSize: 12,
-            color: context.colors.warning,
-            height: 1.4,
-          ),
+          style: context.text.warning,
         ),
       ),
     ],

@@ -60,10 +60,7 @@ class RuleTile extends StatelessWidget {
                   children: [
                     Text(
                       ruleLabelText(L.of(context), rule.label),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: context.text.bodyStrong,
                     ),
                     if (rule.platform != null)
                       SaveTag(
@@ -83,14 +80,7 @@ class RuleTile extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 3),
-                SelectableText(
-                  rule.template,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.colors.textSecondary,
-                    fontFamily: EvaporateTheme.monoFontFamily,
-                  ),
-                ),
+                SelectableText(rule.template, style: context.text.path),
               ],
             ),
           ),

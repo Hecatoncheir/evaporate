@@ -75,7 +75,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             value: proxy.enabled,
             onChanged: (value) => update(proxy.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.proxyEnable, style: const TextStyle(fontSize: 13)),
+            title: Text(l.proxyEnable, style: context.text.body),
           ),
           const SizedBox(height: 8),
           _kindPicker(context, proxy, update),
@@ -90,11 +90,8 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
                 ? (value) => update(proxy.copyWith(useForSteam: value))
                 : null,
             contentPadding: EdgeInsets.zero,
-            title: Text(l.proxyForSteam, style: const TextStyle(fontSize: 13)),
-            subtitle: Text(
-              l.proxyForSteamNote,
-              style: const TextStyle(fontSize: 12),
-            ),
+            title: Text(l.proxyForSteam, style: context.text.body),
+            subtitle: Text(l.proxyForSteamNote, style: context.text.caption),
           ),
           const SizedBox(height: 6),
           // HTTP-прокси не умеет обмен с пирами — про это предупреждают,
@@ -121,10 +118,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
     children: [
       SizedBox(
         width: 220,
-        child: Text(
-          L.of(context).proxyKind,
-          style: const TextStyle(fontSize: 13),
-        ),
+        child: Text(L.of(context).proxyKind, style: context.text.body),
       ),
       SegmentedButton<ProxyKind>(
         segments: const [
@@ -174,11 +168,7 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
       Expanded(
         child: Text(
           proxy.isUsable ? proxy.uri : L.of(context).proxyNoAddress,
-          style: TextStyle(
-            fontSize: 12,
-            fontFamily: EvaporateTheme.monoFontFamily,
-            color: context.colors.textSecondary,
-          ),
+          style: context.text.path,
         ),
       ),
     ],
@@ -206,10 +196,7 @@ class _Field extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          SizedBox(
-            width: 220,
-            child: Text(label, style: const TextStyle(fontSize: 13)),
-          ),
+          SizedBox(width: 220, child: Text(label, style: context.text.body)),
           SizedBox(
             width: 260,
             child: TextField(
@@ -245,16 +232,7 @@ class _Warning extends StatelessWidget {
           color: context.colors.warning,
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              color: context.colors.warning,
-              height: 1.4,
-            ),
-          ),
-        ),
+        Expanded(child: Text(text, style: context.text.warning)),
       ],
     );
   }
@@ -267,13 +245,6 @@ class _Note extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        color: context.colors.textSecondary,
-        height: 1.4,
-      ),
-    );
+    return Text(text, style: context.text.paragraph);
   }
 }

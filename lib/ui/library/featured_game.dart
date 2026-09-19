@@ -336,13 +336,7 @@ class _Eyebrow extends StatelessWidget {
             text.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.heroEyebrow,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              fontSize: 9.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.6,
-            ),
+            style: context.text.eyebrow.copyWith(color: AppColors.heroEyebrow),
           ),
         ),
       ],
@@ -418,24 +412,14 @@ class _PlaytimeReadout extends StatelessWidget {
       children: [
         Text(
           L.of(context).inGame.toUpperCase(),
-          style: TextStyle(
+          style: context.text.label.copyWith(
             color: AppColors.coverText.withValues(alpha: 0.56),
-            fontFamily: EvaporateTheme.monoFontFamily,
-            fontSize: 8.5,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.4,
           ),
         ),
         const SizedBox(height: 5),
         Text(
           formatDurationLabel(L.of(context), game.playtime),
-          style: const TextStyle(
-            color: AppColors.coverText,
-            fontFamily: EvaporateTheme.monoFontFamily,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
+          style: context.text.readout.copyWith(color: AppColors.coverText),
         ),
       ],
     ),

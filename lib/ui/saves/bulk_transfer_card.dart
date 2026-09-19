@@ -56,7 +56,7 @@ class _BulkReportView extends StatelessWidget {
           report.isExport
               ? L.of(context).reportExported
               : L.of(context).reportImported,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          style: context.text.bodyStrong,
         ),
         children: [
           for (final outcome in groups) ...[
@@ -87,10 +87,7 @@ class _BulkReportView extends StatelessWidget {
                     entry.detail == null
                         ? entry.title
                         : '${entry.title} — ${entry.detail}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.colors.textSecondary,
-                    ),
+                    style: context.text.captionMuted,
                   ),
                 ),
               ),
@@ -130,14 +127,7 @@ class BulkTransferCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            L.of(context).bulkTransferNote,
-            style: TextStyle(
-              fontSize: 13,
-              color: context.colors.textSecondary,
-              height: 1.5,
-            ),
-          ),
+          Text(L.of(context).bulkTransferNote, style: context.text.paragraph),
           const SizedBox(height: 14),
           Wrap(
             spacing: 10,

@@ -251,6 +251,11 @@ class EvaporateTheme {
 
     return SegmentedButtonThemeData(
       style: ButtonStyle(
+        // Кегль сегментов один на все переключатели: прежде он был выписан
+        // по месту четырежды, а два переключателя его не задавали вовсе.
+        textStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 12.5, fontFamily: fontFamily),
+        ),
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => chosen(states) ? p.selection : null,
         ),

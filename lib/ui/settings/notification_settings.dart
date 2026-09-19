@@ -33,13 +33,10 @@ class NotificationSettingsCard extends StatelessWidget {
               SettingsChanged(store.state.copyWith(systemNotifications: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              l.systemNotifications,
-              style: const TextStyle(fontSize: 13),
-            ),
+            title: Text(l.systemNotifications, style: context.text.body),
             subtitle: Text(
               l.systemNotificationsNote,
-              style: const TextStyle(fontSize: 12),
+              style: context.text.caption,
             ),
           ),
           // Система может не уметь показывать уведомления вовсе — тогда
@@ -54,14 +51,7 @@ class NotificationSettingsCard extends StatelessWidget {
           // при первом запуске, отклоняют не глядя.
           if (Platform.isMacOS) ...[
             const SizedBox(height: 8),
-            Text(
-              l.permissionNote,
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textSecondary,
-                height: 1.4,
-              ),
-            ),
+            Text(l.permissionNote, style: context.text.paragraph),
           ],
         ],
       ),
@@ -77,16 +67,7 @@ class NotificationSettingsCard extends StatelessWidget {
         color: context.colors.warning,
       ),
       const SizedBox(width: 8),
-      Expanded(
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 12,
-            color: context.colors.warning,
-            height: 1.4,
-          ),
-        ),
-      ),
+      Expanded(child: Text(text, style: context.text.warning)),
     ],
   );
 

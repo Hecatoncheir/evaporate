@@ -21,10 +21,7 @@ class LanguagePicker extends StatelessWidget {
     final l = L.of(context);
     return Row(
       children: [
-        SizedBox(
-          width: 220,
-          child: Text(l.language, style: const TextStyle(fontSize: 13)),
-        ),
+        SizedBox(width: 220, child: Text(l.language, style: context.text.body)),
         Expanded(
           child: SegmentedButton<String>(
             segments: [
@@ -38,14 +35,6 @@ class LanguagePicker extends StatelessWidget {
               final code = selection.first;
               onChanged(code.isEmpty ? null : code);
             },
-            style: const ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
           ),
         ),
       ],
@@ -70,10 +59,7 @@ class WindowStartPicker extends StatelessWidget {
       children: [
         SizedBox(
           width: 220,
-          child: Text(
-            L.of(context).windowOnStart,
-            style: const TextStyle(fontSize: 13),
-          ),
+          child: Text(L.of(context).windowOnStart, style: context.text.body),
         ),
         Expanded(
           child: SegmentedButton<WindowStartMode>(
@@ -97,14 +83,6 @@ class WindowStartPicker extends StatelessWidget {
             selected: {value},
             showSelectedIcon: false,
             onSelectionChanged: (selection) => onChanged(selection.first),
-            style: const ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
           ),
         ),
       ],
@@ -129,10 +107,7 @@ class ThemePicker extends StatelessWidget {
       children: [
         SizedBox(
           width: 220,
-          child: Text(
-            L.of(context).appearance,
-            style: const TextStyle(fontSize: 13),
-          ),
+          child: Text(L.of(context).appearance, style: context.text.body),
         ),
         Expanded(
           child: SegmentedButton<ThemeMode>(
@@ -156,14 +131,6 @@ class ThemePicker extends StatelessWidget {
             selected: {value},
             showSelectedIcon: false,
             onSelectionChanged: (selection) => onChanged(selection.first),
-            style: const ButtonStyle(
-              textStyle: WidgetStatePropertyAll(
-                TextStyle(
-                  fontSize: 12.5,
-                  fontFamily: EvaporateTheme.fontFamily,
-                ),
-              ),
-            ),
           ),
         ),
       ],

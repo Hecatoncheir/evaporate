@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
+
 /// Переключатель с подписью справа, без отступов `SwitchListTile`: для
 /// карточек, где строки стоят плотно и выравниваются по левому краю.
 class LabeledSwitchRow extends StatelessWidget {
@@ -20,7 +22,7 @@ class LabeledSwitchRow extends StatelessWidget {
       children: [
         Switch(value: value, onChanged: onChanged),
         const SizedBox(width: 10),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+        Expanded(child: Text(label, style: context.text.body)),
       ],
     );
   }

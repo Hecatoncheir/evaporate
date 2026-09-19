@@ -83,11 +83,9 @@ class EngineReadout extends StatelessWidget {
       EngineState.failed => colors.danger,
       EngineState.stopped => colors.textSecondary,
     };
-    final style = TextStyle(
-      color: colors.textSecondary,
-      fontFamily: EvaporateTheme.monoFontFamily,
-      fontSize: 9,
-      fontWeight: FontWeight.w700,
+    // Разрядка уже, чем у метки: в строке состояния тесно. Цифры
+    // табличные — показания меняются на глазах.
+    final style = context.text.label.copyWith(
       letterSpacing: 0.7,
       fontFeatures: const [FontFeature.tabularFigures()],
     );

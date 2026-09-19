@@ -53,12 +53,8 @@ class SectionHeading extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: context.text.eyebrow.copyWith(
                   color: context.colors.primary,
-                  fontFamily: EvaporateTheme.monoFontFamily,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.6,
                 ),
               ),
             ),

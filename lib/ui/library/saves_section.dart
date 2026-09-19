@@ -157,11 +157,7 @@ class SavePathsSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Text(
                 L.of(context).noPathsSet,
-                style: TextStyle(
-                  color: context.colors.textSecondary,
-                  height: 1.5,
-                  fontSize: 13,
-                ),
+                style: context.text.paragraph,
               ),
             )
           else ...[
@@ -295,14 +291,7 @@ class SnapshotsSection extends StatelessWidget {
         ],
       ),
       child: snapshots.isEmpty
-          ? Text(
-              L.of(context).noSnapshotsNote,
-              style: TextStyle(
-                color: context.colors.textSecondary,
-                height: 1.5,
-                fontSize: 13,
-              ),
-            )
+          ? Text(L.of(context).noSnapshotsNote, style: context.text.paragraph)
           : Column(
               children: [
                 for (final snapshot in snapshots)

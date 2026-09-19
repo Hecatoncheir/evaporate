@@ -135,7 +135,7 @@ class ActionPanel extends StatelessWidget {
           const SizedBox(width: 14),
           Text(
             l.gameRunning,
-            style: TextStyle(color: context.colors.accent, fontSize: 13),
+            style: context.text.body.copyWith(color: context.colors.accent),
           ),
         ];
 
@@ -163,13 +163,7 @@ class ActionPanel extends StatelessWidget {
           if (!game.canLaunch) ...[
             const SizedBox(width: 10),
             Flexible(
-              child: Text(
-                l.pickExecutableNote,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: context.colors.textSecondary,
-                ),
-              ),
+              child: Text(l.pickExecutableNote, style: context.text.note),
             ),
           ],
         ];
@@ -291,7 +285,7 @@ class DownloadSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTextStyle(
-      style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
+      style: context.text.note,
       child: Wrap(
         spacing: 12,
         runSpacing: 6,

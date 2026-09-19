@@ -59,14 +59,7 @@ class SyncFolderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (folder == null) ...[
-            Text(
-              L.of(context).syncFolderNote,
-              style: TextStyle(
-                color: context.colors.textSecondary,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
+            Text(L.of(context).syncFolderNote, style: context.text.paragraph),
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: () async {
@@ -80,24 +73,14 @@ class SyncFolderCard extends StatelessWidget {
               label: Text(L.of(context).chooseFolder),
             ),
           ] else ...[
-            SelectableText(
-              folder,
-              style: TextStyle(
-                fontFamily: EvaporateTheme.monoFontFamily,
-                fontSize: 12,
-                color: context.colors.textSecondary,
-              ),
-            ),
+            SelectableText(folder, style: context.text.path),
             const SizedBox(height: 14),
             if (packages.isEmpty)
               Text(
                 scannedOnce
                     ? L.of(context).noPackagesFound
                     : L.of(context).checkFolderHint,
-                style: TextStyle(
-                  color: context.colors.textSecondary,
-                  fontSize: 13,
-                ),
+                style: context.text.bodyMuted,
               )
             else
               for (final package in packages) _PackageRow(package: package),
@@ -131,23 +114,14 @@ class _PackageRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  snapshot.gameTitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(snapshot.gameTitle, style: context.text.bodyStrong),
                 const SizedBox(height: 3),
                 Text(
                   '${formatDateTime(snapshot.createdAt)} · '
                   '${snapshot.deviceName} · '
                   '${platformLabel(snapshot.platform)} · '
                   '${L.of(context).filesCount(snapshot.fileCount)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.colors.textSecondary,
-                  ),
+                  style: context.text.captionMuted,
                 ),
               ],
             ),
@@ -234,13 +208,12 @@ class _PackageRow extends StatelessWidget {
                   size: 18,
                   color: matches ? context.colors.accent : null,
                 ),
-                title: Text(game.title, style: const TextStyle(fontSize: 13)),
+                title: Text(game.title, style: context.text.body),
                 subtitle: game.saveProfile.isConfigured
                     ? null
                     : Text(
                         L.of(context).noSavePaths,
-                        style: TextStyle(
-                          fontSize: 11.5,
+                        style: context.text.small.copyWith(
                           color: context.colors.warning,
                         ),
                       ),

@@ -87,24 +87,11 @@ class _LogCardState extends State<LogCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            L.of(context).logNote,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.5,
-              color: context.colors.textSecondary,
-            ),
-          ),
+          Text(L.of(context).logNote, style: context.text.paragraph),
           if (lines != null) ...[
             const SizedBox(height: 12),
             if (lines.isEmpty)
-              Text(
-                L.of(context).logEmpty,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: context.colors.textSecondary,
-                ),
-              )
+              Text(L.of(context).logEmpty, style: context.text.note)
             else
               Container(
                 constraints: const BoxConstraints(maxHeight: 260),

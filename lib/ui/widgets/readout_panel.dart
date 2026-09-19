@@ -91,29 +91,19 @@ class ReadoutCell extends StatelessWidget {
             label.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-            ),
+            style: context.text.label,
           ),
           const SizedBox(height: 7),
           Text(
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: dim ? colors.textSecondary : (color ?? colors.textPrimary),
-              fontFamily: EvaporateTheme.monoFontFamily,
-              fontSize: compact ? 14 : 21,
-              height: 1,
-              fontWeight: FontWeight.w700,
-              // Табличные цифры: показание не должно дёргаться, когда
-              // меняется одна цифра.
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: (compact ? context.text.readout : context.text.readoutLarge)
+                .copyWith(
+                  color: dim
+                      ? colors.textSecondary
+                      : (color ?? colors.textPrimary),
+                ),
           ),
         ],
       ),

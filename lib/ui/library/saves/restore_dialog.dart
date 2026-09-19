@@ -80,13 +80,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
             ),
             _localFreshness(),
             const SizedBox(height: 14),
-            Text(
-              l.filesGoHere,
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textSecondary,
-              ),
-            ),
+            Text(l.filesGoHere, style: context.text.captionMuted),
             const SizedBox(height: 6),
             ..._targetList(context, targets),
             const SizedBox(height: 12),
@@ -119,8 +113,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
             freshness.changedAt == null
                 ? l.localNeverChanged
                 : l.localChangedAt(formatDateTime(freshness.changedAt!)),
-            style: TextStyle(
-              fontSize: 12.5,
+            style: context.text.note.copyWith(
               color: newer
                   ? context.colors.warning
                   : context.colors.textSecondary,
@@ -162,14 +155,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
       for (final entry in targets.entries)
         Padding(
           padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            '${entry.key}: ${entry.value}',
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              color: context.colors.textSecondary,
-            ),
-          ),
+          child: Text('${entry.key}: ${entry.value}', style: context.text.path),
         ),
     ];
   }
@@ -184,17 +170,15 @@ class _RestoreDialogState extends State<RestoreDialog> {
         onChanged: (value) => setState(() => _backup = value ?? true),
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
-        dense: true,
-        title: Text(l.backupFirst, style: const TextStyle(fontSize: 13)),
+        title: Text(l.backupFirst, style: context.text.body),
       ),
       CheckboxListTile(
         value: _wipe,
         onChanged: (value) => setState(() => _wipe = value ?? false),
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
-        dense: true,
-        title: Text(l.wipeBeforeUnpack, style: const TextStyle(fontSize: 13)),
-        subtitle: Text(l.wipeNote, style: const TextStyle(fontSize: 11.5)),
+        title: Text(l.wipeBeforeUnpack, style: context.text.body),
+        subtitle: Text(l.wipeNote, style: context.text.small),
       ),
     ];
   }

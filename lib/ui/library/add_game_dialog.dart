@@ -153,7 +153,9 @@ class _AddGameDialogState extends State<_AddGameDialog> {
           ? null
           : Text(
               l.engineUnavailable(engineState),
-              style: TextStyle(fontSize: 12, color: context.colors.warning),
+              style: context.text.caption.copyWith(
+                color: context.colors.warning,
+              ),
             ),
     );
   }
@@ -191,14 +193,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
             onPick: _pickFolder,
           ),
           const SizedBox(height: 8),
-          Text(
-            L.of(context).localFolderNote,
-            style: TextStyle(
-              fontSize: 12,
-              color: context.colors.textSecondary,
-              height: 1.4,
-            ),
-          ),
+          Text(L.of(context).localFolderNote, style: context.text.paragraph),
         ];
     }
   }
@@ -396,20 +391,13 @@ class _PathPicker extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: context.colors.textSecondary,
-                    ),
-                  ),
+                  Text(label, style: context.text.captionMuted),
                   const SizedBox(height: 2),
                   Text(
                     value ?? L.of(context).tapToChoose,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: context.text.body.copyWith(
                       color: value == null
                           ? context.colors.textSecondary
                           : context.colors.textPrimary,

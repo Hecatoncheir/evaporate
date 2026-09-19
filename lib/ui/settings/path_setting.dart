@@ -21,10 +21,7 @@ class PathSetting extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(
-          width: 220,
-          child: Text(label, style: const TextStyle(fontSize: 13)),
-        ),
+        SizedBox(width: 220, child: Text(label, style: context.text.body)),
         Expanded(
           child: SelectableText(
             value,

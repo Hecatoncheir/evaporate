@@ -369,13 +369,7 @@ class InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 150,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: context.colors.textSecondary,
-                fontSize: 13,
-              ),
-            ),
+            child: Text(label, style: context.text.bodyMuted),
           ),
           Expanded(
             child: SelectableText(

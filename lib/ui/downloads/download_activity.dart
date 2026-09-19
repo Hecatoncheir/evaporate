@@ -231,15 +231,7 @@ class _Metric extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  color: context.colors.textSecondary,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
+              Text(label.toUpperCase(), style: context.text.label),
               const SizedBox(height: 1),
               Text(
                 value,

@@ -214,10 +214,7 @@ class QueuedCard extends StatelessWidget {
             ),
             Text(
               L.of(context).waitingInQueue,
-              style: TextStyle(
-                fontSize: 12,
-                color: context.colors.textSecondary,
-              ),
+              style: context.text.captionMuted,
             ),
             if (game != null)
               // Та же клавиша, что на карточке задачи: действие одно и то
@@ -249,26 +246,12 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Text(
-            text.toUpperCase(),
-            style: TextStyle(
-              color: context.colors.textSecondary,
-              fontFamily: EvaporateTheme.monoFontFamily,
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-            ),
-          ),
+          Text(text.toUpperCase(), style: context.text.label),
           if (trailing != null) ...[
             const SizedBox(width: 9),
             Text(
               trailing!,
-              style: TextStyle(
-                color: context.colors.primary,
-                fontFamily: EvaporateTheme.monoFontFamily,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
+              style: context.text.label.copyWith(color: context.colors.primary),
             ),
           ],
         ],
@@ -286,14 +269,7 @@ class QueueHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12.5,
-          color: context.colors.textSecondary,
-          height: 1.5,
-        ),
-      ),
+      child: Text(text, style: context.text.paragraph),
     );
   }
 }

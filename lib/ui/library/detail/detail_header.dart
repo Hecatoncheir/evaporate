@@ -37,11 +37,7 @@ class DetailHeader extends StatelessWidget {
                   game.description!,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: context.colors.textSecondary,
-                    height: 1.5,
-                  ),
+                  style: context.text.paragraph,
                 ),
               ],
               if (game.rating?.hasAnything ?? false) ...[
@@ -60,10 +56,7 @@ class DetailHeader extends StatelessWidget {
                           .playtime(
                             formatDurationLabel(L.of(context), game.playtime),
                           ),
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: context.colors.textSecondary,
-                      ),
+                      style: context.text.note,
                     ),
                 ],
               ),

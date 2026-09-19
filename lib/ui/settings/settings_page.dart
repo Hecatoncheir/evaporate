@@ -150,10 +150,7 @@ class SettingsPage extends StatelessWidget {
             children: [
               SizedBox(
                 width: 220,
-                child: Text(
-                  l.interfaceScale,
-                  style: const TextStyle(fontSize: 13),
-                ),
+                child: Text(l.interfaceScale, style: context.text.body),
               ),
               ScaleControl(
                 key: const ValueKey('interface-scale'),
@@ -197,14 +194,8 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(launchAtStartup: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              l.launchAtStartup,
-              style: const TextStyle(fontSize: 13),
-            ),
-            subtitle: Text(
-              l.launchAtStartupNote,
-              style: const TextStyle(fontSize: 12),
-            ),
+            title: Text(l.launchAtStartup, style: context.text.body),
+            subtitle: Text(l.launchAtStartupNote, style: context.text.caption),
           ),
         ],
       ),
@@ -236,10 +227,7 @@ class SettingsPage extends StatelessWidget {
             children: [
               SizedBox(
                 width: 220,
-                child: Text(
-                  l.concurrentDownloads,
-                  style: const TextStyle(fontSize: 13),
-                ),
+                child: Text(l.concurrentDownloads, style: context.text.body),
               ),
               DropdownButton<int>(
                 value: settings.maxConcurrent,
@@ -383,10 +371,7 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(autoExportToSync: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              l.copyToSyncFolder,
-              style: const TextStyle(fontSize: 13),
-            ),
+            title: Text(l.copyToSyncFolder, style: context.text.body),
           ),
           const SizedBox(height: 6),
           SwitchListTile(
@@ -394,24 +379,18 @@ class SettingsPage extends StatelessWidget {
             onChanged: (value) =>
                 update(settings.copyWith(autoSnapshotOnExit: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(l.snapshotOnExit, style: const TextStyle(fontSize: 13)),
-            subtitle: Text(
-              l.defaultForNewGames,
-              style: const TextStyle(fontSize: 12),
-            ),
+            title: Text(l.snapshotOnExit, style: context.text.body),
+            subtitle: Text(l.defaultForNewGames, style: context.text.caption),
           ),
           SwitchListTile(
             value: settings.autoSnapshotOnLaunch,
             onChanged: (value) =>
                 update(settings.copyWith(autoSnapshotOnLaunch: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              l.snapshotOnLaunch,
-              style: const TextStyle(fontSize: 13),
-            ),
+            title: Text(l.snapshotOnLaunch, style: context.text.body),
             subtitle: Text(
               l.autoSnapshotOnLaunchNote,
-              style: const TextStyle(fontSize: 12),
+              style: context.text.caption,
             ),
           ),
         ],
@@ -420,14 +399,8 @@ class SettingsPage extends StatelessWidget {
   }
 
   /// Пояснение под настройкой — одним начертанием на всю страницу.
-  Widget _note(BuildContext context, String text) => Text(
-    text,
-    style: TextStyle(
-      fontSize: 12.5,
-      height: 1.5,
-      color: context.colors.textSecondary,
-    ),
-  );
+  Widget _note(BuildContext context, String text) =>
+      Text(text, style: context.text.paragraph);
 }
 
 /// Настройки — столбец, а не сетка.

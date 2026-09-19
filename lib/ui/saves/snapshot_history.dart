@@ -38,14 +38,7 @@ class SnapshotsCard extends StatelessWidget {
       ),
     ),
     child: entries.isEmpty
-        ? Text(
-            L.of(context).noSnapshotsYet,
-            style: TextStyle(
-              color: context.colors.textSecondary,
-              fontSize: 13,
-              height: 1.5,
-            ),
-          )
+        ? Text(L.of(context).noSnapshotsYet, style: context.text.paragraph)
         : Column(
             children: [
               for (final (game, snapshot) in entries)
@@ -134,10 +127,7 @@ class _SnapshotRowState extends State<_SnapshotRow> {
                 widget.game.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: context.text.bodyStrong,
               ),
             ),
             const SizedBox(width: 8),

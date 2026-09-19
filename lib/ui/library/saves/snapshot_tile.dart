@@ -81,7 +81,7 @@ class SnapshotTile extends StatelessWidget {
           children: [
             Text(
               formatDateTime(snapshot.createdAt),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: context.text.bodyStrong,
             ),
             const SizedBox(width: 8),
             SaveTag(
@@ -98,7 +98,7 @@ class SnapshotTile extends StatelessWidget {
           '${platformLabel(snapshot.platform)} · '
           '${l.filesCount(snapshot.fileCount)} · '
           '${formatBytes(snapshot.sizeBytes)}',
-          style: TextStyle(fontSize: 12, color: context.colors.textSecondary),
+          style: context.text.captionMuted,
         ),
       ],
     );

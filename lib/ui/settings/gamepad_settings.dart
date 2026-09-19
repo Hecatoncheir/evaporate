@@ -55,22 +55,16 @@ class GamepadSettingsCard extends StatelessWidget {
             value: binding.enabled,
             onChanged: (value) => save(binding.copyWith(enabled: value)),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              l.gamepadControls,
-              style: const TextStyle(fontSize: 13),
-            ),
+            title: Text(l.gamepadControls, style: context.text.body),
             subtitle: Text(
               l.gamepadNavigationNote,
-              style: const TextStyle(fontSize: 12),
+              style: context.text.caption,
             ),
           ),
           const SizedBox(height: 8),
           _deadzone(context, binding, save),
           const SizedBox(height: 12),
-          Text(
-            l.bindings,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
+          Text(l.bindings, style: context.text.bodyStrong),
           const SizedBox(height: 8),
           for (final action in _assignable)
             _BindingRow(
@@ -113,10 +107,7 @@ class GamepadSettingsCard extends StatelessWidget {
     children: [
       SizedBox(
         width: 220,
-        child: Text(
-          L.of(context).deadZone,
-          style: const TextStyle(fontSize: 13),
-        ),
+        child: Text(L.of(context).deadZone, style: context.text.body),
       ),
       Expanded(
         child: MediaQuery(
@@ -146,7 +137,7 @@ class GamepadSettingsCard extends StatelessWidget {
         width: 44,
         child: Text(
           binding.deadzone.toStringAsFixed(2),
-          style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
+          style: context.text.note,
         ),
       ),
     ],
@@ -193,7 +184,7 @@ class _BindingRow extends StatelessWidget {
             width: 220,
             child: Text(
               navActionLabel(L.of(context), action),
-              style: const TextStyle(fontSize: 13),
+              style: context.text.body,
             ),
           ),
           Expanded(
@@ -203,8 +194,7 @@ class _BindingRow extends StatelessWidget {
                   : buttons
                         .map((b) => gamepadButtonLabel(L.of(context), b))
                         .join(', '),
-              style: TextStyle(
-                fontSize: 12.5,
+              style: context.text.note.copyWith(
                 color: buttons.isEmpty
                     ? context.colors.warning
                     : context.colors.textSecondary,
@@ -280,8 +270,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
                     ? gamepadStatusLabel(L.of(context), status)
                     : L.of(context).gamepadNotFound,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
+                style: context.text.caption.copyWith(
                   color: status.hasDevice
                       ? context.colors.textSecondary
                       : context.colors.warning,

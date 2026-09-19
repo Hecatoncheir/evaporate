@@ -95,14 +95,11 @@ class FilesSection extends StatelessWidget {
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.play_circle_outline, size: 18),
-                title: Text(
-                  candidate.name,
-                  style: const TextStyle(fontSize: 13),
-                ),
+                title: Text(candidate.name, style: context.text.body),
                 subtitle: Text(
                   '${p.relative(candidate.path, from: dir)} · '
                   '${formatBytes(candidate.sizeBytes)}',
-                  style: const TextStyle(fontSize: 11.5),
+                  style: context.text.small,
                 ),
                 onTap: () => Navigator.pop(context, candidate),
               );

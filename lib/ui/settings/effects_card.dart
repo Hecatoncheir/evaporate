@@ -44,13 +44,9 @@ class LibraryEffectsCard extends StatelessWidget {
             settings.effectPreset == null
                 ? l.effectPresetCustom
                 : l.libraryEffectsNote,
-            style: TextStyle(
-              fontSize: 12.5,
-              height: 1.5,
-              color: context.colors.textSecondary,
-            ),
+            style: context.text.paragraph,
           ),
-          _details(l, settings, update),
+          _details(context, l, settings, update),
         ],
       ),
     );
@@ -83,15 +79,11 @@ class LibraryEffectsCard extends StatelessWidget {
       if (selection.isEmpty) return;
       update(selection.first.applyTo(settings));
     },
-    style: const ButtonStyle(
-      textStyle: WidgetStatePropertyAll(
-        TextStyle(fontSize: 12.5, fontFamily: EvaporateTheme.fontFamily),
-      ),
-    ),
   );
 
   /// «Подробно»: общий выключатель и по галочке на каждое украшение.
   Widget _details(
+    BuildContext context,
     L l,
     AppSettings settings,
     void Function(AppSettings) update,
@@ -99,10 +91,7 @@ class LibraryEffectsCard extends StatelessWidget {
     key: const ValueKey('effects-details'),
     tilePadding: EdgeInsets.zero,
     childrenPadding: EdgeInsets.zero,
-    title: Text(
-      l.effectsDetails,
-      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-    ),
+    title: Text(l.effectsDetails, style: context.text.bodyStrong),
     children: [
       SwitchListTile(
         key: const ValueKey('effects-master-toggle'),
@@ -118,7 +107,7 @@ class LibraryEffectsCard extends StatelessWidget {
           title: Text(effect.title),
           subtitle: effect.note == null
               ? null
-              : Text(effect.note!, style: const TextStyle(fontSize: 12)),
+              : Text(effect.note!, style: context.text.caption),
           value: effect.value(settings),
           // Рамка выбора живёт мимо общего выключателя: она показывает
           // место в сетке, а не украшает её, и зажигается по прямой

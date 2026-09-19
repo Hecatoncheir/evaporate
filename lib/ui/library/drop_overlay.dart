@@ -39,10 +39,7 @@ class DropOverlay extends StatelessWidget {
               Text(
                 '${l.dropHintFolder} • ${l.dropHintTorrent}',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: context.colors.textSecondary,
-                ),
+                style: context.text.bodyMuted,
               ),
             ],
           ),

@@ -12,3 +12,4 @@ export 'theme/evaporate_theme.dart';
 export 'theme/hardware_surface_theme.dart';
 export 'theme/motion.dart';
 export 'theme/palette.dart';
+export 'theme/typography.dart';

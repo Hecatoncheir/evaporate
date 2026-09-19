@@ -40,7 +40,7 @@ class SuggestionsDialog extends StatelessWidget {
                     leading: const Icon(Icons.folder_outlined, size: 18),
                     title: Text(
                       p.basename(suggestion.path),
-                      style: const TextStyle(fontSize: 13),
+                      style: context.text.body,
                     ),
                     subtitle: Text(
                       L
@@ -49,7 +49,7 @@ class SuggestionsDialog extends StatelessWidget {
                             suggestion.template,
                             suggestion.fileCount,
                           ),
-                      style: const TextStyle(fontSize: 11.5),
+                      style: context.text.small,
                     ),
                     onTap: () => Navigator.pop(context, suggestion),
                   );

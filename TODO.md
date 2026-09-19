@@ -573,6 +573,10 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
     моно выбиваются `download_activity.dart:236` и `navigation.dart:227`;
   - стиль текста `SegmentedButton` скопирован четырежды (`pickers.dart:41,100,154`,
     `effects_card.dart:82`) — ему место в `segmentedButtonTheme` (`theme.dart:211`).
+  *Частично:* роли заведены (`context.text`, производные от палитры, а не
+  `ThemeExtension` — при смене схемы идут за смешанной палитрой сами), 90
+  из 168 кеглей по месту переведены на них; осталось 78 необычных
+  сочетаний (моно-метки, показания, заголовки) — им нужны свои роли.
 - [x] Темы компонентов (по образцу из §2), в порядке числа ветвлений:
   `GlassSurface` (6) → `SpatialBackdrop` и `HardwareGrille` →
   `LauncherActionButton` → `AmbientLight` → `ReadoutPanel`, `SectionCard`,
@@ -610,12 +614,12 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 - [x] Доопределить темы Material: `textButtonTheme`, `iconButtonTheme`,
   `switchTheme`, `checkboxTheme`, `listTileTheme` (кегль), опасная заливка
   кнопки — вариантом, а не `styleFrom` по месту. **S**
-  *Сделано:* угол текстовой клавиши и клавиши-значка — в их темах;
-  `listTileTheme` плотный, и плотная раскладка сама даёт кегли 13/12
-  (`dense` по месту убран); опасная, опасная залитая и компактная
-  клавиши — `context.buttons` (`theme/button_styles.dart`).
-  `switchTheme`/`checkboxTheme` не понадобились: переопределений по
-  месту у них нет.
+  *Сделано:* кегль сегментов — в `segmentedButtonTheme`; угол текстовой
+  клавиши и клавиши-значка — в их темах; `listTileTheme` плотный, и
+  плотная раскладка сама даёт кегли 13/12 (`dense` по месту убран);
+  опасная, опасная залитая и компактная клавиши — `context.buttons`
+  (`theme/button_styles.dart`). `switchTheme`/`checkboxTheme` не
+  понадобились: переопределений по месту у них нет.
 - [x] Длительности мимо токенов: `nav_tile.dart:66,92,95` (120 мс →
   `motion.instant`), `game_cover.dart:177`, `fade_indexed_stack.dart:14`,
   `liquid_selection.dart:40`, `animated_progress.dart:65`. Радиусы мимо

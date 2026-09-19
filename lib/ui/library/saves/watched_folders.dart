@@ -43,13 +43,7 @@ class WatchedFolders extends StatelessWidget {
             children: [
               Icon(Icons.visibility_outlined, size: 16, color: colors.primary),
               const SizedBox(width: 8),
-              Text(
-                l.watchedFolders,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text(l.watchedFolders, style: context.text.bodyStrong),
             ],
           ),
           const SizedBox(height: 6),
@@ -92,8 +86,7 @@ class WatchedFolders extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   l.watchedFilesChanged(hint.fileCount),
-                  style: TextStyle(
-                    fontSize: 11.5,
+                  style: context.text.small.copyWith(
                     color: context.colors.textSecondary,
                   ),
                 ),

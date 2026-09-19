@@ -131,10 +131,7 @@ class _AboutCardState extends State<AboutCard> {
           Expanded(
             child: Text(
               _inMenu ?? false ? l.menuEntryAdded : l.menuEntryMissing,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: context.colors.textSecondary,
-              ),
+              style: context.text.note,
             ),
           ),
           TextButton(
@@ -221,8 +218,7 @@ class _AboutCardState extends State<AboutCard> {
             const SizedBox(height: 8),
             Text(
               _message!,
-              style: TextStyle(
-                fontSize: 12.5,
+              style: context.text.note.copyWith(
                 color: _isError
                     ? context.colors.danger
                     : context.colors.textSecondary,
@@ -236,11 +232,8 @@ class _AboutCardState extends State<AboutCard> {
               SettingsChanged(settings.copyWith(checkUpdates: value)),
             ),
             contentPadding: EdgeInsets.zero,
-            title: Text(
-              l.checkUpdatesOnStart,
-              style: const TextStyle(fontSize: 13),
-            ),
-            subtitle: Text(l.updateNote, style: const TextStyle(fontSize: 12)),
+            title: Text(l.checkUpdatesOnStart, style: context.text.body),
+            subtitle: Text(l.updateNote, style: context.text.caption),
           ),
         ],
       ),

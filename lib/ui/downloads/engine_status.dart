@@ -96,7 +96,7 @@ class EngineFailure extends StatelessWidget {
           Expanded(
             child: Text(
               message ?? L.of(context).engineStopped,
-              style: TextStyle(color: context.colors.danger, fontSize: 13),
+              style: context.text.body.copyWith(color: context.colors.danger),
             ),
           ),
         ],
