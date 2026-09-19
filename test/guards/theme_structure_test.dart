@@ -21,12 +21,7 @@ import '../support/guards.dart';
 /// вычёркивать или уменьшать число.
 void main() {
   bool isThemeFile(String path) =>
-      path.startsWith('lib/ui/theme/') ||
-      const [
-        'lib/ui/theme.dart',
-        'lib/ui/app_colors.dart',
-        'lib/ui/motion.dart',
-      ].contains(path);
+      path.startsWith('lib/ui/theme/') || path == 'lib/ui/theme.dart';
 
   final sources = dartSources('lib/ui', skip: isThemeFile);
 

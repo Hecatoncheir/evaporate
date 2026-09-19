@@ -616,8 +616,10 @@ Unreal), у собрания их столько же, сколько игр. С
 без переходов, чёрные надписи на оранжевом и клавиша на своём тёмном торце.
 Осветлённая копия ночной выглядела бы выцветшей, и обратно — тоже.
 
-`EvaporatePalette.dark` / `.light` в `lib/ui/app_colors.dart`, а `ThemeData` и
-расширение `context.colors` — в `lib/ui/theme.dart`; цвета раздаются через
+Тема лежит в `lib/ui/theme/`, а виджеты импортируют бочку `lib/ui/theme.dart`:
+`EvaporatePalette.dark` / `.light` — в `palette.dart`, цвета украшений и
+игр — в `decor_colors.dart`, `ThemeData` и расширение `context.colors` — в
+`evaporate_theme.dart`; цвета раздаются через
 расширение темы (`context.colors.textSecondary`), а не константами — иначе две
 схемы не сосуществовали бы. `test/theme_test.dart` меряет контраст каждого цвета
 на каждой подложке и требует WCAG (4.5 для подписей, 7 для основного текста);
@@ -659,7 +661,7 @@ Unreal), у собрания их столько же, сколько игр. С
 острый.
 
 **Моторика тоже токены**, а не числа по месту: `EvaporateMotion`
-(`lib/ui/motion.dart`) раздаёт четыре ступени — `instant`, `fast`, `base`,
+(`lib/ui/theme/motion.dart`) раздаёт четыре ступени — `instant`, `fast`, `base`,
 `slow` — плюс шаг `stagger` для всхода полки; кривые (`ease`, `enter`,
 `exit`, `settle`) лежат там же константами. Берут их через `context.motion`,
 и там же соблюдается системная просьба не двигаться: при

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('all Flutter colour definitions live in app_colors.dart', () {
+  test('цвета заводятся только в папке темы', () {
     final definitions = RegExp(
       r'\bColors\s*\.|\b(?:Color|MaterialColor|MaterialAccentColor|HSLColor|HSVColor)\s*(?:\(|\.from\w*\s*\()',
     );
@@ -14,7 +14,9 @@ void main() {
       'lib',
     ).listSync(recursive: true).whereType<File>()) {
       final path = file.path.replaceAll('\\', '/');
-      if (!path.endsWith('.dart') || path == 'lib/ui/app_colors.dart') continue;
+      if (!path.endsWith('.dart') || path.startsWith('lib/ui/theme/')) {
+        continue;
+      }
       final lines = file.readAsLinesSync();
       for (var i = 0; i < lines.length; i++) {
         if (definitions.hasMatch(lines[i])) offenders.add('$path:${i + 1}');
@@ -23,7 +25,7 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Define colours in lib/ui/app_colors.dart and use theme.dart to access them.',
+      reason: 'цвет заводится в lib/ui/theme/, а виджеты берут его через тему',
     );
   });
 

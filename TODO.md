@@ -533,7 +533,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 ### Этап 2. Тема (P1)
 
-- [ ] `lib/ui/theme/` — папка вместо трёх файлов в корне `lib/ui`:
+- [x] `lib/ui/theme/` — папка вместо трёх файлов в корне `lib/ui`:
   `palette.dart`, `typography.dart`, `motion.dart`, `shape.dart`,
   `evaporate_theme.dart` (сборка), `decor_colors.dart` (бывший `AppColors`).
   `theme.dart` остаётся бочкой с экспортами — импорты не меняются. **S**
