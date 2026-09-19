@@ -4,7 +4,8 @@ import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game_rating.dart';
 import '../../theme.dart';
-import '../../widgets/toned_chip.dart';
+import 'metacritic_badge.dart';
+import 'review_count.dart';
 
 /// Как игру оценили: подпись Steam, доля положительных, оба счётчика
 /// обзоров и оценка прессы.
@@ -56,85 +57,20 @@ class RatingRow extends StatelessWidget {
               style: context.text.figure.copyWith(color: verdict),
             ),
           ),
-          _Count(
+          ReviewCount(
             icon: Icons.thumb_up_outlined,
             value: rating.positive,
             label: l.reviewsPositiveCount(formatCount(rating.positive)),
           ),
-          _Count(
+          ReviewCount(
             icon: Icons.thumb_down_outlined,
             value: rating.negative,
             label: l.reviewsNegativeCount(formatCount(rating.negative)),
           ),
         ],
-        if (rating.metacritic != null) _Metacritic(score: rating.metacritic!),
+        if (rating.metacritic != null)
+          MetacriticBadge(score: rating.metacritic!),
       ],
-    );
-  }
-}
-
-/// Счётчик обзоров: значок и число.
-///
-/// Диктору уходит цельная фраза, а значок с числом из объявления убраны:
-/// «палец вверх, пятьдесят четыре тысячи» не складывается в смысл.
-class _Count extends StatelessWidget {
-  const _Count({required this.icon, required this.value, required this.label});
-
-  final IconData icon;
-  final int value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = context.colors.textSecondary;
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        label: label,
-        excludeSemantics: true,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
-            Text(
-              formatCount(value),
-              style: context.text.figure.copyWith(
-                fontWeight: FontWeight.w400,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Оценка прессы. Отдельной плашкой: она о другом — не о том, что думают
-/// игроки, а о том, что написали рецензенты, и слиться с долей обзоров ей
-/// нельзя.
-class _Metacritic extends StatelessWidget {
-  const _Metacritic({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    // Цвета — самого Metacritic, и они часть его оценки: зелёное, жёлтое и
-    // красное там означают ровно то же, что у нас accent, warning и danger.
-    final color = score >= 75
-        ? colors.accent
-        : (score >= 50 ? colors.warning : colors.danger);
-
-    return Tooltip(
-      message: L.of(context).metacriticScore(score),
-      child: TonedChip(
-        text: 'Metacritic $score',
-        color: color,
-        style: context.text.chip,
-      ),
     );
   }
 }

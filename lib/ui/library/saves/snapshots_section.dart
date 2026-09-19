@@ -16,6 +16,7 @@ import '../../widgets/busy_spinner.dart';
 import '../../widgets/section_card.dart';
 import '../saves/restore_dialog.dart';
 import '../saves/snapshot_tile.dart';
+import 'restore_options.dart';
 
 /// Список снимков: восстановление, экспорт на другое устройство, импорт.
 ///

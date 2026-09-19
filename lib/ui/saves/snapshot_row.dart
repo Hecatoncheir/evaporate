@@ -10,6 +10,7 @@ import '../../models/save_snapshot.dart';
 import '../feedback/confirm.dart';
 import '../theme.dart';
 import '../widgets/hover_builder.dart';
+import '../widgets/tile_icon_button.dart';
 import 'snapshot_summary.dart';
 
 /// Строка снимка: чья игра, когда снят, чем снят — и что с ним можно сделать.
@@ -48,19 +49,17 @@ class SnapshotRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: summary!),
-            IconButton(
+            TileIconButton(
+              icon: Icons.ios_share,
               tooltip: l.exportFile,
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.ios_share, size: 17),
               onPressed: () => _export(context),
             ),
-            IconButton(
+            TileIconButton(
+              icon: Icons.delete_outline,
               tooltip: l.delete,
-              visualDensity: VisualDensity.compact,
               // Тревожный цвет — только под курсором: ряд постоянно красных
               // корзин в списке читается как список ошибок.
               color: hovered ? colors.danger : colors.textSecondary,
-              icon: const Icon(Icons.delete_outline, size: 17),
               onPressed: () => _delete(context),
             ),
           ],

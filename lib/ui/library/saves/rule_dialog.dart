@@ -5,6 +5,7 @@ import '../../../core/save_path_template.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/save_profile.dart';
 import '../../theme.dart';
+import '../../widgets/inline_warning.dart';
 
 class RuleDraft {
   const RuleDraft(
@@ -105,7 +106,7 @@ class _RuleDialogState extends State<RuleDialog> {
             // ни во что осмысленное — об этом предупреждают сразу.
             if (!SavePathTemplate.isPortable(template)) ...[
               const SizedBox(height: 10),
-              _absoluteWarning(context),
+              InlineWarning(l.absolutePathWarning),
             ],
             const SizedBox(height: 12),
             CheckboxListTile(
@@ -138,23 +139,6 @@ class _RuleDialogState extends State<RuleDialog> {
       ],
     );
   }
-
-  Widget _absoluteWarning(BuildContext context) => Row(
-    children: [
-      Icon(
-        Icons.warning_amber_rounded,
-        size: 15,
-        color: context.colors.warning,
-      ),
-      const SizedBox(width: 6),
-      Expanded(
-        child: Text(
-          L.of(context).absolutePathWarning,
-          style: context.text.warning,
-        ),
-      ),
-    ],
-  );
 
   /// Правило, каким его записывают.
   ///

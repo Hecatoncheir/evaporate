@@ -4,9 +4,9 @@ import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/save_snapshot.dart';
 import '../../labels.dart';
-import '../../theme.dart';
 import '../../widgets/inset_tile.dart';
-import 'save_tag.dart';
+import '../../widgets/tile_icon_button.dart';
+import 'snapshot_tile_summary.dart';
 
 class SnapshotTile extends StatelessWidget {
   const SnapshotTile({
@@ -21,6 +21,7 @@ class SnapshotTile extends StatelessWidget {
   final VoidCallback onRestore;
   final VoidCallback onExport;
   final VoidCallback onDelete;
+
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
@@ -43,18 +44,22 @@ class SnapshotTile extends StatelessWidget {
       child: InsetTile(
         child: Row(
           children: [
-            Expanded(child: ExcludeSemantics(child: _summary(context))),
-            _action(
+            Expanded(
+              child: ExcludeSemantics(
+                child: SnapshotTileSummary(snapshot: snapshot),
+              ),
+            ),
+            TileIconButton(
               icon: Icons.restore,
               tooltip: l.restore,
               onPressed: onRestore,
             ),
-            _action(
+            TileIconButton(
               icon: Icons.ios_share,
               tooltip: l.exportFile,
               onPressed: onExport,
             ),
-            _action(
+            TileIconButton(
               icon: Icons.delete_outline,
               tooltip: l.delete,
               onPressed: onDelete,
@@ -64,48 +69,4 @@ class SnapshotTile extends StatelessWidget {
       ),
     );
   }
-
-  /// Когда сняли, откуда он взялся и что в нём лежит.
-  Widget _summary(BuildContext context) {
-    final l = L.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              formatDateTime(snapshot.createdAt),
-              style: context.text.bodyStrong,
-            ),
-            const SizedBox(width: 8),
-            SaveTag(
-              text: snapshotOriginLabel(l, snapshot.origin),
-              color: snapshot.origin == SnapshotOrigin.imported
-                  ? context.colors.primary
-                  : context.colors.textSecondary,
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
-        Text(
-          '${snapshot.deviceName} · '
-          '${platformLabel(snapshot.platform)} · '
-          '${l.filesCount(snapshot.fileCount)} · '
-          '${formatBytes(snapshot.sizeBytes)}',
-          style: context.text.captionMuted,
-        ),
-      ],
-    );
-  }
-
-  Widget _action({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) => IconButton(
-    onPressed: onPressed,
-    icon: Icon(icon, size: 17),
-    tooltip: tooltip,
-    visualDensity: VisualDensity.compact,
-  );
 }

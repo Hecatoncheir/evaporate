@@ -7,6 +7,8 @@ import '../../../models/game.dart';
 import '../../../services/saves/save_path_finder.dart';
 import '../../theme.dart';
 import '../../widgets/inset_tile.dart';
+import 'watched_folder_row.dart';
+import 'watched_folders_actions.dart';
 
 /// Папки, изменившиеся, пока игра работала.
 ///
@@ -46,73 +48,10 @@ class WatchedFolders extends StatelessWidget {
           const SizedBox(height: 6),
           Text(l.watchedFoldersNote, style: context.text.paragraph),
           const SizedBox(height: 10),
-          for (final hint in hints) _hintRow(context, hint),
-          _footer(context, hints),
+          for (final hint in hints) WatchedFolderRow(game: game, hint: hint),
+          WatchedFoldersActions(game: game, hints: hints),
         ],
       ),
-    );
-  }
-
-  /// Одна подсказка: путь, сколько файлов в нём изменилось, и «Добавить».
-  Widget _hintRow(BuildContext context, SavePathSuggestion hint) {
-    final l = L.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hint.template,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.text.path.copyWith(
-                    color: context.colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  l.watchedFilesChanged(hint.fileCount),
-                  style: context.text.small.copyWith(
-                    color: context.colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          TextButton(
-            onPressed: () => context.read<SavesBloc>().add(
-              SaveHintsAccepted(game: game, suggestions: [hint]),
-            ),
-            child: Text(l.add),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Отказ от всех подсказок и, когда их несколько, согласие со всеми.
-  Widget _footer(BuildContext context, List<SavePathSuggestion> hints) {
-    final l = L.of(context);
-    final saves = context.read<SavesBloc>();
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        TextButton(
-          onPressed: () => saves.add(SaveHintsDismissed(game.id)),
-          child: Text(l.notThis),
-        ),
-        const SizedBox(width: 6),
-        if (hints.length > 1)
-          FilledButton(
-            onPressed: () =>
-                saves.add(SaveHintsAccepted(game: game, suggestions: hints)),
-            child: Text(l.addAll),
-          ),
-      ],
     );
   }
 }
