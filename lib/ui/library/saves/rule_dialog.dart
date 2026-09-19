@@ -118,7 +118,6 @@ class _RuleDialogState extends State<RuleDialog> {
                   setState(() => _currentPlatformOnly = value ?? false),
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
-              dense: true,
               title: Text(
                 l.onlyForPlatform(platformLabel(currentPlatformKey())),
                 style: const TextStyle(fontSize: 13),

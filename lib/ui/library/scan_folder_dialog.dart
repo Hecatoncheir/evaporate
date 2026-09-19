@@ -212,7 +212,6 @@ class _ScanFolderDialogState extends State<_ScanFolderDialog> {
                     : _checked.remove(game.installDir);
               }
             }),
-            dense: true,
             contentPadding: EdgeInsets.zero,
             title: Text(game.title, style: const TextStyle(fontSize: 13.5)),
             subtitle: Text(

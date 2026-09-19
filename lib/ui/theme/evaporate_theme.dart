@@ -77,6 +77,8 @@ class EvaporateTheme {
       cardTheme: _cardTheme(p),
       inputDecorationTheme: _inputTheme(p),
       filledButtonTheme: _filledButtonTheme(),
+      textButtonTheme: _textButtonTheme(),
+      iconButtonTheme: _iconButtonTheme(),
       outlinedButtonTheme: _outlinedButtonTheme(p),
       navigationRailTheme: _railTheme(p),
       segmentedButtonTheme: _segmentedButtonTheme(p),
@@ -86,7 +88,10 @@ class EvaporateTheme {
         color: p.primaryFill,
         linearTrackColor: p.outline,
       ),
+      // Все списки приложения плотные: плотная раскладка ListTile сама даёт
+      // кегли 13 и 12, и повторять `dense` и кегль в каждой строке незачем.
       listTileTheme: ListTileThemeData(
+        dense: true,
         iconColor: p.textSecondary,
         textColor: p.textPrimary,
       ),
@@ -183,6 +188,25 @@ class EvaporateTheme {
         fontWeight: FontWeight.w700,
         fontSize: 13.5,
         letterSpacing: 0.3,
+      ),
+    ),
+  );
+
+  // Угол текстовой клавиши и клавиши-значка — корпусный, как у залитой: по
+  // умолчанию Material скругляет их в капсулу и круг, и подложка при
+  // наведении выглядела чужой. Прежде угол выписывали по месту.
+  static TextButtonThemeData _textButtonTheme() => TextButtonThemeData(
+    style: TextButton.styleFrom(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radiusControl),
+      ),
+    ),
+  );
+
+  static IconButtonThemeData _iconButtonTheme() => IconButtonThemeData(
+    style: IconButton.styleFrom(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radiusControl),
       ),
     ),
   );

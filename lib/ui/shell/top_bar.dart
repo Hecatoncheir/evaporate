@@ -248,9 +248,6 @@ class _TopActionState extends State<TopAction> {
             side: BorderSide(
               color: _hovered ? accent.withValues(alpha: 0.6) : colors.outline,
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-            ),
           ),
         ),
       ),

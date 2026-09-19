@@ -192,9 +192,6 @@ class IconAction extends StatelessWidget {
         foregroundColor: color,
         backgroundColor: color.withValues(alpha: 0.14),
         side: BorderSide(color: color.withValues(alpha: 0.34)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-        ),
         minimumSize: const Size(30, 30),
         padding: EdgeInsets.zero,
       ),
@@ -430,9 +427,7 @@ Future<bool> confirm(
           child: Text(L.of(context).cancel),
         ),
         FilledButton(
-          style: destructive
-              ? FilledButton.styleFrom(backgroundColor: context.colors.danger)
-              : null,
+          style: destructive ? context.buttons.dangerFilled : null,
           onPressed: () => Navigator.pop(context, true),
           child: Text(confirmLabel ?? L.of(context).confirm),
         ),

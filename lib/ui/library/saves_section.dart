@@ -149,7 +149,7 @@ class SavePathsSection extends StatelessWidget {
               title: Text(L.of(context).savedManifestPaths),
               children: [
                 for (final template in game.ludusaviTemplates)
-                  ListTile(dense: true, title: SelectableText(template)),
+                  ListTile(title: SelectableText(template)),
               ],
             ),
           if (rules.isEmpty)
@@ -282,9 +282,7 @@ class SnapshotsSection extends StatelessWidget {
                         game.ludusaviTemplates.isEmpty)
                 ? null
                 : () => context.read<SavesBloc>().add(SnapshotRequested(game)),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
+            style: context.buttons.compactFilled,
             icon: busy
                 ? const SizedBox(
                     width: 14,

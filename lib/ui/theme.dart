@@ -5,6 +5,7 @@
 /// и не знают, как тема разложена внутри.
 library;
 
+export 'theme/button_styles.dart';
 export 'theme/decor_colors.dart';
 export 'theme/effects_palette.dart';
 export 'theme/evaporate_theme.dart';

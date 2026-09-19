@@ -54,7 +54,7 @@ Future<CancelChoice?> askCancel(
         if (hasDownloadedFiles(task))
           TextButton.icon(
             onPressed: () => Navigator.pop(context, CancelChoice.withFiles),
-            style: TextButton.styleFrom(foregroundColor: context.colors.danger),
+            style: context.buttons.dangerText,
             icon: const Icon(Icons.delete_forever_rounded, size: 18),
             label: Text(L.of(context).cancelWithFiles),
           ),

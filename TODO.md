@@ -607,9 +607,15 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `waveAlpha`, `sparkBlend`, `ambientWash`, цвет частиц): выбор по схеме
   делает тема, а не вызывающий. Текст и тени на обложке
   (`game_cover.dart:229,311`, `detail_cover.dart:102`) — в `CoverTheme`. **S**
-- [ ] Доопределить темы Material: `textButtonTheme`, `iconButtonTheme`,
+- [x] Доопределить темы Material: `textButtonTheme`, `iconButtonTheme`,
   `switchTheme`, `checkboxTheme`, `listTileTheme` (кегль), опасная заливка
   кнопки — вариантом, а не `styleFrom` по месту. **S**
+  *Сделано:* угол текстовой клавиши и клавиши-значка — в их темах;
+  `listTileTheme` плотный, и плотная раскладка сама даёт кегли 13/12
+  (`dense` по месту убран); опасная, опасная залитая и компактная
+  клавиши — `context.buttons` (`theme/button_styles.dart`).
+  `switchTheme`/`checkboxTheme` не понадобились: переопределений по
+  месту у них нет.
 - [x] Длительности мимо токенов: `nav_tile.dart:66,92,95` (120 мс →
   `motion.instant`), `game_cover.dart:177`, `fade_indexed_stack.dart:14`,
   `liquid_selection.dart:40`, `animated_progress.dart:65`. Радиусы мимо

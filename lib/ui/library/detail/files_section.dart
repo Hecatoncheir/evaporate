@@ -93,7 +93,6 @@ class FilesSection extends StatelessWidget {
             itemBuilder: (context, index) {
               final candidate = candidates[index];
               return ListTile(
-                dense: true,
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.play_circle_outline, size: 18),
                 title: Text(

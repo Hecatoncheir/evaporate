@@ -36,7 +36,6 @@ class SuggestionsDialog extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final suggestion = suggestions[index];
                   return ListTile(
-                    dense: true,
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.folder_outlined, size: 18),
                     title: Text(

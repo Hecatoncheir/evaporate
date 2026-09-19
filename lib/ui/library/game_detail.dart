@@ -64,9 +64,7 @@ class GameDetail extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: () => _remove(context),
-              style: TextButton.styleFrom(
-                foregroundColor: context.colors.danger,
-              ),
+              style: context.buttons.dangerText,
               icon: const Icon(Icons.delete_outline, size: 17),
               label: Text(L.of(context).removeFromLibrary),
             ),

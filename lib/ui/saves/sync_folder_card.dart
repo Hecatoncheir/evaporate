@@ -164,9 +164,7 @@ class _PackageRow extends StatelessWidget {
           const SizedBox(width: 8),
           FilledButton(
             onPressed: () => _apply(context),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            ),
+            style: context.buttons.compactFilled,
             child: Text(L.of(context).apply),
           ),
         ],
@@ -228,7 +226,6 @@ class _PackageRow extends StatelessWidget {
               final game = sorted[index];
               final matches = game.title.trim().toLowerCase() == wanted;
               return ListTile(
-                dense: true,
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(
                   matches

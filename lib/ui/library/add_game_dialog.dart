@@ -148,7 +148,6 @@ class _AddGameDialogState extends State<_AddGameDialog> {
           : null,
       contentPadding: EdgeInsets.zero,
       controlAffinity: ListTileControlAffinity.leading,
-      dense: true,
       title: Text(l.startDownloadNow),
       subtitle: ready
           ? null

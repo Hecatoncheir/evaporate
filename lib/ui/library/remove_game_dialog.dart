@@ -48,7 +48,7 @@ Future<RemoveChoice?> askRemoveGame(BuildContext context, Game game) {
         if (hasFiles)
           TextButton(
             onPressed: () => Navigator.pop(context, RemoveChoice.withFiles),
-            style: TextButton.styleFrom(foregroundColor: context.colors.danger),
+            style: context.buttons.dangerText,
             child: Text(L.of(context).removeWithFiles),
           ),
         FilledButton(
