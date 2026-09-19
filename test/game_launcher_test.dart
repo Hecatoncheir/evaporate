@@ -130,6 +130,39 @@ void main() {
     await exited.future.timeout(const Duration(seconds: 10));
   }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
 
+  // Проверка «уже запущена» и регистрация процесса разделены ожиданиями:
+  // два быстрых нажатия проходили проверку оба, и выход первого процесса
+  // стирал запись второго — игра шла, а приложение считало её закрытой.
+  test('второй запуск, пришедший до конца первого, отбивается сразу', () async {
+    final game = gameWith(p.join(tmp.path, 'нет-такого'));
+    final first = launcher.launch(game, onExit: (_, _, _) {});
+    final second = launcher.launch(game, onExit: (_, _, _) {});
+
+    await expectLater(
+      second,
+      throwsA(
+        isA<LaunchException>().having(
+          (e) => e.message,
+          'сообщение',
+          contains('уже запущена'),
+        ),
+      ),
+    );
+    await expectLater(first, throwsA(isA<LaunchException>()));
+
+    // Сорвавшийся запуск место не держит: следующий снова проверяется.
+    await expectLater(
+      launcher.launch(game, onExit: (_, _, _) {}),
+      throwsA(
+        isA<LaunchException>().having(
+          (e) => e.message,
+          'сообщение',
+          isNot(contains('уже запущена')),
+        ),
+      ),
+    );
+  });
+
   test('остановка незапущенной игры ничего не ломает', () async {
     await launcher.terminate('нет-такой-игры');
   });

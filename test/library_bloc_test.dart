@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -522,6 +523,38 @@ void main() {
       expect(state.gameById(id)!.saveProfile.rules, hasLength(1));
     });
 
+    test(
+      'второе нажатие «Играть» во время запуска игру не дублирует',
+      () async {
+        final launcher = _CountingLauncher();
+        final launching = LibraryBloc(
+          automaticMetadata: false,
+          paths: paths,
+          settings: settings,
+          launcher: launcher,
+        );
+        addTearDown(launching.close);
+        final id = const Uuid().v4();
+        launching.add(GameAdded(id: id, title: 'Игра'));
+        final game = (await launching.stream.firstWhere(
+          (s) => s.gameById(id) != null,
+        )).gameById(id)!;
+        final snapshot = Completer<void>();
+        launching.beforeLaunch = (_) => snapshot.future;
+
+        launching
+          ..add(GameLaunchRequested(game))
+          ..add(GameLaunchRequested(game));
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        snapshot.complete();
+        await launching.stream
+            .firstWhere((s) => !s.isBusy(LibraryBloc.launchKey(id)))
+            .timeout(const Duration(seconds: 5));
+
+        expect(launcher.launches, 1);
+      },
+    );
+
     // Обход папки идёт секунды, и выбранное за это время человеком догадка
     // заменять не вправе.
     test('указанная папка не заменяет выбранный исполняемый файл', () async {
@@ -553,4 +586,15 @@ class _QuietLauncher extends GameLauncher {
     Game game, {
     required void Function(Game game, Duration played, int exitCode) onExit,
   }) async {}
+}
+
+/// Лаунчер, который только считает запуски.
+class _CountingLauncher extends GameLauncher {
+  int launches = 0;
+
+  @override
+  Future<void> launch(
+    Game game, {
+    required void Function(Game game, Duration played, int exitCode) onExit,
+  }) async => launches++;
 }

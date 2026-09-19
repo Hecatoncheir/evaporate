@@ -71,9 +71,27 @@ class GameLauncher {
     Game game, {
     required void Function(Game game, Duration played, int exitCode) onExit,
   }) async {
-    if (_running.containsKey(game.id)) {
+    // Место занимаем синхронно, до первого ожидания: между проверкой и
+    // регистрацией процесса идут проверки файла и сам запуск, и второе
+    // нажатие проходило проверку тоже. Выход первого процесса стирал
+    // тогда запись второго.
+    if (_running.containsKey(game.id) || !_starting.add(game.id)) {
       throw LaunchException(_l.launchAlreadyRunning(game.title));
     }
+    try {
+      await _start(game, onExit: onExit);
+    } finally {
+      _starting.remove(game.id);
+    }
+  }
+
+  /// Игры, запуск которых начат и ещё не закончен.
+  final _starting = <String>{};
+
+  Future<void> _start(
+    Game game, {
+    required void Function(Game game, Duration played, int exitCode) onExit,
+  }) async {
     final exePath = game.executablePath;
     if (exePath == null || exePath.isEmpty) {
       throw LaunchException(_l.launchNoExecutable);

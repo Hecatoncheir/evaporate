@@ -363,6 +363,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) async {
     final game = event.game;
     final key = launchKey(game.id);
+    // Второе нажатие, пока идёт снимок перед запуском, — не второй запуск.
+    if (state.isBusy(key)) return;
     emit(state.copyWith(busy: _withBusy(key, true)));
     try {
       // Снимок перед запуском ставит блок сохранений, а дождаться его
