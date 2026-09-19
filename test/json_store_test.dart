@@ -138,6 +138,58 @@ void main() {
     expect(decoded, isA<Map<String, dynamic>>());
   });
 
+  // Права ставились после записи: пароль прокси мгновение лежал читаемым
+  // для всех, хотя обещано было «ни мгновения».
+  test('права ставятся до того, как в файл легло содержимое', () async {
+    final path = p.join(tmp.path, 'settings.json');
+    final sizes = <int>[];
+    final store = JsonStore(
+      path,
+      private: true,
+      restrictAccess: (tmpPath) async =>
+          sizes.add(await File(tmpPath).length()),
+    );
+
+    await store.write({'password': 'секрет'});
+
+    expect(sizes, [0]);
+    expect(jsonDecode(await File(path).readAsString()), {'password': 'секрет'});
+  });
+
+  // Код возврата `chmod` не проверялся: не сменились права — файл всё равно
+  // ложился, открытым.
+  test('не вышло сменить права — пароль на диск не ложится', () async {
+    final path = p.join(tmp.path, 'settings.json');
+    await File(path).writeAsString('{"password": "прежний"}');
+    final store = JsonStore(
+      path,
+      private: true,
+      restrictAccess: (tmpPath) async =>
+          throw FileSystemException('chmod', tmpPath),
+    );
+
+    await expectLater(
+      store.write({'password': 'секрет'}),
+      throwsA(isA<FileSystemException>()),
+    );
+
+    expect(await File(path).readAsString(), contains('прежний'));
+    final leftovers = tmp.listSync().where((e) => e.path.endsWith('.tmp'));
+    expect(leftovers, isEmpty);
+  });
+
+  test('обычный файл прав не трогает', () async {
+    final path = p.join(tmp.path, 'library.json');
+    var called = false;
+
+    await JsonStore(
+      path,
+      restrictAccess: (_) async => called = true,
+    ).write({'games': <Object?>[]});
+
+    expect(called, isFalse);
+  });
+
   test('приватный файл виден только владельцу', () async {
     final path = p.join(tmp.path, 'settings.json');
     await JsonStore(path, private: true).write({'password': 'секрет'});

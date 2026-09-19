@@ -4,7 +4,13 @@ import 'dart:io';
 /// Простое JSON-хранилище с атомарной записью: пишем во временный файл и
 /// переименовываем, чтобы падение посреди записи не убило библиотеку.
 class JsonStore {
-  JsonStore(this.path, {this.private = false, this.pretty = true});
+  JsonStore(
+    this.path, {
+    this.private = false,
+    this.pretty = true,
+    Future<void> Function(String path)? restrictAccess,
+  }) : _restrictAccess =
+           restrictAccess ?? (Platform.isWindows ? null : _chmodOwnerOnly);
 
   final String path;
 
@@ -16,6 +22,11 @@ class JsonStore {
   /// лежит под чужими глазами. На Windows права устроены иначе, и там это
   /// ничего не меняет.
   final bool private;
+
+  /// Чем сделать файл видимым только владельцу; бросает, если не вышло.
+  /// На Windows по умолчанию ничего — права там устроены иначе. Подменяется
+  /// в тестах: только так видно, в какой момент права ставятся.
+  final Future<void> Function(String path)? _restrictAccess;
 
   /// Писать ли с отступами.
   ///
@@ -120,16 +131,28 @@ class JsonStore {
     // столкнутся на одном временном файле.
     final tmp = File('$path.${DateTime.now().microsecondsSinceEpoch}.tmp');
     try {
-      await tmp.writeAsString(text, flush: true);
-      if (private && !Platform.isWindows) {
-        // Своего способа сменить права у Dart нет, а запись настроек — дело
-        // редкое: она случается по нажатию человека, а не по таймеру.
-        await Process.run('chmod', ['600', tmp.path]);
+      // Права — на пустом файле и до содержимого: поставь их после записи,
+      // и пароль прокси мгновение лежал бы читаемым для всех. Не вышло —
+      // не пишем вовсе, а не пишем открыто.
+      final restrict = _restrictAccess;
+      if (private && restrict != null) {
+        await tmp.writeAsString('', flush: true);
+        await restrict(tmp.path);
       }
+      await tmp.writeAsString(text, flush: true);
       await tmp.rename(path);
     } on Object {
       if (await tmp.exists()) await tmp.delete();
       rethrow;
     }
+  }
+}
+
+/// Своего способа сменить права у Dart нет, а запись настроек — дело
+/// редкое: она случается по нажатию человека, а не по таймеру.
+Future<void> _chmodOwnerOnly(String path) async {
+  final result = await Process.run('chmod', ['600', path]);
+  if (result.exitCode != 0) {
+    throw FileSystemException('chmod 600: ${result.stderr}'.trim(), path);
   }
 }
