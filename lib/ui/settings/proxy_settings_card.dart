@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
@@ -7,7 +6,12 @@ import '../../l10n/app_localizations.dart';
 import '../../models/proxy_settings.dart';
 import '../feedback/snack.dart';
 import '../theme.dart';
+import '../widgets/inline_warning.dart';
 import '../widgets/section_card.dart';
+import 'proxy_address_fields.dart';
+import 'proxy_apply_row.dart';
+import 'proxy_kind_picker.dart';
+import 'setting_note.dart';
 
 /// Раздел «Прокси» для движка загрузок.
 class ProxySettingsCard extends StatefulWidget {
@@ -79,11 +83,17 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
             title: Text(l.proxyEnable, style: context.text.body),
           ),
           const SizedBox(height: 8),
-          _kindPicker(context, proxy, update),
+          ProxyKindPicker(proxy: proxy, onChanged: update),
           const SizedBox(height: 12),
-          ..._addressFields(context, enabled: proxy.enabled),
+          ProxyAddressFields(
+            host: _host,
+            port: _port,
+            user: _user,
+            password: _password,
+            enabled: proxy.enabled,
+          ),
           const SizedBox(height: 10),
-          _applyRow(context, proxy),
+          ProxyApplyRow(proxy: proxy, onApply: () => _apply(proxy)),
           const SizedBox(height: 6),
           SwitchListTile(
             value: proxy.useForSteam,
@@ -98,157 +108,13 @@ class _ProxySettingsCardState extends State<ProxySettingsCard> {
           // HTTP-прокси не умеет обмен с пирами — про это предупреждают,
           // а не молчат: иначе загрузка через него просто не поедет.
           if (proxy.kind == ProxyKind.http)
-            _Warning(l.proxyHttpNote)
+            InlineWarning(l.proxyHttpNote)
           else
-            _Note(l.proxySocksNote),
+            SettingNote(l.proxySocksNote),
           const SizedBox(height: 6),
-          _Warning(l.proxyPasswordWarning),
+          InlineWarning(l.proxyPasswordWarning),
         ],
       ),
     );
-  }
-
-  /// SOCKS5 или HTTP.
-  Widget _kindPicker(
-    BuildContext context,
-    ProxySettings proxy,
-    void Function(ProxySettings) update,
-  ) => Wrap(
-    runSpacing: 8,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      SizedBox(
-        width: EvaporateLayout.settingLabelWidth,
-        child: Text(L.of(context).proxyKind, style: context.text.body),
-      ),
-      SegmentedButton<ProxyKind>(
-        segments: const [
-          ButtonSegment(value: ProxyKind.socks5, label: Text('SOCKS5')),
-          ButtonSegment(value: ProxyKind.http, label: Text('HTTP')),
-        ],
-        selected: {proxy.kind},
-        onSelectionChanged: proxy.enabled
-            ? (value) => update(proxy.copyWith(kind: value.first))
-            : null,
-      ),
-    ],
-  );
-
-  /// Адрес, порт и учётные данные.
-  ///
-  /// Поля правятся руками и уходят в настройки по «Применить», а не на
-  /// каждый знак: на полпути набранный адрес — не адрес.
-  List<Widget> _addressFields(BuildContext context, {required bool enabled}) {
-    final l = L.of(context);
-    return [
-      _Field(label: l.proxyHost, controller: _host, enabled: enabled),
-      _Field(
-        label: l.proxyPort,
-        controller: _port,
-        enabled: enabled,
-        numeric: true,
-      ),
-      _Field(label: l.proxyUser, controller: _user, enabled: enabled),
-      _Field(
-        label: l.proxyPassword,
-        controller: _password,
-        enabled: enabled,
-        obscure: true,
-      ),
-    ];
-  }
-
-  /// Клавиша «Применить» и собранный адрес рядом с ней.
-  Widget _applyRow(BuildContext context, ProxySettings proxy) => Row(
-    children: [
-      FilledButton(
-        onPressed: proxy.enabled ? () => _apply(proxy) : null,
-        child: Text(L.of(context).proxyApply),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Text(
-          proxy.isUsable ? proxy.uri : L.of(context).proxyNoAddress,
-          style: context.text.path,
-        ),
-      ),
-    ],
-  );
-}
-
-class _Field extends StatelessWidget {
-  const _Field({
-    required this.label,
-    required this.controller,
-    required this.enabled,
-    this.numeric = false,
-    this.obscure = false,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final bool enabled;
-  final bool numeric;
-  final bool obscure;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          SizedBox(
-            width: EvaporateLayout.settingLabelWidth,
-            child: Text(label, style: context.text.body),
-          ),
-          SizedBox(
-            width: 260,
-            child: TextField(
-              controller: controller,
-              enabled: enabled,
-              obscureText: obscure,
-              keyboardType: numeric ? TextInputType.number : null,
-              inputFormatters: numeric
-                  ? [FilteringTextInputFormatter.digitsOnly]
-                  : null,
-              decoration: const InputDecoration(isDense: true),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Warning extends StatelessWidget {
-  const _Warning(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.warning_amber_rounded,
-          size: 15,
-          color: context.colors.warning,
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: context.text.warning)),
-      ],
-    );
-  }
-}
-
-class _Note extends StatelessWidget {
-  const _Note(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(text, style: context.text.paragraph);
   }
 }

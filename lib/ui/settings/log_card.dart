@@ -6,6 +6,7 @@ import '../../services/system/app_log.dart';
 import '../feedback/snack.dart';
 import '../theme.dart';
 import '../widgets/section_card.dart';
+import 'setting_note.dart';
 
 /// Показ журнала приложения.
 ///
@@ -88,7 +89,7 @@ class _LogCardState extends State<LogCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(L.of(context).logNote, style: context.text.paragraph),
+          SettingNote(L.of(context).logNote),
           if (lines != null) ...[
             const SizedBox(height: 12),
             if (lines.isEmpty)

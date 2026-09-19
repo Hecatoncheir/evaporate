@@ -159,7 +159,7 @@ const _lines = [
   'lib/ui/library/saves/rule_tile.dart: RuleTile.build: 72',
   'lib/ui/saves/bulk_transfer_card.dart: _BulkReportView.build: 67',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 67',
-  'lib/ui/settings/effects_card.dart: LibraryEffectsCard._effects: 92',
+  'lib/ui/settings/effect_details.dart: EffectDetails._effects: 92',
   'lib/ui/settings/log_card.dart: _LogCardState.build: 65',
   'lib/ui/shell.dart: AppShell.build: 66',
   'lib/ui/widgets/liquid_selection.dart: liquidSelectionPath: 71',
