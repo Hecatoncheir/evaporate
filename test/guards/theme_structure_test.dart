@@ -115,8 +115,9 @@ const _fontSize = [
   // Типографика картинки, а не роль: надписи поверх обложки и крупного
   // кадра, знак приложения в верхней панели.
   'lib/ui/library/detail/detail_cover.dart: 1',
-  'lib/ui/library/featured_game.dart: 2',
-  'lib/ui/library/game_cover.dart: 1',
+  'lib/ui/library/cover/cover_title_plate.dart: 1',
+  'lib/ui/library/featured/featured_compact_bar.dart: 1',
+  'lib/ui/library/featured/featured_poster.dart: 1',
   'lib/ui/shell/top_bar_brand.dart: 1',
   // Ещё не сведена клавиша обоймы: это метка без моно, и перевод на
   // `label` заметно меняет облик — решается отдельно.
@@ -134,7 +135,8 @@ const _radii = <String>[];
 const _alphas = [
   'lib/ui/downloads/download_chart.dart: 2',
   'lib/ui/feedback/snack.dart: 1',
-  'lib/ui/library/featured_game.dart: 2',
+  'lib/ui/library/featured/featured_actions.dart: 1',
+  'lib/ui/library/featured/playtime_readout.dart: 1',
   'lib/ui/library/foil_card.dart: 2',
   'lib/ui/library/library_atmosphere.dart: 2',
   'lib/ui/library/portal_sparks.dart: 1',

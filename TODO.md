@@ -659,9 +659,9 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 | Файл | Сейчас | Станет |
 |---|---|---|
-| `library/featured_game.dart` | `_Art`, `_CompactContent`, `_Eyebrow`, `_Actions`, `_PlaytimeReadout` + метод `_full` | `library/featured/`: `FeaturedArt`, `FeaturedCompactBar`, `FeaturedEyebrow`, `FeaturedActions`, `PlaytimeReadout`, `FeaturedPoster` (из `_full`) |
-| `library/game_cover.dart` | `_Art`, `_TitlePlate`, `_StatusBadge`, `_ProgressStrip` + `_tile` (70 строк) | `library/cover/`: `CoverArt`, `CoverTitlePlate`, `CoverStatusBadge`, `CoverProgressStrip`, `CoverFrame` + `CoverFace`. Два `_Art` в двух файлах перестают спорить за имя |
-| `library/shots_backdrop.dart` | `_Slideshow`, `_Shot` | `library/featured/`: `ShotsSlideshow`, `ShotFrame` |
+| ~~`library/featured_game.dart`~~ | ~~`_Art`, `_CompactContent`, `_Eyebrow`, `_Actions`, `_PlaytimeReadout` + метод `_full`~~ | сделано: `FeaturedArt`, `FeaturedCompactBar`, `FeaturedEyebrow`, `FeaturedActions`, `PlaytimeReadout`, `FeaturedPoster` и `FeaturedFrame` (корпус кадра) в `library/featured/` |
+| ~~`library/game_cover.dart`~~ | ~~`_Art`, `_TitlePlate`, `_StatusBadge`, `_ProgressStrip` + `_tile` (70 строк)~~ | сделано: `CoverArt`, `CoverTitlePlate`, `CoverStatusBadge`, `CoverProgressStrip`, `CoverFrame` и `CoverFace` в `library/cover/`; два `_Art` больше не спорят за имя |
+| ~~`library/shots_backdrop.dart`~~ | ~~`_Slideshow`, `_Shot`~~ | сделано: `ShotsSlideshow`, `ShotFrame` в `library/featured/` |
 | `library/scan_folder_dialog.dart` | `_ScanFolderDialog`, `_Progress`, `_DropArea` + `_list` | `library/scan/`: `ScanFolderDialog`, `ScanProgress`, `ScanDropArea`, `ScannedGamesList` + `ScannedGameTile` |
 | `library/add_game_dialog.dart` | `_AddGameDialog`, `_PathPicker` + 3 метода | `library/add/`: `AddGameDialog`, `SourceKindPicker`, `SourceFields`, `StartNowTile`; `PathPickerField` — в `widgets/` |
 | `library/toolbar.dart` | `_AddGameButton` + `_arrange`, `_search` | `library/toolbar/`: `AddGameMenuButton`, `ToolbarLayout`, `LibrarySearchField`; соседи `ShelfTabs`, `ShelfButton` — своими файлами |
