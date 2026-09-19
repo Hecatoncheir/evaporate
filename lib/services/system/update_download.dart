@@ -271,6 +271,10 @@ class UpdateDownload {
 
   /// Кладёт одну запись архива на своё место.
   static Future<void> _extract(ArchiveFile file, String destination) async {
+    if (file.isSymbolicLink) {
+      await _link(file, destination);
+      return;
+    }
     if (!file.isFile) {
       await Directory(destination).create(recursive: true);
       return;
@@ -288,6 +292,32 @@ class UpdateDownload {
     if (!Platform.isWindows && _looksExecutable(file)) {
       await Process.run('chmod', ['+x', destination]);
     }
+  }
+
+  /// Восстанавливает символическую ссылку.
+  ///
+  /// Бандл macOS без них не запускается: `Versions/Current` и сам бинарник
+  /// фреймворка — ссылки, и CI пакует архив `ditto` именно ради них. Ляг
+  /// ссылка обычным файлом с путём внутри, приложение не стартовало бы, а
+  /// помощник к тому времени уже убрал прежнюю копию.
+  ///
+  /// Ссылка — такой же способ записать наружу, как `..` в имени: всё, что
+  /// потом ляжет «внутрь» неё, ляжет туда, куда она указывает. Поэтому
+  /// принимаем только относительные ссылки вниз, без `..`: каждая указывает
+  /// в свою же папку или глубже, и цепочка таких ссылок наружу не выводит
+  /// ни при каком порядке записей. Проверять по буквам «внутри ли корня»
+  /// мало — через уже развёрнутую ссылку на `.` буквальный путь врёт.
+  /// Ссылок вверх в бандле нет, и им неоткуда взяться.
+  static Future<void> _link(ArchiveFile file, String destination) async {
+    final raw = file.symbolicLink!.replaceAll(r'\', '/');
+    final target = p.posix.normalize(raw);
+    if (p.posix.isAbsolute(raw) || p.posix.split(target).contains('..')) {
+      throw UpdateException(
+        'Ссылка в архиве указывает наружу: ${file.name} -> $raw',
+      );
+    }
+    await Directory(p.dirname(destination)).create(recursive: true);
+    await Link(destination).create(target);
   }
 
   /// Похож ли файл на тот, которому нужен бит запуска.

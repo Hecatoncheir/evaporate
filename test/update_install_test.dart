@@ -45,6 +45,32 @@ void main() {
     return ZipEncoder().encode(archive);
   }
 
+  /// Архив с символическими ссылками — как его пишет `ditto`.
+  ///
+  /// Ссылка в zip — запись с типом `0120000` в старших битах атрибутов и
+  /// путём вместо содержимого, а признают её, только если архив сделан на
+  /// Unix. `ZipEncoder` честно пишет «MS-DOS», поэтому систему в
+  /// центральном каталоге переставляем сами.
+  List<int> zipWithLinks(Map<String, String> files, Map<String, String> links) {
+    final archive = Archive();
+    files.forEach((name, content) {
+      archive.add(ArchiveFile.string(name, content)..mode = 0x81ED);
+    });
+    links.forEach((name, target) {
+      archive.add(ArchiveFile.string(name, target)..mode = 0xA1ED);
+    });
+    final bytes = ZipEncoder().encode(archive);
+    for (var i = 0; i + 5 < bytes.length; i++) {
+      final central =
+          bytes[i] == 0x50 &&
+          bytes[i + 1] == 0x4b &&
+          bytes[i + 2] == 0x01 &&
+          bytes[i + 3] == 0x02;
+      if (central) bytes[i + 5] = 3;
+    }
+    return bytes;
+  }
+
   Release releaseWith({
     required String name,
     required List<int> bytes,
@@ -267,6 +293,64 @@ void main() {
         throwsA(isA<UpdateException>()),
       );
     });
+
+    // Бандл macOS держится на ссылках: `Versions/Current` и бинарник
+    // фреймворка. Распаковщик их не знал и клал файлами с путём внутри —
+    // обновлённое приложение не запускалось, а прежнее уже было убрано.
+    test('ссылки бандла переживают распаковку ссылками', () async {
+      const name = 'evaporate-9.9.9-macos.zip';
+      const framework = 'Evaporate.app/Contents/Frameworks/App.framework';
+      final bytes = zipWithLinks(
+        {
+          'Evaporate.app/Contents/MacOS/evaporate': 'бинарь',
+          '$framework/Versions/A/App': 'код',
+        },
+        {
+          '$framework/Versions/Current': 'A',
+          '$framework/App': 'Versions/Current/App',
+        },
+      );
+
+      final root = await downloadOf(
+        name: name,
+        bytes: bytes,
+        platform: 'macos',
+      ).prepare(releaseWith(name: name, bytes: bytes));
+
+      final frameworkDir = p.join(
+        root,
+        'Contents',
+        'Frameworks',
+        'App.framework',
+      );
+      final current = p.join(frameworkDir, 'Versions', 'Current');
+      expect(FileSystemEntity.isLinkSync(current), isTrue);
+      expect(Link(current).targetSync(), 'A');
+      final binary = p.join(frameworkDir, 'App');
+      expect(FileSystemEntity.isLinkSync(binary), isTrue);
+      expect(File(binary).readAsStringSync(), 'код');
+    }, skip: Platform.isWindows ? 'бандлы macOS разворачивают не здесь' : null);
+
+    // Ссылка — такой же выход наружу, как `..` в имени: всё, что ляжет
+    // «внутрь» неё, ляжет туда, куда она указывает.
+    for (final target in ['../../../outside', '/etc', 'Versions/../../..']) {
+      test('ссылка наружу ($target) отменяет обновление', () async {
+        const name = 'evaporate-9.9.9-macos.zip';
+        final bytes = zipWithLinks(
+          {'Evaporate.app/Contents/MacOS/evaporate': 'бинарь'},
+          {'Evaporate.app/Contents/escape': target},
+        );
+
+        await expectLater(
+          downloadOf(
+            name: name,
+            bytes: bytes,
+            platform: 'macos',
+          ).prepare(releaseWith(name: name, bytes: bytes)),
+          throwsA(isA<UpdateException>()),
+        );
+      });
+    }
 
     // Настоящий архив сборки полон записей о папках, и косая черта на
     // конце — это не выход наружу, а обычная папка. Приняв её за выход,
