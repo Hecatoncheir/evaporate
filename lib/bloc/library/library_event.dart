@@ -156,6 +156,20 @@ final class GameDownloadRejected extends LibraryEvent {
 }
 
 /// Человек выбрал, что запускать.
+/// Показать папку установки игры в системном проводнике.
+///
+/// Событием, а не вызовом из виджета: команда отличается системой, отказ
+/// приходит исключением, и сказать о нём человеку должен тот же `Notice`,
+/// что и обо всём остальном.
+final class GameFolderOpenRequested extends LibraryEvent {
+  const GameFolderOpenRequested(this.gameId);
+
+  final String gameId;
+
+  @override
+  List<Object?> get props => [gameId];
+}
+
 final class GameExecutableSet extends LibraryEvent {
   const GameExecutableSet(this.gameId, this.path);
 

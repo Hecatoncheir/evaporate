@@ -21,6 +21,7 @@ import '../../services/metadata/steam_catalog.dart';
 import '../../services/saves/ludusavi_catalog.dart';
 import '../../services/saves/save_path_globs.dart';
 import '../../services/system/app_log.dart';
+import '../../services/system/file_manager.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
@@ -49,6 +50,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     SteamCatalog? steam,
     SteamShortcuts? steamShortcuts,
     LudusaviCatalog? savePaths,
+    FileManager? fileManager,
     L Function()? localizations,
     this.automaticMetadata = true,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
@@ -68,6 +70,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
        _coversDir = paths.coversDir,
        _shotsDir = paths.shotsDir,
        _launcher = launcher ?? GameLauncher(),
+       _fileManager = fileManager ?? FileManager(),
        super(const LibraryState()) {
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
@@ -78,6 +81,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<GameDownloadFinished>(_onDownloadFinished);
     on<GameDownloadRejected>(_onDownloadRejected);
     on<GameExecutableSet>(_onExecutableSet);
+    on<GameFolderOpenRequested>(_onFolderOpenRequested);
     on<GameInstallDirSet>(_onInstallDirSet);
     on<SaveRulesAdded>(_onSaveRulesAdded);
     on<SaveRuleRemoved>(_onSaveRuleRemoved);
@@ -153,6 +157,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   /// Запускает игры и следит за их процессами.
   final GameLauncher _launcher;
+  final FileManager _fileManager;
 
   /// Кто вышел из игры и сколько отыграл.
   ///

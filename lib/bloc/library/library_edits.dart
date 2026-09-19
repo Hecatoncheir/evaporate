@@ -116,6 +116,24 @@ extension _LibraryEdits on LibraryBloc {
     );
   }
 
+  /// Показывает папку установки в проводнике.
+  ///
+  /// Отказ — обычное дело: папку могли унести на другой диск или удалить
+  /// мимо приложения. Человеку об этом говорят тем же `Notice`, что и обо
+  /// всём остальном, а не тишиной и не `SnackBar` из виджета.
+  Future<void> _onFolderOpenRequested(
+    GameFolderOpenRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final dir = state.gameById(event.gameId)?.installDir;
+    if (dir == null) return;
+    try {
+      await _fileManager.openFolder(dir);
+    } on FileManagerException catch (error) {
+      emit(state.copyWith(notice: _notice(error.message, isError: true)));
+    }
+  }
+
   /// Поиск исполняемого — здесь, а не в виджете: обход папки идёт секунды,
   /// и за это время выбранное человеком могло появиться. Догадка его не
   /// заменяет, поэтому применяется к текущей игре, а не к той, что была

@@ -503,8 +503,13 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 - [ ] Синхронный диск в `build`: `existsSync` дважды на каждое правило
   (`saves/rule_tile.dart:27–29`). Признак «папка есть» — подавать снаружи.
 - [ ] Ошибки мимо `Notice` и журнала: `showError` и `SnackBar` прямо из
-  виджетов — `saves_section.dart:250,416`, `detail/info_section.dart:111`
-  (там же `Process.run` в виджете, `:102–113`), `detail/files_section.dart:80`.
+  виджетов — `saves_section.dart:250,416`, ~~`detail/info_section.dart:111`
+  (там же `Process.run` в виджете, `:102–113`)~~ (сделано:
+  `GameFolderOpenRequested` и `FileManager` — своя служба, потому что
+  команда у каждой системы своя, а настоящий проводник посреди прогона
+  никому не нужен), `detail/files_section.dart:80` (там не проглоченная
+  ошибка, а ответ на нажатие: уедет вместе с
+  `GameExecutableDetectRequested`).
 - [x] Часов украшений три, а не одни, как обещает `CLAUDE.md`: шаг с
   ограничением `dt` скопирован в `library_atmosphere.dart:90–110`,
   `foil_card.dart:110–119` и `widgets/decorative_motion.dart:71–82`, причём

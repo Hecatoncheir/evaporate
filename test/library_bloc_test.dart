@@ -10,6 +10,7 @@ import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/launch/game_launcher.dart';
 import 'package:evaporate/services/system/autostart.dart';
+import 'package:evaporate/services/system/file_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -592,6 +593,64 @@ void main() {
       final game = state.gameById(id)!;
       expect(game.installDir, dir.path);
       expect(game.executablePath, '/выбрано/человеком.exe');
+    });
+  });
+
+  group('папка установки в проводнике', () {
+    /// Блок со своим проводником: настоящий открыл бы окно посреди прогона.
+    Future<LibraryBloc> blocWith(List<List<String>> calls) async {
+      await library.close();
+      library = LibraryBloc(
+        automaticMetadata: false,
+        paths: paths,
+        settings: settings,
+        fileManager: FileManager(
+          operatingSystem: 'linux',
+          run: (command, args) async {
+            calls.add([command, ...args]);
+            return ProcessResult(0, 0, '', '');
+          },
+        ),
+      );
+      return library;
+    }
+
+    Future<String> gameWithDir(String? dir) async {
+      final id = const Uuid().v4();
+      library.add(GameAdded(id: id, title: 'Игра', installDir: dir));
+      await waitFor((s) => s.gameById(id) != null);
+      return id;
+    }
+
+    test('папка открывается системной командой', () async {
+      final calls = <List<String>>[];
+      await blocWith(calls);
+      final dir = await Directory(p.join(tmp.path, 'установлено')).create();
+      final id = await gameWithDir(dir.path);
+
+      library.add(GameFolderOpenRequested(id));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(calls, [
+        ['xdg-open', dir.path],
+      ]);
+      expect(library.state.notice, isNull);
+    });
+
+    // Папку могли унести на другой диск или удалить мимо приложения.
+    // Тишина в ответ на нажатие выглядит поломкой самого приложения.
+    test('пропавшая папка приходит сообщением, а не тишиной', () async {
+      final calls = <List<String>>[];
+      await blocWith(calls);
+      final missing = p.join(tmp.path, 'унесли-на-другой-диск');
+      final id = await gameWithDir(missing);
+
+      library.add(GameFolderOpenRequested(id));
+      final state = await waitFor((s) => s.notice != null);
+
+      expect(state.notice!.isError, isTrue);
+      expect(state.notice!.message, contains(missing));
+      expect(calls, isEmpty);
     });
   });
 }
