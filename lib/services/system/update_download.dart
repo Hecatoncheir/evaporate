@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
@@ -165,7 +166,14 @@ class UpdateDownload {
     final staged = Directory(p.join(dir.path, 'staged'));
     if (await staged.exists()) await staged.delete(recursive: true);
     await staged.create(recursive: true);
-    await _unpack(asset.name, await target.readAsBytes(), staged.path);
+    // Разбор и распаковка — десятки мегабайт синхронной работы `archive`:
+    // на главном потоке окно замирало бы на секунды посреди полосы хода.
+    // Изолят сам читает файл по пути — гнать его содержимое сообщением
+    // значило бы лишний раз скопировать всё обновление.
+    final name = asset.name;
+    final archivePath = target.path;
+    final stagedPath = staged.path;
+    await Isolate.run(() => _unpackFile(name, archivePath, stagedPath));
 
     final root = await _rootOf(staged);
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
@@ -225,8 +233,12 @@ class UpdateDownload {
     return null;
   }
 
-  Future<void> _unpack(String name, List<int> bytes, String target) async {
-    final archive = _readArchive(name, bytes);
+  static Future<void> _unpackFile(
+    String name,
+    String archivePath,
+    String target,
+  ) async {
+    final archive = _readArchive(name, await File(archivePath).readAsBytes());
     for (final file in archive.files) {
       final destination = _safeDestination(file.name, target);
       // Запись про корень архива: создавать нечего, целевая папка уже есть.
