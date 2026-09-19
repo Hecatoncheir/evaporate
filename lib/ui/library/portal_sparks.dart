@@ -276,7 +276,7 @@ class PortalSparksState extends State<PortalSparks> {
                     clock: clock,
                     field: field,
                     renderer: _renderer,
-                    dark: context.colors.isDark,
+                    blend: EffectsPalette.of(context).sparkBlend,
                   ),
                 ),
               ),
@@ -294,13 +294,13 @@ class _PortalPainter extends CustomPainter {
     required this.clock,
     required this.field,
     required this.renderer,
-    required this.dark,
+    required this.blend,
   }) : super(repaint: clock);
 
   final ValueListenable<double> clock;
   final PortalSparkField field;
   final _PortalRenderer renderer;
-  final bool dark;
+  final BlendMode blend;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -317,14 +317,14 @@ class _PortalPainter extends CustomPainter {
     // искры именно туда, где им и место — вокруг, а не поверх.
     canvas.translate(halo, halo);
 
-    renderer.paint(canvas, field, dark: dark);
+    renderer.paint(canvas, field, blend: blend);
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(_PortalPainter old) =>
       old.clock != clock ||
-      old.dark != dark ||
+      old.blend != blend ||
       old.field != field ||
       old.renderer != renderer;
 }
@@ -483,7 +483,11 @@ class _PortalRenderer {
     }
   }
 
-  void paint(Canvas canvas, PortalSparkField field, {required bool dark}) {
+  void paint(
+    Canvas canvas,
+    PortalSparkField field, {
+    required BlendMode blend,
+  }) {
     _resize(field);
     for (final batch in _batches) {
       batch.length = 0;
@@ -528,7 +532,7 @@ class _PortalRenderer {
         y,
       );
     }
-    _paint.blendMode = dark ? BlendMode.plus : BlendMode.srcOver;
+    _paint.blendMode = blend;
     for (final batch in _batches) {
       batch.paint(canvas, _paint);
     }

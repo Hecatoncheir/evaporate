@@ -573,7 +573,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
     моно выбиваются `download_activity.dart:236` и `navigation.dart:227`;
   - стиль текста `SegmentedButton` скопирован четырежды (`pickers.dart:41,100,154`,
     `effects_card.dart:82`) — ему место в `segmentedButtonTheme` (`theme.dart:211`).
-- [ ] Темы компонентов (по образцу из §2), в порядке числа ветвлений:
+- [x] Темы компонентов (по образцу из §2), в порядке числа ветвлений:
   `GlassSurface` (6) → `SpatialBackdrop` и `HardwareGrille` →
   `LauncherActionButton` → `AmbientLight` → `ReadoutPanel`, `SectionCard`,
   панель оболочки (`shell.dart:171`), рейка навигации
@@ -601,7 +601,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`top_bar.dart:24`, `navigation.dart:92`, `app_footer.dart:30`), подпись
   настройки шириной 220 (11 раз) → `EvaporateLayout` и общий
   `ContentFrame` (центр, предельная ширина, поля). **S**
-- [ ] Украшения: `ambientParticleColor(isDark)`, `waveColors(isDark)` и
+- [x] Украшения: `ambientParticleColor(isDark)`, `waveColors(isDark)` и
   ветвления в `library_atmosphere.dart:68,213,235`, `portal_sparks.dart:279`,
   `game_wave.dart:82` — в расширение `EffectsPalette` (`waveColors`,
   `waveAlpha`, `sparkBlend`, `ambientWash`, цвет частиц): выбор по схеме
@@ -617,8 +617,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `detail_cover.dart:113`, `button_hints.dart:97`. Ширина диалога 560
   выписана в четырёх местах (и 540 в `rule_dialog.dart:56`) — токен
   `dialogWidth`. **S**
-- [ ] `lerp`/`copyWith` на 20 полей: либо тест «каждое поле смешивается»
+- [x] `lerp`/`copyWith` на 20 полей: либо тест «каждое поле смешивается»
   (перебор через `copyWith`), либо генерация (`theme_tailor`) 💬. **S**
+  Сделано тестом: у `EvaporatePalette` и `HardwareSurfaceTheme` есть
+  `values`, и тест проверяет, что `lerp` на концах и `copyWith()` не
+  теряют ни одного поля.
 
 ### Этап 3. Виджеты: один файл — один публичный виджет (P1)
 

@@ -38,28 +38,22 @@ void main() {
       Color(0xFF9A7BD8),
       Color(0xFFF2C368),
     ]);
-    expect(ambientParticleColor(dark: false), const Color(0xFF8C3A10));
-    expect(ambientParticleColor(dark: true), const Color(0xFFE9C877));
-    for (final dark in [false, true]) {
-      expect(
-        particleColor(isDark: dark, phase: 0, glow: 0),
-        ambientParticleColor(dark: dark),
-      );
-      expect(
-        particleColor(isDark: dark, phase: 0, glow: 1),
-        libraryInkColors.first,
-      );
+    expect(EffectsPalette.cartridge.particleBase, const Color(0xFF8C3A10));
+    expect(EffectsPalette.arclight.particleBase, const Color(0xFFE9C877));
+    for (final effects in [EffectsPalette.arclight, EffectsPalette.cartridge]) {
+      expect(effects.particle(phase: 0, glow: 0), effects.particleBase);
+      expect(effects.particle(phase: 0, glow: 1), libraryInkColors.first);
     }
   });
 
   test('wave and artwork palettes keep their theme values', () {
-    expect(waveColors(dark: true), const [
+    expect(EffectsPalette.arclight.waveColors, const [
       Color(0xFFE9C877),
       Color(0xFF49B7E0),
       Color(0xFFE0574A),
       Color(0xFFC9C2B2),
     ]);
-    expect(waveColors(dark: false), const [
+    expect(EffectsPalette.cartridge.waveColors, const [
       Color(0xFFFF4A17),
       Color(0xFFFFC400),
       Color(0xFF0090A8),

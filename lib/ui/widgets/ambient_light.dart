@@ -43,7 +43,7 @@ class AmbientLight extends StatelessWidget {
 
     // Светлый корпус берёт свет вполсилы: на белом та же заливка читается
     // как грязь на панели, а не как подсветка.
-    final strength = colors.isDark ? 1.0 : 0.4;
+    final strength = HardwareSurfaceTheme.of(context).ambientStrength;
 
     Widget wash(Alignment center, double radius, Color tint, double alpha) =>
         AnimatedContainer(
@@ -78,7 +78,9 @@ class AmbientLight extends StatelessWidget {
                 radius: 1,
                 colors: [
                   AppColors.transparent,
-                  colors.shadow.withValues(alpha: colors.isDark ? 0.62 : 0.14),
+                  colors.shadow.withValues(
+                    alpha: HardwareSurfaceTheme.of(context).vignetteOpacity,
+                  ),
                 ],
                 stops: const [0.5, 1],
               ),

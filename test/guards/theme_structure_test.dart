@@ -83,20 +83,7 @@ void main() {
   });
 }
 
-const _isDark = [
-  'lib/ui/library/detail/cover_backdrop.dart: 1',
-  'lib/ui/library/featured_game.dart: 2',
-  'lib/ui/library/game_wave.dart: 1',
-  'lib/ui/library/library_atmosphere.dart: 4',
-  'lib/ui/library/portal_sparks.dart: 1',
-  'lib/ui/library/toolbar.dart: 1',
-  'lib/ui/shell.dart: 1',
-  'lib/ui/shell/navigation.dart: 2',
-  'lib/ui/widgets/ambient_light.dart: 2',
-  'lib/ui/widgets/common.dart: 3',
-  'lib/ui/widgets/readout_panel.dart: 1',
-  'lib/ui/widgets/spatial_surface.dart: 8',
-];
+const _isDark = <String>[];
 
 const _fontSize = [
   'lib/ui/downloads/available_games.dart: 2',

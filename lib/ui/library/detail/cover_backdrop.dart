@@ -71,7 +71,7 @@ class CoverBackdrop extends StatelessWidget {
               // разницы между фоном и текстом на нём.
               ColoredBox(
                 color: colors.background.withValues(
-                  alpha: colors.isDark ? 0.72 : 0.82,
+                  alpha: HardwareSurfaceTheme.of(context).scrimOpacity,
                 ),
               ),
             ],

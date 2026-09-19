@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'effects_palette.dart';
+import 'hardware_surface_theme.dart';
 import 'motion.dart';
 import 'palette.dart';
 
@@ -43,19 +45,31 @@ class EvaporateTheme {
   /// под выбранным.
   static const radiusSelection = 12.0;
 
-  static ThemeData dark() => _build(EvaporatePalette.dark);
+  static ThemeData dark() => _build(
+    EvaporatePalette.dark,
+    HardwareSurfaceTheme.arclight,
+    EffectsPalette.arclight,
+  );
 
-  static ThemeData light() => _build(EvaporatePalette.light);
+  static ThemeData light() => _build(
+    EvaporatePalette.light,
+    HardwareSurfaceTheme.cartridge,
+    EffectsPalette.cartridge,
+  );
 
   /// Собирает тему из палитры. Каждая строка — свой кусок оформления, и
   /// устройство каждого куска лежит в отдельном методе ниже.
-  static ThemeData _build(EvaporatePalette p) {
+  static ThemeData _build(
+    EvaporatePalette p,
+    HardwareSurfaceTheme surface,
+    EffectsPalette effects,
+  ) {
     final base = p.isDark
         ? ThemeData.dark(useMaterial3: true)
         : ThemeData.light(useMaterial3: true);
 
     return base.copyWith(
-      extensions: [p, EvaporateMotion.standard],
+      extensions: [p, EvaporateMotion.standard, surface, effects],
       scaffoldBackgroundColor: p.background,
       colorScheme: _colorScheme(p),
       dividerTheme: DividerThemeData(color: p.outline, space: 1, thickness: 1),

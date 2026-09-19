@@ -55,7 +55,7 @@ class LibraryToolbar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
       child: GlassSurface(
         radius: EvaporateTheme.radiusPanel,
-        opacity: context.colors.isDark ? 0.72 : 0.84,
+        opacity: HardwareSurfaceTheme.of(context).toolbarOpacity,
         shadow: false,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: LayoutBuilder(

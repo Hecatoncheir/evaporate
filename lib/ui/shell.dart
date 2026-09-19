@@ -168,7 +168,7 @@ class AppShell extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: context.colors.surface.withValues(
-            alpha: context.colors.isDark ? 0.62 : 0.78,
+            alpha: HardwareSurfaceTheme.of(context).shellOpacity,
           ),
           border: Border.all(
             color: context.colors.outline.withValues(alpha: 0.45),

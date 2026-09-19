@@ -105,9 +105,9 @@ void main() {
     },
   );
 
-  test('ambient points use the exact requested colors', () {
-    expect(ambientParticleColor(dark: false), const Color(0xFF8C3A10));
-    expect(ambientParticleColor(dark: true), const Color(0xFFE9C877));
+  test('частицы берут основной цвет своей схемы', () {
+    expect(EffectsPalette.cartridge.particleBase, const Color(0xFF8C3A10));
+    expect(EffectsPalette.arclight.particleBase, const Color(0xFFE9C877));
   });
 
   testWidgets('particle painter has a sharp core and no glow outside it', (
@@ -162,10 +162,10 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  test('nearby particles have identical saturated colors in both themes', () {
+  test('светящиеся частицы одного цвета в обеих схемах', () {
     for (var i = 0; i < 5; i++) {
-      final light = particleColor(isDark: false, phase: i / 10, glow: 1);
-      final dark = particleColor(isDark: true, phase: i / 10, glow: 1);
+      final light = EffectsPalette.cartridge.particle(phase: i / 10, glow: 1);
+      final dark = EffectsPalette.arclight.particle(phase: i / 10, glow: 1);
       expect(light, libraryInkColors[i]);
       expect(dark, light);
     }

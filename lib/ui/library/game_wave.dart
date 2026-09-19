@@ -79,7 +79,7 @@ class _GameWaveState extends State<GameWave> {
                           clock,
                           _pointer,
                           _trail,
-                          dark: context.colors.isDark,
+                          effects: EffectsPalette.of(context),
                           interactive: widget.enabled && !reduced,
                         ),
                       ),
@@ -100,13 +100,14 @@ class _WavePainter extends CustomPainter {
     this.clock,
     this.pointer,
     this.trail, {
-    required this.dark,
+    required this.effects,
     required this.interactive,
   }) : super(repaint: Listenable.merge([clock, pointer]));
   final ValueListenable<double> clock;
   final ValueListenable<Offset> pointer;
   final WaveTrail trail;
-  final bool dark, interactive;
+  final EffectsPalette effects;
+  final bool interactive;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -126,7 +127,7 @@ class _WavePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final gradient = LinearGradient(
-      colors: waveColors(dark: dark),
+      colors: effects.waveColors,
       stops: const [0, 0.34, 0.68, 1],
     );
     paint.shader = gradient.createShader(Offset.zero & size);
@@ -137,7 +138,7 @@ class _WavePainter extends CustomPainter {
       final baseline = size.height * (0.47 + 0.30 * k);
       final phase = time + k * 1.9;
       paint.color = AppColors.waveHighlight.withValues(
-        alpha: (0.10 + 0.30 * math.sin(math.pi * k)) * (dark ? 1 : 0.8),
+        alpha: (0.10 + 0.30 * math.sin(math.pi * k)) * effects.waveStrength,
       );
       final path = Path();
       for (var x = -step; x <= size.width + step; x += step) {
@@ -164,7 +165,7 @@ class _WavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WavePainter oldDelegate) =>
-      oldDelegate.dark != dark ||
+      oldDelegate.effects != effects ||
       oldDelegate.interactive != interactive ||
       oldDelegate.clock != clock ||
       oldDelegate.pointer != pointer ||

@@ -80,6 +80,32 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   Color get selection => railIndicator;
 
+  /// Все поля по порядку — для проверки, что `lerp` и `copyWith` не
+  /// забыли ни одного: забытое в `lerp` поле молча застревает в прежней
+  /// схеме при плавной смене.
+  List<Object> get values => [
+    brightness,
+    background,
+    surface,
+    surfaceHigh,
+    outline,
+    primary,
+    primaryFill,
+    onPrimary,
+    accent,
+    accentFill,
+    danger,
+    warning,
+    textPrimary,
+    textSecondary,
+    railBackground,
+    railIndicator,
+    onSelection,
+    glow,
+    depth,
+    shadow,
+  ];
+
   bool get isDark => brightness == Brightness.dark;
 
   /// «Арклайт»: почти чёрные чернила, тёплое золото главного действия и

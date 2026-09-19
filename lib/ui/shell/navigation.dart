@@ -100,8 +100,8 @@ class _ConceptNavigationState extends State<ConceptNavigation> {
           // торце: один и тот же приём выглядел бы на светлом грязью.
           BoxShadow(
             color: colors.shadow,
-            blurRadius: colors.isDark ? 22 : 8,
-            offset: Offset(0, colors.isDark ? 10 : 2),
+            blurRadius: HardwareSurfaceTheme.of(context).railShadowBlur,
+            offset: Offset(0, HardwareSurfaceTheme.of(context).railShadowDrop),
           ),
         ],
       ),

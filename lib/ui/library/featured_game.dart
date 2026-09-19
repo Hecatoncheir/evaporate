@@ -70,8 +70,11 @@ class FeaturedGame extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: colors.shadow,
-                blurRadius: colors.isDark ? 34 : 12,
-                offset: Offset(0, colors.isDark ? 14 : 3),
+                blurRadius: HardwareSurfaceTheme.of(context).frameShadowBlur,
+                offset: Offset(
+                  0,
+                  HardwareSurfaceTheme.of(context).frameShadowDrop,
+                ),
               ),
             ],
           ),

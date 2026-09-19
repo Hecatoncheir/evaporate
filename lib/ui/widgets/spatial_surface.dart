@@ -13,7 +13,7 @@ class SpatialBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.colors.isDark;
+    final surface = HardwareSurfaceTheme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: context.colors.background,
@@ -21,9 +21,13 @@ class SpatialBackdrop extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.ambientCool.withValues(alpha: dark ? 0.14 : 0.32),
+            AppColors.ambientCool.withValues(
+              alpha: surface.backdropCoolOpacity,
+            ),
             context.colors.background,
-            AppColors.ambientDeep.withValues(alpha: dark ? 0.36 : 0.12),
+            AppColors.ambientDeep.withValues(
+              alpha: surface.backdropDeepOpacity,
+            ),
           ],
           stops: const [0, 0.52, 1],
         ),
@@ -41,7 +45,9 @@ class SpatialBackdrop extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.ambientWarm.withValues(alpha: dark ? 0.16 : 0.12),
+                    AppColors.ambientWarm.withValues(
+                      alpha: surface.backdropWarmOpacity,
+                    ),
                     AppColors.transparent,
                   ],
                 ),
@@ -76,7 +82,8 @@ class GlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final effectiveOpacity = opacity ?? (colors.isDark ? 0.9 : 0.94);
+    final surface = HardwareSurfaceTheme.of(context);
+    final effectiveOpacity = opacity ?? surface.fillOpacity;
     final borderRadius = BorderRadius.circular(radius);
 
     return ClipRRect(
@@ -91,31 +98,27 @@ class GlassSurface extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 colors.surface.withValues(
-                  alpha: colors.isDark ? effectiveOpacity : 0.98,
+                  alpha: surface.sheenTopOpacity ?? effectiveOpacity,
                 ),
                 colors.surfaceHigh.withValues(
-                  alpha: colors.isDark ? 0.62 : 0.72,
+                  alpha: surface.sheenBottomOpacity,
                 ),
               ],
             ),
             borderRadius: borderRadius,
             border: Border.all(
-              color: colors.textPrimary.withValues(
-                alpha: colors.isDark ? 0.15 : 0.32,
-              ),
+              color: colors.textPrimary.withValues(alpha: surface.rimOpacity),
             ),
             boxShadow: shadow
                 ? [
                     BoxShadow(
-                      color: colors.isDark
-                          ? AppColors.hardwareShadowDark
-                          : AppColors.hardwareShadowLight,
+                      color: surface.shadow,
                       blurRadius: 24,
                       offset: const Offset(10, 14),
                     ),
                     BoxShadow(
                       color: colors.textPrimary.withValues(
-                        alpha: colors.isDark ? 0.05 : 0.16,
+                        alpha: surface.counterLightOpacity,
                       ),
                       blurRadius: 12,
                       offset: const Offset(-5, -5),
@@ -149,9 +152,7 @@ class HardwareGrille extends StatelessWidget {
       child: CustomPaint(
         painter: _GrillePainter(
           plate: context.colors.surfaceHigh,
-          hole: context.colors.isDark
-              ? AppColors.grilleHoleDark
-              : AppColors.grilleHoleLight,
+          hole: HardwareSurfaceTheme.of(context).grilleHole,
           light: context.colors.primary,
         ),
       ),

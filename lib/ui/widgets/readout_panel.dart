@@ -23,7 +23,7 @@ class ReadoutPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colors.railBackground.withValues(
-          alpha: colors.isDark ? 0.7 : 0.6,
+          alpha: HardwareSurfaceTheme.of(context).readoutOpacity,
         ),
         border: Border.all(color: colors.outline),
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),

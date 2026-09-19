@@ -106,7 +106,7 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
         Color.lerp(
           colors.primaryFill,
           AppColors.foilHighlight,
-          colors.isDark ? 0.16 : 0.04,
+          HardwareSurfaceTheme.of(context).keySheen,
         )!,
         colors.primaryFill,
       ],
@@ -121,7 +121,9 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
           spreadRadius: -0.5,
         ),
       BoxShadow(
-        color: colors.isDark
+        // Ореол есть не у каждого материала: у светлого корпуса он
+        // прозрачен, и клавиша стоит на обычной тени.
+        color: colors.glow.a > 0
             ? colors.glow.withValues(alpha: lit ? 0.34 : 0.18)
             : colors.shadow,
         blurRadius: lit ? 26 : 14,
@@ -260,7 +262,7 @@ class SectionCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: GlassSurface(
         radius: EvaporateTheme.radiusPanel,
-        opacity: context.colors.isDark ? 0.62 : 0.74,
+        opacity: HardwareSurfaceTheme.of(context).cardOpacity,
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

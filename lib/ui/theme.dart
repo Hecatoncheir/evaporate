@@ -6,6 +6,8 @@
 library;
 
 export 'theme/decor_colors.dart';
+export 'theme/effects_palette.dart';
 export 'theme/evaporate_theme.dart';
+export 'theme/hardware_surface_theme.dart';
 export 'theme/motion.dart';
 export 'theme/palette.dart';

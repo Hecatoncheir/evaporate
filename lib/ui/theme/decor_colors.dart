@@ -18,19 +18,6 @@ const libraryInkColors = [
   Color(0xFFF2C368),
 ];
 
-Color ambientParticleColor({required bool dark}) =>
-    dark ? const Color(0xFFE9C877) : const Color(0xFF8C3A10);
-
-Color particleColor({
-  required bool isDark,
-  required double phase,
-  required double glow,
-}) => Color.lerp(
-  ambientParticleColor(dark: isDark),
-  libraryInkColors[(phase * 10).floor() % 5],
-  glow,
-)!;
-
 /// Цвета, не зависящие от темы: оформление обложек, эффекты и рамка окна.
 /// Здесь лежат базовые значения; прозрачность виджеты всё ещё анимируют.
 abstract final class AppColors {
@@ -75,29 +62,7 @@ abstract final class AppColors {
   static const ambientWarm = Color(0xFFE9C877);
   static const ambientCool = Color(0xFF49B7E0);
   static const ambientDeep = Color(0xFF0D1116);
-  static final hardwareShadowDark = Colors.black.withValues(alpha: 0.55);
-  static final hardwareShadowLight = const Color(0xFF8A8574)
-      .withValues(alpha: 0.34);
-  static final grilleHoleDark = Colors.black.withValues(alpha: 0.72);
-  static final grilleHoleLight = const Color(0xFF333738)
-      .withValues(alpha: 0.76);
 }
-
-const _darkWaveColors = [
-  Color(0xFFE9C877),
-  Color(0xFF49B7E0),
-  Color(0xFFE0574A),
-  Color(0xFFC9C2B2),
-];
-const _lightWaveColors = [
-  Color(0xFFFF4A17),
-  Color(0xFFFFC400),
-  Color(0xFF0090A8),
-  Color(0xFFB3261E),
-];
-
-List<Color> waveColors({required bool dark}) =>
-    dark ? _darkWaveColors : _lightWaveColors;
 
 /// Запасные цвета обложки, выведенные из названия игры.
 ///

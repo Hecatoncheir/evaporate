@@ -66,7 +66,8 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
     _motion =
         widget.enabled &&
         (widget.particlesEnabled ||
-            (widget.ambientEnabled && !context.colors.isDark)) &&
+            (widget.ambientEnabled &&
+                EffectsPalette.of(context).ambientWash)) &&
         !MediaQuery.disableAnimationsOf(context) &&
         (ModalRoute.isCurrentOf(context) ?? true) &&
         TickerMode.valuesOf(context).enabled &&
@@ -121,7 +122,6 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     return MouseRegion(
       onHover: (event) {
         if (_motion && widget.particlesEnabled) {
@@ -155,7 +155,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
                           key: const ValueKey('library-atmosphere-paint'),
                           painter: _AtmospherePainter(
                             field: field,
-                            colors: colors,
+                            effects: EffectsPalette.of(context),
                             particlesEnabled: widget.particlesEnabled,
                             ambientEnabled: widget.ambientEnabled,
                             ambientTime: () => _ambientTime,
@@ -185,7 +185,7 @@ class _PaintSignal extends ChangeNotifier {
 class _AtmospherePainter extends CustomPainter {
   _AtmospherePainter({
     required this.field,
-    required this.colors,
+    required this.effects,
     required this.animated,
     required this.particlesEnabled,
     required this.ambientEnabled,
@@ -194,7 +194,7 @@ class _AtmospherePainter extends CustomPainter {
   }) : super(repaint: repaint);
 
   final ParticleField field;
-  final EvaporatePalette colors;
+  final EffectsPalette effects;
   final bool animated;
   final bool particlesEnabled, ambientEnabled;
   final double Function() ambientTime;
@@ -205,7 +205,7 @@ class _AtmospherePainter extends CustomPainter {
     final time = animated ? ambientTime() : 0.0;
     // Медленные малоконтрастные перламутровые разводы по слоновой кости.
     // Контраст низкий намеренно: под текстом фон не должен мигать.
-    if (ambientEnabled && !colors.isDark) {
+    if (ambientEnabled && effects.ambientWash) {
       for (var i = 0; i < 4; i++) {
         final center = Offset(
           size.width * (0.5 + 0.45 * math.sin(time * 0.13 + i * 1.8)),
@@ -226,8 +226,7 @@ class _AtmospherePainter extends CustomPainter {
     final dot = Paint();
     for (final particle in field.particles) {
       if (!animated && particle.life >= 0) continue;
-      final color = particleColor(
-        isDark: colors.isDark,
+      final color = effects.particle(
         phase: particle.phase,
         glow: animated ? particle.glow : 0,
       );
@@ -243,7 +242,7 @@ class _AtmospherePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_AtmospherePainter oldDelegate) =>
-      oldDelegate.colors != colors ||
+      oldDelegate.effects != effects ||
       oldDelegate.animated != animated ||
       oldDelegate.particlesEnabled != particlesEnabled ||
       oldDelegate.ambientEnabled != ambientEnabled;
