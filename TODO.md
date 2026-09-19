@@ -366,7 +366,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   замершего окна. `Isolate.run`, как уже сделано для базы путей. **M**
 - [x] Отчёт массовой загрузки врёт: старший дубликат пакета помечается
   «здешние сохранения новее» (`bulk_transfer.dart:165–172`). **S**
-- [ ] «Не понял — не трогай» у ярлыков Steam дыряво: `allowMalformed` с
+- [x] «Не понял — не трогай» у ярлыков Steam дыряво: `allowMalformed` с
   перекодированием молча меняют чужие не-UTF-8 строки
   (`binary_vdf.dart:94,148`), `addGame` выбрасывает значения не-`Map`
   (`steam_shortcuts.dart:248–254`); `pgrep -x steam` (`:178`) на macOS

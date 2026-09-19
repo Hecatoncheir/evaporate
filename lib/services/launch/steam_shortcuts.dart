@@ -162,6 +162,15 @@ class SteamShortcuts {
     return match.first;
   }
 
+  /// Под каким именем процесс Steam виден в системе. На macOS это
+  /// `steam_osx`: проверка по `steam` его не видела, и запись при запущенном
+  /// Steam молча пропадала — он выкладывает свой список при выходе.
+  static List<String> processNamesFor(String system) => switch (system) {
+    'windows' => const ['steam.exe'],
+    'macos' => const ['steam_osx'],
+    _ => const ['steam'],
+  };
+
   /// Запущен ли Steam прямо сейчас.
   ///
   /// Подменяется в тестах: спрашивать систему о процессах на трёх ОС в
@@ -176,8 +185,11 @@ class SteamShortcuts {
         ]);
         return '${result.stdout}'.toLowerCase().contains('steam.exe');
       }
-      final result = await Process.run('pgrep', ['-x', 'steam']);
-      return result.exitCode == 0;
+      for (final name in processNamesFor(Platform.operatingSystem)) {
+        final result = await Process.run('pgrep', ['-x', name]);
+        if (result.exitCode == 0) return true;
+      }
+      return false;
     } on ProcessException {
       // Не спросили — не знаем. Запретить из-за этого единственный способ
       // добавить игру было бы хуже, чем понадеяться: худшее, что выйдет, —
@@ -245,6 +257,11 @@ class SteamShortcuts {
     }
 
     final appId = appIdFor(game.id);
+    // В списке ждём только карты. Непонятное не трогают — ни переписывая
+    // рядом, ни теряя при переписывании.
+    if (shortcuts.values.any((value) => value is! Map<String, Object>)) {
+      throw SteamShortcutException(_l.steamShortcutsUnreadable);
+    }
     final entries = <Map<String, Object>>[];
     for (final value in shortcuts.values) {
       // Чужие записи переносим как есть, со всеми их полями: нам они

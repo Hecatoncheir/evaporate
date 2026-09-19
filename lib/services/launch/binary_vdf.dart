@@ -9,7 +9,7 @@ import 'dart:typed_data';
 ///
 /// ```
 /// 0x00  вложенная карта, закрывается 0x08
-/// 0x01  строка UTF-8 с нулём на конце
+/// 0x01  строка с нулём на конце — обычно UTF-8, но не всегда
 /// 0x02  знаковое 32-битное число, младший байт первым
 /// 0x08  конец карты
 /// ```
@@ -31,8 +31,8 @@ class BinaryVdf {
   static const _int32 = 0x02;
   static const _end = 0x08;
 
-  /// Разбирает документ в дерево карт: значения — [String], [int] или
-  /// вложенная `Map<String, Object>`.
+  /// Разбирает документ в дерево карт: значения — [String], [int],
+  /// [VdfBytes] или вложенная `Map<String, Object>`.
   ///
   /// **Бросает на всём, чего не понимает, — и это намеренно.** Текстовый
   /// [Vdf] на непонятном возвращает пустую карту, потому что читает чужой
@@ -74,6 +74,12 @@ class BinaryVdf {
         out.addByte(_string);
         _writeString(out, entry.key);
         _writeString(out, value);
+      } else if (value is VdfBytes) {
+        out.addByte(_string);
+        _writeString(out, entry.key);
+        out
+          ..add(value.bytes)
+          ..addByte(0);
       } else if (value is int) {
         // Число здесь ровно 32-битное и знаковое. Молча обрезать всё, что
         // не влезло, нельзя: обрезанный `appid` — это чужой ярлык.
@@ -118,12 +124,12 @@ class _Reader {
       final type = data[_offset++];
       if (type == BinaryVdf._end) return map;
 
-      final key = _readString();
+      final key = _readKey();
       switch (type) {
         case BinaryVdf._map:
           map[key] = readMap(depth: depth + 1);
         case BinaryVdf._string:
-          map[key] = _readString();
+          map[key] = _readValue();
         case BinaryVdf._int32:
           if (_offset + 4 > data.length) {
             throw const FormatException('Число оборвано');
@@ -142,11 +148,50 @@ class _Reader {
     }
   }
 
-  String _readString() {
+  Uint8List _readRaw() {
     final end = data.indexOf(0, _offset);
     if (end < 0) throw const FormatException('Строка без завершающего нуля');
-    final value = utf8.decode(data.sublist(_offset, end), allowMalformed: true);
+    final raw = Uint8List.sublistView(data, _offset, end);
     _offset = end + 1;
-    return value;
+    return raw;
+  }
+
+  /// Имя ключа обязано быть UTF-8: по имени мы ищем поля, и непонятное имя
+  /// значит непонятую запись — а её не трогают.
+  String _readKey() => utf8.decode(_readRaw());
+
+  /// Значение не в UTF-8 остаётся байтами. Старые ярлыки и сторонние
+  /// инструменты пишут пути в кодировке системы; разбор с подменой на
+  /// U+FFFD и обратная сборка молча испортили бы человеку путь к игре.
+  Object _readValue() {
+    final raw = _readRaw();
+    try {
+      return utf8.decode(raw);
+    } on FormatException {
+      return VdfBytes(Uint8List.fromList(raw));
+    }
+  }
+}
+
+/// Строковое значение, которое не разбирается как UTF-8, — хранится как есть
+/// и так же записывается обратно.
+class VdfBytes {
+  const VdfBytes(this.bytes);
+
+  final Uint8List bytes;
+
+  @override
+  bool operator ==(Object other) =>
+      other is VdfBytes && _sameBytes(bytes, other.bytes);
+
+  @override
+  int get hashCode => Object.hashAll(bytes);
+
+  static bool _sameBytes(Uint8List a, Uint8List b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 }

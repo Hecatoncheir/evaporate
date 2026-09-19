@@ -146,6 +146,29 @@ void main() {
     expect(File(shortcutsFile).readAsBytesSync(), broken);
   });
 
+  // В списке ярлыков ждём только карты. Прочее `addGame` выбрасывал при
+  // переписывании — непонятое не трогают, а не теряют.
+  test('непонятная запись в списке отклоняет правку, а не теряется', () async {
+    final original = BinaryVdf.encode(<String, Object>{
+      'shortcuts': <String, Object>{'0': foreignEntry(), '1': 'не карта'},
+    });
+    await File(shortcutsFile).writeAsBytes(original);
+
+    await expectLater(
+      shortcuts().addGame(gameWith()),
+      throwsA(isA<SteamShortcutException>()),
+    );
+    expect(File(shortcutsFile).readAsBytesSync(), original);
+  });
+
+  // На macOS процесс Steam зовётся `steam_osx`: проверка по `steam` его не
+  // видела, и запись в список при запущенном Steam молча пропадала.
+  test('запущенный Steam ищется под своим именем на каждой системе', () {
+    expect(SteamShortcuts.processNamesFor('macos'), contains('steam_osx'));
+    expect(SteamShortcuts.processNamesFor('linux'), contains('steam'));
+    expect(SteamShortcuts.processNamesFor('windows'), contains('steam.exe'));
+  });
+
   test('повторное добавление правит запись, а не плодит двойников', () async {
     final service = shortcuts();
     await service.addGame(gameWith(title: 'Первое имя'));
