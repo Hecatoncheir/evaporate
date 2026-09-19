@@ -739,15 +739,15 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `StatusChip` (`common.dart:228`) — три реализации с альфой 0.13 / 0.14 →
   один `TonedChip`;~~ (сделано);
 - ~~карточка-строка: `rule_tile.dart:31–38`, `snapshot_tile.dart:42–49`,
-  `watched_folders.dart:31–38` → `InsetTile`;~~ (сделано, и пакет синхронизации туда же); «колодец» поиска и полок —
-  `toolbar.dart:119–125` и `:246–252`;
+  `watched_folders.dart:31–38` → `InsetTile`;~~ (сделано, и пакет синхронизации туда же); ~~«колодец» поиска и полок —
+  `toolbar.dart:119–125` и `:246–252`;~~ (сделано: `ToolbarWell`);
 - ~~предупреждение со значком (12–12.5, `warning`, высота 1.4) —
   `action_panel.dart:65`, `restore_dialog.dart:133,153`,
   `rule_dialog.dart:138`, `scan_folder_dialog.dart:369` → `InlineWarning`;~~
   (сделано);
 - ~~кружок занятости 14×14 — в шести местах → `BusySpinner`;~~ (сделано);
-- `DottedBorderBox` (`drop_overlay.dart:56`) рисует сплошную рамку — имя
-  обещает другое → `DropFrame`.
+- ~~`DottedBorderBox` (`drop_overlay.dart:56`) рисует сплошную рамку — имя
+  обещает другое → `DropFrame`.~~ (сделано, и своим файлом).
 
 Приватные `CustomPainter` виджетами не являются и под правило не попадают,
 но ~~`portal_sparks.dart` (536 строк: виджет, художник, атлас, пачка искр,

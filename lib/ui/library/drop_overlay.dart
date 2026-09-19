@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
+import 'drop_frame.dart';
 
 /// Подсказка поверх сетки, пока над окном что-то держат.
 ///
@@ -17,7 +18,7 @@ class DropOverlay extends StatelessWidget {
       child: Container(
         color: context.colors.background.withValues(alpha: EvaporateAlpha.veil),
         padding: const EdgeInsets.all(24),
-        child: DottedBorderBox(
+        child: DropFrame(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -43,24 +44,6 @@ class DropOverlay extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Рамка, показывающая границу приёмника.
-class DottedBorderBox extends StatelessWidget {
-  const DottedBorderBox({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-        border: Border.all(color: context.colors.accent, width: 2),
-      ),
-      child: Center(child: child),
     );
   }
 }

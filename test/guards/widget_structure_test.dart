@@ -60,7 +60,6 @@ const _widgetFunctions = [
 
 const _crowdedFiles = [
   'lib/ui/library/detail/detail_cover.dart: 2',
-  'lib/ui/library/drop_overlay.dart: 2',
   'lib/ui/widgets/liquid_selection.dart: 3',
   'lib/ui/widgets/spatial_surface.dart: 3',
 ];
