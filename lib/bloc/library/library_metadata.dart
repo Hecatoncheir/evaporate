@@ -455,8 +455,7 @@ extension _LibraryMetadata on LibraryBloc {
     );
   }
 
-  /// Подбирает папки сохранений по базе. Уже заданные правила не трогаем:
-  /// пользователь мог поправить путь под себя.
+  /// Ход загрузки и разбора базы путей — для указателя в интерфейсе.
   void _onSavePathsProgress(
     SavePathsProgressChanged event,
     Emitter<LibraryState> emit,
@@ -494,6 +493,8 @@ extension _LibraryMetadata on LibraryBloc {
     );
   }
 
+  /// Подбирает папки сохранений по базе. Уже заданные правила не трогаем:
+  /// пользователь мог поправить путь под себя.
   Future<void> _onSavePathsLookup(
     SavePathsLookupRequested event,
     Emitter<LibraryState> emit,
@@ -574,9 +575,6 @@ extension _LibraryMetadata on LibraryBloc {
     if (added == 0) return _l.noticePathsAlreadySet;
     return found.describe(_l, added);
   }
-
-  /// Снимает сохранения всех настроенных игр и складывает пакеты в папку —
-  /// то, с чего начинается переезд на другое устройство.
 }
 
 /// Найденные пути и то, откуда они взялись.

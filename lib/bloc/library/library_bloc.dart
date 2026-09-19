@@ -29,16 +29,17 @@ part 'library_event.dart';
 part 'library_metadata.dart';
 part 'library_state.dart';
 
-/// Библиотека игр и их сохранений — единственный источник правды для UI.
-///
-/// Ошибки наружу не выбрасываются: обработчики кладут результат в [Notice],
-/// а экраны показывают его через `BlocListener`.
 /// Игра завершилась: кто и сколько отыграл.
 ///
 /// Запись, а не класс: у неё нет ни поведения, ни собственной жизни —
 /// это пара значений, которую библиотека объявляет и тут же забывает.
 typedef GameExit = ({Game game, Duration played});
 
+/// Библиотека игр — единственный источник правды о них для интерфейса.
+/// Сохранения держит `SavesBloc`, а библиотека о нём не знает.
+///
+/// Ошибки наружу не выбрасываются: обработчики кладут результат в [Notice],
+/// а экраны показывают его через `BlocListener`.
 class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   LibraryBloc({
     required AppPaths paths,
@@ -150,8 +151,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   final JsonStore _store;
 
-  /// Перенос сохранений всей библиотеки: единственная операция, идущая по
-  /// всем играм разом, и единственная со своим счётом исходов.
+  /// Запускает игры и следит за их процессами.
   final GameLauncher _launcher;
 
   /// Кто вышел из игры и сколько отыграл.
@@ -177,9 +177,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   Timer? _persistTimer;
   bool _closing = false;
   int _noticeSeq = 0;
-
-  /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
-  /// подтверждения обращается к менеджеру напрямую.
 
   GameLauncher get launcher => _launcher;
 
@@ -429,8 +426,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   ) {
     emit(state.copyWith(runningIds: event.ids));
   }
-
-  // -------------------------------------------------------------- сейвы
 
   @override
   Future<void> close() async {

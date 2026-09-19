@@ -151,7 +151,6 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
   );
 }
 
-/// Небольшая цветная метка статуса — используется в списке и в карточке игры.
 /// Мелкая клавиша со значком — пауза, отмена, удаление из очереди.
 ///
 /// Голый `IconButton` на плотной подложке карточки терялся: значок в два
@@ -201,6 +200,7 @@ class IconAction extends StatelessWidget {
   }
 }
 
+/// Небольшая цветная метка статуса — используется в списке и в карточке игры.
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.status, this.compact = false});
 

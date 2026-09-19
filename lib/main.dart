@@ -336,7 +336,7 @@ Future<void> _announceUpdate(
       AppNotification(
         title: l.newVersionOut(release.version),
         body: l.updateAvailableBody,
-        kind: NotificationKind.test,
+        kind: NotificationKind.updateAvailable,
       ),
     );
   } on Object {

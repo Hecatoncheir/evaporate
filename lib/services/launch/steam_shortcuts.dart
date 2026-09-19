@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/game.dart';
+import '../system/app_log.dart';
 import 'binary_vdf.dart';
 import 'steam_install.dart';
 import 'vdf.dart';
@@ -358,27 +359,9 @@ class SteamShortcuts {
     required int appId,
     required SteamArtwork? artwork,
   }) async {
-    final id = appId.toUnsigned(32);
-    final files = <String, List<int>>{};
-    if (artwork != null) {
-      if (artwork.portrait != null) files['${id}p.jpg'] = artwork.portrait!;
-      if (artwork.capsule != null) files['$id.jpg'] = artwork.capsule!;
-      if (artwork.hero != null) files['${id}_hero.jpg'] = artwork.hero!;
-      if (artwork.logo != null) files['${id}_logo.png'] = artwork.logo!;
-    }
-
+    final files = _catalogArtwork(appId, artwork);
     try {
-      // Своей обложкой закрываем ту створку, которая осталась пустой:
-      // класть её поверх присланной каталогом незачем.
-      final cover = game.coverPath;
-      if (cover != null && cover.isNotEmpty) {
-        final source = File(cover);
-        if (await source.exists()) {
-          final bytes = await source.readAsBytes();
-          files.putIfAbsent(gridNameFor(appId, bytes), () => bytes);
-        }
-      }
-
+      await _addOwnCover(game, appId, files);
       if (files.isEmpty) return;
       final dir = Directory(profile.gridDir);
       await dir.create(recursive: true);
@@ -386,9 +369,40 @@ class SteamShortcuts {
         await File(p.join(dir.path, file.key))
             .writeAsBytes(file.value, flush: true);
       }
-    } on FileSystemException {
-      return;
+    } on FileSystemException catch (error) {
+      // Витрина ярлыка не отменяет, но пустые обложки в Steam без следа в
+      // журнале не объяснить.
+      AppLog.instance.write('витрина ярлыка Steam не записана', error);
     }
+  }
+
+  /// Присланное каталогом — под именами, по которым Steam узнаёт роль.
+  static Map<String, List<int>> _catalogArtwork(
+    int appId,
+    SteamArtwork? artwork,
+  ) {
+    final id = appId.toUnsigned(32);
+    return {
+      '${id}p.jpg': ?artwork?.portrait,
+      '$id.jpg': ?artwork?.capsule,
+      '${id}_hero.jpg': ?artwork?.hero,
+      '${id}_logo.png': ?artwork?.logo,
+    };
+  }
+
+  /// Своей обложкой закрываем ту створку, которая осталась пустой:
+  /// класть её поверх присланной каталогом незачем.
+  Future<void> _addOwnCover(
+    Game game,
+    int appId,
+    Map<String, List<int>> files,
+  ) async {
+    final cover = game.coverPath;
+    if (cover == null || cover.isEmpty) return;
+    final source = File(cover);
+    if (!await source.exists()) return;
+    final bytes = await source.readAsBytes();
+    files.putIfAbsent(gridNameFor(appId, bytes), () => bytes);
   }
 }
 

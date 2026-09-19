@@ -86,7 +86,7 @@ class AppShell extends StatelessWidget {
           listenWhen: (a, b) => a.gamepad != b.gamepad,
           listener: (context, settings) => gamepad.binding = settings.gamepad,
         ),
-        // Сообщения об операциях приходят из кубитов, а не из виджетов.
+        // Сообщения об операциях приходят из блоков, а не из виджетов.
         BlocListener<LibraryBloc, LibraryState>(
           listenWhen: (a, b) => a.notice != b.notice,
           listener: (context, state) => _showNotice(context, state.notice),

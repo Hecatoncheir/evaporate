@@ -192,8 +192,13 @@ class UpdateDownload {
     final List<int> raw;
     try {
       raw = await _fetch(Uri.parse(sums.url), (_, _) {});
-    } on Object {
+    } on Object catch (error) {
       // Файла сумм может не быть у старых релизов — размера уже достаточно.
+      // Но пропуск сверки — не мелочь, и след его должен остаться.
+      AppLog.instance.write(
+        'обновление: суммы не получены, сверка пропущена',
+        error,
+      );
       return;
     }
 

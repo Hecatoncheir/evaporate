@@ -162,11 +162,6 @@ extension _SavesSnapshots on SavesBloc {
     await _collectGarbage();
   }
 
-  /// Убирает содержимое снимков, на которое больше никто не ссылается.
-  ///
-  /// Хранилище общее для всех игр, а список живых ссылок целиком виден
-  /// только отсюда: снимок можно выкинуть у одной игры, а его файлы —
-
   Future<void> _onRestoreRequested(
     SnapshotRestoreRequested event,
     Emitter<SavesState> emit,

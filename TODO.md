@@ -371,7 +371,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`binary_vdf.dart:94,148`), `addGame` выбрасывает значения не-`Map`
   (`steam_shortcuts.dart:248–254`); `pgrep -x steam` (`:178`) на macOS
   стоит проверить — процесс там зовётся иначе. **S**
-- [ ] Исключения гаснут без журнала: пропуск сверки контрольной суммы
+- [x] Исключения гаснут без журнала: пропуск сверки контрольной суммы
   (`update_download.dart:195–198`), битые пакеты (`save_manager.dart:697`),
   `_adoptMetadata` (`managed_download.dart:96`), витрина
   (`steam_shortcuts.dart:389`). **S**
@@ -476,7 +476,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 - [ ] **Блок зависит от слоя UI.** `downloads_bloc.dart:21` импортирует
   `ui/labels.dart` ради `engineStateLabel`. Подписи, нужные блокам, —
   в нейтральное место (`lib/l10n/labels.dart`). **S**
-- [ ] **Осиротевшие комментарии** после распила `LibraryBloc`/`SavesBloc`:
+- [x] **Осиротевшие комментарии** после распила `LibraryBloc`/`SavesBloc`:
   описание класса досталось `typedef GameExit` (`library_bloc.dart:31–39`);
   про массовый перенос — полю `_launcher` (`:142`); про манифест — геттеру
   `launcher` (`:170`); заголовок «сейвы» стоит над `close()` (`:468`);
@@ -486,7 +486,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `previewTargets` (`save_manager.dart:488–489`); описание `StatusChip`
   уехало к `IconAction` (`common.dart:154`); «приходят из кубитов» про
   блоки (`shell.dart:89`). **S**
-- [ ] О новой версии уведомляют видом `NotificationKind.test`
+- [x] О новой версии уведомляют видом `NotificationKind.test`
   (`main.dart:339`) — завести `updateAvailable`. **S**
 
 Риски помельче (P2), каждый — **S**:
