@@ -6,7 +6,6 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_wave.dart';
-import 'package:evaporate/ui/library/play_button.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/decorative_motion.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
@@ -33,7 +32,8 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: Center(
-              child: PlayButton(
+              child: LauncherActionButton(
+                icon: Icons.play_arrow_rounded,
                 label: 'Играть',
                 onPressed: enabled ? () => taps++ : null,
               ),
@@ -185,7 +185,7 @@ void main() {
     await frames(tester, 30);
     harness.nav.add(const GameOpened('wave-demo'));
     await frames(tester, 180);
-    expect(find.byType(PlayButton), findsOneWidget);
+    expect(find.byType(LauncherActionButton), findsOneWidget);
     final motions = tester
         .stateList<DecorativeMotionState>(find.byType(DecorativeMotion))
         .toList();

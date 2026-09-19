@@ -666,7 +666,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | `library/add_game_dialog.dart` | `_AddGameDialog`, `_PathPicker` + 3 метода | `library/add/`: `AddGameDialog`, `SourceKindPicker`, `SourceFields`, `StartNowTile`; `PathPickerField` — в `widgets/` |
 | `library/toolbar.dart` | `_AddGameButton` + `_arrange`, `_search` | `library/toolbar/`: `AddGameMenuButton`, `ToolbarLayout`, `LibrarySearchField`; соседи `ShelfTabs`, `ShelfButton` — своими файлами |
 | `library/saves_section.dart` | `_FindPathsButton` | `library/saves/find_paths_button.dart`; `SavePathsSection` и `SnapshotsSection` — двумя файлами |
-| `library/detail/action_panel.dart` | `_SteamShortcutButton`, `_SteamLookupButton` + `_buildRow`, `_primaryActions` (77 строк) | это один виджет с разными ключом занятости, событием и значком → общий `BusyOutlinedButton`; `PrimaryActions` — четыре виджета по веткам `switch`; `DownloadSummary` — своим файлом |
+| ~~`library/detail/action_panel.dart`~~ | ~~`_SteamShortcutButton`, `_SteamLookupButton` + `_buildRow`, `_primaryActions` (77 строк)~~ | сделано: `BusyOutlinedButton` (в `widgets/`) и `SteamActions`; `PrimaryActions` выбирает одну из четырёх веток — `RunningGameActions`, `DownloadControlActions`, `PlayActions`, `DownloadStartActions`; `DownloadSummary` и `GameErrorNote` — своими файлами |
 | `library/detail/rating_row.dart` | `_Count`, `_Metacritic` | `library/detail/`: `ReviewCount`, `MetacriticBadge` |
 | `library/foil_card.dart` | `_FoilScope` (+ `_FoilMotion`, общий для `FoilCard` и `FoilSurface`) | `library/effects/foil/`: `FoilScope`, `FoilMotion`, `FoilCard`, `FoilSurface` |
 | `library/saves/restore_dialog.dart` | 5 методов | `RestoreDialogBody`, `LocalFreshnessNote`, `RestoreTargetList`, `RestoreOptionsForm`, `RestoreDialogActions`; модель `RestoreOptions` — своим файлом |
@@ -723,8 +723,8 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 **Повторы, которые вынос обнажит** — их сводят в общие виджеты, а не
 копируют по новым файлам:
 
-- `play_button.dart` — пустая обёртка над `LauncherActionButton` (`:12–16`),
-  удалить;
+- ~~`play_button.dart` — пустая обёртка над `LauncherActionButton` (`:12–16`),
+  удалить~~ (удалена);
 - подпись хода загрузки: `switch` в `_ProgressStrip`
   (`game_cover.dart:289–297`) и в `CoverProgress`
   (`detail/detail_cover.dart:80–87`) совпадают побайтово;

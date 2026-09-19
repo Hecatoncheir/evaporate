@@ -149,7 +149,6 @@ const _lines = [
   'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 72',
   'lib/ui/downloads/download_activity.dart: _SpeedChartPainter.paint: 65',
   'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 69',
-  'lib/ui/library/detail/action_panel.dart: ActionPanel._primaryActions: 71',
   'lib/ui/library/detail/info_section.dart: InfoSection.build: 67',
   'lib/ui/library/featured_game.dart: _Art.build: 76',
   'lib/ui/library/game_cover.dart: GameCoverTile._tile: 70',
