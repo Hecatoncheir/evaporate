@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:tray_manager/tray_manager.dart';
@@ -82,25 +83,26 @@ class AppTray with TrayListener {
   @override
   void onTrayIconMouseDown() {
     // Левый клик по значку — самый ожидаемый способ вернуть окно.
-    reveal();
+    // Колбэки трея синхронны по контракту: ждать здесь некому.
+    unawaited(reveal());
   }
 
   @override
   void onTrayIconRightMouseDown() {
-    _tray.popUpContextMenu();
+    unawaited(_tray.popUpContextMenu());
   }
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
     switch (menuItem.key) {
       case 'show':
-        reveal();
+        unawaited(reveal());
       case 'quit':
         final quit = onQuit;
         if (quit == null) {
-          _window.destroy();
+          unawaited(_window.destroy());
         } else {
-          quit();
+          unawaited(quit());
         }
     }
   }

@@ -79,8 +79,8 @@ class _GameWaveState extends State<GameWave> {
                           clock,
                           _pointer,
                           _trail,
-                          context.colors.isDark,
-                          widget.enabled && !reduced,
+                          dark: context.colors.isDark,
+                          interactive: widget.enabled && !reduced,
                         ),
                       ),
                     ),
@@ -99,10 +99,10 @@ class _WavePainter extends CustomPainter {
   _WavePainter(
     this.clock,
     this.pointer,
-    this.trail,
-    this.dark,
-    this.interactive,
-  ) : super(repaint: Listenable.merge([clock, pointer]));
+    this.trail, {
+    required this.dark,
+    required this.interactive,
+  }) : super(repaint: Listenable.merge([clock, pointer]));
   final ValueListenable<double> clock;
   final ValueListenable<Offset> pointer;
   final WaveTrail trail;
@@ -126,7 +126,7 @@ class _WavePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
     final gradient = LinearGradient(
-      colors: waveColors(dark),
+      colors: waveColors(dark: dark),
       stops: const [0, 0.34, 0.68, 1],
     );
     paint.shader = gradient.createShader(Offset.zero & size);

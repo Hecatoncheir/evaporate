@@ -49,5 +49,29 @@ linter:
     - throw_in_finally
     - test_types_in_equals
     - avoid_type_to_string
-    - use_super_parameters
     - prefer_final_locals
+
+    # `catch` без `on` ловит и `Error` — ошибку программы, а не среды, — и
+    # прячет её за сообщением «не вышло». Все обработчики уже пишут `on`;
+    # правило держит это впредь.
+    - avoid_catches_without_on_clauses
+
+    # `async`-функция с `void` не даёт вызывающему дождаться её и поймать
+    # её исключение: оно уходит в зону и пропадает.
+    - avoid_void_async
+
+    # Брошенная строка не отличима от ошибки и не несёт типа, по которому
+    # её можно поймать `on`.
+    - only_throw_errors
+
+    # Одинарные кавычки — ещё и ради стража локализации: он ищет кириллицу
+    # в литералах в одинарных кавычках, и строка в двойных проходила мимо.
+    - prefer_single_quotes
+
+    # Две строки подряд в списке без запятой молча склеиваются в одну.
+    - no_adjacent_strings_in_list
+
+    - prefer_const_literals_to_create_immutables
+
+    # `setEnabled(true)` на месте вызова не говорит, что включается.
+    - avoid_positional_boolean_parameters

@@ -7,7 +7,11 @@ import '../../../models/save_profile.dart';
 import '../../theme.dart';
 
 class RuleDraft {
-  const RuleDraft(this.label, this.template, this.currentPlatformOnly);
+  const RuleDraft(
+    this.label,
+    this.template, {
+    required this.currentPlatformOnly,
+  });
 
   final String label;
   final String template;
@@ -174,7 +178,7 @@ class _RuleDialogState extends State<RuleDialog> {
     return RuleDraft(
       label.isEmpty ? SavePathRule.defaultLabel : label,
       _templateController.text.trim(),
-      _currentPlatformOnly,
+      currentPlatformOnly: _currentPlatformOnly,
     );
   }
 }

@@ -99,6 +99,21 @@ git push origin v0.24.0
 Правка, меняющая поведение, идёт с тестом. Правка, исправляющая ошибку, — с
 тестом, который без неё падает.
 
+Несколько правил держит не рецензия, а прогон — стражи в `test/guards/`:
+
+- один файл — один публичный виджет; ни приватных виджетов, ни методов,
+  возвращающих виджеты (кроме `build`);
+- облик задаёт тема: в виджетах нет `isDark`, кегля, длительностей и
+  радиусов числами;
+- блоки, сервисы, модели и ядро не импортируют `lib/ui`;
+- функция не сложнее 15, не длиннее 60 строк и не глубже 3 уровней
+  (`dart tool/check_complexity.dart` покажет самые тяжёлые);
+- новое состояние — блок с событиями; Cubit — только для мимолётного
+  состояния одного виджета без асинхронной работы.
+
+У стражей есть списки старых нарушителей. Пополнять их нельзя; исправив
+нарушение, запись из списка вычеркните — страж сам об этом напомнит.
+
 ## Что стоит обсудить до правки
 
 Если задумали крупное — новый экран, замену зависимости, смену формата
@@ -210,6 +225,22 @@ progress is not overwritten by an older package" beats "testBulkImport".
 
 A change in behaviour comes with a test. A bug fix comes with a test that
 fails without it.
+
+A few rules are held by the test run rather than by review — the guards in
+`test/guards/`:
+
+- one file, one public widget; no private widgets and no methods returning
+  widgets (other than `build`);
+- the theme sets the look: no `isDark`, font sizes, durations or radii as
+  numbers inside widgets;
+- blocs, services, models and core never import `lib/ui`;
+- a function stays within complexity 15, 60 lines and 3 levels of nesting
+  (`dart tool/check_complexity.dart` lists the heaviest);
+- new state is a bloc with events; a Cubit only for fleeting state of a
+  single widget with no asynchronous work.
+
+Each guard carries a list of older violations. The list must not grow; once
+you fix a violation, strike its entry — the guard will remind you.
 
 ## Worth discussing first
 

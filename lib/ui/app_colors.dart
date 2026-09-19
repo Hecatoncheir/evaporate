@@ -224,15 +224,15 @@ const libraryInkColors = [
   Color(0xFFF2C368),
 ];
 
-Color ambientParticleColor(bool isDark) =>
-    isDark ? const Color(0xFFE9C877) : const Color(0xFF8C3A10);
+Color ambientParticleColor({required bool dark}) =>
+    dark ? const Color(0xFFE9C877) : const Color(0xFF8C3A10);
 
 Color particleColor({
   required bool isDark,
   required double phase,
   required double glow,
 }) => Color.lerp(
-  ambientParticleColor(isDark),
+  ambientParticleColor(dark: isDark),
   libraryInkColors[(phase * 10).floor() % 5],
   glow,
 )!;
@@ -302,8 +302,8 @@ const _lightWaveColors = [
   Color(0xFFB3261E),
 ];
 
-List<Color> waveColors(bool isDark) =>
-    isDark ? _darkWaveColors : _lightWaveColors;
+List<Color> waveColors({required bool dark}) =>
+    dark ? _darkWaveColors : _lightWaveColors;
 
 /// Запасные цвета обложки, выведенные из названия игры.
 ///

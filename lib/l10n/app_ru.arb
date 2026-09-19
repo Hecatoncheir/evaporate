@@ -241,13 +241,6 @@
       }
     }
   },
-  "@gamesWithPaths": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "@importSnapshotNote": {
     "placeholders": {
       "game": {
@@ -431,16 +424,6 @@
       }
     }
   },
-  "@noticeRestorePartial": {
-    "placeholders": {
-      "files": {
-        "type": "int"
-      },
-      "paths": {
-        "type": "String"
-      }
-    }
-  },
   "@noticeRestoredFiles": {
     "placeholders": {
       "files": {
@@ -505,16 +488,6 @@
   "@noticeUnresolvedShort": {
     "placeholders": {
       "paths": {
-        "type": "String"
-      }
-    }
-  },
-  "@ofAmount": {
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "total": {
         "type": "String"
       }
     }
@@ -795,7 +768,6 @@
   "details": "Сведения",
   "download": "Скачать",
   "downloadEngine": "Движок загрузок",
-  "downloadPaused": "Загрузка на паузе",
   "downloads": "Загрузки",
   "networkSpeed": "Сеть",
   "peakSpeed": "Пик",
@@ -840,7 +812,6 @@
   "filesTruncated": "недокачано: {count}",
   "findAutomatically": "Найти автоматически",
   "findFolderByTitle": "Поискать папку по названию игры",
-  "findGamesInFolder": "Найти игры в папке",
   "findInSteam": "Найти в Steam",
   "folderMissing": "Папка не найдена.",
   "foundByTitleNote": "Найдено по названию игры. Проверьте, что это действительно папка сохранений.",
@@ -881,7 +852,6 @@
       }
     }
   },
-  "gamesWithPaths": "игр с путями: {count}",
   "hintBack": "Назад",
   "hintNavigate": "Навигация",
   "hintPlay": "Играть",
@@ -986,7 +956,6 @@
   "noticePathsNothingFound": "В базе путей ничего не нашлось для этой игры",
   "noticeRegistryLeft": "{message}; в реестре осталось веток: {count}",
   "noticeRestoreDone": "Готово: {files} файлов восстановлено.",
-  "noticeRestorePartial": "Восстановлено {files} файлов. Не сопоставились пути: {paths}. Остальное восстановлено.",
   "noticeRestoredFiles": "Восстановлено {files} файлов ({size}).",
   "noticeSaveFailedBody": "«{title}»: {error}",
   "noticeSaveHints": "Пока «{title}» работала, изменились папки: {count}. Загляните в «Папки сохранений».",
@@ -1033,7 +1002,6 @@
   "notificationsUnavailable": "Служба уведомлений недоступна",
   "notificationsUnavailableNote": "Служба уведомлений недоступна — приложение работает, но сообщать о фоновых событиях не сможет.",
   "nowDownloading": "Сейчас скачивается",
-  "ofAmount": "{done} из {total}",
   "onlyForPlatform": "Только для {platform}",
   "onlyForPlatformNote": "Включите, если на других ОС у игры другой путь",
   "openLinkFailed": "Не удалось открыть ссылку: {url}",
@@ -1071,7 +1039,6 @@
   "permissionNote": "macOS спрашивает разрешение один раз. Если вы его отклонили, включить уведомления можно только в системных настройках.",
   "pickExecutableNote": "Укажите исполняемый файл ниже, чтобы запускать игру отсюда.",
   "pickFolder": "Выберите папку с игрой.",
-  "pickGameOnTheLeft": "Выберите игру слева",
   "pickTorrent": "Выберите .torrent файл.",
   "play": "Играть",
   "playtime": "Наиграно {duration}",
@@ -1230,7 +1197,6 @@
   "themeSystem": "Как в системе",
   "title": "Название",
   "titleHint": "Как показывать в библиотеке",
-  "torrentFallbackName": "Раздача",
   "torrentNamed": "Раздача {hash}",
   "torrentReadFailed": "Не удалось прочитать торрент: {error}",
   "torrentUnsafePath": "Раздача просит записать файл мимо папки загрузки: {path}. Такой торрент не добавляем.",
@@ -1254,8 +1220,6 @@
   "updateAvailableBody": "Скачать можно на странице релизов на GitHub.",
   "updateBadAnswer": "Ответ о версиях не разобрать",
   "updateNote": "Приложение проверяет версию автоматически, а скачивает и ставит обновление только по вашему нажатию",
-  "updateNoteLine1": "Проверка версии идёт автоматически, а ",
-  "updateNoteLine2": "скачивание и установка — только по вашему нажатию",
   "updateUnavailable": "Список версий недоступен: {status}",
   "uploadedTotal": "отдано {size}",
   "version": "Версия",

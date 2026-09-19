@@ -106,8 +106,8 @@ void main() {
   );
 
   test('ambient points use the exact requested colors', () {
-    expect(ambientParticleColor(false), const Color(0xFF8C3A10));
-    expect(ambientParticleColor(true), const Color(0xFFE9C877));
+    expect(ambientParticleColor(dark: false), const Color(0xFF8C3A10));
+    expect(ambientParticleColor(dark: true), const Color(0xFFE9C877));
   });
 
   testWidgets('particle painter has a sharp core and no glow outside it', (
@@ -333,7 +333,7 @@ void main() {
   test(
     'effects preference defaults on, round-trips and participates in equality',
     () {
-      final settings = AppSettings.fromJson({}, '/games');
+      final settings = AppSettings.fromJson(const {}, '/games');
       expect(settings.libraryEffects, isTrue);
       final disabled = settings.copyWith(libraryEffects: false);
       expect(disabled, isNot(settings));

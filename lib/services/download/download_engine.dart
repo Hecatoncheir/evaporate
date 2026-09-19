@@ -24,7 +24,7 @@ class EngineStatus extends Equatable {
   List<Object?> get props => [state, message];
 
   /// Для журналов. Пользователю состояние показывают словами через
-  /// `engineStateLabel` в слое интерфейса — здесь языка нет.
+  /// `engineStateLabel` в `lib/l10n/labels.dart` — здесь языка нет.
   String get label => switch (state) {
     EngineState.stopped => 'stopped',
     EngineState.starting => 'starting',

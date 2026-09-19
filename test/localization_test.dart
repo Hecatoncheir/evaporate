@@ -77,7 +77,7 @@ void main() {
     });
 
     test('незнакомый язык читается как системный', () {
-      final restored = AppSettings.fromJson({
+      final restored = AppSettings.fromJson(const {
         'installDir': '/games',
         'locale': 'kl',
       }, '/games');

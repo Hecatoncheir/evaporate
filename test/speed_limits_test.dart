@@ -21,7 +21,10 @@ void main() {
     });
 
     test('отрицательное значение читается как отсутствие ограничения', () {
-      final limits = SpeedLimits.fromJson({'download': -100, 'upload': -1});
+      final limits = SpeedLimits.fromJson(const {
+        'download': -100,
+        'upload': -1,
+      });
 
       expect(limits.download, 0);
       expect(limits.upload, 0);
@@ -92,13 +95,15 @@ void main() {
     });
 
     test('старый файл настроек без ограничений читается', () {
-      final restored = AppSettings.fromJson({'installDir': '/games'}, '/games');
+      final restored = AppSettings.fromJson(const {
+        'installDir': '/games',
+      }, '/games');
 
       expect(restored.limits, SpeedLimits.unlimited);
     });
 
     test('мусор вместо чисел не роняет чтение', () {
-      final limits = SpeedLimits.fromJson({
+      final limits = SpeedLimits.fromJson(const {
         'download': 'быстро',
         'upload': null,
       });
@@ -144,7 +149,7 @@ void main() {
     });
 
     test('отрицательный порог читается как отсутствие предела', () {
-      final limits = SpeedLimits.fromJson({'seedRatio': -5});
+      final limits = SpeedLimits.fromJson(const {'seedRatio': -5});
 
       expect(limits.seedRatio, 0);
       expect(limits.seedingDone(uploaded: 999, downloaded: 1), isFalse);

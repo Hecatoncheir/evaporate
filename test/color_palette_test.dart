@@ -36,12 +36,12 @@ void main() {
       Color(0xFF9A7BD8),
       Color(0xFFF2C368),
     ]);
-    expect(ambientParticleColor(false), const Color(0xFF8C3A10));
-    expect(ambientParticleColor(true), const Color(0xFFE9C877));
+    expect(ambientParticleColor(dark: false), const Color(0xFF8C3A10));
+    expect(ambientParticleColor(dark: true), const Color(0xFFE9C877));
     for (final dark in [false, true]) {
       expect(
         particleColor(isDark: dark, phase: 0, glow: 0),
-        ambientParticleColor(dark),
+        ambientParticleColor(dark: dark),
       );
       expect(
         particleColor(isDark: dark, phase: 0, glow: 1),
@@ -51,13 +51,13 @@ void main() {
   });
 
   test('wave and artwork palettes keep their theme values', () {
-    expect(waveColors(true), const [
+    expect(waveColors(dark: true), const [
       Color(0xFFE9C877),
       Color(0xFF49B7E0),
       Color(0xFFE0574A),
       Color(0xFFC9C2B2),
     ]);
-    expect(waveColors(false), const [
+    expect(waveColors(dark: false), const [
       Color(0xFFFF4A17),
       Color(0xFFFFC400),
       Color(0xFF0090A8),

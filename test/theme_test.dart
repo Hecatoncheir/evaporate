@@ -224,7 +224,7 @@ void main() {
     // Чужой или испорченный файл настроек не должен запирать пользователя
     // в теме, которую он не выбирал.
     test('незнакомое значение читается как «как в системе»', () {
-      final restored = AppSettings.fromJson({
+      final restored = AppSettings.fromJson(const {
         'installDir': '/games',
         'themeMode': 'сепия',
       }, '/games');

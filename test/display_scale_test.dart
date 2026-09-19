@@ -15,7 +15,7 @@ import 'support/test_app.dart';
 
 void main() {
   test('scales default, persist independently, clamp corrupt values and affect equality', () {
-    final defaults = AppSettings.fromJson({}, '/games');
+    final defaults = AppSettings.fromJson(const {}, '/games');
     expect(defaults.interfaceScale, 1);
     expect(defaults.libraryScale, 1);
     final changed = defaults.copyWith(interfaceScale: 1.2, libraryScale: 0.75);
@@ -23,21 +23,21 @@ void main() {
     final restored = AppSettings.fromJson(changed.toJson(), '/games');
     expect(restored.toJson(), changed.toJson());
     expect(
-      AppSettings.fromJson({
+      AppSettings.fromJson(const {
         'interfaceScale': 99,
         'libraryScale': -1,
       }, '/games').interfaceScale,
       1.25,
     );
     expect(
-      AppSettings.fromJson({
+      AppSettings.fromJson(const {
         'interfaceScale': 99,
         'libraryScale': -1,
       }, '/games').libraryScale,
       0.75,
     );
     expect(
-      AppSettings.fromJson({
+      AppSettings.fromJson(const {
         'interfaceScale': 'bad',
         'libraryScale': double.nan,
       }, '/games').toJson(),

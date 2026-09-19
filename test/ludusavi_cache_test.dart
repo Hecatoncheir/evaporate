@@ -25,12 +25,14 @@ void main() {
   /// Манифест из нескольких игр в том виде, в каком его отдаёт Ludusavi.
   String manifest(int count) => [
     for (var i = 0; i < count; i++)
-      'Игра $i:\n'
-          '  files:\n'
-          '    "<home>/saves/game$i":\n'
-          '      tags: [save]\n'
-          '  steam:\n'
-          '    id: ${1000 + i}\n',
+      '''
+Игра $i:
+  files:
+    "<home>/saves/game$i":
+      tags: [save]
+  steam:
+    id: ${1000 + i}
+''',
   ].join();
 
   test('кэш пишется и читается обратно', () async {

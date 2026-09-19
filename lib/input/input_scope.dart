@@ -188,30 +188,23 @@ class _InputScopeState extends State<InputScope> {
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      shortcuts: <ShortcutActivator, Intent>{
-        const SingleActivator(LogicalKeyboardKey.slash): const SearchIntent(),
-        const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
-            const SearchIntent(),
-        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
-            const SearchIntent(),
-        const SingleActivator(LogicalKeyboardKey.tab, control: true):
-            const SectionChangeIntent(1),
-        const SingleActivator(
-          LogicalKeyboardKey.tab,
-          control: true,
-          shift: true,
-        ): const SectionChangeIntent(
-          -1,
-        ),
-        const SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
-            const SectionChangeIntent(1),
-        const SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
-            const SectionChangeIntent(-1),
-        const SingleActivator(LogicalKeyboardKey.enter, meta: true):
-            const PrimaryActionIntent(),
-        const SingleActivator(LogicalKeyboardKey.enter, control: true):
-            const PrimaryActionIntent(),
-        const SingleActivator(LogicalKeyboardKey.escape): const NavBackIntent(),
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.slash): SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.keyF, control: true): SearchIntent(),
+        SingleActivator(LogicalKeyboardKey.tab, control: true):
+            SectionChangeIntent(1),
+        SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true):
+            SectionChangeIntent(-1),
+        SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
+            SectionChangeIntent(1),
+        SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
+            SectionChangeIntent(-1),
+        SingleActivator(LogicalKeyboardKey.enter, meta: true):
+            PrimaryActionIntent(),
+        SingleActivator(LogicalKeyboardKey.enter, control: true):
+            PrimaryActionIntent(),
+        SingleActivator(LogicalKeyboardKey.escape): NavBackIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{

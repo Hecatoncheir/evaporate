@@ -16,9 +16,9 @@ void main() {
   test('new and migrated settings use the chosen effect defaults', () {
     for (final settings in [
       const AppSettings(installDir: '/games'),
-      AppSettings.fromJson({}, '/games'),
-      AppSettings.fromJson({'libraryEffects': true}, '/games'),
-      AppSettings.fromJson({'libraryEffects': false}, '/games'),
+      AppSettings.fromJson(const {}, '/games'),
+      AppSettings.fromJson(const {'libraryEffects': true}, '/games'),
+      AppSettings.fromJson(const {'libraryEffects': false}, '/games'),
     ]) {
       expect(settings.particlesEnabled, isFalse);
       expect(settings.wavesEnabled, isTrue);

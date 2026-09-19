@@ -205,9 +205,9 @@ void main() {
             child: Scaffold(
               body: QueueColumn(
                 active: const [],
-                queued: [task],
+                queued: const [task],
                 library: LibraryState(games: [game]),
-                allTasks: [task],
+                allTasks: const [task],
               ),
             ),
           ),

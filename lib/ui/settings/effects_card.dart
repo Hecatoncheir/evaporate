@@ -124,7 +124,7 @@ class LibraryEffectsCard extends StatelessWidget {
           // место в сетке, а не украшает её, и зажигается по прямой
           // просьбе.
           onChanged: settings.libraryEffects || effect.independent
-              ? (value) => update(effect.apply(settings, value))
+              ? (value) => update(effect.apply(settings, on: value))
               : null,
         ),
     ],
@@ -140,77 +140,77 @@ class LibraryEffectsCard extends StatelessWidget {
       id: 'particles',
       title: l.effectParticles,
       value: (s) => s.particlesEnabled,
-      apply: (s, v) => s.copyWith(particlesEnabled: v),
+      apply: (s, {required on}) => s.copyWith(particlesEnabled: on),
     ),
     _Effect(
       id: 'waves',
       title: l.effectWaves,
       value: (s) => s.wavesEnabled,
-      apply: (s, v) => s.copyWith(wavesEnabled: v),
+      apply: (s, {required on}) => s.copyWith(wavesEnabled: on),
     ),
     _Effect(
       id: 'foil',
       title: l.effectFoil,
       value: (s) => s.foilEnabled,
-      apply: (s, v) => s.copyWith(foilEnabled: v),
+      apply: (s, {required on}) => s.copyWith(foilEnabled: on),
     ),
     _Effect(
       id: 'cardTilt',
       title: l.effectCardTilt,
       value: (s) => s.cardTiltEnabled,
-      apply: (s, v) => s.copyWith(cardTiltEnabled: v),
+      apply: (s, {required on}) => s.copyWith(cardTiltEnabled: on),
     ),
     _Effect(
       id: 'liquidDistortion',
       title: l.effectLiquidDistortion,
       value: (s) => s.liquidDistortionEnabled,
-      apply: (s, v) => s.copyWith(liquidDistortionEnabled: v),
+      apply: (s, {required on}) => s.copyWith(liquidDistortionEnabled: on),
     ),
     _Effect(
       id: 'liquidSelection',
       title: l.effectLiquidSelection,
       value: (s) => s.liquidSelectionEnabled,
-      apply: (s, v) => s.copyWith(liquidSelectionEnabled: v),
+      apply: (s, {required on}) => s.copyWith(liquidSelectionEnabled: on),
     ),
     _Effect(
       id: 'ambient',
       title: l.effectAmbient,
       note: l.effectAmbientNote,
       value: (s) => s.ambientEnabled,
-      apply: (s, v) => s.copyWith(ambientEnabled: v),
+      apply: (s, {required on}) => s.copyWith(ambientEnabled: on),
     ),
     _Effect(
       id: 'heroSweep',
       title: l.effectHeroSweep,
       value: (s) => s.heroSweepEnabled,
-      apply: (s, v) => s.copyWith(heroSweepEnabled: v),
+      apply: (s, {required on}) => s.copyWith(heroSweepEnabled: on),
     ),
     _Effect(
       id: 'shotsBackdrop',
       title: l.effectShotsBackdrop,
       note: l.effectShotsBackdropNote,
       value: (s) => s.shotsBackdropEnabled,
-      apply: (s, v) => s.copyWith(shotsBackdropEnabled: v),
+      apply: (s, {required on}) => s.copyWith(shotsBackdropEnabled: on),
     ),
     _Effect(
       id: 'coverBackdrop',
       title: l.effectCoverBackdrop,
       value: (s) => s.coverBackdropEnabled,
-      apply: (s, v) => s.copyWith(coverBackdropEnabled: v),
+      apply: (s, {required on}) => s.copyWith(coverBackdropEnabled: on),
     ),
     _Effect(
       id: 'drops',
       title: l.effectDrops,
       note: l.effectDropsNote,
       value: (s) => s.dropsEnabled,
-      apply: (s, v) => s.copyWith(dropsEnabled: v),
+      apply: (s, {required on}) => s.copyWith(dropsEnabled: on),
     ),
     _Effect(
       id: 'portal',
       title: l.effectPortal,
       note: l.effectPortalNote,
       value: (s) => s.portalEnabled,
-      apply: (s, v) => s.copyWith(portalEnabled: v),
+      apply: (s, {required on}) => s.copyWith(portalEnabled: on),
     ),
     _Effect(
       id: 'selectionFrame',
@@ -218,13 +218,13 @@ class LibraryEffectsCard extends StatelessWidget {
       note: l.effectSelectionFrameNote,
       independent: true,
       value: (s) => s.selectionFrameEnabled,
-      apply: (s, v) => s.copyWith(selectionFrameEnabled: v),
+      apply: (s, {required on}) => s.copyWith(selectionFrameEnabled: on),
     ),
     _Effect(
       id: 'interfaceAnimations',
       title: l.effectInterfaceAnimations,
       value: (s) => s.interfaceAnimationsEnabled,
-      apply: (s, v) => s.copyWith(interfaceAnimationsEnabled: v),
+      apply: (s, {required on}) => s.copyWith(interfaceAnimationsEnabled: on),
     ),
   ];
 }
@@ -245,7 +245,7 @@ class _Effect {
   final String title;
   final String? note;
   final bool Function(AppSettings) value;
-  final AppSettings Function(AppSettings, bool) apply;
+  final AppSettings Function(AppSettings settings, {required bool on}) apply;
 
   /// Не заперт общим выключателем украшений.
   final bool independent;

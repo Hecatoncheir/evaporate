@@ -234,27 +234,27 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 вычеркнута (тест падает на устаревшей записи). Уборка идёт по частям, а
 новых нарушений не появляется с первого дня.
 
-- [ ] `test/widget_structure_test.dart` — обходит `lib/ui`, как
+- [x] `test/widget_structure_test.dart` — обходит `lib/ui`, как
   `localization_test.dart`, и падает на: `class _X extends
   (Stateless|Stateful|Inherited…)Widget`; метод, возвращающий `Widget` /
   `List<Widget>`, кроме `build`; больше одного класса-виджета в файле.
   `_XState` законны: это идиома Flutter, а не приватный виджет. **S**
-- [ ] `tool/check_complexity.dart` + `test/complexity_test.dart` — длина
+- [x] `tool/check_complexity.dart` + `test/complexity_test.dart` — длина
   функции, вложенность, счёт ветвлений; пороги: сложность ≤ 15, длина ≤ 60,
   вложенность ≤ 3, затем опускать следом за достигнутым (как порог
   покрытия). Первая версия — без зависимостей, на регулярках; точная — на
   `package:analyzer` 💬. **M**
-- [ ] `test/theme_structure_test.dart` — в `lib/ui` вне `lib/ui/theme/` нет
+- [x] `test/theme_structure_test.dart` — в `lib/ui` вне `lib/ui/theme/` нет
   `isDark`, нет `TextStyle(` с `fontSize:`, нет `Duration(milliseconds:` и
   `BorderRadius.circular(<число>)`; набор расширений у двух схем совпадает.
   Тоже храповиком. **S**
-- [ ] `test/layering_test.dart` — `lib/bloc`, `lib/services`, `lib/models`,
+- [x] `test/layering_test.dart` — `lib/bloc`, `lib/services`, `lib/models`,
   `lib/core` не импортируют `lib/ui`; `lib/models` и `lib/core` не
   импортируют Flutter и сервисы. Сегодня он нашёл бы:
   `downloads_bloc.dart:21` (`ui/labels.dart`), `navigation_bloc.dart:2,57`
   (`FocusNode` в блоке), `models/app_settings.dart:2,4` (`material` и
   `input`), `models/save_snapshot.dart:1` (сервис). **S**
-- [ ] Линтер. Даром, срабатываний ноль: `avoid_catches_without_on_clauses`
+- [x] Линтер. Даром, срабатываний ноль: `avoid_catches_without_on_clauses`
   (все 58 `catch` уже с `on`), `avoid_void_async`. С правкой:
   `only_throw_errors` (бросают строки — `add_game_dialog.dart:306,321,337,338`),
   `prefer_single_quotes` (23 места; заодно закрывает дыру стража кириллицы —
@@ -273,11 +273,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `avoid_public_bloc_methods` сработает на осознанных `persist()`,
   `snapshotBeforeLaunch`, `applyLimits`, `closeOpenedGame` — их придётся
   либо исключить с объяснением, либо перевести в события. **S**
-- [ ] Страж мёртвых ключей ARB: сейчас их девять (`downloadPaused`,
+- [x] Страж мёртвых ключей ARB: сейчас их девять (`downloadPaused`,
   `findGamesInFolder`, `gamesWithPaths`, `noticeRestorePartial`, `ofAmount`,
   `pickGameOnTheLeft`, `torrentFallbackName`, `updateNoteLine1`,
   `updateNoteLine2`). **S**
-- [ ] Записать новые правила в `CLAUDE.md` и `CONTRIBUTING.md` — иначе их
+- [x] Записать новые правила в `CLAUDE.md` и `CONTRIBUTING.md` — иначе их
   знает только этот файл: «по умолчанию Bloc» (вместо нынешнего раздела про
   Cubit), «один файл — один публичный виджет, методов-виджетов нет», три
   яруса темы и где что лежит, пороги сложности. **S**
@@ -473,7 +473,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   или `persist` оставит ключ `bulk` взведённым, и клавиши переноса погаснут
   до перезапуска. Лечится общим помощником (этап 4), у которого гашение — в
   `finally`. **S**
-- [ ] **Блок зависит от слоя UI.** `downloads_bloc.dart:21` импортирует
+- [x] **Блок зависит от слоя UI.** `downloads_bloc.dart:21` импортирует
   `ui/labels.dart` ради `engineStateLabel`. Подписи, нужные блокам, —
   в нейтральное место (`lib/l10n/labels.dart`). **S**
 - [x] **Осиротевшие комментарии** после распила `LibraryBloc`/`SavesBloc`:

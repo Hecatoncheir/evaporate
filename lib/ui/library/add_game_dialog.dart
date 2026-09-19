@@ -293,7 +293,8 @@ class _AddGameDialogState extends State<_AddGameDialog> {
     }
   }
 
-  /// Собирает то, что предстоит завести в библиотеке.
+  /// Собирает то, что предстоит завести в библиотеке. Негодный ввод
+  /// отвергает [_Rejected] с готовым для человека текстом.
   ///
   /// Проверки и название у каждого источника свои, а всё, что дальше, —
   /// одно на всех, поэтому развилка кончается здесь.
@@ -303,7 +304,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
     switch (_kind) {
       case GameSourceKind.magnet:
         final magnet = _magnetController.text.trim();
-        if (!magnet.startsWith('magnet:')) throw l.badMagnet;
+        if (!magnet.startsWith('magnet:')) throw _Rejected(l.badMagnet);
         final source = GameSource(kind: GameSourceKind.magnet, value: magnet);
         return _AddRequest(
           event: GameAdded(
@@ -318,7 +319,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
       case GameSourceKind.torrentFile:
         final path = _filePath;
-        if (path == null) throw l.pickTorrent;
+        if (path == null) throw _Rejected(l.pickTorrent);
         final source = GameSource(
           kind: GameSourceKind.torrentFile,
           value: path,
@@ -334,8 +335,8 @@ class _AddGameDialogState extends State<_AddGameDialog> {
 
       case GameSourceKind.localFolder:
         final dir = _folderPath;
-        if (dir == null) throw l.pickFolder;
-        if (!await Directory(dir).exists()) throw l.folderMissing;
+        if (dir == null) throw _Rejected(l.pickFolder);
+        if (!await Directory(dir).exists()) throw _Rejected(l.folderMissing);
 
         final candidates = await ExecutableFinder.scan(dir);
         return _AddRequest(
@@ -424,4 +425,14 @@ class _PathPicker extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Ввод, с которым игру не завести; [message] показывается как есть.
+class _Rejected implements Exception {
+  const _Rejected(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }

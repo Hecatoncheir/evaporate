@@ -9,8 +9,9 @@ import '../models/download_task.dart';
 import '../models/game.dart';
 import '../models/save_profile.dart';
 import '../models/save_snapshot.dart';
-import '../services/download/download_engine.dart';
 import '../services/launch/game_roots.dart';
+
+export '../l10n/labels.dart' show engineStateLabel;
 
 /// Переводимые подписи для того, что живёт в моделях и во вводе.
 ///
@@ -107,14 +108,6 @@ String gamepadStatusLabel(L l, GamepadStatus status) {
   if (status.devices.isEmpty) return l.gamepadNone;
   return status.soleDevice ?? l.gamepadDevices(status.devices.length);
 }
-
-/// Состояние движка загрузок словами.
-String engineStateLabel(L l, EngineState state) => switch (state) {
-  EngineState.stopped => l.engineStopped2,
-  EngineState.starting => l.engineStarting,
-  EngineState.ready => l.engineReady,
-  EngineState.failed => l.statusError,
-};
 
 /// Скорость: «1,2 МБ» плюс единица времени, которая тоже переводится.
 String speedLabel(L l, num bytesPerSecond) =>

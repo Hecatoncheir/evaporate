@@ -11,7 +11,7 @@ void main() {
       // выглядел бы сломанным.
       expect(base.effectPreset, EffectPreset.standard);
       expect(
-        AppSettings.fromJson({}, '/games').effectPreset,
+        AppSettings.fromJson(const {}, '/games').effectPreset,
         EffectPreset.standard,
       );
     });
