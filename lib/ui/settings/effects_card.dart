@@ -77,8 +77,12 @@ class LibraryEffectsCard extends StatelessWidget {
     emptySelectionAllowed: true,
     showSelectedIcon: false,
     selected: {?settings.effectPreset},
-    onSelectionChanged: (selection) =>
-        update(selection.first.applyTo(settings)),
+    // Нажатие на горящий сегмент снимает выбор и отдаёт пустое множество —
+    // это не новый набор, а отсутствие действия.
+    onSelectionChanged: (selection) {
+      if (selection.isEmpty) return;
+      update(selection.first.applyTo(settings));
+    },
     style: const ButtonStyle(
       textStyle: WidgetStatePropertyAll(
         TextStyle(fontSize: 12.5, fontFamily: EvaporateTheme.fontFamily),

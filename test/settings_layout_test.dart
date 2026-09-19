@@ -113,4 +113,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('effects-portal-toggle')), findsOneWidget);
   });
+
+  // Пустой выбор у наборов разрешён, и повторное нажатие на горящий
+  // сегмент отдаёт пустое множество — обработчик брал у него `first`.
+  testWidgets('нажатие на уже выбранный набор украшений ничего не ломает', (
+    tester,
+  ) async {
+    final harness = await openSettings(tester);
+    final before = harness.settings.state;
+    final standard = find.descendant(
+      of: find.byKey(const ValueKey('effects-preset')),
+      matching: find.text('Обычно'),
+    );
+    await tester.ensureVisible(standard);
+    await tester.pumpAndSettle();
+
+    await tester.tap(standard);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(harness.settings.state, before);
+  });
 }

@@ -431,7 +431,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`saves_section.dart:206`), и уникальность никто не проверяет. Лечение:
   одна функция на все пути (место ей — `SaveProfile.withAddedPaths`), а
   диалог не даёт сохранить метку, которая уже занята; тест на оба сценария. **S**
-- [ ] **Нажатие на уже выбранный набор эффектов бросает `StateError`.**
+- [x] **Нажатие на уже выбранный набор эффектов бросает `StateError`.**
   `effects_card.dart:77–81`: стоит `emptySelectionAllowed: true`, а
   обработчик берёт `selection.first`. Нажатие на выбранный сегмент отдаёт
   пустое множество. Лечение: пустой выбор — не действие
