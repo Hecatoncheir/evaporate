@@ -375,7 +375,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`update_download.dart:195–198`), битые пакеты (`save_manager.dart:697`),
   `_adoptMetadata` (`managed_download.dart:96`), витрина
   (`steam_shortcuts.dart:389`). **S**
-- [ ] Наследие aria2 — не «ровно одно», как сказано в `CLAUDE.md`:
+- [x] Наследие aria2 — не «ровно одно», как сказано в `CLAUDE.md`:
   `ProxySettings.bypass` никем не читается, `DownloadTask.followedBy` движок
   не заполняет (а `downloads_bloc.dart:375` читает),
   `DownloadState.removed` никто не порождает, `_Root.token/depth`

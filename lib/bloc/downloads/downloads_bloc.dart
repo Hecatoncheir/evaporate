@@ -320,7 +320,6 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         continue;
       }
       _syncInfoHash(game, task);
-      if (_followsNewTask(game, task)) continue;
       await _applyTaskState(game, task, emit);
     }
   }
@@ -348,18 +347,6 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     library.add(GameDownloadLinked(game.id, infoHash: task.infoHash));
   }
 
-  /// Переводит взгляд на задачу, которую породила нынешняя.
-  ///
-  /// Magnet сначала качает метаданные и лишь потом заводит саму загрузку.
-  /// Вернув true, метод говорит: следить теперь надо за другой задачей, а
-  /// состояние этой разбирать незачем.
-  bool _followsNewTask(Game game, DownloadTask task) {
-    final next = task.followedBy;
-    if (next == null || next == game.downloadTaskId) return false;
-    library.add(GameDownloadLinked(game.id, taskId: next));
-    return true;
-  }
-
   /// Переносит состояние задачи движка в состояние игры.
   Future<void> _applyTaskState(
     Game game,
@@ -376,8 +363,6 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       case DownloadState.active:
       case DownloadState.waiting:
         _setStatus(game, GameStatus.downloading);
-      case DownloadState.removed:
-        library.add(GameDownloadDropped(game.id));
     }
   }
 

@@ -40,10 +40,7 @@ class SavePathFinder {
 
     final roots = searchRoots == null
         ? _roots()
-        : [
-            for (final path in searchRoots)
-              _Root(token: SavePathTemplate.home, path: path, depth: 1),
-          ];
+        : [for (final path in searchRoots) _Root(path: path)];
 
     final results = <String, SavePathSuggestion>{};
     for (final root in roots) {
@@ -71,13 +68,11 @@ class SavePathFinder {
     void add(String token, [List<String> subPaths = const []]) {
       final base = placeholders[token];
       if (base == null) return;
-      roots.add(_Root(token: token, path: base, depth: 1));
+      roots.add(_Root(path: base));
       for (final sub in subPaths) {
         roots.add(
           _Root(
-            token: token,
             path: p.join(base, sub.replaceAll('/', p.separator)),
-            depth: 1,
             suffix: sub,
           ),
         );
@@ -93,14 +88,7 @@ class SavePathFinder {
     if (Platform.isLinux) {
       final home = placeholders[SavePathTemplate.home];
       if (home != null) {
-        roots.add(
-          _Root(
-            token: SavePathTemplate.home,
-            path: p.join(home, '.config'),
-            depth: 1,
-            suffix: '.config',
-          ),
-        );
+        roots.add(_Root(path: p.join(home, '.config'), suffix: '.config'));
       }
     }
     return roots;
@@ -201,15 +189,8 @@ class SaveRoot {
 }
 
 class _Root {
-  const _Root({
-    required this.token,
-    required this.path,
-    required this.depth,
-    this.suffix,
-  });
+  const _Root({required this.path, this.suffix});
 
-  final String token;
   final String path;
-  final int depth;
   final String? suffix;
 }

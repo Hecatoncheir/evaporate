@@ -25,7 +25,6 @@ class ProxySettings extends Equatable {
     this.port = 8080,
     this.username = '',
     this.password = '',
-    this.bypass = const [],
     this.useForSteam = true,
   });
 
@@ -35,9 +34,6 @@ class ProxySettings extends Equatable {
   final int port;
   final String username;
   final String password;
-
-  /// Хосты в обход прокси (`--no-proxy`).
-  final List<String> bypass;
 
   /// Пускать ли через прокси запросы к каталогу Steam. Отдельный флаг:
   /// качать через прокси и ходить в Steam напрямую — обычное желание.
@@ -63,7 +59,6 @@ class ProxySettings extends Equatable {
     int? port,
     String? username,
     String? password,
-    List<String>? bypass,
     bool? useForSteam,
   }) {
     return ProxySettings(
@@ -73,7 +68,6 @@ class ProxySettings extends Equatable {
       port: port ?? this.port,
       username: username ?? this.username,
       password: password ?? this.password,
-      bypass: bypass ?? this.bypass,
       useForSteam: useForSteam ?? this.useForSteam,
     );
   }
@@ -85,7 +79,6 @@ class ProxySettings extends Equatable {
     'port': port,
     if (username.isNotEmpty) 'username': username,
     if (password.isNotEmpty) 'password': password,
-    if (bypass.isNotEmpty) 'bypass': bypass,
     'useForSteam': useForSteam,
   };
 
@@ -99,9 +92,6 @@ class ProxySettings extends Equatable {
     port: json['port'] as int? ?? 8080,
     username: json['username'] as String? ?? '',
     password: json['password'] as String? ?? '',
-    bypass: (json['bypass'] as List<dynamic>? ?? [])
-        .map((e) => e.toString())
-        .toList(),
     useForSteam: json['useForSteam'] as bool? ?? true,
   );
 
@@ -113,7 +103,6 @@ class ProxySettings extends Equatable {
     port,
     username,
     password,
-    bypass,
     useForSteam,
   ];
 }

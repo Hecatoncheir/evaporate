@@ -75,7 +75,6 @@ String downloadStateLabel(L l, DownloadState state) => switch (state) {
   DownloadState.paused => l.statusPaused,
   DownloadState.complete => l.stateCompleted,
   DownloadState.error => l.statusError,
-  DownloadState.removed => l.stateCancelled,
 };
 
 /// Длительность словами: «2 ч 15 мин».

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum DownloadState { waiting, active, paused, complete, error, removed }
+enum DownloadState { waiting, active, paused, complete, error }
 
 /// Состояние одной загрузки, нормализованное под UI.
 /// Задачи движка маппятся в эту модель — UI о самом движке не знает.
@@ -20,7 +20,6 @@ class DownloadTask extends Equatable {
     this.files = const [],
     this.errorMessage,
     this.isMetadata = false,
-    this.followedBy,
     this.infoHash,
     this.isQueued = false,
   });
@@ -42,10 +41,8 @@ class DownloadTask extends Equatable {
   final List<String> files;
   final String? errorMessage;
 
-  /// Скачивание метаданных magnet-ссылки: короткая задача, которая затем
-  /// порождает настоящую загрузку ([followedBy]).
+  /// Задача пока скачивает метаданные magnet-ссылки, а не саму раздачу.
   final bool isMetadata;
-  final String? followedBy;
 
   /// Infohash торрента. После перезапуска приложения идентификатор задачи
   /// меняется, и связать её с игрой можно только по нему.
@@ -88,7 +85,6 @@ class DownloadTask extends Equatable {
     files,
     errorMessage,
     isMetadata,
-    followedBy,
     infoHash,
     isQueued,
   ];
@@ -100,7 +96,6 @@ class DownloadTask extends Equatable {
     DownloadState.paused => 'Пауза',
     DownloadState.complete => 'Готово',
     DownloadState.error => 'Ошибка',
-    DownloadState.removed => 'Отменено',
   };
 }
 

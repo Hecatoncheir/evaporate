@@ -1177,7 +1177,6 @@
   "sourceWatch": "из наблюдения",
   "speedPerSecond": "{value}/с",
   "startDownloadNow": "Начать загрузку сразу",
-  "stateCancelled": "Отменено",
   "stateCompleted": "Готово",
   "stateMetadata": "Метаданные",
   "stateQueued": "В очереди",
