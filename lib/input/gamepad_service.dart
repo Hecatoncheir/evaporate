@@ -55,6 +55,21 @@ class GamepadService {
   /// Сырые нажатия — нужны экрану переназначения кнопок.
   Stream<GamepadButton> get buttonPresses => _rawButtons.stream;
 
+  /// Идёт захват кнопки для переназначения.
+  ///
+  /// На это время нажатия приходят только сырыми, без своих действий:
+  /// иначе нажатие Y в окне захвата уводило бы к поиску, а LB/RB листали
+  /// разделы под окном. Крестовина не захватывается вовсе — направления не
+  /// переназначаются, иначе по меню стало бы нечем пройти.
+  bool capturing = false;
+
+  static const _directions = {
+    GamepadButton.dpadUp,
+    GamepadButton.dpadDown,
+    GamepadButton.dpadLeft,
+    GamepadButton.dpadRight,
+  };
+
   ValueListenable<GamepadStatus> get status => _status;
 
   GamepadBinding get binding => _binding;
@@ -159,6 +174,11 @@ class GamepadService {
 
     if (isDown) {
       _pressed.add(button);
+      if (capturing) {
+        // Направления не переназначаются: без них не пройти по меню.
+        if (!_directions.contains(button)) _rawButtons.add(button);
+        return;
+      }
       _rawButtons.add(button);
       final action = _binding.actionFor(button);
       if (action != null) _begin(action);

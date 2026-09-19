@@ -235,6 +235,9 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
   @override
   void initState() {
     super.initState();
+    // Пока окно открыто, нажатия не выполняют своих прежних действий под
+    // ним — см. `GamepadService.capturing`.
+    widget.gamepad.capturing = true;
     _subscription = widget.gamepad.buttonPresses.listen((button) {
       if (mounted) Navigator.pop(context, button);
     });
@@ -242,6 +245,7 @@ class _CaptureButtonDialogState extends State<_CaptureButtonDialog> {
 
   @override
   void dispose() {
+    widget.gamepad.capturing = false;
     _subscription?.cancel();
     super.dispose();
   }

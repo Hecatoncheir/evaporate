@@ -105,6 +105,50 @@ void main() {
     });
   });
 
+  // Сервис слал и сырую кнопку, и её прежнее действие: нажатие Y в окне
+  // захвата уводило в библиотеку к поиску, LB/RB листали разделы. А
+  // крестовина захватывалась вопреки правилу «направления не
+  // переназначаются» и оставляла без кнопки движение по меню.
+  group('захват кнопки', () {
+    test('на время захвата кнопка приходит сырой, без действия', () async {
+      final raw = <GamepadButton>[];
+      final rawSubscription = service.buttonPresses.listen(raw.add);
+      addTearDown(rawSubscription.cancel);
+
+      service.capturing = true;
+      service.handleEvent(buttonEvent(GamepadButton.y, 1));
+      service.handleEvent(buttonEvent(GamepadButton.y, 0));
+      await settle();
+
+      expect(raw, [GamepadButton.y]);
+      expect(received, isEmpty);
+    });
+
+    test('крестовина при захвате не отдаётся', () async {
+      final raw = <GamepadButton>[];
+      final rawSubscription = service.buttonPresses.listen(raw.add);
+      addTearDown(rawSubscription.cancel);
+
+      service.capturing = true;
+      service.handleEvent(buttonEvent(GamepadButton.dpadUp, 1));
+      service.handleEvent(buttonEvent(GamepadButton.dpadUp, 0));
+      await settle();
+
+      expect(raw, isEmpty);
+    });
+
+    test('после захвата действия возвращаются', () async {
+      service.capturing = true;
+      service.handleEvent(buttonEvent(GamepadButton.a, 1));
+      service.capturing = false;
+      service.handleEvent(buttonEvent(GamepadButton.a, 0));
+      service.handleEvent(buttonEvent(GamepadButton.a, 1));
+      await settle();
+
+      expect(received, [NavAction.confirm]);
+    });
+  });
+
   group('стики', () {
     test('отклонение внутри мёртвой зоны игнорируется', () async {
       service.handleEvent(axisEvent(GamepadAxis.leftStickX, 0.3));
