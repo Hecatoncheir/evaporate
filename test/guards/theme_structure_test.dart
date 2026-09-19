@@ -137,9 +137,9 @@ const _alphas = [
   'lib/ui/feedback/snack.dart: 1',
   'lib/ui/library/featured/featured_actions.dart: 1',
   'lib/ui/library/featured/playtime_readout.dart: 1',
-  'lib/ui/library/foil_card.dart: 2',
-  'lib/ui/library/library_atmosphere.dart: 2',
-  'lib/ui/library/portal_sparks.dart: 1',
+  'lib/ui/library/effects/foil/foil_surface.dart: 2',
+  'lib/ui/library/effects/library_atmosphere.dart: 2',
+  'lib/ui/library/effects/portal_sparks.dart: 1',
   'lib/ui/widgets/progress_hatching.dart: 1',
   'lib/ui/widgets/pulse_dot.dart: 2',
 ];

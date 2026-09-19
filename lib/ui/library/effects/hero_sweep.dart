@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
-import '../widgets/decorative_motion.dart';
+import '../../theme.dart';
+import '../../widgets/decorative_motion.dart';
 
 /// Полоса света, раз в несколько секунд проходящая по крупной обложке.
 ///

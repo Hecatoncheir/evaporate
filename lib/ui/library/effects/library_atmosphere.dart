@@ -3,9 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../theme.dart';
-import '../widgets/frame_step.dart';
-import '../widgets/window_visibility.dart';
+import '../../theme.dart';
+import '../../widgets/frame_step.dart';
+import '../../widgets/window_visibility.dart';
 import 'particle_field.dart';
 
 /// Одна ограниченная симуляция и один слой перерисовки. Сетка обложек —

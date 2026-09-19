@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../models/game.dart';
 import '../theme.dart';
+import 'effects/hero_sweep.dart';
 import 'featured/featured_art.dart';
 import 'featured/featured_compact_bar.dart';
 import 'featured/featured_frame.dart';
 import 'featured/featured_poster.dart';
 import 'featured/playtime_readout.dart';
-import 'hero_sweep.dart';
 import 'shots_backdrop.dart';
 
 /// Крупная обложка выбранной игры над полкой.

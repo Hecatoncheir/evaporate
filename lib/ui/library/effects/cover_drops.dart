@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/decorative_motion.dart';
+import '../../widgets/decorative_motion.dart';
 
 /// Капли, стекающие по обложке выбранной игры.
 ///

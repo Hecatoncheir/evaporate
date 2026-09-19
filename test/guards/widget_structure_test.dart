@@ -47,7 +47,6 @@ void main() {
 
 const _privateWidgets = [
   'lib/ui/library/add_game_dialog.dart: _AddGameDialog',
-  'lib/ui/library/foil_card.dart: _FoilScope',
   'lib/ui/library/scan_folder_dialog.dart: _ScanFolderDialog',
   'lib/ui/widgets/liquid_selection.dart: _LiquidInkScope',
 ];
@@ -62,7 +61,6 @@ const _widgetFunctions = [
 const _crowdedFiles = [
   'lib/ui/library/detail/detail_cover.dart: 2',
   'lib/ui/library/drop_overlay.dart: 2',
-  'lib/ui/library/foil_card.dart: 3',
   'lib/ui/widgets/liquid_selection.dart: 3',
   'lib/ui/widgets/spatial_surface.dart: 3',
 ];

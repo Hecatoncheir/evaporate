@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
-import 'package:evaporate/ui/library/foil_card.dart';
+import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
+import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
+import 'package:evaporate/ui/library/effects/portal_sparks.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
-import 'package:evaporate/ui/library/library_atmosphere.dart';
-import 'package:evaporate/ui/library/portal_sparks.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

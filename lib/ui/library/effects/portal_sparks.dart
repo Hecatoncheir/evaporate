@@ -4,8 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
-import '../widgets/decorative_motion.dart';
+import '../../theme.dart';
+import '../../widgets/decorative_motion.dart';
 
 /// Искра покидает контур по касательной и дальше летит свободно.
 /// Привязка живой частицы к периметру заставляла её огибать углы карточки

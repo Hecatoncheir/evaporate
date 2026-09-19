@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
-import '../library/game_wave.dart';
+import '../library/effects/game_wave.dart';
 import '../theme.dart';
 import 'shell_sections.dart';
 

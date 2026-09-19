@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/game.dart';
 import '../../theme.dart';
-import '../hero_sweep.dart';
+import '../effects/hero_sweep.dart';
 import '../shots_backdrop.dart';
 
 /// Сама картинка с затемнениями и пробегом света.

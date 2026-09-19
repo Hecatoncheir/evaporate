@@ -668,7 +668,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~`library/saves_section.dart`~~ | ~~`_FindPathsButton`~~ | сделано: `FindPathsButton`, `SavePathsSection` и `SnapshotsSection` — по файлу в `library/saves/`; сам сборник удалён |
 | ~~`library/detail/action_panel.dart`~~ | ~~`_SteamShortcutButton`, `_SteamLookupButton` + `_buildRow`, `_primaryActions` (77 строк)~~ | сделано: `BusyOutlinedButton` (в `widgets/`) и `SteamActions`; `PrimaryActions` выбирает одну из четырёх веток — `RunningGameActions`, `DownloadControlActions`, `PlayActions`, `DownloadStartActions`; `DownloadSummary` и `GameErrorNote` — своими файлами |
 | ~~`library/detail/rating_row.dart`~~ | ~~`_Count`, `_Metacritic`~~ | сделано: `ReviewCount`, `MetacriticBadge` — по файлу в `library/detail/` |
-| `library/foil_card.dart` | `_FoilScope` (+ `_FoilMotion`, общий для `FoilCard` и `FoilSurface`) | `library/effects/foil/`: `FoilScope`, `FoilMotion`, `FoilCard`, `FoilSurface` |
+| ~~`library/foil_card.dart`~~ | ~~`_FoilScope` (+ `_FoilMotion`, общий для `FoilCard` и `FoilSurface`)~~ | сделано: `library/effects/foil/` — `FoilMotion`, `FoilScope`, `FoilCard`, `FoilSurface` по файлу |
 | ~~`library/saves/restore_dialog.dart`~~ | ~~5 методов~~ | сделано: `RestoreDialogBody`, `LocalFreshnessNote`, `RestoreTargetList`, `RestoreOptionsForm` — в `library/saves/restore/`, модель `RestoreOptions` — своим файлом. Клавиш своим виджетом нет: `AlertDialog.actions` ждёт именно список кнопок, и обёртка вокруг них сломала бы его раскладку переполнения |
 | ~~`library/saves/*`~~ | ~~`_summary`, `_action`, `_hintRow`, `_footer`, `_absoluteWarning`, локальная `row()`~~ | сделано: `SnapshotTileSummary` (имя `SnapshotSummary` занято общим разделом), `WatchedFolderRow`, `WatchedFoldersActions`, общий `InlineWarning`, `LabeledSwitchRow`. `_action` — не `IconAction`: у той подложка с кантом ради графика загрузки, а ряд таких на каждой строке списка стал бы частоколом, поэтому голая клавиша вынесена своим `TileIconButton`, и строка снимка в общем разделе взяла его же |
 | ~~`library/game_detail.dart`, `game_page.dart`~~ | ~~`_content`, `_wrapHistory`~~ | сделано: `GameDetailBody`, `RemoveGameButton`, `BackToLibraryButton` |
@@ -752,10 +752,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 Приватные `CustomPainter` виджетами не являются и под правило не попадают,
 но `portal_sparks.dart` (536 строк: виджет, художник, атлас, пачка искр,
 отрисовщик, геометрия `edgeAt` на 68 строк) стоит разложить в
-`library/effects/portal/` ради проверяемости частей. Сами украшения
+`library/effects/portal/` ради проверяемости частей. ~~Сами украшения
 (`portal_sparks`, `particle_field`, `cover_drops`, `game_wave`, `hero_sweep`,
 `foil_card`, `library_atmosphere`) — в `library/effects/`: папка `library/`
-сейчас мешает их со страницами.
+сейчас мешает их со страницами.~~ (переехали; `shots_backdrop` остался в
+`library/`: это не украшение, а подложка из кадров самой игры).
 
 ### Этап 4. Состояние (P2)
 

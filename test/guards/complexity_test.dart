@@ -152,7 +152,7 @@ const _lines = [
   'lib/ui/library/detail/info_section.dart: InfoSection.build: 67',
   'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
   'lib/ui/library/library_page.dart: _LibraryPageState.build: 73',
-  'lib/ui/library/portal_sparks.dart: PortalSparkField.edgeAt: 68',
+  'lib/ui/library/effects/portal_sparks.dart: PortalSparkField.edgeAt: 68',
   'lib/ui/library/saves/rule_dialog.dart: _RuleDialogState.build: 83',
   'lib/ui/library/saves/rule_tile.dart: RuleTile.build: 65',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',

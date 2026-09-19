@@ -1,4 +1,4 @@
-import 'package:evaporate/ui/library/game_wave.dart';
+import 'package:evaporate/ui/library/effects/game_wave.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

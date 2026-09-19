@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:evaporate/ui/library/cover_drops.dart';
+import 'package:evaporate/ui/library/effects/cover_drops.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
