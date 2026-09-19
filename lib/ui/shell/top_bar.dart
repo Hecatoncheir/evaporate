@@ -9,6 +9,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/app_mark.dart';
+import '../widgets/hover_builder.dart';
 import '../widgets/window_frame.dart';
 import 'navigation.dart';
 
@@ -192,7 +193,7 @@ class ConceptTopBar extends StatelessWidget {
 /// Клавиша верхней рейки. Под курсором подсвечивается и чуть поднимается —
 /// на строке из одинаковых квадратов это единственный способ показать, где
 /// именно сейчас рука.
-class TopAction extends StatefulWidget {
+class TopAction extends StatelessWidget {
   const TopAction({
     super.key,
     required this.tooltip,
@@ -213,42 +214,33 @@ class TopAction extends StatefulWidget {
   final bool danger;
 
   @override
-  State<TopAction> createState() => _TopActionState();
-}
-
-class _TopActionState extends State<TopAction> {
-  bool _hovered = false;
-
-  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final accent = widget.danger ? colors.danger : colors.primary;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedContainer(
+    final accent = danger ? colors.danger : colors.primary;
+    return HoverBuilder(
+      builder: (context, hovered, _) => AnimatedContainer(
         duration: context.motion.fast,
         curve: EvaporateMotion.ease,
-        transform: Matrix4.translationValues(0, _hovered ? -1 : 0, 0),
+        transform: Matrix4.translationValues(0, hovered ? -1 : 0, 0),
         child: IconButton(
-          tooltip: widget.tooltip,
-          onPressed: widget.onPressed,
+          tooltip: tooltip,
+          onPressed: onPressed,
           icon: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(widget.icon, size: 18),
-              if (widget.hiddenLabel case final label?)
+              Icon(icon, size: 18),
+              if (hiddenLabel case final label?)
                 SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
             ],
           ),
           style: IconButton.styleFrom(
             minimumSize: const Size(38, 38),
-            backgroundColor: _hovered
+            backgroundColor: hovered
                 ? colors.surfaceHigh
                 : colors.surface.withValues(alpha: EvaporateAlpha.strong),
-            foregroundColor: _hovered ? accent : colors.textSecondary,
+            foregroundColor: hovered ? accent : colors.textSecondary,
             side: BorderSide(
-              color: _hovered
+              color: hovered
                   ? accent.withValues(alpha: EvaporateAlpha.strong)
                   : colors.outline,
             ),

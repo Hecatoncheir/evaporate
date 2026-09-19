@@ -46,7 +46,6 @@ void main() {
 }
 
 const _privateWidgets = [
-  'lib/ui/downloads/available_games.dart: _RemoveButton',
   'lib/ui/downloads/download_activity.dart: _Metric',
   'lib/ui/downloads/downloads_page.dart: _Heading',
   'lib/ui/library/add_game_dialog.dart: _AddGameDialog',
@@ -155,7 +154,6 @@ const _widgetFunctions = [
 ];
 
 const _crowdedFiles = [
-  'lib/ui/downloads/available_games.dart: 4',
   'lib/ui/downloads/download_activity.dart: 4',
   'lib/ui/downloads/downloads_page.dart: 2',
   'lib/ui/downloads/engine_status.dart: 2',

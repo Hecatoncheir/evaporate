@@ -689,12 +689,12 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | `downloads/download_activity.dart` | `_Metric` + `_metrics`, `_amounts` | `DownloadMetric`, `DownloadMetrics`, `DownloadAmounts`; соседи `DownloadHistoryScope`, `DownloadChart` — своими файлами |
 | ~~`downloads/task_card.dart`~~ | ~~`_header`, `_actions`, `_stats`~~ | сделано: `TaskHeader`, `TaskActions`, `TaskStats`; ~~`_cancel` (`:21`) и `_removeFromQueue` (`queue_column.dart:18`) — один поток с разными строками, хватит одной функции~~ (сделано: `cancelDownload` в `cancel_dialog.dart`, и страница игры зовёт её же) |
 | ~~`downloads/queue_column.dart`~~ | ~~5 публичных виджетов~~ | сделано: `QueueList`, `QueuedCard`, `SectionTitle`, `QueueHint` — по файлу; игру для задачи ищет `LibraryState.gameForTask` |
-| `downloads/available_games.dart` | `_RemoveButton` | `RemoveGameButton`; соседи `DraggableGame`, `GameChip` — своими файлами |
+| ~~`downloads/available_games.dart`~~ | ~~`_RemoveButton`~~ | сделано: `RemoveFromLibraryButton` (имя `RemoveGameButton` занято планом страницы игры); `DraggableGame`, `GameChip` — своими файлами |
 | `widgets/button_hints.dart`, `animated_progress.dart` | `_HintChip`, `_Hatching` | `HintChip`, `ProgressHatching` (+ `IndeterminateProgress`, `ProgressFill`: `ClipRRect` там повторён дважды) |
 | `widgets/liquid_selection.dart` | `_LiquidInkScope` | `LiquidInkScope`; помеха: `LiquidSelectionInk` читает приватные поля чужого `State` (`:233–252`) — нужен публичный интерфейс геометрии только для чтения |
 | `widgets/window_frame.dart`, `readout_panel.dart`, `ambient_light.dart` | `_resize`, `_withBars`, локальная `wash` | `WindowResizeZone`, `ReadoutRow`, `AmbientWash`; `WindowControl` и `ReadoutCell` — своими файлами |
 | `shell/app_footer.dart`, `downloads/engine_status.dart` | по два публичных | `EngineReadout`; `EngineStatusChip`, `EngineFailure` |
-| наведение | `_hovered` в четырёх `State` (`top_bar.dart:218`, `available_games.dart:104,176`, `snapshot_history.dart:73`) | один `HoverBuilder` |
+| наведение | `_hovered` в четырёх `State` (`top_bar.dart:218`, `available_games.dart:104,176`, `snapshot_history.dart:73`) | `HoverBuilder` заведён (`widgets/hover_builder.dart`), три места из четырёх на нём; строка снимка перейдёт вместе с разбором `snapshot_history.dart` |
 
 **Методы, возвращающие виджеты (70).** Это те же приватные виджеты, только
 без своего `Element`: нет границы перестроения, нет `const`, в дереве
