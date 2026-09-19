@@ -21,7 +21,7 @@ class GameDetail extends StatelessWidget {
     final task = context.select<DownloadsBloc, DownloadTask?>(
       (bloc) => bloc.state.taskForGame(game),
     );
-    final downloading = task != null && task.state != DownloadState.complete;
+    final downloading = task != null && !task.isFinished;
     final body = Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(

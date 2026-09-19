@@ -54,7 +54,7 @@ class ActionPanel extends StatelessWidget {
                 ),
               ],
             ),
-            if (task != null && task!.state != DownloadState.complete) ...[
+            if (task != null && !task!.isFinished) ...[
               const SizedBox(height: 16),
               // Без графика: он уехал подложкой под заголовок страницы, и
               // рисовать его здесь второй раз незачем. История у них общая

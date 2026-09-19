@@ -13,6 +13,7 @@ import '../../models/game.dart';
 import '../../services/launch/executable_finder.dart';
 import '../labels.dart';
 import '../theme.dart';
+import '../widgets/busy_spinner.dart';
 
 /// Возвращает идентификатор добавленной игры: событие ничего не возвращает,
 /// а вызывающему нужно выделить новую игру в списке.
@@ -96,13 +97,7 @@ class _AddGameDialogState extends State<_AddGameDialog> {
         ),
         FilledButton(
           onPressed: _busy ? null : _submit,
-          child: _busy
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(l.add),
+          child: _busy ? const BusySpinner(size: 16) : Text(l.add),
         ),
       ],
     );

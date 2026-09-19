@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 
 /// Полоса загрузки поверх нижнего края обложки.
@@ -13,13 +14,7 @@ class CoverProgressStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final indeterminate = task.isMetadata || task.totalBytes == 0;
-    final label = switch (task) {
-      _ when task.isQueued => L.of(context).inQueue,
-      _ when task.isMetadata => L.of(context).metadataShort,
-      _ when task.state == DownloadState.paused => L.of(context).pausedShort,
-      _ when indeterminate => '…',
-      _ => '${(task.progress * 100).toStringAsFixed(0)}%',
-    };
+    final label = downloadProgressShort(L.of(context), task);
 
     return Align(
       alignment: Alignment.bottomCenter,

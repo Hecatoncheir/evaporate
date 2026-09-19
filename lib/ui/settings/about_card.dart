@@ -11,6 +11,7 @@ import '../../services/system/update_check.dart';
 import '../../services/system/update_download.dart';
 import '../../services/system/update_installer.dart';
 import '../theme.dart';
+import '../widgets/busy_spinner.dart';
 import '../widgets/info_row.dart';
 import '../widgets/section_card.dart';
 import 'setting_switch.dart';
@@ -286,9 +287,5 @@ class _AboutCardState extends State<AboutCard> {
 
   /// Кружок вместо значка, пока клавиша занята работой. Размер тот же, что
   /// у значка: иначе ряд дёргался бы на каждое нажатие.
-  static const _spinner = SizedBox(
-    width: 14,
-    height: 14,
-    child: CircularProgressIndicator(strokeWidth: 2),
-  );
+  static const _spinner = BusySpinner();
 }

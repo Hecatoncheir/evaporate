@@ -136,3 +136,16 @@ String ruleLabelText(L l, String label) =>
 /// единственная словесная.
 String gamepadButtonLabel(L l, GamepadButton button) =>
     button == GamepadButton.touchpad ? l.buttonTouchpad : button.label;
+
+/// Короткая подпись хода загрузки поверх обложки.
+///
+/// Процента может не быть вовсе: у задачи в очереди он ещё не начинался, у
+/// метаданных не из чего считаться, а без размера раздачи — не от чего. Во
+/// всех этих случаях подпись говорит, что происходит, а не «0%».
+String downloadProgressShort(L l, DownloadTask task) => switch (task) {
+  _ when task.isQueued => l.inQueue,
+  _ when task.isMetadata => l.metadataShort,
+  _ when task.state == DownloadState.paused => l.pausedShort,
+  _ when task.totalBytes == 0 => '…',
+  _ => '${(task.progress * 100).toStringAsFixed(0)}%',
+};

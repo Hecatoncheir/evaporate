@@ -31,7 +31,7 @@ class CoverFace extends StatelessWidget {
   /// Капли на обложке выбранной игры.
   final bool dropsEnabled;
 
-  bool get _running => task != null && task!.state != DownloadState.complete;
+  bool get _running => task != null && !task!.isFinished;
 
   /// Что услышит человек, дошедший до плитки: название, состояние и — если
   /// игра качается — насколько.

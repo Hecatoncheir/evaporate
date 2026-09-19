@@ -22,8 +22,7 @@ class GameDetailBody extends StatelessWidget {
   /// Задача загрузки этой игры, если она идёт.
   final DownloadTask? task;
 
-  bool get _downloading =>
-      task != null && task!.state != DownloadState.complete;
+  bool get _downloading => task != null && !task!.isFinished;
 
   @override
   Widget build(BuildContext context) {

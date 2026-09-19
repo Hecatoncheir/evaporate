@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'busy_spinner.dart';
+
 /// Обведённая клавиша, которая на время работы гаснет и крутит колесо
 /// вместо значка.
 ///
@@ -24,13 +26,7 @@ class BusyOutlinedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
       onPressed: busy ? null : onPressed,
-      icon: busy
-          ? const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon, size: 16),
+      icon: busy ? const BusySpinner() : Icon(icon, size: 16),
       label: Text(label),
     );
   }

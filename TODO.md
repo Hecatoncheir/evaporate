@@ -728,23 +728,23 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 - ~~`play_button.dart` — пустая обёртка над `LauncherActionButton` (`:12–16`),
   удалить~~ (удалена);
-- подпись хода загрузки: `switch` в `_ProgressStrip`
+- ~~подпись хода загрузки: `switch` в `_ProgressStrip`
   (`game_cover.dart:289–297`) и в `CoverProgress`
-  (`detail/detail_cover.dart:80–87`) совпадают побайтово;
-- условие «задача есть и не завершена» выписано в пяти местах
+  (`detail/detail_cover.dart:80–87`) совпадают побайтово;~~ (сведено в `downloadProgressShort` в `ui/labels.dart`);
+- ~~условие «задача есть и не завершена» выписано в пяти местах
   (`game_cover.dart:59,77`, `game_detail.dart:42`, `action_panel.dart:42`,
   `detail_cover.dart:28`), хотя у задачи уже есть `isFinished`
-  (`models/download_task.dart:70`);
-- тонированная плашка: `save_tag.dart:14`, `rating_row.dart:144` и
+  (`models/download_task.dart:70`);~~ (все пять на `isFinished`);
+- ~~тонированная плашка: `save_tag.dart:14`, `rating_row.dart:144` и
   `StatusChip` (`common.dart:228`) — три реализации с альфой 0.13 / 0.14 →
-  один `TonedChip`;
-- карточка-строка: `rule_tile.dart:31–38`, `snapshot_tile.dart:42–49`,
-  `watched_folders.dart:31–38` → `InsetTile`; «колодец» поиска и полок —
+  один `TonedChip`;~~ (сделано);
+- ~~карточка-строка: `rule_tile.dart:31–38`, `snapshot_tile.dart:42–49`,
+  `watched_folders.dart:31–38` → `InsetTile`;~~ (сделано, и пакет синхронизации туда же); «колодец» поиска и полок —
   `toolbar.dart:119–125` и `:246–252`;
 - предупреждение со значком (12–12.5, `warning`, высота 1.4) —
   `action_panel.dart:65`, `restore_dialog.dart:133,153`,
   `rule_dialog.dart:138`, `scan_folder_dialog.dart:369` → `InlineWarning`;
-- кружок занятости 14×14 — в шести местах → `BusySpinner`;
+- ~~кружок занятости 14×14 — в шести местах → `BusySpinner`;~~ (сделано);
 - `DottedBorderBox` (`drop_overlay.dart:56`) рисует сплошную рамку — имя
   обещает другое → `DropFrame`.
 

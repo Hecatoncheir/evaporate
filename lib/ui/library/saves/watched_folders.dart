@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/saves/save_path_finder.dart';
 import '../../theme.dart';
+import '../../widgets/inset_tile.dart';
 
 /// Папки, изменившиеся, пока игра работала.
 ///
@@ -28,14 +29,10 @@ class WatchedFolders extends StatelessWidget {
     final l = L.of(context);
     final colors = context.colors;
 
-    return Container(
+    return InsetTile(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        color: colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-        border: Border.all(color: colors.outline),
-      ),
+      radius: EvaporateTheme.radiusPanel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

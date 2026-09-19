@@ -7,6 +7,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/saves/save_manager.dart';
 import '../theme.dart';
+import '../widgets/busy_spinner.dart';
 import '../widgets/section_card.dart';
 import 'sync_package_row.dart';
 
@@ -45,11 +46,7 @@ class SyncFolderCard extends StatelessWidget {
           : TextButton.icon(
               onPressed: scanning ? null : onScan,
               icon: scanning
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const BusySpinner()
                   : const Icon(Icons.refresh, size: 16),
               label: Text(L.of(context).check),
             ),

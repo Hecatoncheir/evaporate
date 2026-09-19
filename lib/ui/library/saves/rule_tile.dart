@@ -7,6 +7,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/save_profile.dart';
 import '../../labels.dart';
 import '../../theme.dart';
+import '../../widgets/inset_tile.dart';
 import 'save_tag.dart';
 
 class RuleTile extends StatelessWidget {
@@ -28,14 +29,7 @@ class RuleTile extends StatelessWidget {
         resolved != null &&
         (Directory(resolved).existsSync() || File(resolved).existsSync());
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-        border: Border.all(color: context.colors.outline),
-      ),
+    return InsetTile(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

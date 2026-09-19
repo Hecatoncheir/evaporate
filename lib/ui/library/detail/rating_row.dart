@@ -4,6 +4,7 @@ import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game_rating.dart';
 import '../../theme.dart';
+import '../../widgets/toned_chip.dart';
 
 /// Как игру оценили: подпись Steam, доля положительных, оба счётчика
 /// обзоров и оценка прессы.
@@ -129,16 +130,10 @@ class _Metacritic extends StatelessWidget {
 
     return Tooltip(
       message: L.of(context).metacriticScore(score),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: EvaporateAlpha.subtle),
-          borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
-        ),
-        child: Text(
-          'Metacritic $score',
-          style: context.text.chip.copyWith(color: color),
-        ),
+      child: TonedChip(
+        text: 'Metacritic $score',
+        color: color,
+        style: context.text.chip,
       ),
     );
   }

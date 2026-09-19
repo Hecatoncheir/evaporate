@@ -12,6 +12,7 @@ import '../../../models/save_snapshot.dart';
 import '../../feedback/confirm.dart';
 import '../../feedback/snack.dart';
 import '../../theme.dart';
+import '../../widgets/busy_spinner.dart';
 import '../../widgets/section_card.dart';
 import '../saves/restore_dialog.dart';
 import '../saves/snapshot_tile.dart';
@@ -51,11 +52,7 @@ class SnapshotsSection extends StatelessWidget {
                 : () => context.read<SavesBloc>().add(SnapshotRequested(game)),
             style: context.buttons.compactFilled,
             icon: busy
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                ? const BusySpinner()
                 : const Icon(Icons.add_a_photo_outlined, size: 16),
             label: Text(L.of(context).takeSnapshot),
           ),

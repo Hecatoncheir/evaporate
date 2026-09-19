@@ -6,6 +6,7 @@ import '../../bloc/saves/saves_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/bulk_report.dart';
 import '../theme.dart';
+import '../widgets/busy_spinner.dart';
 import '../widgets/section_card.dart';
 import 'bulk_report_view.dart';
 import 'import_newer_dialog.dart';
@@ -29,13 +30,7 @@ class BulkTransferCard extends StatelessWidget {
       icon: Icons.swap_horiz,
       // Сколько игр с путями — теперь в показаниях сверху, и повторять это
       // число в углу карточки незачем.
-      trailing: busy
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : null,
+      trailing: busy ? const BusySpinner(size: 16) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

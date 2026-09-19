@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../labels.dart';
 import '../theme.dart';
+import 'toned_chip.dart';
 
 /// Небольшая цветная метка статуса — используется в списке и в карточке игры.
 class StatusChip extends StatelessWidget {
@@ -24,21 +25,15 @@ class StatusChip extends StatelessWidget {
       GameStatus.error => context.colors.danger,
     };
 
-    return Container(
+    return TonedChip(
+      text: label,
+      color: color,
+      style: (compact ? context.text.chip : context.text.caption).copyWith(
+        fontWeight: FontWeight.w600,
+      ),
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 6 : 10,
         vertical: compact ? 2 : 4,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: EvaporateAlpha.subtle),
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
-      ),
-      child: Text(
-        label,
-        style: (compact ? context.text.chip : context.text.caption).copyWith(
-          fontWeight: FontWeight.w600,
-          color: color,
-        ),
       ),
     );
   }

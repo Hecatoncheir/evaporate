@@ -10,6 +10,7 @@ import '../../services/saves/save_manager.dart';
 import '../feedback/confirm.dart';
 import '../feedback/snack.dart';
 import '../theme.dart';
+import '../widgets/inset_tile.dart';
 import 'pick_game_dialog.dart';
 
 /// Пакет с другого устройства: чей он, когда снят — и клавиша «применить».
@@ -21,14 +22,7 @@ class SyncPackageRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final snapshot = package.snapshot;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceHigh,
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-        border: Border.all(color: context.colors.outline),
-      ),
+    return InsetTile(
       child: Row(
         children: [
           Expanded(

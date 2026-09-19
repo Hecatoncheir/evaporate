@@ -7,6 +7,7 @@ import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 import '../../widgets/animated_progress.dart';
 
@@ -25,7 +26,7 @@ class DetailCover extends StatelessWidget {
     final task = context.select<DownloadsBloc, DownloadTask?>(
       (bloc) => bloc.state.taskForGame(game),
     );
-    final showProgress = task != null && task.state != DownloadState.complete;
+    final showProgress = task != null && !task.isFinished;
 
     return Container(
       width: path == null ? 64 : 132,
@@ -78,13 +79,7 @@ class CoverProgress extends StatelessWidget {
   Widget build(BuildContext context) {
     // У метаданных и у задачи в очереди процента ещё нет — показываем статус.
     final indeterminate = task.isMetadata || task.totalBytes == 0;
-    final label = switch (task) {
-      _ when task.isQueued => L.of(context).inQueue,
-      _ when task.isMetadata => L.of(context).metadataShort,
-      _ when task.state == DownloadState.paused => L.of(context).pausedShort,
-      _ when indeterminate => '…',
-      _ => '${(task.progress * 100).toStringAsFixed(0)}%',
-    };
+    final label = downloadProgressShort(L.of(context), task);
 
     return Align(
       alignment: Alignment.bottomCenter,

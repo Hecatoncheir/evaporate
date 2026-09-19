@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
+import '../../widgets/toned_chip.dart';
 
 class SaveTag extends StatelessWidget {
   const SaveTag({super.key, required this.text, required this.color});
@@ -10,13 +11,12 @@ class SaveTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return TonedChip(
+      text: text,
+      color: color,
+      style: context.text.tag,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: EvaporateAlpha.subtle),
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-      ),
-      child: Text(text, style: context.text.tag.copyWith(color: color)),
+      radius: EvaporateTheme.radiusControl,
     );
   }
 }
