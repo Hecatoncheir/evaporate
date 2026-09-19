@@ -513,7 +513,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   блока: `SavePathFinder.suggest` зовётся статически
   (`saves_section.dart:246`), в тестах его не подменить, а повторное нажатие
   запускает второй обход и второй диалог.
-- [ ] В строке правила нет `Flexible`: метка и три тега в `Row`
+- [x] В строке правила нет `Flexible`: метка и три тега в `Row`
   переполнятся на длинной метке (`saves/rule_tile.dart:54–84`).
 - [x] `CurvedAnimation` создаётся в каждом `build` и не освобождается
   (`widgets/fade_indexed_stack.dart:68`): на контроллере, живущем всю

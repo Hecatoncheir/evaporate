@@ -51,7 +51,12 @@ class RuleTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // Перенос, а не строка: метку задаёт человек, и длинная
+                // вместе с тегами вылезала за край узкой колонки.
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       ruleLabelText(L.of(context), rule.label),
@@ -60,26 +65,21 @@ class RuleTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 8),
                     if (rule.platform != null)
                       SaveTag(
                         text: platformLabel(rule.platform!),
                         color: context.colors.textSecondary,
                       ),
-                    if (!rule.isPortable) ...[
-                      const SizedBox(width: 6),
+                    if (!rule.isPortable)
                       SaveTag(
                         text: L.of(context).notPortablePath,
                         color: context.colors.warning,
                       ),
-                    ],
-                    if (!exists) ...[
-                      const SizedBox(width: 6),
+                    if (!exists)
                       SaveTag(
                         text: L.of(context).missingOnDisk,
                         color: context.colors.textSecondary,
                       ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 3),
