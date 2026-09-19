@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:evaporate/bloc/download_history_cubit.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
-import 'package:evaporate/ui/downloads/download_activity.dart';
+import 'package:evaporate/ui/downloads/download_chart.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';

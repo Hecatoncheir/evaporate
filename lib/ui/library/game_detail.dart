@@ -6,7 +6,7 @@ import '../../bloc/library/library_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
-import '../downloads/download_activity.dart';
+import '../downloads/download_history_scope.dart';
 import '../theme.dart';
 import 'detail/action_panel.dart';
 import 'detail/detail_header.dart';

@@ -46,7 +46,6 @@ void main() {
 }
 
 const _privateWidgets = [
-  'lib/ui/downloads/download_activity.dart: _Metric',
   'lib/ui/downloads/downloads_page.dart: _Heading',
   'lib/ui/library/add_game_dialog.dart: _AddGameDialog',
   'lib/ui/library/add_game_dialog.dart: _PathPicker',
@@ -86,8 +85,6 @@ const _privateWidgets = [
 ];
 
 const _widgetFunctions = [
-  'lib/ui/downloads/download_activity.dart: _metrics',
-  'lib/ui/downloads/download_activity.dart: _amounts',
   'lib/ui/downloads/downloads_page.dart: _columns',
   'lib/ui/downloads/downloads_page.dart: _readout',
   'lib/ui/library/add_game_dialog.dart: _kindPicker',
@@ -152,7 +149,6 @@ const _widgetFunctions = [
 ];
 
 const _crowdedFiles = [
-  'lib/ui/downloads/download_activity.dart: 4',
   'lib/ui/downloads/downloads_page.dart: 2',
   'lib/ui/downloads/engine_status.dart: 2',
   'lib/ui/library/add_game_dialog.dart: 2',

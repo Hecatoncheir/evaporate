@@ -7,6 +7,8 @@ import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
+import 'package:evaporate/ui/downloads/download_chart.dart';
+import 'package:evaporate/ui/downloads/download_history_scope.dart';
 import 'package:evaporate/ui/library/detail/action_panel.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';

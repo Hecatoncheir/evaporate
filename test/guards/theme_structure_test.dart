@@ -133,7 +133,7 @@ const _durations = [
 const _radii = <String>[];
 
 const _alphas = [
-  'lib/ui/downloads/download_activity.dart: 2',
+  'lib/ui/downloads/download_chart.dart: 2',
   'lib/ui/feedback/snack.dart: 1',
   'lib/ui/library/featured_game.dart: 2',
   'lib/ui/library/foil_card.dart: 2',

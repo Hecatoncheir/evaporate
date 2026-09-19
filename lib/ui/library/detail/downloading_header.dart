@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
-import '../../downloads/download_activity.dart';
+import '../../downloads/download_chart.dart';
 import '../../theme.dart';
 import 'detail_header.dart';
 

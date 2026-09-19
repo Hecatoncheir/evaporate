@@ -4,6 +4,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
 import 'download_activity.dart';
+import 'download_history_scope.dart';
 import 'task_header.dart';
 import 'task_stats.dart';
 
