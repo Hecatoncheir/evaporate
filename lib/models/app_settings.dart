@@ -141,6 +141,12 @@ class AppSettings extends Equatable {
   static const minLibraryScale = 0.75;
   static const maxLibraryScale = 1.5;
 
+  /// Сколько загрузок может идти разом — ровно то, что предлагает список в
+  /// настройках. Из файла число сводится к ближайшему варианту: ноль
+  /// остановил бы очередь навсегда, а число мимо списка уронило бы сам
+  /// список — `DropdownButton` не показывает значение, которого в нём нет.
+  static const concurrencyOptions = [1, 2, 3, 5, 8];
+
   /// Код языка интерфейса или null — брать язык системы.
   ///
   /// Хранится строкой, а не Locale: в файле настроек это всё равно
@@ -270,7 +276,7 @@ class AppSettings extends Equatable {
     String fallbackDir,
   ) => AppSettings(
     installDir: json['installDir'] as String? ?? fallbackDir,
-    maxConcurrent: json['maxConcurrent'] as int? ?? 3,
+    maxConcurrent: _concurrency(json['maxConcurrent']),
     syncFolder: json['syncFolder'] as String?,
     autoExportToSync: json['autoExportToSync'] as bool? ?? true,
     autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
@@ -386,6 +392,15 @@ class AppSettings extends Equatable {
   };
 
   static const _u = Object();
+
+  static int _concurrency(Object? value) {
+    if (value is! int) return 3;
+    var nearest = concurrencyOptions.first;
+    for (final option in concurrencyOptions) {
+      if ((option - value).abs() < (nearest - value).abs()) nearest = option;
+    }
+    return nearest;
+  }
 
   static double _scale(Object? value, double min, double max) =>
       value is num && value.isFinite ? value.toDouble().clamp(min, max) : 1;

@@ -235,7 +235,7 @@ class SettingsPage extends StatelessWidget {
                 value: settings.maxConcurrent,
                 underline: const SizedBox.shrink(),
                 items: [
-                  for (final value in [1, 2, 3, 5, 8])
+                  for (final value in AppSettings.concurrencyOptions)
                     DropdownMenuItem(value: value, child: Text('$value')),
                 ],
                 onChanged: (value) {

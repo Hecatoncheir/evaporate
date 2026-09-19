@@ -355,7 +355,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`save_manager.dart:705–715`): на Windows битый `.evsave` остаётся заперт
   до выхода. `_importPackage` (`:624–641`) не проверяет размер, в отличие
   от плана восстановления. **S**
-- [ ] `maxConcurrent` из файла не зажат (`app_settings.dart:273`): при нуле
+- [x] `maxConcurrent` из файла не зажат (`app_settings.dart:273`): при нуле
   очередь не едет вовсе (`engine_queue.dart:22`). Остальные числа из
   профиля зажимаются — это пропущено. **S**
 - [ ] Синхронная работа `archive` на главном изоляте: `writeContent`

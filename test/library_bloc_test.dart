@@ -369,8 +369,8 @@ void main() {
   });
 
   test('настройки сохраняются и читаются обратно', () async {
-    settings.add(SettingsChanged(settings.state.copyWith(maxConcurrent: 7)));
-    await settings.stream.firstWhere((s) => s.maxConcurrent == 7);
+    settings.add(SettingsChanged(settings.state.copyWith(maxConcurrent: 5)));
+    await settings.stream.firstWhere((s) => s.maxConcurrent == 5);
 
     final reopened = SettingsBloc(paths);
     reopened.add(const SettingsLoadRequested());
