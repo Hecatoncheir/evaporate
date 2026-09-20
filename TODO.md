@@ -1047,7 +1047,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~12~~ | ~~41~~ | ~~`services/launch/executable_finder.dart:71`, `:143`~~ | сделано: очки за расширение — таблицей по системам, обход папки — `_visitDirectory` |
 | ~~12~~ | ~~31~~ | ~~`services/launch/windows_installs.dart:62` `installed`~~ | сделано: `_query` отдаёт пустую строку при сбое — отсутствующая ветвь реестра обычное дело, — и дальше обход идёт плоско |
 | ~~12~~ | ~~27~~ | ~~`services/saves/ludusavi_catalog.dart:126` `find`~~ | сделано как задумано: ленивый `Map<int, LudusaviEntry>` (сбрасывается вместе с манифестом) и общий `ReleaseName.bestMatch` с каталогом Steam — порог остался разным, у базы путей он выше |
-| 10 | 64 | `services/system/update_download.dart:110` `_prepare`, `:424` | шаги `_fetchPart → _verify → _promote → _stage` с локальным `report(phase)`; `_httpFetch` пустить через готовый `_open` (`:403`) |
+| ~~10~~ | ~~64~~ | ~~`services/system/update_download.dart:110` `_prepare`, `:424`~~ | сделано: шаги `_fetchPart → _promote → stage` с локальным `report(phase)`; `fetch` транспорта пущен через общий `_open` |
 | ~~10~~ | ~~27~~ | ~~`core/save_path_template.dart:117` `collapse`~~ | сделано: `_rootsBySpecificity` считается один раз — окружение в Dart читается снимком при старте и на ходу не меняется |
 | ~~—~~ | ~~72~~ | ~~`input/input_scope.dart:188` `build`, `:118` `_move`~~ | сделано: один `NavActionIntent(action)` вместо пяти намерений с пятью `CallbackAction`, таблица клавиш — константой рядом. Клавиатура теперь и правда сводится к `NavAction`: нажатие клавиши идёт тем же путём, что и нажатие геймпада |
 | 12 | 32 | `bloc/library/library_bloc.dart:359` `_onGameRemoved` | три удаления — тремя методами; «своё ли это» — одной проверкой |

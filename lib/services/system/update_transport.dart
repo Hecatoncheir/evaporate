@@ -116,6 +116,11 @@ class UpdateTransport {
     throw const UpdateException('Слишком много переадресаций');
   }
 
+  /// Читает небольшой файл релиза целиком — например, `SHA256SUMS`.
+  ///
+  /// Переадресации идут тем же путём, что и у самой загрузки: GitHub
+  /// уводит на своё хранилище, и адрес разрешается относительно того, куда
+  /// увели, а не исходного.
   static Future<List<int>> fetch(
     Uri uri,
     void Function(int, int) onProgress,
@@ -123,18 +128,8 @@ class UpdateTransport {
     final client = directHttpClient()
       ..connectionTimeout = const Duration(seconds: 20);
     try {
-      var request = await client.getUrl(uri);
-      var response = await request.close();
-      // GitHub отдаёт файлы релиза через переадресацию на своё хранилище.
-      var hops = 0;
-      while (response.isRedirect && hops++ < 5) {
-        final location = response.headers.value(HttpHeaders.locationHeader);
-        if (location == null) break;
-        await response.drain<void>();
-        request = await client.getUrl(uri.resolve(location));
-        response = await request.close();
-      }
-      if (response.statusCode != 200) {
+      final response = await _open(client, uri, 0);
+      if (response.statusCode != HttpStatus.ok) {
         throw UpdateException('Сервер ответил ${response.statusCode}');
       }
 

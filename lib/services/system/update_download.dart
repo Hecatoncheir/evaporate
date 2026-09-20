@@ -115,56 +115,76 @@ class UpdateDownload {
     if (asset == null) {
       throw const UpdateException('Для этой системы файла в релизе нет');
     }
+    void report(UpdatePhase phase) =>
+        onProgress?.call(UpdateProgress(phase: phase));
 
     // Папку версии не чистим: в ней мог остаться недокачанный кусок, и
     // вся затея докачки в том, чтобы продолжить его, а не начать заново.
     final dir = Directory(p.join(workDir, 'updates', release.version));
     await dir.create(recursive: true);
-
     final target = File(p.join(dir.path, asset.name));
-    // Пока файл не проверен, он лежит под своим именем с хвостом: целым
-    // считается только переименованный, и оборванная загрузка не выдаёт
-    // себя за готовое обновление.
-    final part = File('${target.path}.part');
 
+    await _fetchPart(asset, target, onProgress);
+    report(UpdatePhase.verifying);
+    await _promote(release, asset, target);
+
+    // На Windows ничего не распаковываем: Inno Setup сам заменит файлы
+    // после закрытия приложения. Запускаем его напрямую, чтобы PowerShell
+    // не был промежуточным процессом.
+    if (_platform == 'windows') {
+      report(UpdatePhase.ready);
+      return target.path;
+    }
+
+    report(UpdatePhase.unpacking);
+    final root = await UpdateUnpack.stage(dir, asset.name, target.path);
+    report(UpdatePhase.ready);
+    return root;
+  }
+
+  /// Докачивает файл рядом с целью.
+  ///
+  /// Пока файл не проверен, он лежит под своим именем с хвостом `.part`:
+  /// целым считается только переименованный, и оборванная загрузка не
+  /// выдаёт себя за готовое обновление.
+  Future<void> _fetchPart(
+    ReleaseAsset asset,
+    File target,
+    void Function(UpdateProgress)? onProgress,
+  ) async {
+    final part = File('${target.path}.part');
     onProgress?.call(
       UpdateProgress(phase: UpdatePhase.downloading, total: asset.sizeBytes),
     );
 
     final done = await part.exists() ? await part.length() : 0;
     // Уже целый кусок не перекачиваем — ему осталась только проверка.
-    if (asset.sizeBytes <= 0 || done < asset.sizeBytes) {
-      await _download(
-        Uri.parse(asset.url),
-        part,
-        done,
-        (received, total) => onProgress?.call(
-          UpdateProgress(
-            phase: UpdatePhase.downloading,
-            received: received,
-            total: total > 0 ? total : asset.sizeBytes,
-          ),
-        ),
-      );
-    }
+    if (asset.sizeBytes > 0 && done >= asset.sizeBytes) return;
 
-    onProgress?.call(const UpdateProgress(phase: UpdatePhase.verifying));
+    await _download(
+      Uri.parse(asset.url),
+      part,
+      done,
+      (received, total) => onProgress?.call(
+        UpdateProgress(
+          phase: UpdatePhase.downloading,
+          received: received,
+          total: total > 0 ? total : asset.sizeBytes,
+        ),
+      ),
+    );
+  }
+
+  /// Проверенный кусок становится самим файлом обновления.
+  Future<void> _promote(
+    Release release,
+    ReleaseAsset asset,
+    File target,
+  ) async {
+    final part = File('${target.path}.part');
     await _verify(release, asset, part);
     if (await target.exists()) await target.delete();
     await part.rename(target.path);
-
-    // На Windows ничего не распаковываем: Inno Setup сам заменит
-    // файлы после закрытия приложения. Запускаем его напрямую,
-    // чтобы PowerShell не был промежуточным процессом.
-    if (_platform == 'windows') {
-      onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
-      return target.path;
-    }
-
-    onProgress?.call(const UpdateProgress(phase: UpdatePhase.unpacking));
-    final root = await UpdateUnpack.stage(dir, asset.name, target.path);
-    onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
-    return root;
   }
 
   /// Размер и контрольная сумма.
