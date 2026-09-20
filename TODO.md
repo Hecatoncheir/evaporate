@@ -879,10 +879,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   константой. Поля уехали в `RuleFormFields`, `RuleDraft` — к блоку.
 - [ ] В `SavesBloc` — события вместо логики в `saves_section.dart`:
   ~~`SavePathSuggestionsRequested(game)` с ключом занятости и результатом в
-  уже существующие `saveHints`;~~ (сделано, см. этап 1) `SnapshotImportInspectRequested(path, game)`
+  уже существующие `saveHints`;~~ (сделано, см. этап 1)
+  ~~`SnapshotImportInspectRequested(path, game)`
   с полем `pendingImport` (сейчас `inspectPackage` и `try/catch` в виджете,
-  `:392–417`). В `LibraryBloc` — `GameExecutableDetectRequested(id)` и
-  `GameFolderOpenRequested(id)`. **M**
+  `:392–417`).~~ (сделано: разобранный пакет ждёт ответа человека в
+  состоянии, битый приходит `Notice`-ом и в журнал, а выбор файла остался
+  у окна — системное окно не состояние). В `LibraryBloc` —
+  `GameExecutableDetectRequested(id)` и ~~`GameFolderOpenRequested(id)`~~
+  (второе сделано, см. этап 1). **M**
 - [x] **`LogBloc`** для `LogCard` (`log_card.dart:29–50`: `_lines`, свой
   `_busy`, чтение и очистка). События `LogShowRequested`,
   `LogClearRequested`; побочная выгода — тесты без `runAsync`. **S**
@@ -890,11 +894,19 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   показывали» проверяются обычным тестом с подменённым `AppLog`. Строки
   журнала уехали в `LogView`; у карточки осталось копирование — буфер
   обмена не состояние.
-- [ ] **`ButtonCaptureBloc`** для диалога захвата кнопки
+- [x] ~~**`ButtonCaptureBloc`** для диалога захвата кнопки
   (`gamepad_settings.dart:232–247`): поток нажатий геймпада — внешний
   источник. События `CaptureStarted(action)`, `RawButtonPressed(button)`,
   `CaptureCancelled`; на время захвата блок глушит действия в
-  `GamepadService` — это и закрывает ошибку из этапа 1. **S**
+  `GamepadService` — это и закрывает ошибку из этапа 1.~~ **S**
+  *Рассмотрено и отклонено.* Ошибка этапа 1 закрыта заглушкой в самой
+  службе, и проверена она там же, где живёт: «на время захвата кнопка
+  приходит сырой», «крестовина не отдаётся», «после захвата действия
+  возвращаются» (`gamepad_service_test.dart`). У окна остаётся одно
+  состояние — «ждём нажатия», — а заглушка держится ровно столько,
+  сколько открыто окно: `initState`/`dispose` для этого и заведены. Блок
+  добавил бы событие, которое тут же превращается обратно в
+  `Navigator.pop`.
 - [x] ~~**`WindowBloc`** вместо состояния в `AppWindowFrame`
   (`window_frame.dart:202–262`): события от `WindowListener`
   (`WindowMaximized`, `WindowUnmaximized`, `FullScreenEntered`,

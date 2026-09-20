@@ -78,6 +78,8 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     on<GameSnapshotsDropped>(_onGameSnapshotsDropped);
     on<SnapshotRequested>(_onSnapshotRequested);
     on<SnapshotRestoreRequested>(_onRestoreRequested);
+    on<SnapshotImportInspectRequested>(_onImportInspectRequested);
+    on<SnapshotImportDismissed>(_onImportDismissed);
     on<SnapshotImportRequested>(_onImportRequested);
     on<SnapshotExportRequested>(_onExportRequested);
     on<SnapshotDeleted>(_onSnapshotDeleted);

@@ -206,10 +206,37 @@ extension _SavesSnapshots on SavesBloc {
     }
   }
 
+  /// Разбирает выбранный пакет и откладывает его до ответа человека.
+  ///
+  /// Пакет приходит извне: он может оказаться не тем, битым или вовсе не
+  /// пакетом. Раньше это читал виджет, и его `showError` шёл мимо `Notice`
+  /// и журнала — то есть мимо всего, по чему потом разбираются.
+  Future<void> _onImportInspectRequested(
+    SnapshotImportInspectRequested event,
+    Emitter<SavesState> emit,
+  ) async {
+    try {
+      final info = await _saves.inspectPackage(event.path);
+      emit(
+        state.copyWith(
+          pendingImport: PendingImport(game: event.game, info: info),
+        ),
+      );
+    } on Object catch (error) {
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
+    }
+  }
+
+  void _onImportDismissed(
+    SnapshotImportDismissed event,
+    Emitter<SavesState> emit,
+  ) => emit(state.copyWith(pendingImport: null));
+
   Future<void> _onImportRequested(
     SnapshotImportRequested event,
     Emitter<SavesState> emit,
   ) => busyWhile(emit, SavesBloc.snapshotKey(event.game.id), () async {
+    emit(state.copyWith(pendingImport: null));
     final snapshot = await _saves.importPackage(event.path, game: event.game);
     emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
     await _prune(event.game.id, emit);

@@ -1,5 +1,18 @@
 part of 'saves_bloc.dart';
 
+/// Пакет, который уже разобрали, но ещё не приняли.
+class PendingImport extends Equatable {
+  const PendingImport({required this.game, required this.info});
+
+  /// Игра, к которой его прикладывают.
+  final Game game;
+
+  final SavePackageInfo info;
+
+  @override
+  List<Object?> get props => [game.id, info.path];
+}
+
 /// Снимки сохранений и всё, что вокруг них.
 ///
 /// Отдельно от [LibraryState], потому что смотрят на это в других местах:
@@ -11,6 +24,7 @@ class SavesState extends Equatable implements BusyState<SavesState> {
     this.snapshots = const {},
     this.saveHints = const {},
     this.pathPresence = const {},
+    this.pendingImport,
     this.syncPackages = const [],
     this.scanningSync = false,
     this.syncScanned = false,
@@ -33,6 +47,12 @@ class SavesState extends Equatable implements BusyState<SavesState> {
   /// человеку «на диске нет» нельзя. Раньше это спрашивалось у диска прямо
   /// в `build`, дважды на каждое правило и на каждый кадр.
   final Map<String, bool> pathPresence;
+
+  /// Разобранный пакет, о котором ещё спрашивают человека.
+  ///
+  /// Чтение чужого файла — настоящий ввод-вывод, и упасть оно умеет: у
+  /// виджета для этого нет ни `Notice`, ни журнала.
+  final PendingImport? pendingImport;
 
   /// Пакеты `.evsave`, найденные в папке синхронизации.
   final List<SavePackageInfo> syncPackages;
@@ -88,6 +108,7 @@ class SavesState extends Equatable implements BusyState<SavesState> {
     Map<String, List<SaveSnapshot>>? snapshots,
     Map<String, List<SavePathSuggestion>>? saveHints,
     Map<String, bool>? pathPresence,
+    Object? pendingImport = _unset,
     List<SavePackageInfo>? syncPackages,
     bool? scanningSync,
     bool? syncScanned,
@@ -100,6 +121,9 @@ class SavesState extends Equatable implements BusyState<SavesState> {
       snapshots: snapshots ?? this.snapshots,
       saveHints: saveHints ?? this.saveHints,
       pathPresence: pathPresence ?? this.pathPresence,
+      pendingImport: pendingImport == _unset
+          ? this.pendingImport
+          : pendingImport as PendingImport?,
       syncPackages: syncPackages ?? this.syncPackages,
       scanningSync: scanningSync ?? this.scanningSync,
       syncScanned: syncScanned ?? this.syncScanned,
@@ -121,6 +145,7 @@ class SavesState extends Equatable implements BusyState<SavesState> {
     snapshots,
     saveHints,
     pathPresence,
+    pendingImport,
     syncPackages,
     scanningSync,
     syncScanned,

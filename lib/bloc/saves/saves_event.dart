@@ -112,6 +112,25 @@ final class SaveHintsRequested extends SavesEvent {
   List<Object?> get props => [game, since];
 }
 
+/// Разобрать выбранный пакет и спросить о нём человека.
+final class SnapshotImportInspectRequested extends SavesEvent {
+  const SnapshotImportInspectRequested({
+    required this.path,
+    required this.game,
+  });
+
+  final String path;
+  final Game game;
+
+  @override
+  List<Object?> get props => [path, game.id];
+}
+
+/// Человек передумал: разобранный пакет убираем.
+final class SnapshotImportDismissed extends SavesEvent {
+  const SnapshotImportDismissed();
+}
+
 /// Проверить, лежат ли на диске папки правил игры.
 ///
 /// Спрашивать диск из `build` нельзя: он синхронный, а кадров много.

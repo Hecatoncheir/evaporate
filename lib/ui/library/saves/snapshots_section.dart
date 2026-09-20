@@ -10,7 +10,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../models/save_snapshot.dart';
 import '../../feedback/confirm.dart';
-import '../../feedback/snack.dart';
 import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
 import '../../widgets/section_card.dart';
@@ -33,45 +32,58 @@ class SnapshotsSection extends StatelessWidget {
     final snapshots = saves.snapshotsFor(game.id);
     final busy = saves.isBusy(SavesBloc.snapshotKey(game.id));
 
-    return SectionCard(
-      title: L.of(context).snapshots,
-      icon: Icons.history,
-      trailing: Row(
-        children: [
-          TextButton.icon(
-            onPressed: busy ? null : () => _import(context),
-            icon: const Icon(Icons.file_download_outlined, size: 16),
-            label: Text(L.of(context).importShort),
-          ),
-          const SizedBox(width: 4),
-          FilledButton.icon(
-            onPressed:
-                busy ||
-                    (!game.saveProfile.isConfigured &&
-                        game.ludusaviTemplates.isEmpty)
-                ? null
-                : () => context.read<SavesBloc>().add(SnapshotRequested(game)),
-            style: context.buttons.compactFilled,
-            icon: busy
-                ? const BusySpinner()
-                : const Icon(Icons.add_a_photo_outlined, size: 16),
-            label: Text(L.of(context).takeSnapshot),
-          ),
-        ],
-      ),
-      child: snapshots.isEmpty
-          ? Text(L.of(context).noSnapshotsNote, style: context.text.paragraph)
-          : Column(
-              children: [
-                for (final snapshot in snapshots)
-                  SnapshotTile(
-                    snapshot: snapshot,
-                    onRestore: () => _restore(context, snapshot),
-                    onExport: () => _export(context, snapshot),
-                    onDelete: () => _delete(context, snapshot),
-                  ),
-              ],
+    // Разобранный пакет приходит из состояния, а спрашивают о нём здесь:
+    // окно с вопросом — дело интерфейса, чтение чужого файла — нет.
+    return BlocListener<SavesBloc, SavesState>(
+      listenWhen: (before, after) =>
+          after.pendingImport != null &&
+          after.pendingImport != before.pendingImport,
+      listener: (context, state) {
+        final pending = state.pendingImport;
+        if (pending == null || pending.game.id != game.id) return;
+        unawaited(_askAboutImport(context, pending));
+      },
+      child: SectionCard(
+        title: L.of(context).snapshots,
+        icon: Icons.history,
+        trailing: Row(
+          children: [
+            TextButton.icon(
+              onPressed: busy ? null : () => _import(context),
+              icon: const Icon(Icons.file_download_outlined, size: 16),
+              label: Text(L.of(context).importShort),
             ),
+            const SizedBox(width: 4),
+            FilledButton.icon(
+              onPressed:
+                  busy ||
+                      (!game.saveProfile.isConfigured &&
+                          game.ludusaviTemplates.isEmpty)
+                  ? null
+                  : () =>
+                        context.read<SavesBloc>().add(SnapshotRequested(game)),
+              style: context.buttons.compactFilled,
+              icon: busy
+                  ? const BusySpinner()
+                  : const Icon(Icons.add_a_photo_outlined, size: 16),
+              label: Text(L.of(context).takeSnapshot),
+            ),
+          ],
+        ),
+        child: snapshots.isEmpty
+            ? Text(L.of(context).noSnapshotsNote, style: context.text.paragraph)
+            : Column(
+                children: [
+                  for (final snapshot in snapshots)
+                    SnapshotTile(
+                      snapshot: snapshot,
+                      onRestore: () => _restore(context, snapshot),
+                      onExport: () => _export(context, snapshot),
+                      onDelete: () => _delete(context, snapshot),
+                    ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -123,6 +135,8 @@ class SnapshotsSection extends StatelessWidget {
     saves.add(SnapshotDeleted(snapshot));
   }
 
+  /// Выбор файла — дело окна, разбор пакета — дело блока: файл чужой, и
+  /// прочитаться он может не до конца.
   Future<void> _import(BuildContext context) async {
     final saves = context.read<SavesBloc>();
     final group = XTypeGroup(
@@ -130,33 +144,38 @@ class SnapshotsSection extends StatelessWidget {
       extensions: const ['evsave', 'zip'],
     );
     final file = await openFile(acceptedTypeGroups: [group]);
-    if (file == null || !context.mounted) return;
+    if (file == null) return;
+    saves.add(SnapshotImportInspectRequested(path: file.path, game: game));
+  }
 
-    try {
-      final info = await saves.saveManager.inspectPackage(file.path);
-      if (!context.mounted) return;
-
-      final ok = await confirm(
-        context,
-        title: L.of(context).importSnapshotQuestion,
-        message: L
-            .of(context)
-            .importSnapshotNote(
-              info.snapshot.gameTitle,
-              formatDateTime(info.snapshot.createdAt),
-              info.snapshot.deviceName,
-              platformLabel(info.snapshot.platform),
-              info.snapshot.fileCount,
-              game.title,
-            ),
-        confirmLabel: L.of(context).importAction,
-      );
-      if (!ok) return;
-      saves.add(SnapshotImportRequested(path: file.path, game: game));
-    } on Object catch (error) {
-      // Чтение чужого файла — единственное место, где ошибка возникает
-      // до входа в кубит.
-      if (context.mounted) showError(context, error);
+  /// Спрашивает о разобранном пакете и заводит его, если согласились.
+  Future<void> _askAboutImport(
+    BuildContext context,
+    PendingImport pending,
+  ) async {
+    final saves = context.read<SavesBloc>();
+    final snapshot = pending.info.snapshot;
+    final ok = await confirm(
+      context,
+      title: L.of(context).importSnapshotQuestion,
+      message: L
+          .of(context)
+          .importSnapshotNote(
+            snapshot.gameTitle,
+            formatDateTime(snapshot.createdAt),
+            snapshot.deviceName,
+            platformLabel(snapshot.platform),
+            snapshot.fileCount,
+            pending.game.title,
+          ),
+      confirmLabel: L.of(context).importAction,
+    );
+    if (!ok) {
+      saves.add(const SnapshotImportDismissed());
+      return;
     }
+    saves.add(
+      SnapshotImportRequested(path: pending.info.path, game: pending.game),
+    );
   }
 }
