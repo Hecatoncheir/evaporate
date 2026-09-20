@@ -25,41 +25,20 @@ class Vdf {
   /// принадлежит чужой программе, его формат может поменяться, и падать
   /// из-за этого приложению незачем.
   static Map<String, Object> parse(String source) {
-    final root = <String, Object>{};
-    final stack = <Map<String, Object>>[root];
-    // Ключ, у которого значением окажется следующий блок в фигурных скобках.
-    String? pending;
-
+    final document = _VdfDocument();
     for (final raw in source.split('\n')) {
       final line = raw.trim();
       if (line.isEmpty || line.startsWith('//')) continue;
 
       if (line.startsWith('{')) {
-        final key = pending;
-        pending = null;
-        if (key == null) continue;
-        final child = <String, Object>{};
-        stack.last[key] = child;
-        stack.add(child);
-        continue;
-      }
-      if (line.startsWith('}')) {
-        pending = null;
-        // Лишняя закрывающая скобка не должна опустошить корень.
-        if (stack.length > 1) stack.removeLast();
-        continue;
-      }
-
-      final tokens = _tokens(line);
-      if (tokens.isEmpty) continue;
-      if (tokens.length == 1) {
-        pending = tokens.first;
+        document.open();
+      } else if (line.startsWith('}')) {
+        document.close();
       } else {
-        pending = null;
-        stack.last[tokens[0]] = tokens[1];
+        document.line(_tokens(line));
       }
     }
-    return root;
+    return document.root;
   }
 
   /// Строки в кавычках из одной строки файла.
@@ -77,21 +56,7 @@ class Vdf {
       final char = line[i];
       if (escaped) {
         escaped = false;
-        // Valve знает `\\`, `\"`, `\n` и `\t`. Всё прочее оставляем как
-        // есть, вместе со слешем: файл чужой, и проглотить в нём слеш
-        // молча значит испортить путь, ничего об этом не сказав.
-        switch (char) {
-          case r'\':
-          case '"':
-            buffer.write(char);
-          case 'n':
-            buffer.write('\n');
-          case 't':
-            buffer.write('\t');
-          default:
-            buffer.write(r'\');
-            buffer.write(char);
-        }
+        buffer.write(_unescape(char));
         continue;
       }
       if (char == r'\' && inside) {
@@ -111,6 +76,18 @@ class Vdf {
     return result;
   }
 
+  /// Знак после обратного слеша.
+  ///
+  /// Valve знает `\\`, `\"`, `\n` и `\t`. Всё прочее возвращается как есть,
+  /// вместе со слешем: файл чужой, и проглотить в нём слеш молча значит
+  /// испортить путь, ничего об этом не сказав.
+  static String _unescape(String char) => switch (char) {
+    r'\' || '"' => char,
+    'n' => '\n',
+    't' => '\t',
+    _ => '\\$char',
+  };
+
   /// Значение по цепочке ключей: `Vdf.string(doc, ['AppState', 'name'])`.
   static String? string(Map<String, Object> doc, List<String> path) {
     Object? current = doc;
@@ -129,5 +106,45 @@ class Vdf {
       current = current[key];
     }
     return current is Map<String, Object> ? current : null;
+  }
+}
+
+/// Дерево разбираемого документа и место, где разбор сейчас находится.
+///
+/// Стек и «ключ, ждущий блока» жили внутри самого разбора, и из-за них он
+/// читался как три дела сразу: где мы, что кладём и чем считать строку.
+class _VdfDocument {
+  final root = <String, Object>{};
+  late final List<Map<String, Object>> _stack = [root];
+
+  /// Ключ, у которого значением окажется следующий блок в скобках.
+  String? _pending;
+
+  /// Открылся блок: он и есть значение ключа из прошлой строки.
+  void open() {
+    final key = _pending;
+    _pending = null;
+    if (key == null) return;
+    final child = <String, Object>{};
+    _stack.last[key] = child;
+    _stack.add(child);
+  }
+
+  void close() {
+    _pending = null;
+    // Лишняя закрывающая скобка не должна опустошить корень.
+    if (_stack.length > 1) _stack.removeLast();
+  }
+
+  /// Строка со значениями: одна строка в кавычках — ключ будущего блока,
+  /// две — готовая пара.
+  void line(List<String> tokens) {
+    if (tokens.isEmpty) return;
+    if (tokens.length == 1) {
+      _pending = tokens.first;
+      return;
+    }
+    _pending = null;
+    _stack.last[tokens[0]] = tokens[1];
   }
 }

@@ -121,8 +121,6 @@ int top(int x) => x > 0 ? x : -x;
 const _complexity = [
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 18',
   'lib/services/launch/game_launcher.dart: GameLauncher._start: 17',
-  'lib/services/launch/vdf.dart: Vdf._tokens: 16',
-  'lib/services/launch/vdf.dart: Vdf.parse: 19',
   'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
 ];
 
