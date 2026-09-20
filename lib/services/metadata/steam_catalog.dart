@@ -276,16 +276,13 @@ class SteamCatalog {
     final candidates = await search(cleaned);
     if (candidates.isEmpty) return null;
 
-    SteamGame? best;
-    var bestScore = 0.0;
-    for (final candidate in candidates) {
-      final score = ReleaseName.similarity(cleaned, candidate.name);
-      if (score > bestScore) {
-        bestScore = score;
-        best = candidate;
-      }
-    }
-    if (best == null || bestScore < minSimilarity) return null;
+    final best = ReleaseName.bestMatch(
+      candidates,
+      cleaned,
+      titleOf: (candidate) => candidate.name,
+      minSimilarity: minSimilarity,
+    );
+    if (best == null) return null;
 
     final detailed = await details(best.appId);
     return detailed == null ? best : best.merge(detailed);

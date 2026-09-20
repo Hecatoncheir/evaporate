@@ -1046,7 +1046,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | 12 | 43 | `services/download/engine_queue.dart:66` `_launch`, `:20` | `_modelFor()`, предикат `_stillWanted(managed, generation)` вместо условия в четыре строки (`:79–84`), `_startTask()` |
 | 12 | 41 | `services/launch/executable_finder.dart:71`, `:143` | очки запуска — таблицей `{система: {расширение: очки}}`; `_visitDirectory` / `_evaluateFile` |
 | 12 | 31 | `services/launch/windows_installs.dart:62` `installed` | `_query(exec, root)` отдаёт пустой список при сбое — дальше плоско: без повторов и сортировка |
-| 12 | 27 | `services/saves/ludusavi_catalog.dart:126` `find` | ленивый индекс `Map<int, LudusaviEntry>` вместо линейного прохода; поиск по названию — общим `bestBy` с `steam_catalog.dart:291–300` |
+| ~~12~~ | ~~27~~ | ~~`services/saves/ludusavi_catalog.dart:126` `find`~~ | сделано как задумано: ленивый `Map<int, LudusaviEntry>` (сбрасывается вместе с манифестом) и общий `ReleaseName.bestMatch` с каталогом Steam — порог остался разным, у базы путей он выше |
 | 10 | 64 | `services/system/update_download.dart:110` `_prepare`, `:424` | шаги `_fetchPart → _verify → _promote → _stage` с локальным `report(phase)`; `_httpFetch` пустить через готовый `_open` (`:403`) |
 | 10 | 27 | `core/save_path_template.dart:117` `collapse` | корни сортируются на каждый вызов, а зовут её в циклах обхода → `static final _rootsBySpecificity` |
 | ~~—~~ | ~~72~~ | ~~`input/input_scope.dart:188` `build`, `:118` `_move`~~ | сделано: один `NavActionIntent(action)` вместо пяти намерений с пятью `CallbackAction`, таблица клавиш — константой рядом. Клавиатура теперь и правда сводится к `NavAction`: нажатие клавиши идёт тем же путём, что и нажатие геймпада |

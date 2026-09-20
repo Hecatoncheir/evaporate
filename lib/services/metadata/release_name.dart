@@ -125,6 +125,29 @@ class ReleaseName {
         .trim();
   }
 
+  /// Самый похожий на [needle] из [candidates].
+  ///
+  /// `null` — даже лучший не дотянул до [minSimilarity]: чужая игра хуже,
+  /// чем никакой. Порог задаёт зовущий, и у базы путей он выше, чем у
+  /// каталога Steam: там ответ подставляет **чужие сохранения**, и цена
+  /// ошибки другая.
+  static T? bestMatch<T>(
+    Iterable<T> candidates,
+    String needle, {
+    required String Function(T candidate) titleOf,
+    required double minSimilarity,
+  }) {
+    T? best;
+    var bestScore = 0.0;
+    for (final candidate in candidates) {
+      final score = similarity(needle, titleOf(candidate));
+      if (score <= bestScore) continue;
+      bestScore = score;
+      best = candidate;
+    }
+    return bestScore >= minSimilarity ? best : null;
+  }
+
   /// Насколько найденное название похоже на искомое: 0..1.
   ///
   /// Нужна не идеальная метрика, а способ отсеять явно чужие результаты

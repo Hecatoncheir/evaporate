@@ -37,6 +37,48 @@ void main() {
 ''',
   ].join();
 
+  // По Steam ID спрашивают на каждую игру библиотеки, и раньше каждый
+  // вопрос шёл проходом по всем записям базы. Ответ от этого не зависит —
+  // ни прежде, ни теперь.
+  test('поиск по Steam ID находит свою запись и не находит чужую', () async {
+    final catalog = LudusaviCatalog(
+      cacheFile: cacheFile,
+      fetch: (uri) async => manifest(5),
+    );
+    await catalog.ensureLoaded();
+
+    expect(
+      catalog.find(title: 'что угодно', steamAppId: 1003)?.title,
+      'Игра 3',
+    );
+    expect(catalog.find(title: 'Игра 3', steamAppId: 9999), isNull);
+  });
+
+  // Обновление приносит другой манифест, и ответы обязаны смениться
+  // вместе с ним: запомненный указатель на прежние записи врал бы.
+  test('обновление базы меняет и ответы по Steam ID', () async {
+    var body = manifest(2);
+    final catalog = LudusaviCatalog(
+      cacheFile: cacheFile,
+      fetch: (uri) async => body,
+    );
+    await catalog.ensureLoaded();
+    expect(catalog.find(title: '', steamAppId: 1001), isNotNull);
+
+    body = '''
+Совсем другая:
+  files:
+    "<home>/saves/other":
+      tags: [save]
+  steam:
+    id: 2001
+''';
+    await catalog.ensureLoaded(refresh: true);
+
+    expect(catalog.find(title: '', steamAppId: 1001), isNull);
+    expect(catalog.find(title: '', steamAppId: 2001)?.title, 'Совсем другая');
+  });
+
   test('кэш пишется и читается обратно', () async {
     final first = LudusaviCatalog(
       cacheFile: cacheFile,

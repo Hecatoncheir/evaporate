@@ -103,6 +103,7 @@ class LudusaviCatalog {
         final cached = await compute(_decodeManifest, text);
         if (cached != null) {
           _manifest = cached;
+          _steamIndex = null;
           return true;
         }
         // Кэш испорчен — сохраняем его рядом и качаем заново.
@@ -114,6 +115,7 @@ class LudusaviCatalog {
     onProgress?.call(CatalogProgress.parsing);
     final parsed = await compute(_parseManifest, source);
     _manifest = parsed.manifest;
+    _steamIndex = null;
     await _store.writeText(parsed.json);
     return true;
   }
@@ -124,29 +126,41 @@ class LudusaviCatalog {
     final manifest = _manifest;
     if (manifest == null) return null;
 
-    if (steamAppId != null) {
-      for (final entry in manifest.entries) {
-        if (entry.steamId == steamAppId && !entry.isEmpty) return entry;
-      }
-      return null;
-    }
+    if (steamAppId != null) return _bySteamId[steamAppId];
 
     final needle = ReleaseName.clean(title);
     if (needle.isEmpty) return null;
-
-    LudusaviEntry? best;
-    var bestScore = 0.0;
-    for (final entry in manifest.entries) {
-      if (entry.isEmpty) continue;
-      final score = ReleaseName.similarity(needle, entry.title);
-      if (score > bestScore) {
-        bestScore = score;
-        best = entry;
-      }
-    }
-    // Порог тот же, что и у поиска в Steam: чужие пути хуже, чем никакие.
-    return bestScore >= 0.75 ? best : null;
+    return ReleaseName.bestMatch(
+      manifest.entries.where((entry) => !entry.isEmpty),
+      needle,
+      titleOf: (entry) => entry.title,
+      // Порог выше, чем у поиска в Steam: здесь ответ подставляет игре
+      // чужие сохранения, а чужие пути хуже, чем никакие.
+      minSimilarity: 0.75,
+    );
   }
+
+  /// Записи по Steam ID.
+  ///
+  /// Строится по первой надобности и живёт, пока жив манифест: записей в
+  /// нём десятки тысяч, а спрашивают по одной на каждую игру библиотеки —
+  /// линейный проход означал бы сорок проходов по сорока тысячам записей
+  /// подряд, на загрузке библиотеки.
+  Map<int, LudusaviEntry> get _bySteamId {
+    final ready = _steamIndex;
+    if (ready != null) return ready;
+
+    final index = <int, LudusaviEntry>{};
+    for (final entry in _manifest?.entries ?? const <LudusaviEntry>[]) {
+      final id = entry.steamId;
+      if (id == null || entry.isEmpty) continue;
+      // Первая выигрывает — так же вёл себя и прежний проход по списку.
+      index.putIfAbsent(id, () => entry);
+    }
+    return _steamIndex = index;
+  }
+
+  Map<int, LudusaviEntry>? _steamIndex;
 
   Future<String> _download() async {
     final override = _fetch;
