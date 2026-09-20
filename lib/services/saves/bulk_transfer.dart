@@ -67,65 +67,71 @@ class BulkTransfer {
     required void Function(SaveSnapshot snapshot) onSnapshot,
   }) async {
     final entries = <BulkEntry>[];
-    var exported = 0;
-    var skipped = 0;
-    final failed = <String>[];
-
     for (final game in games) {
-      if (game.saveProfile.rulesForCurrentPlatform.isEmpty) {
-        skipped++;
-        entries.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.skipped,
-            detail: _l.detailNoSavePaths,
-          ),
-        );
-        continue;
-      }
-      try {
-        final snapshot = await saves.createSnapshot(game);
-        onSnapshot(snapshot);
-
-        await saves.exportSnapshot(
-          snapshot,
-          p.join(
-            destinationDir,
-            '${safeFileName(game.title)}-${safeFileName(game.id)}'
-            '${SaveSnapshot.fileExtension}',
-          ),
-        );
-        exported++;
-        entries.add(BulkEntry(title: game.title, outcome: BulkOutcome.applied));
-      } on SaveNothingFoundException {
-        // Пути заданы, но файлов ещё нет — это не ошибка переноса.
-        skipped++;
-        entries.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.skipped,
-            detail: _l.detailNoSavesYet,
-          ),
-        );
-      } on Object catch (error) {
-        failed.add(game.title);
-        entries.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.failed,
-            detail: error.toString(),
-          ),
-        );
-      }
+      entries.add(await _exportOne(game, destinationDir, onSnapshot));
     }
 
+    final report = BulkReport(isExport: true, entries: entries);
+    final failed = _titles(report, BulkOutcome.failed);
     return BulkResult(
-      report: BulkReport(isExport: true, entries: entries),
+      report: report,
       message: failed.isEmpty
-          ? _l.noticeExported(exported, skipped)
-          : _l.noticeExportedWithErrors(exported, skipped, failed.join(', ')),
+          ? _l.noticeExported(
+              report.count(BulkOutcome.applied),
+              report.count(BulkOutcome.skipped),
+            )
+          : _l.noticeExportedWithErrors(
+              report.count(BulkOutcome.applied),
+              report.count(BulkOutcome.skipped),
+              failed.join(', '),
+            ),
       isError: failed.isNotEmpty,
     );
+  }
+
+  /// Судьба одной игры при выгрузке.
+  ///
+  /// Исход возвращается записью отчёта, а не складывается в счётчики по
+  /// дороге: счёт потом снимет сам отчёт (`BulkReport.count`), и разойтись
+  /// им негде.
+  Future<BulkEntry> _exportOne(
+    Game game,
+    String destinationDir,
+    void Function(SaveSnapshot snapshot) onSnapshot,
+  ) async {
+    if (game.saveProfile.rulesForCurrentPlatform.isEmpty) {
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.skipped,
+        detail: _l.detailNoSavePaths,
+      );
+    }
+    try {
+      final snapshot = await saves.createSnapshot(game);
+      onSnapshot(snapshot);
+      await saves.exportSnapshot(
+        snapshot,
+        p.join(
+          destinationDir,
+          '${safeFileName(game.title)}-${safeFileName(game.id)}'
+          '${SaveSnapshot.fileExtension}',
+        ),
+      );
+      return BulkEntry(title: game.title, outcome: BulkOutcome.applied);
+    } on SaveNothingFoundException {
+      // Пути заданы, но файлов ещё нет — это не ошибка переноса.
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.skipped,
+        detail: _l.detailNoSavesYet,
+      );
+    } on Object catch (error) {
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.failed,
+        detail: error.toString(),
+      );
+    }
   }
 
   /// Разбирает папку с пакетами и раскладывает сохранения по играм —
@@ -141,105 +147,120 @@ class BulkTransfer {
     required void Function(SaveSnapshot snapshot) onSnapshot,
   }) async {
     final entries = <BulkEntry>[];
-    var applied = 0;
-    final unmatched = <String>[];
-    final failed = <String>[];
-    final conflicted = <String>[];
-    final seenGames = <String>{};
+    // scanSyncFolder сортирует пакеты от новых к старым, и для одной игры
+    // применяется только самый свежий: следующий откатил бы его.
+    final seen = <String>{};
 
-    final packages = await saves.scanSyncFolder(sourceDir);
-    for (final package in packages) {
-      final game = matchGame(games, package.snapshot.gameTitle);
-      if (game == null) {
-        unmatched.add(package.snapshot.gameTitle);
-        entries.add(
-          BulkEntry(
-            title: package.snapshot.gameTitle,
-            outcome: BulkOutcome.unmatched,
-            detail: _l.detailNoMatchingGame,
-          ),
-        );
-        continue;
-      }
-      // scanSyncFolder сортирует пакеты от новых к старым. Для одной игры
-      // применяем только самый свежий, иначе следующий пакет откатит его.
-      if (!seenGames.add(game.id)) {
-        entries.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.skipped,
-            detail: _l.detailNewerPackage,
-          ),
-        );
-        continue;
-      }
-      // Пакет мог быть снят раньше, чем игра шла на этом устройстве.
-      // Восстановить его — значит откатить прогресс, и резервная копия
-      // тут слабое утешение: о ней ещё надо догадаться.
-      if (!overwriteNewer) {
-        final local = await saves.lastLocalChange(game);
-        if (local != null &&
-            local.isAfter(package.snapshot.createdAt.add(conflictTolerance))) {
-          conflicted.add(game.title);
-          entries.add(
-            BulkEntry(
-              title: game.title,
-              outcome: BulkOutcome.conflicted,
-              detail: _l.detailNewerHere,
-            ),
-          );
-          continue;
-        }
-      }
-
-      try {
-        final snapshot = await saves.importPackage(package.path, game: game);
-        onSnapshot(snapshot);
-
-        final restored = await saves.restoreSnapshot(
-          game: game,
-          snapshot: snapshot,
-        );
-        if (restored.backup != null) onSnapshot(restored.backup!);
-
-        if (restored.isComplete) {
-          applied++;
-          entries.add(
-            BulkEntry(title: game.title, outcome: BulkOutcome.applied),
-          );
-        } else {
-          failed.add(game.title);
-          entries.add(
-            BulkEntry(
-              title: game.title,
-              outcome: BulkOutcome.failed,
-              detail: _l.detailPartialRestore,
-            ),
-          );
-        }
-      } on Object catch (error) {
-        failed.add(game.title);
-        entries.add(
-          BulkEntry(
-            title: game.title,
-            outcome: BulkOutcome.failed,
-            detail: error.toString(),
-          ),
-        );
-      }
+    for (final package in await saves.scanSyncFolder(sourceDir)) {
+      entries.add(
+        await _importOne(
+          package,
+          games: games,
+          seen: seen,
+          overwriteNewer: overwriteNewer,
+          onSnapshot: onSnapshot,
+        ),
+      );
     }
 
+    final report = BulkReport(isExport: false, entries: entries);
+    final failed = report.count(BulkOutcome.failed);
+    final unmatched = report.count(BulkOutcome.unmatched);
+    final conflicted = report.count(BulkOutcome.conflicted);
     return BulkResult(
-      report: BulkReport(isExport: false, entries: entries),
+      report: report,
       message: <String>[
-        _l.noticeApplied(applied),
-        if (conflicted.isNotEmpty) _l.noticeNewerHere(conflicted.length),
-        if (unmatched.isNotEmpty) _l.noticeNoSuchGame(unmatched.length),
-        if (failed.isNotEmpty) _l.noticeFailedCount(failed.length),
+        _l.noticeApplied(report.count(BulkOutcome.applied)),
+        if (conflicted > 0) _l.noticeNewerHere(conflicted),
+        if (unmatched > 0) _l.noticeNoSuchGame(unmatched),
+        if (failed > 0) _l.noticeFailedCount(failed),
       ].join(', '),
-      isError: failed.isNotEmpty || unmatched.isNotEmpty,
+      isError: failed > 0 || unmatched > 0,
     );
   }
+
+  /// Судьба одного пакета: кому он принадлежит и можно ли его применять.
+  ///
+  /// Все отказы — ранними выходами: они и есть исход, а не ступень к нему.
+  Future<BulkEntry> _importOne(
+    SavePackageInfo package, {
+    required List<Game> games,
+    required Set<String> seen,
+    required bool overwriteNewer,
+    required void Function(SaveSnapshot snapshot) onSnapshot,
+  }) async {
+    final game = matchGame(games, package.snapshot.gameTitle);
+    if (game == null) {
+      return BulkEntry(
+        title: package.snapshot.gameTitle,
+        outcome: BulkOutcome.unmatched,
+        detail: _l.detailNoMatchingGame,
+      );
+    }
+    if (!seen.add(game.id)) {
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.skipped,
+        detail: _l.detailNewerPackage,
+      );
+    }
+    if (!overwriteNewer && await _localIsNewer(game, package)) {
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.conflicted,
+        detail: _l.detailNewerHere,
+      );
+    }
+    return _restoreOne(game, package, onSnapshot);
+  }
+
+  /// Успели ли здесь поиграть после того, как сняли пакет.
+  ///
+  /// Восстановить такой пакет — значит откатить прогресс, и резервная
+  /// копия тут слабое утешение: о ней ещё надо догадаться.
+  Future<bool> _localIsNewer(Game game, SavePackageInfo package) async {
+    final local = await saves.lastLocalChange(game);
+    if (local == null) return false;
+    return local.isAfter(package.snapshot.createdAt.add(conflictTolerance));
+  }
+
+  /// Заводит пакет у себя и раскладывает его сохранения по местам.
+  Future<BulkEntry> _restoreOne(
+    Game game,
+    SavePackageInfo package,
+    void Function(SaveSnapshot snapshot) onSnapshot,
+  ) async {
+    try {
+      final snapshot = await saves.importPackage(package.path, game: game);
+      onSnapshot(snapshot);
+
+      final restored = await saves.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+      );
+      if (restored.backup != null) onSnapshot(restored.backup!);
+      if (restored.isComplete) {
+        return BulkEntry(title: game.title, outcome: BulkOutcome.applied);
+      }
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.failed,
+        detail: _l.detailPartialRestore,
+      );
+    } on Object catch (error) {
+      return BulkEntry(
+        title: game.title,
+        outcome: BulkOutcome.failed,
+        detail: error.toString(),
+      );
+    }
+  }
+
+  /// Названия игр с таким исходом — их называют человеку поимённо.
+  static List<String> _titles(BulkReport report, BulkOutcome outcome) => [
+    for (final entry in report.entries)
+      if (entry.outcome == outcome) entry.title,
+  ];
 
   /// Идентификаторы игр на разных устройствах не совпадают, поэтому
   /// пакеты сопоставляются по названию.
