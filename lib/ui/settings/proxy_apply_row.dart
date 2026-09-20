@@ -5,10 +5,18 @@ import '../../models/proxy_settings.dart';
 import '../theme.dart';
 
 /// Клавиша «Применить» и собранный адрес рядом с ней.
+///
+/// Адрес — набранный, а не сохранённый: человек сверяет то, что применит.
 class ProxyApplyRow extends StatelessWidget {
-  const ProxyApplyRow({super.key, required this.proxy, required this.onApply});
+  const ProxyApplyRow({
+    super.key,
+    required this.draft,
+    required this.canApply,
+    required this.onApply,
+  });
 
-  final ProxySettings proxy;
+  final ProxySettings draft;
+  final bool canApply;
   final VoidCallback onApply;
 
   @override
@@ -17,13 +25,13 @@ class ProxyApplyRow extends StatelessWidget {
     return Row(
       children: [
         FilledButton(
-          onPressed: proxy.enabled ? onApply : null,
+          onPressed: canApply ? onApply : null,
           child: Text(l.proxyApply),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            proxy.isUsable ? proxy.uri : l.proxyNoAddress,
+            draft.isUsable ? draft.uri : l.proxyNoAddress,
             style: context.text.path,
           ),
         ),

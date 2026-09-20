@@ -6,8 +6,9 @@ import 'setting_text_field.dart';
 /// Адрес, порт и учётные данные прокси.
 ///
 /// Поля правятся руками и уходят в настройки по «Применить», а не на
-/// каждый знак: на полпути набранный адрес — не адрес. Поэтому контроллеры
-/// держит карточка, а не эти поля.
+/// каждый знак: на полпути набранный адрес — не адрес. Контроллеры при
+/// этом держит карточка, а набранное — блок формы: строка рядом с клавишей
+/// показывает то, что применят.
 class ProxyAddressFields extends StatelessWidget {
   const ProxyAddressFields({
     super.key,
@@ -16,6 +17,11 @@ class ProxyAddressFields extends StatelessWidget {
     required this.user,
     required this.password,
     required this.enabled,
+    required this.portError,
+    required this.onHost,
+    required this.onPort,
+    required this.onUser,
+    required this.onPassword,
   });
 
   final TextEditingController host;
@@ -23,6 +29,14 @@ class ProxyAddressFields extends StatelessWidget {
   final TextEditingController user;
   final TextEditingController password;
   final bool enabled;
+
+  /// Почему порт не годится; `null` — годится.
+  final String? portError;
+
+  final ValueChanged<String> onHost;
+  final ValueChanged<String> onPort;
+  final ValueChanged<String> onUser;
+  final ValueChanged<String> onPassword;
 
   @override
   Widget build(BuildContext context) {
@@ -34,23 +48,28 @@ class ProxyAddressFields extends StatelessWidget {
           label: l.proxyHost,
           controller: host,
           enabled: enabled,
+          onChanged: onHost,
         ),
         SettingTextField(
           label: l.proxyPort,
           controller: port,
           enabled: enabled,
           numeric: true,
+          onChanged: onPort,
+          errorText: portError,
         ),
         SettingTextField(
           label: l.proxyUser,
           controller: user,
           enabled: enabled,
+          onChanged: onUser,
         ),
         SettingTextField(
           label: l.proxyPassword,
           controller: password,
           enabled: enabled,
           obscure: true,
+          onChanged: onPassword,
         ),
       ],
     );

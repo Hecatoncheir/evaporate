@@ -12,6 +12,8 @@ class SettingTextField extends StatelessWidget {
     required this.enabled,
     this.numeric = false,
     this.obscure = false,
+    this.onChanged,
+    this.errorText,
   });
 
   final String label;
@@ -23,6 +25,11 @@ class SettingTextField extends StatelessWidget {
 
   /// Скрыть набранное — пароль.
   final bool obscure;
+
+  final ValueChanged<String>? onChanged;
+
+  /// Почему набранное не годится; `null` — годится.
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +47,12 @@ class SettingTextField extends StatelessWidget {
               controller: controller,
               enabled: enabled,
               obscureText: obscure,
+              onChanged: onChanged,
               keyboardType: numeric ? TextInputType.number : null,
               inputFormatters: numeric
                   ? [FilteringTextInputFormatter.digitsOnly]
                   : null,
-              decoration: const InputDecoration(isDense: true),
+              decoration: InputDecoration(isDense: true, errorText: errorText),
             ),
           ),
         ],
