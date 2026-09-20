@@ -45,6 +45,55 @@ Map<String, Map<int, int>> parseCoverage(String lcov) {
   return (hit: hit, found: found, percent: found == 0 ? 0 : 100 * hit / found);
 }
 
+/// Файлы `lib`, которых в отчёте нет вовсе.
+///
+/// Такой файл не «стопроцентный», а нулевой: он не выполнялся ни разу, и в
+/// знаменатель покрытия не попал — то есть тем выше поднял процент, чем
+/// меньше его проверяли. Отсюда отдельная проверка: непокрытый файл
+/// обязан быть **назван**.
+List<String> filesMissingFromReport(
+  Map<String, Map<int, int>> files,
+  Iterable<String> libFiles,
+) => [
+  for (final path in libFiles)
+    if (!files.containsKey(path) && !_reportedNowhere.contains(path)) path,
+]..sort();
+
+/// Кого в отчёте нет и быть не должно.
+///
+/// Первые два — код, которого не бывает в тестах: `main` запускает
+/// настоящее приложение, а системные уведомления — обёртка над плагином,
+/// которому в прогоне отвечать некому. Остальные три исполняемых строк не
+/// содержат вовсе: бочка экспортов, перечислимая и таблица констант.
+const _reportedNowhere = {
+  'lib/main.dart',
+  'lib/services/notifications/system_notification_service.dart',
+  'lib/ui/theme.dart',
+  'lib/models/app_theme_mode.dart',
+  'lib/ui/theme/alpha.dart',
+};
+
+/// Файлы `lib`, покрытие которых имеет смысл считать.
+List<String> libSources([String root = 'lib']) => [
+  for (final entity in Directory(root).listSync(recursive: true))
+    if (entity is File && _measured(_asRepoPath(entity.path)))
+      _asRepoPath(entity.path),
+]..sort();
+
+/// Путь от корня репозитория и через прямые косые: в отчёте они такие, а
+/// на Windows `Directory.listSync` отдаёт обратные.
+String _asRepoPath(String path) {
+  final normalized = path.replaceAll(r'\', '/');
+  final lib = normalized.indexOf('lib/');
+  return lib >= 0 ? normalized.substring(lib) : normalized;
+}
+
+bool _measured(String path) =>
+    path.endsWith('.dart') &&
+    !path.contains('/l10n/') &&
+    !path.endsWith('.g.dart') &&
+    !path.endsWith('.freezed.dart');
+
 void main(List<String> arguments) {
   final path = arguments.isEmpty ? 'coverage/lcov.info' : arguments.single;
   final files = parseCoverage(File(path).readAsStringSync());
@@ -64,10 +113,10 @@ void main(List<String> arguments) {
   // своя, неполная картина, и порог по ней был бы занижен.
   final scopes =
       <({String label, double minimum, bool Function(String) includes})>[
-        (label: 'Весь код (без генерации)', minimum: 80, includes: (_) => true),
+        (label: 'Весь код (без генерации)', minimum: 81, includes: (_) => true),
         (
           label: 'Ядро, модели и сервисы',
-          minimum: 79,
+          minimum: 81,
           includes: (path) => [
             'lib/core/',
             'lib/models/',
@@ -76,7 +125,7 @@ void main(List<String> arguments) {
         ),
         (
           label: 'Менеджер сохранений',
-          minimum: 89,
+          minimum: 90,
           includes: (path) =>
               path == 'lib/services/saves/save_manager.dart' ||
               path == 'lib/services/saves/restore_transaction.dart',
@@ -94,4 +143,16 @@ void main(List<String> arguments) {
       exitCode = 1;
     }
   }
+
+  final missing = filesMissingFromReport(files, libSources());
+  if (missing.isEmpty) return;
+  stdout.writeln('\nНе выполнялись ни разу:');
+  for (final path in missing) {
+    stdout.writeln('- $path');
+  }
+  stderr.writeln(
+    'Файлы без единой выполненной строки в отчёт не попадают и процент '
+    'не снижают. Заведите им тест или назовите причину в _reportedNowhere.',
+  );
+  exitCode = 1;
 }
