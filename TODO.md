@@ -861,11 +861,18 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   источник. События `CaptureStarted(action)`, `RawButtonPressed(button)`,
   `CaptureCancelled`; на время захвата блок глушит действия в
   `GamepadService` — это и закрывает ошибку из этапа 1. **S**
-- [ ] **`WindowBloc`** вместо состояния в `AppWindowFrame`
+- [x] ~~**`WindowBloc`** вместо состояния в `AppWindowFrame`
   (`window_frame.dart:202–262`): события от `WindowListener`
   (`WindowMaximized`, `WindowUnmaximized`, `FullScreenEntered`,
   `FullScreenLeft`) и `WindowSizeToggled` от клавиши. Последовательная
-  обработка убирает трюк с `_revision`, а слушатель окна снова один. **M**
+  обработка убирает трюк с `_revision`, а слушатель окна снова один.~~ **M**
+  *Сделано иначе — службой `WindowModeWatch`.* Окно здесь такой же внешний
+  источник, как движок загрузок: им владеет служба, а не блок, и отдаёт
+  наружу `ValueListenable`. Блок на одно поле «развёрнуто» был бы
+  передаточным звеном. Трюк с номером правки остался, но перестал быть
+  незаметным: опрос висит, событие приходит раньше ответа, отставший
+  ответ выбрасывается — и это проверено тестом, чего в виджете было не
+  сделать вовсе.
 - [x] **`FilesDropped(paths)`** в `LibraryBloc` вместо логики в
   `GameDropTarget`: разбор, занятость, `Notice`. Игры из `.torrent`
   библиотека публикует потоком, как `gameExits`, а `DownloadsBloc`
@@ -877,12 +884,16 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   адреса показывает сохранённое, а не набранное (`:176`), `showInfo` идёт
   мимо `Notice` (`:55`). Состояние `{draft, portError, dirty}`; разбор —
   чистой функцией `ProxySettings.fromForm` под тестом. **S**
-- [ ] Производное — геттерами состояния, а не в `build`:
+- [x] Производное — геттерами состояния, а не в `build`:
   сортировка всех снимков на каждую пересборку (`saves_page.dart:34–38,89–98`),
   подсчёты на странице загрузок (`downloads_page.dart:54–57`), отбор
   доступных игр (`available_games.dart:21–30`). Пересчёт места в очереди в
   индекс движка (`queue_column.dart:139–152`) — знание движка внутри
   виджета; событие `DownloadReordered(id, beforeId)` его забирает. **S**
+  *Сделано:* `SavesState.entriesFor`, `LibraryState.downloadable`,
+  `DownloadsState.orderIndexBefore`. Виджет очереди теперь называет
+  соседа, а место среди всех задач считает состояние — и это наконец
+  проверяется без движка.
 - [x] Разделы — перечислением `AppSection`, а не числами: сейчас два
   параллельных списка и магическое `_downloadsSection = 1`
   (`navigation.dart:48,60–71`), `sectionCount = 4` в блоке и `section != 0`

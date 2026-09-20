@@ -31,7 +31,7 @@ class SavesPage extends StatelessWidget {
     final library = context.watch<LibraryBloc>().state;
     final saves = context.watch<SavesBloc>().state;
 
-    final entries = _allSnapshots(library, saves);
+    final entries = saves.entriesFor(library.games);
     final configured = library.games
         .where((g) => g.saveProfile.isConfigured)
         .length;
@@ -85,21 +85,5 @@ class SavesPage extends StatelessWidget {
         );
       },
     );
-  }
-
-  /// Все снимки библиотеки, свежие сверху.
-  ///
-  /// Снимки лежат по играм, а экран показывает их одним списком: это ответ
-  /// на вопрос «что у меня вообще сохранено», а не «что сохранено у этой
-  /// игры» — на него отвечает карточка на странице самой игры.
-  List<SnapshotEntry> _allSnapshots(LibraryState library, SavesState saves) {
-    final entries = <SnapshotEntry>[];
-    for (final game in library.games) {
-      for (final snapshot in saves.snapshotsFor(game.id)) {
-        entries.add((game, snapshot));
-      }
-    }
-    entries.sort((a, b) => b.$2.createdAt.compareTo(a.$2.createdAt));
-    return entries;
   }
 }

@@ -77,6 +77,29 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
     );
   }
 
+  /// Игры, которые можно поставить в очередь: есть откуда качать, ещё не
+  /// установлены и не качаются прямо сейчас.
+  ///
+  /// Здесь, а не в `build` списка источников: отбор идёт по всей
+  /// библиотеке и на каждую пересборку страницы загрузок.
+  List<Game> downloadable(Iterable<String> busyIds) {
+    final busy = busyIds.toSet();
+    return [
+      for (final game in games)
+        if (_canQueue(game, busy)) game,
+    ];
+  }
+
+  static bool _canQueue(Game game, Set<String> busy) {
+    final source = game.source;
+    if (source == null || source.kind == GameSourceKind.localFolder) {
+      return false;
+    }
+    if (game.isInstalled) return false;
+    final hash = game.infoHash;
+    return hash == null || !busy.contains(hash);
+  }
+
   @override
   LibraryState withBusy(Set<String> busy, {Notice? notice}) =>
       copyWith(busy: busy, notice: notice ?? this.notice);

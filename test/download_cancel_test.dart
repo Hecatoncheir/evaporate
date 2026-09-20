@@ -207,7 +207,6 @@ void main() {
                 active: const [],
                 queued: const [task],
                 library: LibraryState(games: [game]),
-                allTasks: const [task],
               ),
             ),
           ),

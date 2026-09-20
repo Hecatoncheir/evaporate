@@ -61,6 +61,25 @@ class SavesState extends Equatable implements BusyState<SavesState> {
   List<SavePathSuggestion> hintsFor(String gameId) =>
       saveHints[gameId] ?? const <SavePathSuggestion>[];
 
+  /// Все снимки перечисленных игр, свежие сверху.
+  ///
+  /// Экран сохранений показывает их одним списком: это ответ на вопрос
+  /// «что у меня вообще сохранено», а не «что сохранено у этой игры» — на
+  /// него отвечает карточка на странице самой игры.
+  ///
+  /// Здесь, а не в `build`: сортировка всех снимков библиотеки шла на
+  /// каждую пересборку экрана.
+  List<(Game, SaveSnapshot)> entriesFor(List<Game> games) {
+    final entries = <(Game, SaveSnapshot)>[];
+    for (final game in games) {
+      for (final snapshot in snapshotsFor(game.id)) {
+        entries.add((game, snapshot));
+      }
+    }
+    entries.sort((a, b) => b.$2.createdAt.compareTo(a.$2.createdAt));
+    return entries;
+  }
+
   /// `null` — ещё не проверяли.
   bool? pathExists(String? resolved) =>
       resolved == null ? null : pathPresence[resolved];

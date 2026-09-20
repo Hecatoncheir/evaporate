@@ -41,4 +41,22 @@ void main() {
   test('очередь — только ждущие слота', () {
     expect(ids(state.queued), ['ждёт слота']);
   });
+
+  group('перестановка очереди', () {
+    // Место у движка своё — в общем порядке всех задач, а очередь только
+    // его часть. Считать это в виджете значило бы знать там устройство
+    // движка.
+    test('соседа переводят в место среди всех задач', () {
+      expect(state.orderIndexBefore('ждёт слота'), 4);
+    });
+
+    test('без соседа — в конец', () {
+      expect(state.orderIndexBefore(null), 5);
+    });
+
+    test('пропавший сосед не двигает ничего', () {
+      expect(state.orderIndexBefore('такой задачи нет'), isNull);
+      expect(const DownloadsState().orderIndexBefore(null), isNull);
+    });
+  });
 }

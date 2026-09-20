@@ -68,9 +68,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     on<DownloadResumeRequested>(_onResumeRequested);
     on<DownloadCancelRequested>(_onCancelRequested);
     on<TorrentExportRequested>(_onTorrentExport);
-    on<DownloadReordered>((event, emit) async {
-      await engine.reorder(event.id, event.newIndex);
-    });
+    on<DownloadReordered>(_onReordered);
     on<EngineTasksChanged>(_onTasksChanged);
     on<EngineStatusChanged>((event, emit) {
       emit(state.copyWith(engine: event.status));
@@ -163,6 +161,20 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   ) => applyLimits();
 
   // ------------------------------------------------------------ действия
+
+  /// Переставляет задачу перед соседом.
+  ///
+  /// Движку нужна позиция в общем порядке всех задач, а очередь — только
+  /// часть его: перевод одного в другое знает тот, у кого есть весь
+  /// список, то есть блок.
+  Future<void> _onReordered(
+    DownloadReordered event,
+    Emitter<DownloadsState> emit,
+  ) async {
+    final index = state.orderIndexBefore(event.beforeId);
+    if (index == null) return;
+    await engine.reorder(event.id, index);
+  }
 
   /// Ставит в очередь то из брошенного, что качают.
   ///

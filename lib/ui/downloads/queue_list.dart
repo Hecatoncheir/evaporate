@@ -8,15 +8,9 @@ import 'queued_card.dart';
 
 /// Очередь с перестановкой перетаскиванием.
 class QueueList extends StatelessWidget {
-  const QueueList({
-    super.key,
-    required this.queued,
-    required this.allTasks,
-    required this.library,
-  });
+  const QueueList({super.key, required this.queued, required this.library});
 
   final List<DownloadTask> queued;
-  final List<DownloadTask> allTasks;
   final LibraryState library;
 
   @override
@@ -31,15 +25,11 @@ class QueueList extends StatelessWidget {
       onReorderItem: (oldIndex, newIndex) {
         final moved = queued[oldIndex];
         final rest = [...queued]..removeAt(oldIndex);
-        // Движку нужна позиция в общем порядке задач, а не внутри очереди:
-        // сосед подсказывает, куда именно вставить.
+        // Называем соседа, а не место: место у движка своё, в общем
+        // порядке всех задач, и знать его устройство виджету незачем.
         final target = newIndex < rest.length ? rest[newIndex] : null;
-        final globalIndex = target == null
-            ? allTasks.length - 1
-            : allTasks.indexWhere((t) => t.id == target.id);
-        if (globalIndex == -1) return;
         context.read<DownloadsBloc>().add(
-          DownloadReordered(id: moved.id, newIndex: globalIndex),
+          DownloadReordered(id: moved.id, beforeId: target?.id),
         );
       },
       itemBuilder: (context, index) {

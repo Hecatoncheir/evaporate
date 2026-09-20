@@ -4,14 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
-import '../../services/download/download_engine.dart';
 import '../theme.dart';
 import '../widgets/game_drop_target.dart';
 import 'available_games.dart';
 import 'downloads_columns.dart';
 import 'downloads_heading.dart';
-import 'downloads_readout.dart';
-import 'engine_failure.dart';
+import 'downloads_status_bar.dart';
 import 'queue_column.dart';
 
 /// Загрузки: что качается сейчас и что пойдёт следом.
@@ -41,12 +39,7 @@ class DownloadsPage extends StatelessWidget {
     final queued = downloads.queued;
 
     final sources = AvailableGames(library: library, tasks: downloads.tasks);
-    final queue = QueueColumn(
-      active: active,
-      queued: queued,
-      library: library,
-      allTasks: downloads.tasks,
-    );
+    final queue = QueueColumn(active: active, queued: queued, library: library);
 
     return LayoutBuilder(
       builder: (context, box) => Center(
@@ -65,20 +58,11 @@ class DownloadsPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DownloadsHeading(status: downloads.engine),
-                Padding(
-                  padding: EvaporateLayout.inset(top: 14),
-                  child: DownloadsReadout(
-                    stats: downloads.stats,
-                    active: downloads.holdingSlots.length,
-                    queued: queued.length,
-                    maxConcurrent: maxConcurrent,
-                  ),
+                DownloadsStatusBar(
+                  downloads: downloads,
+                  queued: queued.length,
+                  maxConcurrent: maxConcurrent,
                 ),
-                if (downloads.engine.state == EngineState.failed)
-                  Padding(
-                    padding: EvaporateLayout.inset(top: 14),
-                    child: EngineFailure(message: downloads.engine.message),
-                  ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(top: 16),

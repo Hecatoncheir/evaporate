@@ -44,6 +44,17 @@ class DownloadsState extends Equatable {
 
   DownloadTask? taskForGame(Game game) => taskById(game.downloadTaskId);
 
+  /// Место в общем порядке задач, куда встать перед [beforeId].
+  ///
+  /// `null` — соседа нет в списке, переставлять некуда. Движку нужна
+  /// позиция среди **всех** задач, а очередь — только их часть: знать это
+  /// виджету незачем, поэтому перевод живёт здесь.
+  int? orderIndexBefore(String? beforeId) {
+    if (beforeId == null) return tasks.isEmpty ? null : tasks.length - 1;
+    final index = tasks.indexWhere((task) => task.id == beforeId);
+    return index == -1 ? null : index;
+  }
+
   DownloadsState copyWith({
     List<DownloadTask>? tasks,
     EngineStats? stats,

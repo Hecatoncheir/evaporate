@@ -19,13 +19,11 @@ class QueueColumn extends StatelessWidget {
     required this.active,
     required this.queued,
     required this.library,
-    required this.allTasks,
   });
 
   final List<DownloadTask> active;
   final List<DownloadTask> queued;
   final LibraryState library;
-  final List<DownloadTask> allTasks;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +70,7 @@ class QueueColumn extends StatelessWidget {
               if (queued.isEmpty)
                 QueueHint(L.of(context).queueEmptyNote)
               else
-                QueueList(queued: queued, allTasks: allTasks, library: library),
+                QueueList(queued: queued, library: library),
             ],
           ),
         );

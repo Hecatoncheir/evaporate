@@ -84,13 +84,18 @@ final class TorrentExportRequested extends DownloadsEvent {
 
 /// Пользователь перетащил задачу в очереди.
 final class DownloadReordered extends DownloadsEvent {
-  const DownloadReordered({required this.id, required this.newIndex});
+  const DownloadReordered({required this.id, this.beforeId});
 
   final String id;
-  final int newIndex;
+
+  /// Перед какой задачей встать. `null` — в конец очереди.
+  ///
+  /// Сосед, а не номер: номер у движка свой, в общем порядке всех задач, и
+  /// считать его из виджета значило бы знать там устройство движка.
+  final String? beforeId;
 
   @override
-  List<Object?> get props => [id, newIndex];
+  List<Object?> get props => [id, beforeId];
 }
 
 /// Движок прислал новый снимок задач. Событие приходит из его потока —

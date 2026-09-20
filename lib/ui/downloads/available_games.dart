@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
-import '../../models/game.dart';
 import '../theme.dart';
 import 'draggable_game.dart';
 import 'section_title.dart';
@@ -17,16 +16,7 @@ class AvailableGames extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final busyIds = tasks.map((t) => t.id).toSet();
-    final available = library.games.where((game) {
-      final source = game.source;
-      if (source == null || source.kind == GameSourceKind.localFolder) {
-        return false;
-      }
-      if (game.isInstalled) return false;
-      final hash = game.infoHash;
-      return hash == null || !busyIds.contains(hash);
-    }).toList();
+    final available = library.downloadable(tasks.map((task) => task.id));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
