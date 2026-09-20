@@ -1,4 +1,5 @@
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/ui/library/saves/rule_tile.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -7,6 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Строка правила сохранений в узкой колонке страницы игры.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   // Метка и три тега стояли в одной строке без права переноса: длинная
   // метка, заданная человеком, вылезала за край карточки полосой ошибки.
   testWidgets('длинная метка с тегами переносится, а не вылезает за край', (
@@ -72,14 +77,14 @@ void main() {
   testWidgets('непроверенное не объявляется отсутствующим', (tester) async {
     await pumpTile(tester, exists: null);
 
-    expect(find.text('нет на диске'), findsNothing);
+    expect(find.text(l.missingOnDisk), findsNothing);
     expect(find.byIcon(Icons.folder_off_outlined), findsNothing);
   });
 
   testWidgets('о пропавшей папке говорят прямо', (tester) async {
     await pumpTile(tester, exists: false);
 
-    expect(find.text('нет на диске'), findsOneWidget);
+    expect(find.text(l.missingOnDisk), findsOneWidget);
     expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
   });
 }

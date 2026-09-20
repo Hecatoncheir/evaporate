@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
@@ -14,6 +15,10 @@ import 'support/test_app.dart';
 
 /// Общий экран сохранений: показания хранилища и список всех снимков.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async {
@@ -118,7 +123,7 @@ void main() {
     await tester.tap(find.byTooltip('Удалить').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Удалить снимок?'), findsOneWidget);
+    expect(find.text(l.deleteSnapshotQuestion), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(AlertDialog),

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,10 @@ import 'support/test_app.dart';
 /// Закрыть приложение с геймпада было нечем: своя панель окна даёт крестик
 /// мышью, значок в трее — пункт меню, а стрелками до них не дойти.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
   const channel = MethodChannel('window_manager');
   late List<String> calls;
@@ -46,7 +51,7 @@ void main() {
 
     final quit = find.byKey(const ValueKey('rail-quit'));
     expect(quit, findsOneWidget);
-    expect(find.text('Выключить'), findsOneWidget);
+    expect(find.text(l.quitApp), findsOneWidget);
 
     await tester.tap(quit);
     await frames(tester);

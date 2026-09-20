@@ -25,7 +25,7 @@ void main() {
   }
 
   testWidgets(
-    'play button activates once by keyboard and cannot activate when disabled',
+    'клавиша «Играть» срабатывает с клавиатуры один раз, а погашенная — никогда',
     (tester) async {
       var taps = 0;
       var enabled = true;
@@ -81,7 +81,7 @@ void main() {
   );
 
   testWidgets(
-    'wave does not rebuild page content and respects lifecycle and reduced motion',
+    'волна не пересобирает страницу и слушает свёрнутое окно и просьбу не двигаться',
     (tester) async {
       var builds = 0;
       var reduced = false;
@@ -143,7 +143,7 @@ void main() {
   setUp(() async => tmp = await TestHarness.makeTempDir());
   tearDown(() => TestHarness.removeTempDir(tmp));
 
-  testWidgets('game page preview and hidden-page animation pause', (
+  testWidgets('страница игры на виду и остановка анимации у скрытой', (
     tester,
   ) async {
     final preview = Platform.environment['GAME_PAGE_PREVIEW'];

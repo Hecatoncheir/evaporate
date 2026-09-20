@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/glass_surface.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,10 @@ import 'support/test_app.dart';
 
 /// Возврат со страницы игры.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async => tmp = await TestHarness.makeTempDir());
@@ -31,7 +36,7 @@ void main() {
 
   /// Подложка, на которой стоит «К библиотеке».
   Finder backSurface() => find.ancestor(
-    of: find.text('К библиотеке'),
+    of: find.text(l.backToLibrary),
     matching: find.byType(GlassSurface),
   );
 
@@ -74,7 +79,7 @@ void main() {
 
     final button = tester.widget<TextButton>(
       find.ancestor(
-        of: find.text('К библиотеке'),
+        of: find.text(l.backToLibrary),
         matching: find.byType(TextButton),
       ),
     );

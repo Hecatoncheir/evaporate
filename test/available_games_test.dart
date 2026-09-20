@@ -4,6 +4,7 @@ import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/available_games.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -17,6 +18,10 @@ import 'support/test_app.dart';
 /// игра вообще видна. Убрать её отсюда должно быть можно, не уходя на её
 /// страницу, — но не одним нажатием: со ссылкой на раздачу уйдёт и она.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async => tmp = await TestHarness.makeTempDir());
@@ -81,9 +86,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Ждёт очереди'), findsWidgets);
-    expect(find.text('Удалить из библиотеки'), findsWidgets);
+    expect(find.text(l.removeFromLibrary), findsWidgets);
 
-    await tester.tap(find.text('Отмена'));
+    await tester.tap(find.text(l.cancel));
     await tester.pumpAndSettle();
     expect(harness.library.state.games, hasLength(1));
   });
@@ -104,6 +109,6 @@ void main() {
     await tester.tap(find.byTooltip('Удалить из библиотеки'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Удалить вместе с файлами'), findsNothing);
+    expect(find.text(l.removeWithFiles), findsNothing);
   });
 }

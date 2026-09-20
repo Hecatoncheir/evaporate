@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,10 @@ import 'support/test_app.dart';
 /// Добавление игры — единственный вход в приложение: каталога содержимого
 /// здесь нет, и всё, что попадает в библиотеку, проходит через этот диалог.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async {
@@ -106,7 +111,7 @@ void main() {
     await submit(tester);
 
     expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text('Введите корректную magnet-ссылку.'), findsOneWidget);
+    expect(find.text(l.badMagnet), findsOneWidget);
     expect(harness.library.state.games, isEmpty);
   });
 
@@ -115,7 +120,7 @@ void main() {
 
     await submit(tester);
 
-    expect(find.text('Введите корректную magnet-ссылку.'), findsOneWidget);
+    expect(find.text(l.badMagnet), findsOneWidget);
     expect(harness.library.state.games, isEmpty);
   });
 
@@ -126,30 +131,30 @@ void main() {
     await tester.pumpAndSettle();
     await submit(tester);
 
-    expect(find.text('Выберите .torrent файл.'), findsOneWidget);
+    expect(find.text(l.pickTorrent), findsOneWidget);
     expect(harness.library.state.games, isEmpty);
   });
 
   testWidgets('без выбранной папки игра не заводится', (tester) async {
     final harness = await withDialog(tester);
 
-    await tester.tap(find.text('Папка'));
+    await tester.tap(find.text(l.sourceFolder));
     await tester.pumpAndSettle();
     await submit(tester);
 
-    expect(find.text('Выберите папку с игрой.'), findsOneWidget);
+    expect(find.text(l.pickFolder), findsOneWidget);
     expect(harness.library.state.games, isEmpty);
   });
 
   // У локальной папки качать нечего, и галочка о загрузке для неё бессмысленна.
   testWidgets('для локальной папки о загрузке не спрашивают', (tester) async {
     await withDialog(tester);
-    expect(find.text('Начать загрузку сразу'), findsOneWidget);
+    expect(find.text(l.startDownloadNow), findsOneWidget);
 
-    await tester.tap(find.text('Папка'));
+    await tester.tap(find.text(l.sourceFolder));
     await tester.pumpAndSettle();
 
-    expect(find.text('Начать загрузку сразу'), findsNothing);
+    expect(find.text(l.startDownloadNow), findsNothing);
   });
 
   // Движок в тестовой сборке не поднимался. Галочка при этом обязана

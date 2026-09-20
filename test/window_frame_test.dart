@@ -220,7 +220,7 @@ void main() {
   });
 
   testWidgets(
-    'startup maximized/fullscreen state has no resize edges or rounding',
+    'у развёрнутого при старте окна нет ни краёв для растягивания, ни скругления',
     (tester) async {
       fullScreen = true;
       await pumpApp(tester);
@@ -256,7 +256,7 @@ void main() {
     expect(maximized, isTrue);
   });
 
-  testWidgets('resize edges call the matching native edge', (tester) async {
+  testWidgets('край окна тянет ровно за свою сторону', (tester) async {
     await pump(tester);
     if (Platform.isMacOS) {
       // NSWindow handles resize; the plugin has no startResizing on macOS.
@@ -295,7 +295,7 @@ void main() {
   });
 
   testWidgets(
-    'native maximize events update controls and dispose removes listener',
+    'системное разворачивание обновляет кнопки, а закрытие снимает слушателя',
     (tester) async {
       final before = windowManager.listeners.length;
       await pumpApp(tester);
@@ -344,51 +344,54 @@ void main() {
     expect(calls.any((c) => c.method == 'minimize'), isTrue);
   });
 
-  testWidgets('library fits minimum window size with custom frame', (
-    tester,
-  ) async {
-    final harness = TestHarness(tmp);
-    addTearDown(harness.dispose);
-    tester.view.physicalSize = const Size(900, 620);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final boundaryKey = GlobalKey();
-    await tester.pumpWidget(
-      harness.buildApp(
-        builder: (context, child) => RepaintBoundary(
-          key: boundaryKey,
-          child: AppWindowFrame(child: child!),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('rail-quit')), findsOneWidget);
-    expect(
-      find.widgetWithText(OutlinedButton, 'Добавить игру'),
-      findsOneWidget,
-    );
-    final preview = Platform.environment['WINDOW_FRAME_PREVIEW'];
-    if (preview != null) {
-      await tester.runAsync(
-        () => precacheImage(
-          const AssetImage('assets/branding/app_icon.png'),
-          boundaryKey.currentContext!,
+  testWidgets(
+    'в наименьшее окно со своей рамкой библиотека помещается целиком',
+    (tester) async {
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      tester.view.physicalSize = const Size(900, 620);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final boundaryKey = GlobalKey();
+      await tester.pumpWidget(
+        harness.buildApp(
+          builder: (context, child) => RepaintBoundary(
+            key: boundaryKey,
+            child: AppWindowFrame(child: child!),
+          ),
         ),
       );
       await tester.pumpAndSettle();
-      final boundary =
-          boundaryKey.currentContext!.findRenderObject()!
-              as RenderRepaintBoundary;
-      await tester.runAsync(() async {
-        final image = await boundary.toImage();
-        try {
-          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          await File(preview).writeAsBytes(bytes!.buffer.asUint8List());
-        } finally {
-          image.dispose();
-        }
-      });
-    }
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.byKey(const ValueKey('rail-quit')), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Добавить игру'),
+        findsOneWidget,
+      );
+      final preview = Platform.environment['WINDOW_FRAME_PREVIEW'];
+      if (preview != null) {
+        await tester.runAsync(
+          () => precacheImage(
+            const AssetImage('assets/branding/app_icon.png'),
+            boundaryKey.currentContext!,
+          ),
+        );
+        await tester.pumpAndSettle();
+        final boundary =
+            boundaryKey.currentContext!.findRenderObject()!
+                as RenderRepaintBoundary;
+        await tester.runAsync(() async {
+          final image = await boundary.toImage();
+          try {
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            await File(preview).writeAsBytes(bytes!.buffer.asUint8List());
+          } finally {
+            image.dispose();
+          }
+        });
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

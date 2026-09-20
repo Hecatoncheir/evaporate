@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/featured_game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
@@ -12,6 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async {
@@ -43,11 +48,11 @@ void main() {
       find.widgetWithText(OutlinedButton, 'Добавить игру'),
       findsOneWidget,
     );
-    expect(find.text('Найти установленные игры'), findsNothing);
+    expect(find.text(l.findInstalledGames), findsNothing);
     await tester.tap(find.widgetWithText(OutlinedButton, 'Добавить игру'));
     await tester.pumpAndSettle();
-    expect(find.text('Найти установленные игры'), findsOneWidget);
-    expect(find.text('Magnet, .torrent или папка…'), findsOneWidget);
+    expect(find.text(l.findInstalledGames), findsOneWidget);
+    expect(find.text(l.addGameSource), findsOneWidget);
     // Обложек у этих игр нет, и плитка обязана назваться сама — иначе в
     // сетке остались бы три неразличимых прямоугольника.
     expect(find.text('Альфа'), findsOneWidget);
@@ -61,12 +66,12 @@ void main() {
     expect(find.widgetWithText(TextButton, 'Все'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
 
-    await tester.tap(find.text('Установленные'));
+    await tester.tap(find.text(l.tabInstalled));
     await tester.pumpAndSettle();
     expect(find.byType(GameCoverTile), findsOneWidget);
     expect(find.text('Альфа'), findsOneWidget);
 
-    await tester.tap(find.text('Не установленные'));
+    await tester.tap(find.text(l.tabNotInstalled));
     await tester.pumpAndSettle();
     expect(find.byType(GameCoverTile), findsNWidgets(2));
     expect(find.text('Альфа'), findsNothing);
@@ -78,7 +83,7 @@ void main() {
     await tester.tap(find.text('Бета'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Папки сохранений'), findsOneWidget);
+    expect(find.text(l.savePaths), findsOneWidget);
     expect(find.byType(GameCoverTile), findsNothing);
     expect(
       harness.library.state.gameById(harness.nav.state.openedGameId)?.title,
@@ -110,7 +115,7 @@ void main() {
 
     await tester.tap(find.text('Гамма'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('К библиотеке'));
+    await tester.tap(find.text(l.backToLibrary));
     await tester.pumpAndSettle();
 
     expect(find.byType(GameCoverTile), findsNWidgets(3));
@@ -175,7 +180,7 @@ void main() {
     );
     // Клавиша запуска остаётся на месте — она и есть смысл кадра.
     expect(find.text('Играть'), findsOneWidget);
-    expect(find.text('Открыть игру'), findsOneWidget);
+    expect(find.text(l.openGame), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // А вот в совсем низком окне кадр уступает место самой полке.

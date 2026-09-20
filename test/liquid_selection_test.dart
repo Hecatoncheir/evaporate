@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/library_effect.dart';
@@ -20,10 +21,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   for (final vertical in [false, true]) {
-    test('gooey neck joins ${vertical ? 'vertical' : 'horizontal'} lobes', () {
+    test('перемычка соединяет ${vertical ? 'верх с низом' : 'бока'}', () {
       final from = Rect.fromLTWH(0, 0, vertical ? 60 : 120, vertical ? 40 : 60);
       final to = from.shift(
         vertical ? const Offset(0, 72) : const Offset(148, 0),
@@ -46,7 +51,7 @@ void main() {
   }
 
   testWidgets(
-    'transition retains content, retargets, settles and respects motion gates',
+    'переезд не теряет содержимое, меняет цель, успокаивается и слушает запреты движения',
     (tester) async {
       final targets = List.generate(3, (_) => GlobalKey());
       final selection = GlobalKey<LiquidSelectionState>();
@@ -168,163 +173,159 @@ void main() {
   tearDown(() => TestHarness.removeTempDir(tmp));
 
   for (final light in [true, false]) {
-    testWidgets(
-      'liquid selection integrates with rail, filters and grid (${light ? 'light' : 'dark'})',
-      (tester) async {
-        final preview = Platform.environment['LIQUID_PREVIEW_PREFIX'];
-        if (preview != null) {
-          for (final entry in {
-            'Ahem': 'assets/fonts/GolosText.ttf',
-            'Unbounded': 'assets/fonts/Unbounded.ttf',
-            'Golos Text': 'assets/fonts/GolosText.ttf',
-            'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
-            'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-          }.entries) {
-            await (FontLoader(
-              entry.key,
-            )..addFont(rootBundle.load(entry.value))).load();
-          }
+    testWidgets('подложка выбора живёт в обойме, фильтрах и сетке '
+        '(${light ? 'днём' : 'ночью'})', (tester) async {
+      final preview = Platform.environment['LIQUID_PREVIEW_PREFIX'];
+      if (preview != null) {
+        for (final entry in {
+          'Ahem': 'assets/fonts/GolosText.ttf',
+          'Unbounded': 'assets/fonts/Unbounded.ttf',
+          'Golos Text': 'assets/fonts/GolosText.ttf',
+          'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
+          'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
+        }.entries) {
+          await (FontLoader(
+            entry.key,
+          )..addFont(rootBundle.load(entry.value))).load();
         }
-        final harness = TestHarness(tmp);
-        addTearDown(harness.dispose);
-        harness.settings.add(
-          SettingsChanged(
-            harness.settings.state.withEffect(
-              LibraryEffect.liquidSelection,
-              on: true,
-            ),
+      }
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      harness.settings.add(
+        SettingsChanged(
+          harness.settings.state.withEffect(
+            LibraryEffect.liquidSelection,
+            on: true,
           ),
-        );
-        for (final title in [
-          'ABZU',
-          'CELESTE',
-          'CONTROL',
-          'HADES',
-          'INSIDE',
-          'JOURNEY',
-          'ORI',
-          'PORTAL',
-          'STRAY',
-          'TUNIC',
-          'DEAD CELLS',
-          'HOLLOW KNIGHT',
-        ]) {
-          harness.addGame(title: title, status: GameStatus.installed);
+        ),
+      );
+      for (final title in [
+        'ABZU',
+        'CELESTE',
+        'CONTROL',
+        'HADES',
+        'INSIDE',
+        'JOURNEY',
+        'ORI',
+        'PORTAL',
+        'STRAY',
+        'TUNIC',
+        'DEAD CELLS',
+        'HOLLOW KNIGHT',
+      ]) {
+        harness.addGame(title: title, status: GameStatus.installed);
+      }
+      tester.view.physicalSize = const Size(1280, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final boundary = GlobalKey();
+      await tester.pumpWidget(
+        harness.buildApp(
+          theme: light ? EvaporateTheme.light() : EvaporateTheme.dark(),
+          motion: true,
+          builder: (_, child) => RepaintBoundary(key: boundary, child: child),
+        ),
+      );
+      Future<void> frames(int count) async {
+        for (var i = 0; i < count; i++) {
+          await tester.pump(const Duration(milliseconds: 17));
         }
-        tester.view.physicalSize = const Size(1280, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.reset);
-        final boundary = GlobalKey();
-        await tester.pumpWidget(
-          harness.buildApp(
-            theme: light ? EvaporateTheme.light() : EvaporateTheme.dark(),
-            motion: true,
-            builder: (_, child) => RepaintBoundary(key: boundary, child: child),
-          ),
-        );
-        Future<void> frames(int count) async {
-          for (var i = 0; i < count; i++) {
-            await tester.pump(const Duration(milliseconds: 17));
+      }
+
+      Future<void> capture(String name) async {
+        if (preview == null) return;
+        await tester.runAsync(() async {
+          final image =
+              await (boundary.currentContext!.findRenderObject()
+                      as RenderRepaintBoundary)
+                  .toImage();
+          try {
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            await File('$preview-${light ? 'light' : 'dark'}-$name.png')
+                .writeAsBytes(bytes!.buffer.asUint8List());
+          } finally {
+            image.dispose();
           }
-        }
+        });
+      }
 
-        Future<void> capture(String name) async {
-          if (preview == null) return;
-          await tester.runAsync(() async {
-            final image =
-                await (boundary.currentContext!.findRenderObject()
-                        as RenderRepaintBoundary)
-                    .toImage();
-            try {
-              final bytes = await image.toByteData(
-                format: ui.ImageByteFormat.png,
-              );
-              await File('$preview-${light ? 'light' : 'dark'}-$name.png')
-                  .writeAsBytes(bytes!.buffer.asUint8List());
-            } finally {
-              image.dispose();
-            }
-          });
-        }
-
-        LiquidSelectionState state(String key) =>
-            tester.state(find.byKey(ValueKey(key), skipOffstage: false));
-        await frames(40);
-        final games = tester
-            .widgetList<GameCoverTile>(find.byType(GameCoverTile))
-            .toList();
-        harness.nav.add(GameSelected(games[1].game.id));
-        await frames(13);
-        expect(state('grid-liquid').isAnimating, isTrue);
-        await capture('cards');
-        await frames(25);
-        expect(state('grid-liquid').isAnimating, isFalse);
-        final beforeScroll = state('grid-liquid').targetRect!;
-        final scroll = tester
-            .widget<GridView>(find.byType(GridView))
-            .controller!;
-        scroll.jumpTo(60);
-        await frames(2);
-        expect(
-          state('grid-liquid').targetRect!.top,
-          closeTo(beforeScroll.top - 60, 0.1),
-        );
-        expect(state('grid-liquid').isAnimating, isFalse);
-        scroll.jumpTo(0);
-        await frames(2);
-        await tester.tap(find.text('Установленные'));
-        await frames(13);
-        expect(state('shelf-liquid').isAnimating, isTrue);
-        final palette = light ? EvaporatePalette.light : EvaporatePalette.dark;
-        expect(
-          DefaultTextStyle.of(tester.element(find.text('Все'))).style.color,
-          palette.onSelection,
-        );
-        await capture('filters');
-        await frames(25);
-        harness.nav.add(const SectionSelected(AppSection.downloads));
-        await frames(13);
-        expect(state('rail-liquid').isAnimating, isTrue);
-        expect(
-          IconTheme.of(tester.element(find.byIcon(Icons.grid_view_outlined)))
-              .color,
-          palette.onSelection,
-        );
-        expect(state('grid-liquid').isAnimating, isFalse);
-        await capture('rail');
-        await frames(25);
-        expect(state('rail-liquid').isAnimating, isFalse);
-        harness.nav.add(const SectionSelected(AppSection.settings));
-        await frames(40);
-        final effects = find.byKey(const ValueKey('living-library-settings'));
-        await tester.scrollUntilVisible(
-          effects,
-          400,
-          scrollable: find
-              .descendant(
-                of: find.byType(SettingsPage),
-                matching: find.byType(Scrollable),
-              )
-              .first,
-        );
-        await frames(20);
-        expect(tester.widget<SectionCard>(effects).title, 'Живая библиотека');
-        // Украшения гасятся набором «Выключено» — тем самым органом, что
-        // видит человек. Отдельные флаги лежат под «Подробно» и при этом
-        // сохраняются: набор трогает только общий выключатель.
-        final off = find.descendant(
-          of: find.byKey(const ValueKey('effects-preset')),
-          matching: find.text('Выключено'),
-        );
-        expect(off, findsOneWidget);
-        await capture('settings');
-        await tester.tap(off);
-        await frames(5);
-        expect(harness.settings.state.libraryEffects, isFalse);
-        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
-        expect(tester.takeException(), isNull);
-      },
-    );
+      LiquidSelectionState state(String key) =>
+          tester.state(find.byKey(ValueKey(key), skipOffstage: false));
+      await frames(40);
+      final games = tester
+          .widgetList<GameCoverTile>(find.byType(GameCoverTile))
+          .toList();
+      harness.nav.add(GameSelected(games[1].game.id));
+      await frames(13);
+      expect(state('grid-liquid').isAnimating, isTrue);
+      await capture('cards');
+      await frames(25);
+      expect(state('grid-liquid').isAnimating, isFalse);
+      final beforeScroll = state('grid-liquid').targetRect!;
+      final scroll = tester.widget<GridView>(find.byType(GridView)).controller!;
+      scroll.jumpTo(60);
+      await frames(2);
+      expect(
+        state('grid-liquid').targetRect!.top,
+        closeTo(beforeScroll.top - 60, 0.1),
+      );
+      expect(state('grid-liquid').isAnimating, isFalse);
+      scroll.jumpTo(0);
+      await frames(2);
+      await tester.tap(find.text(l.tabInstalled));
+      await frames(13);
+      expect(state('shelf-liquid').isAnimating, isTrue);
+      final palette = light ? EvaporatePalette.light : EvaporatePalette.dark;
+      expect(
+        DefaultTextStyle.of(tester.element(find.text(l.tabAll))).style.color,
+        palette.onSelection,
+      );
+      await capture('filters');
+      await frames(25);
+      harness.nav.add(const SectionSelected(AppSection.downloads));
+      await frames(13);
+      expect(state('rail-liquid').isAnimating, isTrue);
+      expect(
+        IconTheme.of(tester.element(find.byIcon(Icons.grid_view_outlined)))
+            .color,
+        palette.onSelection,
+      );
+      expect(state('grid-liquid').isAnimating, isFalse);
+      await capture('rail');
+      await frames(25);
+      expect(state('rail-liquid').isAnimating, isFalse);
+      harness.nav.add(const SectionSelected(AppSection.settings));
+      await frames(40);
+      final effects = find.byKey(const ValueKey('living-library-settings'));
+      await tester.scrollUntilVisible(
+        effects,
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(SettingsPage),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await frames(20);
+      expect(tester.widget<SectionCard>(effects).title, 'Живая библиотека');
+      // Украшения гасятся набором «Выключено» — тем самым органом, что
+      // видит человек. Отдельные флаги лежат под «Подробно» и при этом
+      // сохраняются: набор трогает только общий выключатель.
+      final off = find.descendant(
+        of: find.byKey(const ValueKey('effects-preset')),
+        matching: find.text(l.effectPresetOff),
+      );
+      expect(off, findsOneWidget);
+      await capture('settings');
+      await tester.tap(off);
+      await frames(5);
+      expect(harness.settings.state.libraryEffects, isFalse);
+      expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   // Прямоугольник с NaN доезжал до `addRRect` и ронял отрисовку всего

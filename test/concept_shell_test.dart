@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async => tmp = await TestHarness.makeTempDir());
@@ -43,9 +48,9 @@ void main() {
 
     // Раздел подписан меткой на корпусе, а лозунга и абзаца про библиотеку
     // здесь больше нет: их место занимает сама библиотека.
-    expect(find.text('[ 01 / КОЛЛЕКЦИЯ ]'), findsOneWidget);
+    expect(find.text(l.conceptLibraryLabel), findsOneWidget);
     expect(find.text('ТЕСТОВАЯ ОРБИТА'), findsOneWidget);
-    expect(find.text('Открыть игру'), findsOneWidget);
+    expect(find.text(l.openGame), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -89,7 +94,7 @@ void main() {
     final searchCenter = tester.getCenter(search);
 
     expect(find.text('БИБЛИОТЕКА'), findsOneWidget);
-    expect(find.text('Добавить игру'), findsOneWidget);
+    expect(find.text(l.addGame), findsOneWidget);
     expect(filterCenter.dx, lessThan(actionCenter.dx));
     expect(actionCenter.dx, lessThan(searchCenter.dx));
     expect(actionCenter.dy, closeTo(filterCenter.dy, 1));

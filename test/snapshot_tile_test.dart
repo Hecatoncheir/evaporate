@@ -1,5 +1,6 @@
 import 'package:evaporate/core/format.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/ui/library/saves/snapshot_tile.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -14,6 +15,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// клавиши на месте, подписаны и зовут каждая своё. Перепутай их местами —
 /// подтверждение спросят об одном, а сделают другое.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   final snapshot = SaveSnapshot(
     id: 's1',
     gameId: 'g1',
@@ -56,7 +61,7 @@ void main() {
     await show(tester);
 
     expect(find.text(formatDateTime(snapshot.createdAt)), findsOneWidget);
-    expect(find.text('Вручную'), findsOneWidget);
+    expect(find.text(l.originManual), findsOneWidget);
     expect(find.textContaining('Cougar'), findsOneWidget);
     expect(find.textContaining('128 файлов'), findsOneWidget);
     expect(find.textContaining('140.0 MB'), findsOneWidget);

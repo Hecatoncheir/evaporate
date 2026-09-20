@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
@@ -15,6 +16,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   // Папка готовится снаружи теста: реальный файловый I/O внутри
@@ -29,8 +34,8 @@ void main() {
 
     await harness.pump(tester);
 
-    expect(find.text('Библиотека пуста'), findsOneWidget);
-    expect(find.text('Добавить игру'), findsWidgets);
+    expect(find.text(l.libraryEmpty), findsOneWidget);
+    expect(find.text(l.addGame), findsWidgets);
   });
 
   testWidgets('переключение разделов не ломает оболочку', (tester) async {
@@ -46,12 +51,12 @@ void main() {
 
     await tester.tap(find.text('СОХРАНЕНИЯ').first);
     await tester.pumpAndSettle();
-    expect(find.text('Папка синхронизации'), findsOneWidget);
+    expect(find.text(l.syncFolder), findsOneWidget);
 
     await tester.tap(find.text('НАСТРОЙКИ').first);
     await tester.pumpAndSettle();
-    expect(find.text('Вид и язык'), findsOneWidget);
-    expect(find.text('Управление'), findsOneWidget);
+    expect(find.text(l.appearanceAndLanguage), findsOneWidget);
+    expect(find.text(l.controls), findsOneWidget);
 
     expect(tester.takeException(), isNull);
   });
@@ -80,9 +85,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Тестовая игра'), findsWidgets);
-    expect(find.text('Папки сохранений'), findsOneWidget);
-    expect(find.text('Снимки сохранений'), findsOneWidget);
-    expect(find.text('Файлы игры'), findsOneWidget);
+    expect(find.text(l.savePaths), findsOneWidget);
+    expect(find.text(l.snapshots), findsOneWidget);
+    expect(find.text(l.gameFiles), findsOneWidget);
     // Без указанного исполняемого файла «Играть» должна быть недоступна.
     final playButton = tester.widget<LauncherActionButton>(
       find.widgetWithText(LauncherActionButton, 'Играть'),
@@ -118,13 +123,13 @@ void main() {
 
     await tester.tap(find.text('Из папки'));
     await tester.pumpAndSettle();
-    expect(find.text('Сохранить .torrent'), findsNothing);
+    expect(find.text(l.exportTorrent), findsNothing);
 
-    await tester.tap(find.text('К библиотеке'));
+    await tester.tap(find.text(l.backToLibrary));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Из раздачи'));
     await tester.pumpAndSettle();
-    expect(find.text('Сохранить .torrent'), findsOneWidget);
+    expect(find.text(l.exportTorrent), findsOneWidget);
   });
 
   testWidgets('экран загрузок сообщает, что движок не запущен', (tester) async {
@@ -145,7 +150,7 @@ void main() {
     await harness.pump(tester);
 
     // Геймпад не подключён — показываем клавиатурные подсказки.
-    expect(find.text('Навигация'), findsOneWidget);
+    expect(find.text(l.hintNavigate), findsOneWidget);
     expect(find.text('Выбрать'), findsOneWidget);
   });
 

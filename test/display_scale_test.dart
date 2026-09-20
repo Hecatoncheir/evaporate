@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
-  test('scales default, persist independently, clamp corrupt values and affect equality', () {
+  test('масштабы независимы, переживают перезапуск и зажимаются в границы', () {
     final defaults = AppSettings.fromJson(const {}, '/games');
     expect(defaults.interfaceScale, 1);
     expect(defaults.libraryScale, 1);
@@ -50,62 +50,63 @@ void main() {
   setUp(() async => tmp = await TestHarness.makeTempDir());
   tearDown(() => TestHarness.removeTempDir(tmp));
 
-  testWidgets('interface zoom scales explicit icons and dialog hit targets', (
-    tester,
-  ) async {
-    final harness = TestHarness(tmp);
-    addTearDown(harness.dispose);
-    harness.settings.add(
-      SettingsChanged(harness.settings.state.copyWith(interfaceScale: 1.25)),
-    );
-    await tester.pumpWidget(
-      BlocProvider.value(
-        value: harness.settings,
-        child: MaterialApp(
-          builder: (_, child) => InterfaceScale(child: child!),
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => Center(
-                child: SizedBox(
-                  width: 160,
-                  height: 60,
-                  child: FilledButton(
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        content: const Text('Scaled dialog'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          ),
-                        ],
+  testWidgets(
+    'масштаб интерфейса растит и значки числом, и области нажатия в диалогах',
+    (tester) async {
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      harness.settings.add(
+        SettingsChanged(harness.settings.state.copyWith(interfaceScale: 1.25)),
+      );
+      await tester.pumpWidget(
+        BlocProvider.value(
+          value: harness.settings,
+          child: MaterialApp(
+            builder: (_, child) => InterfaceScale(child: child!),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => Center(
+                  child: SizedBox(
+                    width: 160,
+                    height: 60,
+                    child: FilledButton(
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          content: const Text('Scaled dialog'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
                       ),
+                      child: const Icon(Icons.play_arrow, size: 20),
                     ),
-                    child: const Icon(Icons.play_arrow, size: 20),
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      tester.getRect(find.byIcon(Icons.play_arrow)).width,
-      closeTo(25, 0.1),
-    );
-    await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
-    expect(find.text('Scaled dialog'), findsOneWidget);
-    await tester.tap(find.text('Close'));
-    await tester.pumpAndSettle();
-    expect(find.text('Scaled dialog'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.byIcon(Icons.play_arrow)).width,
+        closeTo(25, 0.1),
+      );
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Scaled dialog'), findsOneWidget);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(find.text('Scaled dialog'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('cover zoom changes columns without changing selection', (
+  testWidgets('масштаб обложек меняет число столбцов, не трогая выбор', (
     tester,
   ) async {
     final harness = TestHarness(tmp);
@@ -141,7 +142,7 @@ void main() {
   });
 
   testWidgets(
-    'maximum interface and cover scale fit minimum window and keep navigation usable',
+    'на предельном масштабе в наименьшее окно всё ещё помещается навигация',
     (tester) async {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);

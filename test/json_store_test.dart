@@ -32,7 +32,7 @@ void main() {
     expect(await JsonStore(path).read(), isNull);
   });
 
-  test('flush waits for queued writes without creating another file', () async {
+  test('flush дожидается очереди записей и второго файла не заводит', () async {
     final store = JsonStore(path);
     await store.flush();
     expect(await File(path).exists(), isFalse);

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/settings/language_picker.dart';
@@ -15,6 +16,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async => tmp = await TestHarness.makeTempDir());
@@ -72,7 +77,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(SettingsPage),
-        matching: find.text('Перезапустить движок'),
+        matching: find.text(l.restartEngine),
       ),
       findsNothing,
     );
@@ -83,7 +88,7 @@ void main() {
     // Движок в тестах не поднят, и клавиша на месте: прежде она
     // показывалась только на отказе, и остановленный движок поднять было
     // нечем.
-    expect(find.text('Перезапустить движок'), findsOneWidget);
+    expect(find.text(l.restartEngine), findsOneWidget);
   });
 
   testWidgets('украшения выбираются набором, а не тринадцатью галочками', (
@@ -102,10 +107,10 @@ void main() {
 
     // На свежих настройках горит «Обычно», а отдельных переключателей на
     // виду нет вовсе.
-    expect(find.text('Обычно'), findsOneWidget);
+    expect(find.text(l.effectPresetStandard), findsOneWidget);
     expect(find.byKey(const ValueKey('effects-portal-toggle')), findsNothing);
 
-    await tester.tap(find.text('Спокойно'));
+    await tester.tap(find.text(l.effectPresetCalm));
     await tester.pumpAndSettle();
 
     expect(harness.settings.state.libraryEffects, isTrue);
@@ -130,7 +135,7 @@ void main() {
     final before = harness.settings.state;
     final standard = find.descendant(
       of: find.byKey(const ValueKey('effects-preset')),
-      matching: find.text('Обычно'),
+      matching: find.text(l.effectPresetStandard),
     );
     await tester.ensureVisible(standard);
     await tester.pumpAndSettle();

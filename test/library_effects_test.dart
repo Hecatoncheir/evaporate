@@ -24,7 +24,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'foil tilts rigidly, retains artwork and settles on deselection',
+    'фольга наклоняется жёстко, не теряет картинку и успокаивается по уходе выбора',
     (tester) async {
       var active = true;
       var enabled = true;
@@ -112,7 +112,7 @@ void main() {
     expect(EffectsPalette.arclight.particleBase, const Color(0xFFE9C877));
   });
 
-  testWidgets('particle painter has a sharp core and no glow outside it', (
+  testWidgets('у частицы резкое ядро и ни следа свечения за его краем', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -175,9 +175,9 @@ void main() {
     expect(ParticleField.maxCount, 6800);
   });
 
-  group('particle simulation', () {
+  group('частицы', () {
     for (final seed in [4, 42, 108]) {
-      test('ambient particles stay uniform without a target (seed $seed)', () {
+      test('без цели частицы расходятся ровно (зерно $seed)', () {
         final field = ParticleField(seed: seed)..resize(const Size(1000, 700));
         void checkDistribution() {
           final bins = List.filled(16, 0);
@@ -222,61 +222,64 @@ void main() {
         expect(InkParticle.radius, 1.25);
       });
     }
-    test('targets restore attraction, colour and local particle emission', () {
-      final field = ParticleField()..resize(const Size(1000, 700));
-      final ambient = ParticleField()..resize(const Size(1000, 700));
-      field.card = const Rect.fromLTWH(320, 150, 180, 270);
-      field.pointer = const Offset(750, 400);
-      for (var i = 0; i < 300; i++) {
-        field.step(1 / 60);
-        ambient.step(1 / 60);
-      }
-      expect(field.particles.length, greaterThan(ParticleField.ambientCount));
-      expect(field.particles.length, lessThanOrEqualTo(ParticleField.maxCount));
-      final near = field.particles
-          .where((p) => field.proximity(p.position) > 0.7)
-          .length;
-      final baselineNear = ambient.particles
-          .where((p) => field.proximity(p.position) > 0.7)
-          .length;
-      expect(near, greaterThan(baselineNear * 1.5));
-      expect(field.particles.any((p) => p.glow > 0.8), isTrue);
-      expect(field.proximity(const Offset(320, 200)), 1);
-      field.card = null;
-      field.pointer = null;
-      for (var i = 0; i < 240; i++) {
-        field.step(1 / 60);
-      }
-      expect(field.particles.every((p) => p.glow == 0), isTrue);
-      expect(field.particles.length, 4800);
-    });
-
     test(
-      'original near-target acceleration leaves distant motion unchanged',
+      'цель возвращает притяжение, цвет и рождение частиц рядом с собой',
       () {
-        final near = ParticleField()..resize(const Size(1000, 700));
-        final far = ParticleField()..resize(const Size(1000, 700));
+        final field = ParticleField()..resize(const Size(1000, 700));
         final ambient = ParticleField()..resize(const Size(1000, 700));
-        near.card = far.card = const Rect.fromLTWH(300, 200, 200, 300);
-        near.particles
-          ..clear()
-          ..add(InkParticle(const Offset(400, 200), Offset.zero, 0, -1));
-        far.particles
-          ..clear()
-          ..add(InkParticle(const Offset(900, 650), Offset.zero, 0, -1));
-        ambient.particles
-          ..clear()
-          ..add(InkParticle(const Offset(900, 650), Offset.zero, 0, -1));
-        near.step(1 / 60);
-        far.step(1 / 60);
-        ambient.step(1 / 60);
-        expect(near.particles.first.velocity.distance, greaterThan(6));
-        expect(far.particles.first.velocity, ambient.particles.first.velocity);
-        expect(ParticleField.maxSpeed, 360);
+        field.card = const Rect.fromLTWH(320, 150, 180, 270);
+        field.pointer = const Offset(750, 400);
+        for (var i = 0; i < 300; i++) {
+          field.step(1 / 60);
+          ambient.step(1 / 60);
+        }
+        expect(field.particles.length, greaterThan(ParticleField.ambientCount));
+        expect(
+          field.particles.length,
+          lessThanOrEqualTo(ParticleField.maxCount),
+        );
+        final near = field.particles
+            .where((p) => field.proximity(p.position) > 0.7)
+            .length;
+        final baselineNear = ambient.particles
+            .where((p) => field.proximity(p.position) > 0.7)
+            .length;
+        expect(near, greaterThan(baselineNear * 1.5));
+        expect(field.particles.any((p) => p.glow > 0.8), isTrue);
+        expect(field.proximity(const Offset(320, 200)), 1);
+        field.card = null;
+        field.pointer = null;
+        for (var i = 0; i < 240; i++) {
+          field.step(1 / 60);
+        }
+        expect(field.particles.every((p) => p.glow == 0), isTrue);
+        expect(field.particles.length, 4800);
       },
     );
 
-    test('inside a card particles target its perimeter, not the centre', () {
+    test('разгон у самой цели не трогает движение вдали от неё', () {
+      final near = ParticleField()..resize(const Size(1000, 700));
+      final far = ParticleField()..resize(const Size(1000, 700));
+      final ambient = ParticleField()..resize(const Size(1000, 700));
+      near.card = far.card = const Rect.fromLTWH(300, 200, 200, 300);
+      near.particles
+        ..clear()
+        ..add(InkParticle(const Offset(400, 200), Offset.zero, 0, -1));
+      far.particles
+        ..clear()
+        ..add(InkParticle(const Offset(900, 650), Offset.zero, 0, -1));
+      ambient.particles
+        ..clear()
+        ..add(InkParticle(const Offset(900, 650), Offset.zero, 0, -1));
+      near.step(1 / 60);
+      far.step(1 / 60);
+      ambient.step(1 / 60);
+      expect(near.particles.first.velocity.distance, greaterThan(6));
+      expect(far.particles.first.velocity, ambient.particles.first.velocity);
+      expect(ParticleField.maxSpeed, 360);
+    });
+
+    test('внутри карточки частицы метят её край, а не середину', () {
       const rect = Rect.fromLTWH(10, 10, 100, 180);
       expect(
         ParticleField.edgePoint(rect, const Offset(55, 80)),
@@ -297,56 +300,47 @@ void main() {
       expect(ParticleField.edgePoint(rect, Offset.zero), const Offset(10, 10));
     });
 
-    test(
-      'long sessions, resize, zero size and resumed frames stay bounded',
-      () {
-        final field = ParticleField();
-        field.step(1);
-        field.resize(Size.zero);
-        expect(field.particles, isEmpty);
-        field.resize(const Size(400, 300));
-        field.pointer = const Offset(200, 100);
-        for (var i = 0; i < 2400; i++) {
-          field.step(1 / 60);
-        }
-        field.resize(const Size(100, 100));
-        final time = field.time;
-        field.step(double.nan);
-        field.step(-1);
-        expect(field.time, time);
-        field.step(1000);
-        expect(field.time - time, closeTo(1 / 30, 1e-8));
+    test('долгий сеанс, смена размера, нулевой размер и возвращённое окно не разносят числа', () {
+      final field = ParticleField();
+      field.step(1);
+      field.resize(Size.zero);
+      expect(field.particles, isEmpty);
+      field.resize(const Size(400, 300));
+      field.pointer = const Offset(200, 100);
+      for (var i = 0; i < 2400; i++) {
+        field.step(1 / 60);
+      }
+      field.resize(const Size(100, 100));
+      final time = field.time;
+      field.step(double.nan);
+      field.step(-1);
+      expect(field.time, time);
+      field.step(1000);
+      expect(field.time - time, closeTo(1 / 30, 1e-8));
+      expect(field.particles.length, lessThanOrEqualTo(ParticleField.maxCount));
+      for (final particle in field.particles) {
+        expect(particle.position.dx.isFinite, isTrue);
+        expect(particle.position.dy.isFinite, isTrue);
         expect(
-          field.particles.length,
-          lessThanOrEqualTo(ParticleField.maxCount),
+          particle.velocity.distance,
+          lessThanOrEqualTo(ParticleField.maxSpeed + 0.001),
         );
-        for (final particle in field.particles) {
-          expect(particle.position.dx.isFinite, isTrue);
-          expect(particle.position.dy.isFinite, isTrue);
-          expect(
-            particle.velocity.distance,
-            lessThanOrEqualTo(ParticleField.maxSpeed + 0.001),
-          );
-        }
-      },
+      }
+    });
+  });
+
+  test('украшения включены по умолчанию, переживают запись и участвуют в сравнении', () {
+    final settings = AppSettings.fromJson(const {}, '/games');
+    expect(settings.libraryEffects, isTrue);
+    final disabled = settings.copyWith(libraryEffects: false);
+    expect(disabled, isNot(settings));
+    expect(
+      AppSettings.fromJson(disabled.toJson(), '/games').toJson(),
+      disabled.toJson(),
     );
   });
 
-  test(
-    'effects preference defaults on, round-trips and participates in equality',
-    () {
-      final settings = AppSettings.fromJson(const {}, '/games');
-      expect(settings.libraryEffects, isTrue);
-      final disabled = settings.copyWith(libraryEffects: false);
-      expect(disabled, isNot(settings));
-      expect(
-        AppSettings.fromJson(disabled.toJson(), '/games').toJson(),
-        disabled.toJson(),
-      );
-    },
-  );
-
-  group('live library', () {
+  group('живая библиотека', () {
     late Directory tmp;
     setUp(() async => tmp = await TestHarness.makeTempDir());
     tearDown(() => TestHarness.removeTempDir(tmp));
@@ -405,7 +399,7 @@ void main() {
       return harness;
     }
 
-    testWidgets('simulation repaints without rebuilding its content', (
+    testWidgets('часы перерисовывают, не пересобирая то, что под ними', (
       tester,
     ) async {
       var builds = 0;
@@ -434,7 +428,7 @@ void main() {
     });
 
     testWidgets(
-      'hover, keyboard focus, resize, and scroll track visible card bounds',
+      'наведение, фокус, смена размера и прокрутка ведут цель за видимой карточкой',
       (tester) async {
         final harness = await app(tester);
         expect(find.byKey(const ValueKey('library-wave')), findsOneWidget);
@@ -493,7 +487,7 @@ void main() {
     );
 
     testWidgets(
-      'hidden sections, lifecycle, reduced motion and preference stop the ticker',
+      'скрытый раздел, свёрнутое окно, просьба не двигаться и настройка гасят часы',
       (tester) async {
         final harness = await app(tester);
         final state = tester.state<LibraryAtmosphereState>(
@@ -573,7 +567,7 @@ void main() {
       },
     );
 
-    testWidgets('visual preview with live particles and foil perspective', (
+    testWidgets('живой снимок: частицы в движении и перспектива фольги', (
       tester,
     ) async {
       final preview = Platform.environment['LIQUID_PREVIEW'];

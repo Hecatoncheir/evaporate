@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
-  test('new and migrated settings use the chosen effect defaults', () {
+  test('свежие и вычитанные настройки берут выбранные значения украшений', () {
     for (final settings in [
       const AppSettings(installDir: '/games'),
       AppSettings.fromJson(const {}, '/games'),
@@ -74,7 +74,7 @@ void main() {
   }
 
   testWidgets(
-    'distortion works independently and disabling it restores geometry',
+    'искажение живёт само по себе, а выключенное возвращает обычную геометрию',
     (tester) async {
       final key = GlobalKey<FoilCardState>();
       var distortion = true;
@@ -129,7 +129,7 @@ void main() {
     },
   );
 
-  group('effect controls', () {
+  group('переключатели украшений', () {
     late Directory tmp;
     setUp(() async => tmp = await TestHarness.makeTempDir());
     tearDown(() => TestHarness.removeTempDir(tmp));
@@ -169,7 +169,7 @@ void main() {
     }
 
     testWidgets(
-      'individual switches apply immediately and preserve choices under master',
+      'переключатель срабатывает сразу, а общий выключатель выбор не стирает',
       (tester) async {
         final harness = TestHarness(tmp);
         addTearDown(harness.dispose);
@@ -240,7 +240,7 @@ void main() {
       },
     );
 
-    testWidgets('the selection frame is off until asked for and then '
+    testWidgets('рамка выбора выключена, пока её не попросят, и переживает общий выключатель'
         'outlives the master switch', (tester) async {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);

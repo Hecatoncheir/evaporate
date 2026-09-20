@@ -228,7 +228,7 @@ void main() {
   }
 
   test(
-    'local addition saves Steam metadata, image and future paths once',
+    'добавленная вручную игра один раз забирает данные, обложку и пути',
     () async {
       await add();
       final game = await complete();
@@ -259,7 +259,7 @@ void main() {
   );
 
   test(
-    'download completion starts enrichment with release name, not before',
+    'поиск начинается по имени раздачи, когда загрузка закончилась',
     () async {
       final queued = await add(status: GameStatus.downloading);
       expect(steam.calls, 0);
@@ -450,26 +450,30 @@ void main() {
     });
   });
 
-  test('failed Steam request survives restart; manual request retries both catalogs', () async {
-    steam.fail = true;
-    await add();
-    await _wait(
-      library,
-      (s) =>
-          s.notice?.isError == true && !s.isBusy(LibraryBloc.steamKey('game')),
-    );
-    await reopen();
-    expect(steam.calls, 1);
-    expect(catalog.loads, 0);
-    steam.fail = false;
-    library.add(SteamLookupRequested(library.state.gameById('game')!));
-    await complete();
-    expect(steam.calls, 2);
-    expect(catalog.loads, 1);
-  });
+  test(
+    'сорвавшийся поиск помнится и после перезапуска, а ручной пробует снова',
+    () async {
+      steam.fail = true;
+      await add();
+      await _wait(
+        library,
+        (s) =>
+            s.notice?.isError == true &&
+            !s.isBusy(LibraryBloc.steamKey('game')),
+      );
+      await reopen();
+      expect(steam.calls, 1);
+      expect(catalog.loads, 0);
+      steam.fail = false;
+      library.add(SteamLookupRequested(library.state.gameById('game')!));
+      await complete();
+      expect(steam.calls, 2);
+      expect(catalog.loads, 1);
+    },
+  );
 
   test(
-    'manual refresh replaces cached art without enabling automatic retries',
+    'ручное обновление меняет обложку, не включая автоматических повторов',
     () async {
       await add();
       final original = await complete();
@@ -505,7 +509,7 @@ void main() {
     },
   );
 
-  test('no Steam match is also remembered', () async {
+  test('«в Steam не нашлось» — тоже ответ, и он помнится', () async {
     steam.result = null;
     await add();
     await _wait(
@@ -519,35 +523,29 @@ void main() {
     expect(catalog.loads, 0);
   });
 
-  test(
-    'failed manifest request is not retried until user requests it',
-    () async {
-      catalog.fail = true;
-      await add();
-      await complete();
-      await reopen();
-      expect(steam.calls, 1);
-      expect(catalog.loads, 1);
-      catalog.fail = false;
-      library.add(
-        SavePathsLookupRequested(
-          library.state.gameById('game')!,
-          refresh: true,
-        ),
-      );
-      await _wait(
-        library,
-        (s) =>
-            s.gameById('game')!.ludusaviTemplates.isNotEmpty &&
-            !s.isBusy(LibraryBloc.savePathsKey('game')),
-      );
-      expect(catalog.loads, 2);
-      expect(catalog.refreshed, isTrue);
-      expect(steam.calls, 1);
-    },
-  );
+  test('сорвавшийся запрос базы путей сам не повторяется', () async {
+    catalog.fail = true;
+    await add();
+    await complete();
+    await reopen();
+    expect(steam.calls, 1);
+    expect(catalog.loads, 1);
+    catalog.fail = false;
+    library.add(
+      SavePathsLookupRequested(library.state.gameById('game')!, refresh: true),
+    );
+    await _wait(
+      library,
+      (s) =>
+          s.gameById('game')!.ludusaviTemplates.isNotEmpty &&
+          !s.isBusy(LibraryBloc.savePathsKey('game')),
+    );
+    expect(catalog.loads, 2);
+    expect(catalog.refreshed, isTrue);
+    expect(steam.calls, 1);
+  });
 
-  test('missing manifest entry is remembered across restarts', () async {
+  test('«в базе путей игры нет» переживает перезапуск', () async {
     catalog.result = null;
     await add();
     await complete();
@@ -557,7 +555,7 @@ void main() {
   });
 
   test(
-    'future wildcard path resolves before snapshot without catalog access',
+    'путь с подстановкой разворачивается перед снимком, не трогая базу',
     () async {
       await add();
       final game = await complete();
@@ -585,7 +583,7 @@ void main() {
   );
 
   test(
-    'removal clears cached cover; new library membership searches again',
+    'удаление уносит обложку, а заведённая заново игра ищется сызнова',
     () async {
       final stale = await add();
       final game = await complete();
@@ -600,7 +598,7 @@ void main() {
     },
   );
 
-  test('late Steam response cannot resurrect a removed game', () async {
+  test('запоздавший ответ Steam не воскрешает удалённую игру', () async {
     steam.pending = Completer<SteamGame?>();
     final game = await add();
     await _wait(library, (s) => s.isBusy(LibraryBloc.steamKey('game')));
@@ -614,7 +612,7 @@ void main() {
   });
 
   test(
-    'cover filesystem failure does not lose ID or block save path lookup',
+    'сбой записи обложки не теряет appid и не отменяет поиск путей',
     () async {
       await Directory(paths.dataDir).create(recursive: true);
       await File(paths.coversDir).writeAsString('not a directory');
@@ -627,7 +625,7 @@ void main() {
     },
   );
 
-  test('scanned installations join the same enrichment pipeline', () async {
+  test('найденные на диске игры идут той же цепочкой', () async {
     final exe = File(
       p.join(
         paths.defaultInstallDir,
@@ -665,7 +663,7 @@ void main() {
     );
   });
 
-  test('concurrent manifest loads share one download; known ID never falls back to title', () async {
+  test('одновременные запросы базы качают её один раз, а известный appid не ищут по названию', () async {
     var fetches = 0;
     final source = Completer<String>();
     final real = LudusaviCatalog(
@@ -724,56 +722,46 @@ Example:
     },
   );
 
-  test(
-    'manually removed catalog rules are not restored by a local snapshot',
-    () async {
-      catalog.result = const LudusaviEntry(
-        title: 'Example',
-        steamId: 42,
-        templates: ['{GAME}/saves'],
-      );
-      await add();
-      final game = await complete();
-      for (final rule in game.saveProfile.rules) {
-        library.add(SaveRuleRemoved(game.id, rule.id));
-      }
-      await _wait(
-        library,
-        (s) => s.gameById('game')!.saveProfile.rules.isEmpty,
-      );
-      saves.add(SnapshotRequested(library.state.gameById('game')!));
-      await _waitSaves(
-        saves,
-        (s) =>
-            s.notice?.isError == true &&
-            !s.isBusy(SavesBloc.snapshotKey('game')),
-      );
-      expect(library.state.gameById('game')!.saveProfile.rules, isEmpty);
-      expect(steam.calls, 1);
-      expect(catalog.loads, 1);
-    },
-  );
+  test('убранное человеком правило не возвращается со снимком', () async {
+    catalog.result = const LudusaviEntry(
+      title: 'Example',
+      steamId: 42,
+      templates: ['{GAME}/saves'],
+    );
+    await add();
+    final game = await complete();
+    for (final rule in game.saveProfile.rules) {
+      library.add(SaveRuleRemoved(game.id, rule.id));
+    }
+    await _wait(library, (s) => s.gameById('game')!.saveProfile.rules.isEmpty);
+    saves.add(SnapshotRequested(library.state.gameById('game')!));
+    await _waitSaves(
+      saves,
+      (s) =>
+          s.notice?.isError == true && !s.isBusy(SavesBloc.snapshotKey('game')),
+    );
+    expect(library.state.gameById('game')!.saveProfile.rules, isEmpty);
+    expect(steam.calls, 1);
+    expect(catalog.loads, 1);
+  });
 
-  test(
-    'duplicate automatic events during a request do not contact catalogs twice',
-    () async {
-      steam.pending = Completer<SteamGame?>();
-      final game = await add();
-      library.add(SteamLookupRequested(game, automatic: true));
-      library.add(SteamLookupRequested(game, automatic: true));
-      // Отметку занятости первый запрос ставит до записи на диск, а повтор
-      // отскакивает от неё сразу — значит, к моменту первого обращения к
-      // каталогу повтор уже отработал и второго обращения не будет.
-      await waitUntil(() async => steam.calls > 0);
-      expect(steam.calls, 1);
-      steam.pending!.complete(steam.result);
-      await complete();
-      library.add(SavePathsLookupRequested(game, automatic: true));
-      await reopen();
-      expect(steam.calls, 1);
-      expect(catalog.loads, 1);
-    },
-  );
+  test('повторное событие во время поиска второго запроса не делает', () async {
+    steam.pending = Completer<SteamGame?>();
+    final game = await add();
+    library.add(SteamLookupRequested(game, automatic: true));
+    library.add(SteamLookupRequested(game, automatic: true));
+    // Отметку занятости первый запрос ставит до записи на диск, а повтор
+    // отскакивает от неё сразу — значит, к моменту первого обращения к
+    // каталогу повтор уже отработал и второго обращения не будет.
+    await waitUntil(() async => steam.calls > 0);
+    expect(steam.calls, 1);
+    steam.pending!.complete(steam.result);
+    await complete();
+    library.add(SavePathsLookupRequested(game, automatic: true));
+    await reopen();
+    expect(steam.calls, 1);
+    expect(catalog.loads, 1);
+  });
 
   test('кадры из игры сохраняются рядом с обложкой', () async {
     await add();

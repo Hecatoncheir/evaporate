@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/launch/game_roots.dart';
 import 'package:evaporate/services/launch/library_scanner.dart';
@@ -22,6 +23,10 @@ import 'support/test_app.dart';
 /// окно показывает ход, умеет останавливаться, не выбрасывая найденное, и
 /// предлагает сузить себя брошенной или выбранной папкой.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
   late Directory root;
 
@@ -325,7 +330,7 @@ void main() {
 
     await openScan(tester);
 
-    expect(find.text('Бросьте сюда папку с играми'), findsOneWidget);
+    expect(find.text(l.scanDropHere), findsOneWidget);
     expect(find.textContaining('нажмите, чтобы выбрать'), findsOneWidget);
     expect(find.byType(DropTarget), findsWidgets);
   });

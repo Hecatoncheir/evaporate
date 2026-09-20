@@ -4,6 +4,7 @@ import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
@@ -19,6 +20,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/test_app.dart';
 
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async => tmp = await TestHarness.makeTempDir());
@@ -57,8 +62,8 @@ void main() {
     await openGame(tester);
 
     final play = tester.getRect(find.text('Играть'));
-    final add = tester.getRect(find.text('Добавить в Steam'));
-    final lookup = tester.getRect(find.text('Найти в Steam'));
+    final add = tester.getRect(find.text(l.steamAddAction));
+    final lookup = tester.getRect(find.text(l.findInSteam));
     final panel = tester.getRect(find.byType(ActionPanel));
 
     expect(add.left, greaterThan(play.right));
@@ -88,14 +93,14 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(ActionPanel),
-        matching: find.text('Папка игры'),
+        matching: find.text(l.gameFolder2),
       ),
       findsNothing,
     );
 
     // Но со страницы не пропала: её место — среди сведений об игре.
     final play = tester.getRect(find.text('Играть'));
-    final folder = tester.getRect(find.text('Папка игры'));
+    final folder = tester.getRect(find.text(l.gameFolder2));
     expect(folder.top, greaterThan(play.bottom));
   });
 
@@ -111,8 +116,8 @@ void main() {
     await openGame(tester);
 
     expect(find.text('Играть'), findsOneWidget);
-    expect(find.text('Добавить в Steam'), findsOneWidget);
-    expect(find.text('Найти в Steam'), findsOneWidget);
+    expect(find.text(l.steamAddAction), findsOneWidget);
+    expect(find.text(l.findInSteam), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -137,8 +142,8 @@ void main() {
     await tester.tap(find.text('Без файла').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Добавить в Steam'), findsNothing);
-    expect(find.text('Найти в Steam'), findsOneWidget);
+    expect(find.text(l.steamAddAction), findsNothing);
+    expect(find.text(l.findInSteam), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

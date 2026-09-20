@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/core/save_path_template.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
@@ -16,6 +17,10 @@ import 'support/test_app.dart';
 /// Раздел путей сохранений — то, ради чего приложение и затевалось:
 /// снимок нельзя снять, пока не сказано, откуда брать файлы.
 void main() {
+  // Ищем по ключу перевода, а не по строке: правка формулировки в
+  // ARB иначе роняет тест, ничего не сломав в приложении.
+  final l = LRu();
+
   late Directory tmp;
 
   setUp(() async {
@@ -81,7 +86,7 @@ void main() {
   testWidgets('без путей раздел объясняет, чего не хватает', (tester) async {
     await openGame(tester);
 
-    expect(find.text('Папки сохранений'), findsOneWidget);
+    expect(find.text(l.savePaths), findsOneWidget);
     expect(find.textContaining('Пути не заданы'), findsOneWidget);
   });
 
@@ -93,14 +98,14 @@ void main() {
   ) async {
     await openGame(tester);
 
-    expect(find.text('Найти пути'), findsOneWidget);
-    expect(find.text('Из базы'), findsNothing);
+    expect(find.text(l.findPaths), findsOneWidget);
+    expect(find.text(l.fromDatabase), findsNothing);
 
-    await tester.tap(find.text('Найти пути'));
+    await tester.tap(find.text(l.findPaths));
     await tester.pumpAndSettle();
 
-    expect(find.text('Из базы'), findsOneWidget);
-    expect(find.text('Поискать папку по названию игры'), findsOneWidget);
+    expect(find.text(l.fromDatabase), findsOneWidget);
+    expect(find.text(l.findFolderByTitle), findsOneWidget);
   });
 
   // Снимать нечего, пока не сказано откуда: доступная кнопка обещала бы
@@ -144,7 +149,7 @@ void main() {
       rules: [ruleOf(template: '${SavePathTemplate.appSupport}/Нет/Такой')],
     );
 
-    expect(find.text('нет на диске'), findsOneWidget);
+    expect(find.text(l.missingOnDisk), findsOneWidget);
   });
 
   testWidgets('существующая папка не помечается пропавшей', (tester) async {
@@ -155,7 +160,7 @@ void main() {
 
     await openGame(tester, rules: [ruleOf(template: dir.path)]);
 
-    expect(find.text('нет на диске'), findsNothing);
+    expect(find.text(l.missingOnDisk), findsNothing);
   });
 
   // Абсолютный путь на другом устройстве не развернётся, и снимок туда
@@ -163,7 +168,7 @@ void main() {
   testWidgets('непереносимый путь помечается прямо в списке', (tester) async {
     await openGame(tester, rules: [ruleOf(template: '/opt/quiet/saves')]);
 
-    expect(find.text('непереносимый путь'), findsOneWidget);
+    expect(find.text(l.notPortablePath), findsOneWidget);
   });
 
   testWidgets('правило для одной системы помечено её именем', (tester) async {
@@ -231,7 +236,7 @@ void main() {
       ludusaviTemplates: ['${SavePathTemplate.home}/.local/share/quiet/*'],
     );
 
-    expect(find.text('Запомненные пути Ludusavi'), findsOneWidget);
+    expect(find.text(l.savedManifestPaths), findsOneWidget);
   });
 
   // Метка по умолчанию не переводится намеренно: по ней правила
@@ -331,7 +336,7 @@ void main() {
     ) async {
       final harness = await withHints(tester);
 
-      expect(find.text('Изменились, пока игра работала'), findsOneWidget);
+      expect(find.text(l.watchedFolders), findsOneWidget);
       // Предложение — ещё не правило.
       expect(harness.library.state.games.single.saveProfile.rules, isEmpty);
     });
@@ -346,7 +351,7 @@ void main() {
       final rules = harness.library.state.games.single.saveProfile.rules;
       expect(rules, hasLength(1));
       expect(rules.single.template, contains('Тихая гавань'));
-      expect(find.text('Изменились, пока игра работала'), findsNothing);
+      expect(find.text(l.watchedFolders), findsNothing);
     });
 
     testWidgets('«Не то» убирает подсказки, ничего не записав', (tester) async {
@@ -355,7 +360,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Не то'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Изменились, пока игра работала'), findsNothing);
+      expect(find.text(l.watchedFolders), findsNothing);
       expect(harness.library.state.games.single.saveProfile.rules, isEmpty);
     });
   });
