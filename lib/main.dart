@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
+import 'bloc/logging_observer.dart';
 import 'bloc/navigation/navigation_bloc.dart';
 import 'bloc/saves/saves_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
@@ -153,6 +154,9 @@ Future<void> _startLog(AppPaths paths) async {
     previousPath: paths.previousLogFile,
   );
   AppLog.instance.write('запуск ${AppVersion.current}');
+  // Здесь же, до первого блока: иначе первые же их сбои прошли бы мимо
+  // журнала — а больше о них узнать неоткуда, консоли у человека нет.
+  Bloc.observer = const LoggingBlocObserver();
   // Помощник обновления работает, когда приложения уже нет, и пишет в свой
   // файл. Забираем написанное сюда — иначе о неудавшейся замене не узнал бы
   // никто, кроме того, кто полез бы искать файл руками.
