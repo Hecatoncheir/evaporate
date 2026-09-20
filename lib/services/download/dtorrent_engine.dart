@@ -80,7 +80,6 @@ class DtorrentEngine implements DownloadEngine {
 
   final Map<String, _ManagedDownload> _downloads = {};
 
-  /// Порядок очереди, заданный пользователем. Именно он решает, кто займёт
   /// Порядок задач и раздача слотов: правила очереди живут отдельно от
   /// работы с раздачами и проверяются на одних идентификаторах.
   final _queue = DownloadQueue();
@@ -89,7 +88,7 @@ class DtorrentEngine implements DownloadEngine {
   /// проверять по сетевым эффектам.
   @visibleForTesting
   Set<String> get startedIds =>
-      _downloads.values.where((d) => d.started).map((d) => d.infoHash).toSet();
+      _downloads.values.where((d) => d.isActive).map((d) => d.infoHash).toSet();
   Timer? _pollTimer;
 
   @override
@@ -181,7 +180,8 @@ class DtorrentEngine implements DownloadEngine {
       savePath: dir,
       name: link.displayName ?? _l.torrentNamed(infoHash),
       magnet: trimmed,
-      engine: this,
+      torrentsDir: torrentsDir,
+      onChanged: _persist,
     );
     _register(managed);
     await _persist();
@@ -213,7 +213,8 @@ class DtorrentEngine implements DownloadEngine {
       savePath: dir,
       name: model.name,
       torrentPath: path,
-      engine: this,
+      torrentsDir: torrentsDir,
+      onChanged: _persist,
     )..model = model;
     _register(managed);
     await _persist();
@@ -328,12 +329,11 @@ class DtorrentEngine implements DownloadEngine {
   Future<void> pause(String id) async {
     final managed = _downloads[id];
     if (managed == null) return;
-    managed.pausedByUser = true;
+    managed.markPaused();
     if (managed.task == null) {
       await managed.dispose();
     } else {
       managed.task!.pause();
-      managed.started = false;
     }
     await _persist();
     // Освободившийся слот отдаём тому, кто ждёт очереди.
@@ -345,11 +345,9 @@ class DtorrentEngine implements DownloadEngine {
   Future<void> resume(String id) async {
     final managed = _downloads[id];
     if (managed == null) return;
-    managed.pausedByUser = false;
-    managed.started = false;
     // «Возобновить» у сорвавшейся задачи — это «попробовать снова»: без
     // снятия ошибки очередь обходила бы её до перезапуска приложения.
-    managed.error = null;
+    managed.markWaiting();
     pumpQueue();
     await _persist();
     await refresh();
@@ -424,7 +422,7 @@ class DtorrentEngine implements DownloadEngine {
     );
     for (final id in starting.toList()) {
       final managed = _downloads[id]!;
-      managed.started = true;
+      managed.markRunning();
       if (!autoStart) continue;
       if (managed.task != null) {
         managed.task!.resume();

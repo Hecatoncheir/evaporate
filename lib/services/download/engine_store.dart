@@ -20,8 +20,11 @@ extension _EngineStore on DtorrentEngine {
       final entries = json['downloads'] as List<dynamic>? ?? const [];
       return entries
           .map(
-            (entry) =>
-                _ManagedDownload.fromJson(entry as Map<String, dynamic>, this),
+            (entry) => _ManagedDownload.fromJson(
+              entry as Map<String, dynamic>,
+              torrentsDir: torrentsDir,
+              onChanged: _persist,
+            ),
           )
           .toList();
     });

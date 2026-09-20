@@ -22,7 +22,6 @@ extension EngineQueue on DtorrentEngine {
   Future<void> _launch(_ManagedDownload managed) async {
     final generation = managed.generation;
     try {
-      managed.error = null;
       final model = await _modelFor(managed);
       if (!_stillWanted(managed, generation)) return;
       // Метаданные не пришли — это ошибка со словами, а не тихий выход:
@@ -47,9 +46,7 @@ extension EngineQueue on DtorrentEngine {
   /// увеличивает поколение, и дождавшийся ответ принадлежит прошлой жизни
   /// задачи, а не нынешней.
   bool _stillWanted(_ManagedDownload managed, int generation) =>
-      generation == managed.generation &&
-      !managed.pausedByUser &&
-      managed.started;
+      generation == managed.generation && managed.isActive;
 
   /// Поднимает задачу движка по готовой модели раздачи.
   Future<void> _startTask(
@@ -96,7 +93,7 @@ extension EngineQueue on DtorrentEngine {
   /// запирали очередь до перезапуска приложения.
   Future<void> _fail(_ManagedDownload managed, String message) async {
     await managed.dispose();
-    managed.error = message;
+    managed.markFailed(message);
     pumpQueue();
   }
 }

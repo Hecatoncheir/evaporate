@@ -40,10 +40,19 @@ class RestoreTransaction {
     required this._localizations,
     required this.maxSnapshotBytes,
     required Future<FileSystemEntity> Function(FileSystemEntity, String) rename,
-  }) : _renameForRestore = rename;
+    AppLog Function()? log,
+  }) : _renameForRestore = rename,
+       _log = log ?? _appLog;
 
   /// Откуда брать переводы: отказы отсюда доходят до человека словами.
   final L Function() _localizations;
+
+  /// Куда писать о найденных следах прерванной раскладки. Функцией — как
+  /// `L Function()`: в тестах подменяется без правки глобала, а глобал
+  /// один на весь прогон и достаётся соседнему файлу.
+  final AppLog Function() _log;
+
+  static AppLog _appLog() => AppLog.instance;
 
   L get _l => _localizations();
 
@@ -101,10 +110,10 @@ class RestoreTransaction {
         (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
       );
       await stranded.removeAt(0).rename(target);
-      AppLog.instance.write('сейвы возвращены в $target после сбоя');
+      _log().write('сейвы возвращены в $target после сбоя');
     }
     for (final left in stranded) {
-      AppLog.instance.write('рядом с сейвами осталась копия: ${left.path}');
+      _log().write('рядом с сейвами осталась копия: ${left.path}');
     }
   }
 

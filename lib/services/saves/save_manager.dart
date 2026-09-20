@@ -72,6 +72,7 @@ class SaveManager {
   SaveManager({
     AppPaths? paths,
     L Function()? localizations,
+    AppLog Function()? log,
     Future<FileSystemEntity> Function(FileSystemEntity, String)?
     renameForRestore,
     Future<void> Function(ZipFileEncoder, File, String)? addToArchive,
@@ -80,6 +81,7 @@ class SaveManager {
        _renameForRestore = renameForRestore ?? _rename,
        _addToArchive = addToArchive ?? _addFile,
        _localizations = localizations ?? _defaultLocalizations,
+       _log = log ?? _appLog,
        store = SnapshotStore(root: (paths ?? AppPaths.instance).blobsDir);
 
   /// Хранилище файлов снимков по содержимому.
@@ -89,6 +91,14 @@ class SaveManager {
   final SnapshotStore store;
 
   final AppPaths _paths;
+
+  /// Куда писать о том, что гасится молча: пропущенный пакет папки
+  /// синхронизации, следы прерванной раскладки. Функцией, а не глобалом:
+  /// глобал один на весь прогон, и тест, поставивший свой журнал,
+  /// отбирает его у соседнего файла — тесты идут параллельно.
+  final AppLog Function() _log;
+
+  static AppLog _appLog() => AppLog.instance;
 
   /// Кто ходит по диску: отбор файлов для снимка и время последней правки.
   final _files = const SaveCollector();
@@ -105,6 +115,7 @@ class SaveManager {
     localizations: _localizations,
     maxSnapshotBytes: maxSnapshotBytes,
     rename: _renameForRestore,
+    log: _log,
   );
   // Подмена файловой операции позволяет проверять откат при сбое на
   // второй цели без ненадёжных тестов прав доступа на разных ОС.
@@ -642,10 +653,7 @@ class SaveManager {
       } on Object catch (error) {
         // Битый или чужой файл пропускаем, но не молча: иначе человек не
         // узнал бы, почему пакет с другого устройства не виден в списке.
-        AppLog.instance.write(
-          'папка синхронизации: пропущен ${entity.path}',
-          error,
-        );
+        _log().write('папка синхронизации: пропущен ${entity.path}', error);
       }
     }
     result.sort((a, b) => b.snapshot.createdAt.compareTo(a.snapshot.createdAt));

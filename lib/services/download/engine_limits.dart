@@ -39,15 +39,14 @@ extension _EngineLimits on DtorrentEngine {
   /// не знает, а отданное растёт постепенно. Остановленную задачу очередь
   /// больше не поднимает — для неё это выглядит как пауза от пользователя.
   void _stopSeedingIfDone(_ManagedDownload managed, DownloadTask task) {
-    if (managed.pausedByUser || task.state != DownloadState.complete) return;
+    if (!managed.isActive || task.state != DownloadState.complete) return;
     if (!_limits.seedingDone(
       uploaded: task.uploadedBytes,
       downloaded: task.completedBytes,
     )) {
       return;
     }
-    managed.pausedByUser = true;
-    managed.started = false;
+    managed.markPaused();
     // pause() у движка синхронный, оборачивать его не во что.
     managed.task?.pause();
     unawaited(_persist());

@@ -1,19 +1,32 @@
 part of 'dtorrent_engine.dart';
 
+/// Где задача в очереди: ждёт слота, идёт, остановлена или сорвалась.
+enum SlotState { waiting, running, paused, failed }
+
 /// Одна загрузка: задача движка плюс то, что нужно её восстановить.
 class _ManagedDownload {
   _ManagedDownload({
     required this.infoHash,
     required this.savePath,
     required this.name,
-    required this.engine,
+    required this.torrentsDir,
+    required this.onChanged,
     this.magnet,
     this.torrentPath,
   });
 
   final String infoHash;
   final String savePath;
-  final DtorrentEngine engine;
+
+  /// Куда класть файл раздачи, собранный из метаданных magnet-ссылки.
+  final String torrentsDir;
+
+  /// Чем сказать, что список задач изменился и его пора записать.
+  ///
+  /// Обратным вызовом, а не ссылкой на движок: задаче от него нужны были
+  /// ровно две вещи — папка и «запиши», — а знала она его целиком.
+  final Future<void> Function() onChanged;
+
   final String? magnet;
 
   /// Файл раздачи. У magnet-ссылки его сначала нет, но после получения
@@ -23,18 +36,49 @@ class _ManagedDownload {
 
   String name;
 
-  /// Задача заняла слот очереди (уже запущена или запускается).
-  bool started = false;
+  /// Где задача в очереди.
+  ///
+  /// Одним полем, а не тремя флагами: прежде «занимает слот» и «ждёт
+  /// слота» приходилось складывать из `started`, `pausedByUser` и
+  /// `error`, правились они в шести местах, и забытое присваивание
+  /// оставляло задачу в состоянии, которого не бывает, — запущенной и
+  /// сорвавшейся разом.
+  SlotState slot = SlotState.waiting;
 
-  /// Пауза именно от пользователя — такую задачу очередь не трогает.
-  bool pausedByUser = false;
+  /// Занимает слот очереди.
+  bool get isActive => slot == SlotState.running;
 
-  /// Занимает слот очереди: поднята и не остановлена человеком.
-  bool get isActive => started && !pausedByUser;
+  /// Ждёт слота. Остановленная и сорвавшаяся не ждут: первую остановили
+  /// сами, вторую поднимет «Возобновить».
+  bool get isWaiting => slot == SlotState.waiting;
 
-  /// Ждёт слота. Остановленная человеком и сорвавшаяся не ждут: первую он
-  /// остановил сам, вторую поднимет «Возобновить».
-  bool get isWaiting => !started && !pausedByUser && error == null;
+  /// Слот занят: задача поднимается или уже идёт.
+  ///
+  /// Прежнюю ошибку снимаем здесь: «идёт» и «сорвалась» — разные
+  /// состояния, и оставить сообщение от прошлой попытки значило бы
+  /// показывать его у работающей загрузки.
+  void markRunning() {
+    slot = SlotState.running;
+    error = null;
+  }
+
+  /// Остановлена — человеком или по достигнутому рейтингу раздачи.
+  /// Очередь такую не трогает.
+  void markPaused() => slot = SlotState.paused;
+
+  /// Снова в очереди. Ошибку снимаем: «Возобновить» у сорвавшейся задачи
+  /// — это «попробовать снова», а не «обойти её до перезапуска».
+  void markWaiting() {
+    slot = SlotState.waiting;
+    error = null;
+  }
+
+  /// Сорвалась: слота не занимает и сама не поднимется.
+  void markFailed(String message) {
+    slot = SlotState.failed;
+    error = message;
+  }
+
   int generation = 0;
   Completer<dt.TorrentModel?>? _metadataResult;
   dt.TorrentModel? model;
@@ -95,11 +139,11 @@ class _ManagedDownload {
     final bytes = TorrentFile.assemble(infoDict, trackers: trackers);
     final model = TorrentSource.fromBytes(bytes);
     try {
-      final file = File(p.join(engine.torrentsDir, '$infoHash.torrent'));
+      final file = File(p.join(torrentsDir, '$infoHash.torrent'));
       await file.parent.create(recursive: true);
       await file.writeAsBytes(bytes, flush: true);
       torrentPath = file.path;
-      await engine._persist();
+      await onChanged();
     } on Object catch (error) {
       // Не записался — раздача от этого не страдает, просто метаданные
       // придётся искать заново.
@@ -135,7 +179,7 @@ class _ManagedDownload {
       infoHash: infoHash,
       // Сорвавшаяся задача слота не ждёт: очередь её обходит, пока её не
       // возобновят.
-      isQueued: !started && !pausedByUser && error == null,
+      isQueued: isWaiting,
     );
   }
 
@@ -147,8 +191,8 @@ class _ManagedDownload {
   }
 
   DownloadState _state() => DtorrentEngine.stateOf(
-    hasError: error != null,
-    pausedByUser: pausedByUser,
+    hasError: slot == SlotState.failed,
+    pausedByUser: slot == SlotState.paused,
     completedBytes: task?.downloaded ?? 0,
     totalBytes: _totalBytes(),
     taskState: task?.state,
@@ -160,22 +204,24 @@ class _ManagedDownload {
     'name': name,
     if (magnet != null) 'magnet': magnet,
     if (torrentPath != null) 'torrentPath': torrentPath,
-    if (pausedByUser) 'pausedByUser': true,
+    if (slot == SlotState.paused) 'pausedByUser': true,
   };
 
   factory _ManagedDownload.fromJson(
-    Map<String, dynamic> json,
-    DtorrentEngine engine,
-  ) {
+    Map<String, dynamic> json, {
+    required String torrentsDir,
+    required Future<void> Function() onChanged,
+  }) {
     final managed = _ManagedDownload(
       infoHash: json['infoHash'] as String,
       savePath: json['savePath'] as String,
       name: json['name'] as String? ?? 'Torrent',
       magnet: json['magnet'] as String?,
       torrentPath: json['torrentPath'] as String?,
-      engine: engine,
+      torrentsDir: torrentsDir,
+      onChanged: onChanged,
     );
-    managed.pausedByUser = json['pausedByUser'] as bool? ?? false;
+    if (json['pausedByUser'] as bool? ?? false) managed.markPaused();
     return managed;
   }
 
@@ -193,6 +239,8 @@ class _ManagedDownload {
     }
     task = null;
     metadata = null;
-    started = false;
+    // Остановленную и сорвавшуюся не трогаем: слот они и так не
+    // занимают, а их состояние человеку ещё показывают.
+    if (slot == SlotState.running) slot = SlotState.waiting;
   }
 }

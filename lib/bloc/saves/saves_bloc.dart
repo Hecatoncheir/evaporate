@@ -62,11 +62,13 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     NotificationService? notifications,
     L Function()? localizations,
     List<SaveRoot> Function()? saveRoots,
+    AppLog Function()? log,
   }) : _localizations = localizations ?? _defaultLocalizations,
+       _log = log ?? _appLog,
        notifications = notifications ?? const NoopNotificationService(),
        _store = store ?? JsonStore(paths.snapshotsFile),
        _legacyStore = legacyStore ?? JsonStore(paths.libraryFile),
-       _saves = saveManager ?? SaveManager(paths: paths),
+       _saves = saveManager ?? SaveManager(paths: paths, log: log),
        _saveRoots = saveRoots ?? SavePathFinder.roots,
        super(const SavesState()) {
     // Собирается здесь, а не в списке инициализации: там на _saves,
@@ -116,6 +118,14 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   final L Function() _localizations;
 
   L get _l => _localizations();
+
+  /// Куда писать о том, что гасится молча: уборка хранилища, удаление
+  /// снимков. Функцией, а не глобалом: глобал один на весь прогон, и
+  /// тест, поставивший свой журнал, отбирает его у соседнего файла —
+  /// тесты идут параллельно.
+  final AppLog Function() _log;
+
+  static AppLog _appLog() => AppLog.instance;
 
   /// Где смотреть следы работы игры. Подменяется в тестах: настоящие
   /// «Документы» и `AppData` там обходить незачем и небезопасно.
@@ -275,7 +285,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
       try {
         await _saves.deleteSnapshot(snapshot);
       } on Object catch (error) {
-        AppLog.instance.write('удаление снимков игры ${event.gameId}', error);
+        _log().write('удаление снимков игры ${event.gameId}', error);
       }
     }
     await _collectGarbage();
@@ -301,13 +311,13 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
       // читать не станет. Зато «куда делись гигабайты» — вопрос, который
       // задают через неделю, и ответ на него должен где-то лежать.
       if (freed > 0) {
-        AppLog.instance.write(
+        _log().write(
           'уборка хранилища снимков освободила ${formatBytes(freed)}',
         );
       }
     } on Object catch (error) {
       // Уборка — дело подсобное: не вышло, значит место освободится позже.
-      AppLog.instance.write('уборка хранилища снимков', error);
+      _log().write('уборка хранилища снимков', error);
     }
   }
 

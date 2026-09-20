@@ -19,13 +19,21 @@ void main() {
   late AppPaths paths;
   late SaveManager manager;
 
+  /// Свой журнал, а не глобальный: тесты идут параллельно, и поставленный
+  /// в глобал отбирает журнал у соседнего файла.
+  late AppLog log;
+
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_test_');
     paths = AppPaths.custom(
       dataDir: p.join(tmp.path, 'data'),
       defaultInstallDir: p.join(tmp.path, 'games'),
     );
-    manager = SaveManager(paths: paths);
+    log = AppLog(
+      path: p.join(tmp.path, 'evaporate.log'),
+      previousPath: p.join(tmp.path, 'evaporate.log.1'),
+    );
+    manager = SaveManager(paths: paths, log: () => log);
   });
 
   tearDown(() async {
@@ -709,13 +717,6 @@ void main() {
   // Битый пакет в папке синхронизации пропускался без следа, и человек не
   // мог узнать, почему снимок с другого устройства не виден в списке.
   test('пропущенный пакет папки синхронизации остаётся в журнале', () async {
-    final log = AppLog(
-      path: p.join(tmp.path, 'evaporate.log'),
-      previousPath: p.join(tmp.path, 'evaporate.log.1'),
-    );
-    final previous = AppLog.instance;
-    AppLog.instance = log;
-    addTearDown(() => AppLog.instance = previous);
     final folder = Directory(p.join(tmp.path, 'синхронизация'));
     await folder.create();
     final broken = File(

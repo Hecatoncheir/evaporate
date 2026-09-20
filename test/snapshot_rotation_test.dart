@@ -25,6 +25,12 @@ void main() {
   late LibraryBloc library;
   late SavesBloc saves;
 
+  /// Свой журнал у каждого теста, а не глобальный: тесты идут
+  /// параллельно, и поставленный в глобал отбирает журнал у соседнего
+  /// файла — проверка содержимого начинает зависеть от того, кто
+  /// запустился раньше.
+  late AppLog log;
+
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_rotation_');
     paths = AppPaths.custom(
@@ -37,11 +43,16 @@ void main() {
       paths: paths,
       settings: settings,
     );
+    log = AppLog(
+      path: p.join(tmp.path, 'evaporate.log'),
+      previousPath: p.join(tmp.path, 'evaporate.log.1'),
+    );
     saves = SavesBloc(
       paths: paths,
       library: library,
       settings: settings,
       saveRoots: () => const [],
+      log: () => log,
     );
   });
 
@@ -149,14 +160,6 @@ void main() {
   test(
     'освобождённое уборкой попадает в журнал, а пустой проход — нет',
     () async {
-      final log = AppLog(
-        path: p.join(tmp.path, 'evaporate.log'),
-        previousPath: p.join(tmp.path, 'evaporate.log.1'),
-      );
-      final previous = AppLog.instance;
-      AppLog.instance = log;
-      addTearDown(() => AppLog.instance = previous);
-
       final id = await gameWithSave('Журнал', keep: 1);
       await takeSnapshot(id);
       await log.flush();
