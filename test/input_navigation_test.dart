@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/library/toolbar/library_search_field.dart';
 import 'package:evaporate/ui/widgets/nav_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,6 +28,15 @@ void main() {
     addTearDown(harness.dispose);
     return harness;
   }
+
+  /// В поиске ли фокус.
+  ///
+  /// Узел поля принадлежит библиотеке, а не блоку: блок лишь просит увести
+  /// фокус, и спрашивать о нём надо у того, кто полем владеет.
+  bool searchHasFocus(WidgetTester tester) => tester
+      .widget<LibrarySearchField>(find.byType(LibrarySearchField))
+      .focusNode
+      .hasFocus;
 
   Future<TestHarness> withGames(WidgetTester tester) async {
     final harness = attach();
@@ -57,11 +67,11 @@ void main() {
 
     testWidgets('Y отправляет фокус в поиск', (tester) async {
       final harness = await withGames(tester);
-      expect(harness.nav.searchFocus.hasFocus, isFalse);
+      expect(searchHasFocus(tester), isFalse);
 
       await harness.tapButton(tester, GamepadButton.y);
 
-      expect(harness.nav.searchFocus.hasFocus, isTrue);
+      expect(searchHasFocus(tester), isTrue);
       expect(harness.nav.state.section, AppSection.library);
     });
 
@@ -143,7 +153,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.sendKeyEvent(key);
         await tester.pumpAndSettle();
-        expect(harness.nav.searchFocus.hasFocus, isFalse);
+        expect(searchHasFocus(tester), isFalse);
         expect(primaryFocus?.debugLabel, 'game:$selected');
         expect(harness.nav.state.openedGameId, isNull);
       });
@@ -157,7 +167,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
         await tester.pumpAndSettle();
-        expect(harness.nav.searchFocus.hasFocus, isTrue);
+        expect(searchHasFocus(tester), isTrue);
         final edit = tester.widget<EditableText>(find.byType(EditableText));
         expect(edit.controller.selection.baseOffset, 2);
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -177,12 +187,12 @@ void main() {
     );
 
     testWidgets('пустой результат отпускает поиск без ошибки', (tester) async {
-      final harness = await withGames(tester);
+      await withGames(tester);
       await tester.enterText(find.byType(TextField), 'не найдено');
       await tester.pumpAndSettle();
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
-      expect(harness.nav.searchFocus.hasFocus, isFalse);
+      expect(searchHasFocus(tester), isFalse);
       expect(tester.takeException(), isNull);
     });
     testWidgets('Ctrl+Tab переключает разделы', (tester) async {
@@ -198,12 +208,12 @@ void main() {
     });
 
     testWidgets('слэш переводит фокус в поиск', (tester) async {
-      final harness = await withGames(tester);
+      await withGames(tester);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.slash);
       await tester.pumpAndSettle();
 
-      expect(harness.nav.searchFocus.hasFocus, isTrue);
+      expect(searchHasFocus(tester), isTrue);
     });
 
     testWidgets('стрелки перемещают фокус', (tester) async {
@@ -220,12 +230,29 @@ void main() {
       final harness = await withGames(tester);
       harness.nav.add(const SearchFocusRequested());
       await tester.pumpAndSettle();
-      expect(harness.nav.searchFocus.hasFocus, isTrue);
+      expect(searchHasFocus(tester), isTrue);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
 
-      expect(harness.nav.searchFocus.hasFocus, isFalse);
+      expect(searchHasFocus(tester), isFalse);
+    });
+
+    // Просьба о фокусе — счётчик, а не флаг: вторая такая же обязана
+    // отличаться от первой, иначе состояние не изменится и фокус
+    // останется там, куда его увёл человек.
+    testWidgets('вторая просьба уводит фокус в поиск снова', (tester) async {
+      final harness = await withGames(tester);
+      harness.nav.add(const SearchFocusRequested());
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(searchHasFocus(tester), isFalse);
+
+      harness.nav.add(const SearchFocusRequested());
+      await tester.pumpAndSettle();
+
+      expect(searchHasFocus(tester), isTrue);
     });
   });
 
@@ -241,7 +268,7 @@ void main() {
       harness.nav.add(const SearchFocusRequested());
       await tester.pumpAndSettle();
       await harness.tapButton(tester, button);
-      expect(harness.nav.searchFocus.hasFocus, isFalse);
+      expect(searchHasFocus(tester), isFalse);
       expect(
         primaryFocus?.debugLabel,
         'game:${harness.nav.state.selectedGameId}',
@@ -317,7 +344,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
     expect(primaryFocus?.debugLabel, 'game:$last');
-    expect(harness.nav.searchFocus.hasFocus, isFalse);
+    expect(searchHasFocus(tester), isFalse);
     expect(find.text('Game 79'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

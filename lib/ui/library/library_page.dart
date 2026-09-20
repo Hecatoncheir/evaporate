@@ -41,6 +41,13 @@ class _LibraryPageState extends State<LibraryPage> {
   /// ресурсы, то есть наведение, фокус и прокрутка.
   final _view = LibraryViewBloc();
   final _grid = LibraryGridController();
+
+  /// Фокус поля поиска.
+  ///
+  /// Живёт здесь, а не в `NavigationBloc`: `FocusNode` — ресурс с
+  /// жизненным циклом виджета, и блок, который его заводил, обязан был
+  /// знать, что поле поиска вообще существует.
+  final _searchFocus = FocusNode(debugLabel: 'search');
   late final StreamSubscription<LibraryView> _viewChanges;
 
   /// Какая игра была открыта на прошлой сборке — по её исчезновению и видно,
@@ -49,6 +56,9 @@ class _LibraryPageState extends State<LibraryPage> {
 
   /// Открыто окно поиска установленных игр.
   bool _scanning = false;
+
+  /// Сколько раз просили фокус в поиск на прошлой сборке.
+  int _searchFocusBefore = 0;
 
   @override
   void initState() {
@@ -72,12 +82,13 @@ class _LibraryPageState extends State<LibraryPage> {
     _grid
       ..removeListener(_onGridChanged)
       ..dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
   void _returnToGames(List<Game> games, NavigationBloc nav) {
     if (games.isEmpty) {
-      nav.searchFocus.unfocus();
+      _searchFocus.unfocus();
       return;
     }
     _focusGame(nav.state.selectedGameId, games);
@@ -127,6 +138,7 @@ class _LibraryPageState extends State<LibraryPage> {
     // другое чинится после кадра: менять состояние во время сборки нельзя.
     _repairSelection(nav, navState, games, opened);
     _restoreFocusOnClose(navState, games);
+    _grabSearchFocus(navState);
 
     if (opened != null) return GamePage(game: opened);
 
@@ -140,7 +152,7 @@ class _LibraryPageState extends State<LibraryPage> {
       effects: effects,
       scale: scale,
       scanning: _scanning,
-      searchFocus: nav.searchFocus,
+      searchFocus: _searchFocus,
       onShelf: (value) => _view.add(LibraryShelfSelected(value)),
       onQuery: (value) => _view.add(LibraryQueryChanged(value)),
       onReturnToGames: () => _returnToGames(games, nav),
@@ -167,6 +179,22 @@ class _LibraryPageState extends State<LibraryPage> {
       if (!mounted) return;
       if (openingLost) nav.add(const GameOpened(null));
       if (selectionLost) nav.add(GameSelected(games.first.id));
+    });
+  }
+
+  /// Уводит фокус в поиск, если о том просили.
+  ///
+  /// Блок просьбу только записывает — счётчиком, как `Notice.seq`, иначе
+  /// две просьбы подряд не отличались бы одна от другой. Ставит фокус тот,
+  /// кто владеет полем; и после кадра, потому что просьба приходит вместе
+  /// с переключением на библиотеку, а поля поиска в этот миг ещё нет.
+  void _grabSearchFocus(NavigationState state) {
+    final before = _searchFocusBefore;
+    _searchFocusBefore = state.searchFocusSeq;
+    if (state.searchFocusSeq == before) return;
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
     });
   }
 

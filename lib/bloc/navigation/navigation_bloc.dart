@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/app_section.dart';
@@ -47,10 +46,14 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     on<SearchFocusRequested>((event, emit) {
       // Поиск живёт над сеткой — страница игры его закрывает собой.
-      emit(state.copyWith(section: AppSection.library, openedGameId: null));
-      // Фокус — не состояние, а ресурс: его нельзя положить в state,
-      // поэтому запрашиваем прямо здесь.
-      searchFocus.requestFocus();
+      // Сам фокус ставит библиотека: он ресурс, и блоку не принадлежит.
+      emit(
+        state.copyWith(
+          section: AppSection.library,
+          openedGameId: null,
+          searchFocusSeq: state.searchFocusSeq + 1,
+        ),
+      );
     });
   }
 
@@ -67,13 +70,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     return true;
   }
 
-  /// Фокус поля поиска.
-  final FocusNode searchFocus = FocusNode(debugLabel: 'search');
-
   @override
   Future<void> close() async {
     await _drops?.cancel();
-    searchFocus.dispose();
     return super.close();
   }
 }
