@@ -43,12 +43,12 @@ extension _SavesSnapshots on SavesBloc {
     // не видит.
     final silent = event.origin == SnapshotOrigin.autoOnExit;
     final key = SavesBloc.snapshotKey(game.id);
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
 
     try {
       final resolved = await _resolveStoredPaths(game, emit);
       if (resolved == null) {
-        _finishBusy(emit, key);
+        finishBusy(emit, key);
         return;
       }
       game = resolved;
@@ -66,7 +66,7 @@ extension _SavesSnapshots on SavesBloc {
       emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
       if (_syncFolderWanted) await _exportToSync(snapshot);
 
-      _finishBusy(
+      finishBusy(
         emit,
         key,
         message: silent
@@ -80,14 +80,14 @@ extension _SavesSnapshots on SavesBloc {
       await persist();
     } on SaveException catch (error) {
       if (silent) _notifySnapshotFailed(game, error.message);
-      _finishBusy(
+      finishBusy(
         emit,
         key,
         message: silent ? null : error.message,
         isError: true,
       );
     } on Object catch (error) {
-      _finishBusy(emit, key, message: error.toString(), isError: true);
+      finishBusy(emit, key, message: error.toString(), isError: true);
     }
   }
 
@@ -167,7 +167,7 @@ extension _SavesSnapshots on SavesBloc {
     Emitter<SavesState> emit,
   ) async {
     final key = SavesBloc.snapshotKey(event.game.id);
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
     try {
       final report = await _saves.restoreSnapshot(
         game: event.game,
@@ -180,15 +180,15 @@ extension _SavesSnapshots on SavesBloc {
           snapshots: report.backup == null
               ? state.snapshots
               : _withSnapshot(report.backup!),
-          busy: _withBusy(key, false),
+          busy: busyWith(key, value: false),
           notice: report.isComplete
-              ? _notice(
+              ? notice(
                   _l.noticeRestoredFiles(
                     report.filesWritten,
                     formatBytes(report.bytesWritten),
                   ),
                 )
-              : _notice(
+              : notice(
                   _l.noticeUnresolvedPaths(report.unresolved.join(', ')),
                   isError: true,
                 ),
@@ -199,8 +199,8 @@ extension _SavesSnapshots on SavesBloc {
     } on Object catch (error) {
       emit(
         state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
+          busy: busyWith(key, value: false),
+          notice: notice(error.toString(), isError: true),
         ),
       );
     }
@@ -209,29 +209,13 @@ extension _SavesSnapshots on SavesBloc {
   Future<void> _onImportRequested(
     SnapshotImportRequested event,
     Emitter<SavesState> emit,
-  ) async {
-    final key = SavesBloc.snapshotKey(event.game.id);
-    emit(state.copyWith(busy: _withBusy(key, true)));
-    try {
-      final snapshot = await _saves.importPackage(event.path, game: event.game);
-      emit(
-        state.copyWith(
-          snapshots: _withSnapshot(snapshot),
-          busy: _withBusy(key, false),
-          notice: _notice(_l.noticeSnapshotImported),
-        ),
-      );
-      await _prune(event.game.id, emit);
-      await persist();
-    } on Object catch (error) {
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
-        ),
-      );
-    }
-  }
+  ) => busyWhile(emit, SavesBloc.snapshotKey(event.game.id), () async {
+    final snapshot = await _saves.importPackage(event.path, game: event.game);
+    emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
+    await _prune(event.game.id, emit);
+    await persist();
+    return _l.noticeSnapshotImported;
+  });
 
   Future<void> _onExportRequested(
     SnapshotExportRequested event,
@@ -239,11 +223,9 @@ extension _SavesSnapshots on SavesBloc {
   ) async {
     try {
       await _saves.exportSnapshot(event.snapshot, event.destination);
-      emit(
-        state.copyWith(notice: _notice(_l.noticeSavedTo(event.destination))),
-      );
+      emit(state.copyWith(notice: notice(_l.noticeSavedTo(event.destination))));
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
   }
 
@@ -262,7 +244,7 @@ extension _SavesSnapshots on SavesBloc {
     try {
       await _saves.deleteSnapshot(event.snapshot);
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
     await _collectGarbage();
     await persist();

@@ -18,7 +18,7 @@ import '../../services/download/dtorrent_engine.dart';
 import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
-import '../../services/system/app_log.dart';
+import '../bloc_common.dart';
 import '../library/library_bloc.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -31,7 +31,8 @@ part 'downloads_state.dart';
 ///
 /// Движок — внешний источник событий: его потоки задач, статуса и статистики
 /// подаются сюда как обычные события, наравне с нажатиями пользователя.
-class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
+class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
+    with NoticeBloc<DownloadsState> {
   DownloadsBloc({
     required this.paths,
     required this.library,
@@ -111,7 +112,6 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   /// Игры, установка которых уже дообрабатывается, — чтобы не запускать
   /// сканирование исполняемых файлов дважды.
   final Set<String> _finalizing = {};
-  int _noticeSeq = 0;
 
   void _pushTasks() => add(EngineTasksChanged(engine.tasks.value));
 
@@ -119,10 +119,8 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
 
   void _pushStats() => add(EngineStatsChanged(engine.stats.value));
 
-  Notice _notice(String message, {bool isError = false}) {
-    if (isError) AppLog.instance.write('загрузки: $message');
-    return Notice(message: message, seq: ++_noticeSeq, isError: isError);
-  }
+  @override
+  String get logTag => 'загрузки';
 
   void _notifySystem(AppNotification notification) {
     if (!settings.state.systemNotifications) return;
@@ -187,7 +185,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     if (!engine.status.value.isReady) {
       emit(
         state.copyWith(
-          notice: _notice(
+          notice: notice(
             _l.noticeEngineNotReady(
               engineStateLabel(_l, engine.status.value.state),
             ),
@@ -213,16 +211,16 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         case GameSourceKind.localFolder:
           emit(
             state.copyWith(
-              notice: _notice(_l.noticeLocalFolderNoDownload, isError: true),
+              notice: notice(_l.noticeLocalFolderNoDownload, isError: true),
             ),
           );
           return;
       }
 
       library.add(GameDownloadStarted(event.game.id, event.source, taskId));
-      emit(state.copyWith(notice: _notice(_l.noticeDownloadStarted)));
+      emit(state.copyWith(notice: notice(_l.noticeDownloadStarted)));
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
   }
 
@@ -252,17 +250,15 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       if (source == null) {
         emit(
           state.copyWith(
-            notice: _notice(_l.noticeTorrentUnavailable, isError: true),
+            notice: notice(_l.noticeTorrentUnavailable, isError: true),
           ),
         );
         return;
       }
       await File(source).copy(event.destination);
-      emit(
-        state.copyWith(notice: _notice(_l.noticeSavedTo(event.destination))),
-      );
+      emit(state.copyWith(notice: notice(_l.noticeSavedTo(event.destination))));
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
   }
 
@@ -276,7 +272,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       await engine.pause(taskId);
       library.add(GameStatusChanged(event.game.id, GameStatus.paused));
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
   }
 
@@ -290,7 +286,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       await engine.resume(taskId);
       library.add(GameStatusChanged(event.game.id, GameStatus.downloading));
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
   }
 
@@ -305,13 +301,13 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     try {
       if (taskId != null) await engine.remove(taskId);
     } on Object catch (error) {
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
     if (event.deleteFiles && task != null) {
       try {
         await deleteDownloaded(task, root: settings.state.installDir);
       } on Object catch (error) {
-        emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+        emit(state.copyWith(notice: notice(error.toString(), isError: true)));
       }
     }
     library.add(GameDownloadDropped(event.game.id));
@@ -452,7 +448,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
         await library.persist();
         emit(
           state.copyWith(
-            notice: _notice(
+            notice: notice(
               _l.noticeDownloadIncomplete(game.title, report.describe(_l)),
               isError: true,
             ),
@@ -479,9 +475,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
       );
       await library.persist();
 
-      emit(
-        state.copyWith(notice: _notice(_l.noticeGameDownloaded(game.title))),
-      );
+      emit(state.copyWith(notice: notice(_l.noticeGameDownloaded(game.title))));
       _notifySystem(
         AppNotification(
           title: _l.noticeDownloadFinished,

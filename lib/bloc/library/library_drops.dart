@@ -34,7 +34,7 @@ extension _LibraryDrops on LibraryBloc {
       candidates = await _inspectDrop(event.paths);
     } on Object catch (error) {
       AppLog.instance.write('разбор брошенного в окно', error);
-      emit(state.copyWith(notice: _notice(error.toString(), isError: true)));
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
       return;
     }
 
@@ -43,14 +43,14 @@ extension _LibraryDrops on LibraryBloc {
         if (candidate.kind != DropKind.unsupported) _gameFromDrop(candidate),
     ];
     if (added.isEmpty) {
-      emit(state.copyWith(notice: _notice(_l.dropNothing)));
+      emit(state.copyWith(notice: notice(_l.dropNothing)));
       return;
     }
 
     emit(
       state.copyWith(
         games: [...state.games, ...added],
-        notice: _notice(_l.dropAdded(added.length)),
+        notice: notice(_l.dropAdded(added.length)),
       ),
     );
     _schedulePersist();

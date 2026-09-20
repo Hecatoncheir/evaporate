@@ -31,7 +31,7 @@ extension _SavesHints on SavesBloc {
     emit(
       state.copyWith(
         saveHints: {...state.saveHints, event.game.id: fresh},
-        notice: _notice(_l.noticeSaveHints(fresh.length, event.game.title)),
+        notice: notice(_l.noticeSaveHints(fresh.length, event.game.title)),
       ),
     );
   }
@@ -69,7 +69,7 @@ extension _SavesHints on SavesBloc {
   ) async {
     final key = SavesBloc.suggestKey(event.game.id);
     if (state.isBusy(key)) return;
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
 
     final List<SavePathSuggestion> found;
     try {
@@ -79,21 +79,21 @@ extension _SavesHints on SavesBloc {
       );
     } on Object catch (error) {
       AppLog.instance.write('поиск папок «${event.game.title}»', error);
-      _finishBusy(emit, key, message: _l.noSimilarFolders, isError: true);
+      finishBusy(emit, key, message: _l.noSimilarFolders, isError: true);
       return;
     }
 
     final fresh = _withoutKnownPaths(event.game, found);
     if (fresh.isEmpty) {
-      _finishBusy(emit, key, message: _l.noSimilarFolders);
+      finishBusy(emit, key, message: _l.noSimilarFolders);
       return;
     }
 
     emit(
       state.copyWith(
-        busy: _withBusy(key, false),
+        busy: busyWith(key, value: false),
         saveHints: {...state.saveHints, event.game.id: fresh},
-        notice: _notice(_l.noticeSavePathsFound(fresh.length)),
+        notice: notice(_l.noticeSavePathsFound(fresh.length)),
       ),
     );
   }
@@ -117,7 +117,7 @@ extension _SavesHints on SavesBloc {
     emit(
       state.copyWith(
         saveHints: _withoutHints(current.id),
-        notice: _notice(
+        notice: notice(
           _l.noticePathsAdded(
             _sourceLabel(_l, event.suggestions.first.origin),
             added.length,

@@ -6,7 +6,7 @@ part of 'saves_bloc.dart';
 /// страница сохранений, карточка игры и диалог восстановления. Пока оба
 /// списка лежали в одном состоянии, снятый снимок перестраивал сетку
 /// обложек — библиотека подписана на своё состояние целиком.
-class SavesState extends Equatable {
+class SavesState extends Equatable implements BusyState<SavesState> {
   const SavesState({
     this.snapshots = const {},
     this.saveHints = const {},
@@ -44,8 +44,10 @@ class SavesState extends Equatable {
   final BulkReport? bulkReport;
 
   /// Ключи выполняющихся операций — виджетам не нужен собственный `_busy`.
+  @override
   final Set<String> busy;
   final bool loaded;
+  @override
   final Notice? notice;
 
   List<SaveSnapshot> snapshotsFor(String gameId) =>
@@ -90,6 +92,10 @@ class SavesState extends Equatable {
       notice: notice == _unset ? this.notice : notice as Notice?,
     );
   }
+
+  @override
+  SavesState withBusy(Set<String> busy, {Notice? notice}) =>
+      copyWith(busy: busy, notice: notice ?? this.notice);
 
   @override
   List<Object?> get props => [

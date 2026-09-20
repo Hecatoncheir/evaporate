@@ -43,7 +43,7 @@ extension _LibraryMetadata on LibraryBloc {
       return;
     }
 
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
     try {
       _replaceGame(game.copyWith(steamLookupAttempted: true), emit);
       // Маркер записан до сети: даже аварийный выход не вызывает повтор.
@@ -52,7 +52,7 @@ extension _LibraryMetadata on LibraryBloc {
       final match = await _askSteamAbout(game, event.query);
       if (_closing) return;
       if (match == null) {
-        _finishBusy(
+        finishBusy(
           emit,
           key,
           message: event.automatic ? null : _l.noticeSteamNothingFound,
@@ -67,7 +67,7 @@ extension _LibraryMetadata on LibraryBloc {
 
       var current = _stillSameGame(game);
       if (current == null) {
-        _finishBusy(emit, key);
+        finishBusy(emit, key);
         return;
       }
 
@@ -82,7 +82,7 @@ extension _LibraryMetadata on LibraryBloc {
       if (current == null) {
         await _deleteCoverFile(coverFile?.path);
         await _deleteShotFiles(shotPaths);
-        _finishBusy(emit, key);
+        finishBusy(emit, key);
         return;
       }
 
@@ -105,10 +105,10 @@ extension _LibraryMetadata on LibraryBloc {
       emit(
         state.copyWith(
           games: games,
-          busy: _withBusy(key, false),
+          busy: busyWith(key, value: false),
           notice: event.automatic
               ? state.notice
-              : _notice(_l.noticeSteamFound(match.name)),
+              : notice(_l.noticeSteamFound(match.name)),
         ),
       );
       await persist();
@@ -119,7 +119,7 @@ extension _LibraryMetadata on LibraryBloc {
       if (shotPaths.isNotEmpty) await _deleteShotFiles(previousShots);
       _continueWithSavePaths(game.id, automatic: event.automatic);
     } on Object catch (error) {
-      _finishBusy(emit, key, message: error.toString(), isError: true);
+      finishBusy(emit, key, message: error.toString(), isError: true);
     }
   }
 
@@ -276,7 +276,7 @@ extension _LibraryMetadata on LibraryBloc {
     Emitter<LibraryState> emit,
   ) async {
     final key = LibraryBloc.steamShortcutKey(event.game.id);
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
     try {
       await _steamShortcuts.addGame(
         event.game,
@@ -284,22 +284,22 @@ extension _LibraryMetadata on LibraryBloc {
       );
       emit(
         state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(_l.noticeSteamAdded(event.game.title)),
+          busy: busyWith(key, value: false),
+          notice: notice(_l.noticeSteamAdded(event.game.title)),
         ),
       );
     } on SteamShortcutException catch (error) {
       emit(
         state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.message, isError: true),
+          busy: busyWith(key, value: false),
+          notice: notice(error.message, isError: true),
         ),
       );
     } on Object catch (error) {
       emit(
         state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
+          busy: busyWith(key, value: false),
+          notice: notice(error.toString(), isError: true),
         ),
       );
     }
@@ -377,7 +377,7 @@ extension _LibraryMetadata on LibraryBloc {
           game,
     ];
     if (pending.isEmpty) {
-      emit(state.copyWith(notice: _notice(_l.noticeMetadataNothingToDo)));
+      emit(state.copyWith(notice: notice(_l.noticeMetadataNothingToDo)));
       return;
     }
 
@@ -402,7 +402,7 @@ extension _LibraryMetadata on LibraryBloc {
       );
     }
     emit(
-      state.copyWith(notice: _notice(_l.noticeMetadataRetry(pending.length))),
+      state.copyWith(notice: notice(_l.noticeMetadataRetry(pending.length))),
     );
   }
 
@@ -427,7 +427,7 @@ extension _LibraryMetadata on LibraryBloc {
         if (game.isInstalled && game.installDir != null) game,
     ];
     if (pending.isEmpty) {
-      emit(state.copyWith(notice: _notice(_l.noticeMetadataNothingToDo)));
+      emit(state.copyWith(notice: notice(_l.noticeMetadataNothingToDo)));
       return;
     }
 
@@ -451,7 +451,7 @@ extension _LibraryMetadata on LibraryBloc {
       add(SteamLookupRequested(current, automatic: true));
     }
     emit(
-      state.copyWith(notice: _notice(_l.noticeMetadataRefresh(pending.length))),
+      state.copyWith(notice: notice(_l.noticeMetadataRefresh(pending.length))),
     );
   }
 
@@ -507,7 +507,7 @@ extension _LibraryMetadata on LibraryBloc {
             (game.steamAppId == null || game.savePathsLookupAttempted))) {
       return;
     }
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
     // Указатель хода гасим в любом случае: оставшись висеть, он врал бы
     // о продолжающейся работе.
     void done() {
@@ -523,7 +523,7 @@ extension _LibraryMetadata on LibraryBloc {
       if (_closing) return;
 
       if (found == null) {
-        _finishBusy(
+        finishBusy(
           emit,
           key,
           message: event.automatic ? null : _l.noticePathsNothingFound,
@@ -534,7 +534,7 @@ extension _LibraryMetadata on LibraryBloc {
 
       final current = _stillSameGame(game);
       if (current == null) {
-        _finishBusy(emit, key);
+        finishBusy(emit, key);
         done();
         return;
       }
@@ -555,17 +555,17 @@ extension _LibraryMetadata on LibraryBloc {
       emit(
         state.copyWith(
           games: games,
-          busy: _withBusy(key, false),
+          busy: busyWith(key, value: false),
           notice: event.automatic
               ? state.notice
-              : _notice(_foundPathsMessage(found, added.length)),
+              : notice(_foundPathsMessage(found, added.length)),
         ),
       );
       await persist();
       done();
     } on Object catch (error) {
       done();
-      _finishBusy(emit, key, message: error.toString(), isError: true);
+      finishBusy(emit, key, message: error.toString(), isError: true);
     }
   }
 

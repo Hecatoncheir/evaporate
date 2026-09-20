@@ -24,6 +24,7 @@ import '../../services/saves/ludusavi_catalog.dart';
 import '../../services/saves/save_path_globs.dart';
 import '../../services/system/app_log.dart';
 import '../../services/system/file_manager.dart';
+import '../bloc_common.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
@@ -44,7 +45,8 @@ typedef GameExit = ({Game game, Duration played});
 ///
 /// Ошибки наружу не выбрасываются: обработчики кладут результат в [Notice],
 /// а экраны показывают его через `BlocListener`.
-class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
+class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
+    with NoticeBloc<LibraryState>, BusyBloc<LibraryEvent, LibraryState> {
   LibraryBloc({
     required AppPaths paths,
     required this.settings,
@@ -196,7 +198,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   Timer? _persistTimer;
   bool _closing = false;
-  int _noticeSeq = 0;
 
   GameLauncher get launcher => _launcher;
 
@@ -216,40 +217,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   void _pushRunningGames() =>
       add(RunningGamesChanged(_launcher.runningIds.value));
 
-  Notice _notice(String message, {bool isError = false}) {
-    // SnackBar живёт секунды, а рассказ о случившемся доходит через день.
-    if (isError) AppLog.instance.write('библиотека: $message');
-    return Notice(message: message, seq: ++_noticeSeq, isError: isError);
-  }
-
-  Set<String> _withBusy(String key, bool value) {
-    final next = Set<String>.from(state.busy);
-    if (value) {
-      next.add(key);
-    } else {
-      next.remove(key);
-    }
-    return next;
-  }
-
-  /// Гасит указатель занятости и, если есть что сказать, показывает
-  /// сообщение. Работа, которую человек не просил, идёт молча — ей
-  /// сообщение не нужно.
-  void _finishBusy(
-    Emitter<LibraryState> emit,
-    String key, {
-    String? message,
-    bool isError = false,
-  }) {
-    emit(
-      state.copyWith(
-        busy: _withBusy(key, false),
-        notice: message == null
-            ? state.notice
-            : _notice(message, isError: isError),
-      ),
-    );
-  }
+  @override
+  String get logTag => 'библиотека';
 
   void _schedulePersist() {
     _persistTimer?.cancel();
@@ -307,7 +276,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final path = _store.recoveryPath;
     return path == null
         ? state.notice
-        : _notice(_l.noticeStorageRecovered(path), isError: true);
+        : notice(_l.noticeStorageRecovered(path), isError: true);
   }
 
   void _onGameAdded(GameAdded event, Emitter<LibraryState> emit) {
@@ -382,8 +351,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     final key = launchKey(game.id);
     // Второе нажатие, пока идёт снимок перед запуском, — не второй запуск.
     if (state.isBusy(key)) return;
-    emit(state.copyWith(busy: _withBusy(key, true)));
-    try {
+    await busyWhile(emit, key, () async {
       // Снимок перед запуском ставит блок сохранений, а дождаться его
       // обязаны мы: игра начнёт писать в сейвы сразу, и копия, снятая
       // параллельно со стартом, застаёт файлы в неизвестном состоянии.
@@ -402,15 +370,9 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         (current) =>
             current.copyWith(status: GameStatus.running, lastError: null),
       );
-      emit(state.copyWith(busy: _withBusy(key, false)));
-    } on Object catch (error) {
-      emit(
-        state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
-        ),
-      );
-    }
+      // Запуск удался — говорить об этом нечего: человек и так увидит игру.
+      return null;
+    });
   }
 
   Future<void> _onStopRequested(

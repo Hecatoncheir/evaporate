@@ -21,6 +21,7 @@ import '../../services/saves/save_manager.dart';
 import '../../services/saves/save_path_finder.dart';
 import '../../services/saves/save_path_globs.dart';
 import '../../services/system/app_log.dart';
+import '../bloc_common.dart';
 import '../library/library_bloc.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -49,7 +50,8 @@ part 'saves_bulk.dart';
 /// шлёт [SaveRulesAdded] вдогонку: событие ничего не возвращает, и ждать, пока
 /// оно доедет до чужого состояния, значило бы вставить паузу в середину
 /// каждой операции.
-class SavesBloc extends Bloc<SavesEvent, SavesState> {
+class SavesBloc extends Bloc<SavesEvent, SavesState>
+    with NoticeBloc<SavesState>, BusyBloc<SavesEvent, SavesState> {
   SavesBloc({
     required AppPaths paths,
     required this.library,
@@ -134,7 +136,6 @@ class SavesBloc extends Bloc<SavesEvent, SavesState> {
 
   Timer? _persistTimer;
   bool _closing = false;
-  int _noticeSeq = 0;
 
   /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
   /// подтверждения обращается к менеджеру напрямую.
@@ -158,44 +159,12 @@ class SavesBloc extends Bloc<SavesEvent, SavesState> {
   /// Короче этого запуск не считаем игрой: сейвы за такое время не заводят.
   static const _shortestWatchedSession = Duration(seconds: 30);
 
-  Notice _notice(String message, {bool isError = false}) {
-    // SnackBar живёт секунды, а рассказ о случившемся доходит через день.
-    if (isError) AppLog.instance.write('сохранения: $message');
-    return Notice(message: message, seq: ++_noticeSeq, isError: isError);
-  }
+  @override
+  String get logTag => 'сохранения';
 
   void _notifySystem(AppNotification notification) {
     if (!settings.state.systemNotifications) return;
     unawaited(notifications.show(notification));
-  }
-
-  Set<String> _withBusy(String key, bool value) {
-    final next = Set<String>.from(state.busy);
-    if (value) {
-      next.add(key);
-    } else {
-      next.remove(key);
-    }
-    return next;
-  }
-
-  /// Гасит указатель занятости и, если есть что сказать, показывает
-  /// сообщение. Работа, которую человек не просил, идёт молча — ей
-  /// сообщение не нужно.
-  void _finishBusy(
-    Emitter<SavesState> emit,
-    String key, {
-    String? message,
-    bool isError = false,
-  }) {
-    emit(
-      state.copyWith(
-        busy: _withBusy(key, false),
-        notice: message == null
-            ? state.notice
-            : _notice(message, isError: isError),
-      ),
-    );
   }
 
   /// Добавляет игре правила у себя и сообщает о них библиотеке.

@@ -233,7 +233,10 @@ void main() {
     );
 
     for (var i = 0; i < 3; i++) {
-      final before = saves.state.snapshotsFor(id).length;
+      // Ждём именно конца импорта, а не изменения числа снимков: ротация
+      // проходит до того, как гаснет занятость, и число к этому моменту
+      // уже вернулось к пределу.
+      final before = saves.state.notice?.seq ?? 0;
       saves.add(
         SnapshotImportRequested(
           path: exported,
@@ -243,7 +246,7 @@ void main() {
       await waitForSaves(
         (s) =>
             !s.isBusy(SavesBloc.snapshotKey(id)) &&
-            s.snapshotsFor(id).length != before,
+            (s.notice?.seq ?? 0) > before,
       );
     }
 

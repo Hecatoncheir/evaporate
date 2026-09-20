@@ -6,7 +6,7 @@ extension _SavesBulk on SavesBloc {
     BulkExportRequested event,
     Emitter<SavesState> emit,
   ) async {
-    emit(state.copyWith(busy: _withBusy(SavesBloc.bulkKey, true)));
+    emit(state.copyWith(busy: busyWith(SavesBloc.bulkKey, value: true)));
     // Сбой по отдельной игре — строка отчёта, а не исключение; сюда
     // доходит только провал всей операции: не записался список снимков,
     // не прошла ротация. Занятость гасится и тогда — иначе клавиши
@@ -35,16 +35,16 @@ extension _SavesBulk on SavesBloc {
 
   void _finishBulk(Emitter<SavesState> emit, BulkResult result) => emit(
     state.copyWith(
-      busy: _withBusy(SavesBloc.bulkKey, false),
+      busy: busyWith(SavesBloc.bulkKey, value: false),
       bulkReport: result.report,
-      notice: _notice(result.message, isError: result.isError),
+      notice: notice(result.message, isError: result.isError),
     ),
   );
 
   void _failBulk(Emitter<SavesState> emit, Object error) => emit(
     state.copyWith(
-      busy: _withBusy(SavesBloc.bulkKey, false),
-      notice: _notice(error.toString(), isError: true),
+      busy: busyWith(SavesBloc.bulkKey, value: false),
+      notice: notice(error.toString(), isError: true),
     ),
   );
 
@@ -63,7 +63,7 @@ extension _SavesBulk on SavesBloc {
     BulkImportRequested event,
     Emitter<SavesState> emit,
   ) async {
-    emit(state.copyWith(busy: _withBusy(SavesBloc.bulkKey, true)));
+    emit(state.copyWith(busy: busyWith(SavesBloc.bulkKey, value: true)));
     // Папку не прочитать — разбирать нечего: это провал всей операции, а
     // не исход отдельной игры, и отчёта по играм тут не будет.
     try {
@@ -106,7 +106,7 @@ extension _SavesBulk on SavesBloc {
         state.copyWith(
           scanningSync: false,
           syncScanned: true,
-          notice: _notice(error.toString(), isError: true),
+          notice: notice(error.toString(), isError: true),
         ),
       );
     }
@@ -117,7 +117,7 @@ extension _SavesBulk on SavesBloc {
     Emitter<SavesState> emit,
   ) async {
     final key = SavesBloc.snapshotKey(event.game.id);
-    emit(state.copyWith(busy: _withBusy(key, true)));
+    emit(state.copyWith(busy: busyWith(key, value: true)));
     try {
       final snapshot = await _saves.importPackage(event.path, game: event.game);
       emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
@@ -131,10 +131,10 @@ extension _SavesBulk on SavesBloc {
           snapshots: report.backup == null
               ? state.snapshots
               : _withSnapshot(report.backup!),
-          busy: _withBusy(key, false),
+          busy: busyWith(key, value: false),
           notice: report.isComplete
-              ? _notice(_l.noticeRestoreDone(report.filesWritten))
-              : _notice(
+              ? notice(_l.noticeRestoreDone(report.filesWritten))
+              : notice(
                   _l.noticeUnresolvedShort(report.unresolved.join(', ')),
                   isError: true,
                 ),
@@ -145,8 +145,8 @@ extension _SavesBulk on SavesBloc {
     } on Object catch (error) {
       emit(
         state.copyWith(
-          busy: _withBusy(key, false),
-          notice: _notice(error.toString(), isError: true),
+          busy: busyWith(key, value: false),
+          notice: notice(error.toString(), isError: true),
         ),
       );
     }

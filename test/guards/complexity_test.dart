@@ -133,7 +133,7 @@ const _complexity = [
 ];
 
 const _lines = [
-  'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 69',
+  'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 73',
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSteamLookup: 94',
   'lib/input/input_scope.dart: _InputScopeState.build: 64',

@@ -5,7 +5,7 @@ part of 'library_bloc.dart';
 /// Снимки сохранений живут не здесь, а в `SavesState`: они меняются своим
 /// чередом, а страница библиотеки подписана на это состояние целиком — и
 /// перестраивала сетку обложек на каждый снятый снимок.
-class LibraryState extends Equatable {
+class LibraryState extends Equatable implements BusyState<LibraryState> {
   const LibraryState({
     this.games = const [],
     this.runningIds = const {},
@@ -21,8 +21,10 @@ class LibraryState extends Equatable {
   final Set<String> runningIds;
 
   /// Ключи выполняющихся операций — виджетам не нужен собственный `_busy`.
+  @override
   final Set<String> busy;
   final bool loaded;
+  @override
   final Notice? notice;
 
   /// Ход подготовки базы путей, пока она качается и разбирается.
@@ -74,6 +76,10 @@ class LibraryState extends Equatable {
           : savePathsProgress as CatalogProgress?,
     );
   }
+
+  @override
+  LibraryState withBusy(Set<String> busy, {Notice? notice}) =>
+      copyWith(busy: busy, notice: notice ?? this.notice);
 
   @override
   List<Object?> get props => [

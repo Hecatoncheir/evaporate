@@ -130,7 +130,7 @@ extension _LibraryEdits on LibraryBloc {
     try {
       await _fileManager.openFolder(dir);
     } on FileManagerException catch (error) {
-      emit(state.copyWith(notice: _notice(error.message, isError: true)));
+      emit(state.copyWith(notice: notice(error.message, isError: true)));
     }
   }
 
