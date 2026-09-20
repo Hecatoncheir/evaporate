@@ -194,6 +194,21 @@ final class FilesDropped extends LibraryEvent {
   List<Object?> get props => [paths, select];
 }
 
+/// Поискать в папке игры, что запускать.
+final class GameExecutableDetectRequested extends LibraryEvent {
+  const GameExecutableDetectRequested(this.gameId);
+
+  final String gameId;
+
+  @override
+  List<Object?> get props => [gameId];
+}
+
+/// Человек передумал выбирать: найденное убираем.
+final class GameExecutablePickDismissed extends LibraryEvent {
+  const GameExecutablePickDismissed();
+}
+
 /// Показать папку установки игры в системном проводнике.
 ///
 /// Событием, а не вызовом из виджета: команда отличается системой, отказ

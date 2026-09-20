@@ -877,7 +877,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `build` — теперь они под тестом: пустой шаблон, занятая метка,
   непереносимый путь как предупреждение, а не отказ, и метка по умолчанию
   константой. Поля уехали в `RuleFormFields`, `RuleDraft` — к блоку.
-- [ ] В `SavesBloc` — события вместо логики в `saves_section.dart`:
+- [x] В `SavesBloc` — события вместо логики в `saves_section.dart`:
   ~~`SavePathSuggestionsRequested(game)` с ключом занятости и результатом в
   уже существующие `saveHints`;~~ (сделано, см. этап 1)
   ~~`SnapshotImportInspectRequested(path, game)`
@@ -885,8 +885,10 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `:392–417`).~~ (сделано: разобранный пакет ждёт ответа человека в
   состоянии, битый приходит `Notice`-ом и в журнал, а выбор файла остался
   у окна — системное окно не состояние). В `LibraryBloc` —
-  `GameExecutableDetectRequested(id)` и ~~`GameFolderOpenRequested(id)`~~
-  (второе сделано, см. этап 1). **M**
+  ~~`GameExecutableDetectRequested(id)` и `GameFolderOpenRequested(id)`~~
+  (оба сделаны: обход папки идёт в блоке, «ничего не нашлось» приходит
+  `Notice`-ом, а найденное ждёт выбора человека в состоянии — у сборок с
+  лаунчером и движком имена похожи до неразличимости). **M**
 - [x] **`LogBloc`** для `LogCard` (`log_card.dart:29–50`: `_lines`, свой
   `_busy`, чтение и очистка). События `LogShowRequested`,
   `LogClearRequested`; побочная выгода — тесты без `runAsync`. **S**

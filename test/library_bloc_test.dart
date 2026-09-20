@@ -693,6 +693,65 @@ void main() {
     });
   });
 
+  group('что запускать', () {
+    /// Игра с папкой установки, в которой лежит [files].
+    Future<String> installedGame(List<String> files) async {
+      final dir = await Directory(p.join(tmp.path, 'Игра')).create();
+      for (final name in files) {
+        final file = File(p.join(dir.path, name));
+        await file.writeAsString('#!/bin/sh');
+      }
+      final id = const Uuid().v4();
+      library.add(GameAdded(id: id, title: 'Игра', installDir: dir.path));
+      await waitFor((s) => s.gameById(id) != null);
+      return id;
+    }
+
+    test('найденное ждёт выбора человека, а не ставится само', () async {
+      final exe = Platform.isWindows ? 'game.exe' : 'game.sh';
+      final id = await installedGame([exe, 'launcher.$exe']);
+
+      library.add(GameExecutableDetectRequested(id));
+      final state = await waitFor((s) => s.pendingExecutables != null);
+
+      expect(state.pendingExecutables!.gameId, id);
+      expect(state.pendingExecutables!.candidates, isNotEmpty);
+      expect(
+        state.gameById(id)!.executablePath,
+        isNull,
+        reason: 'у сборок с лаунчером выбирает человек',
+      );
+    });
+
+    // Прежде об этом говорил `showError` из виджета — мимо `Notice` и
+    // журнала.
+    test('пустая папка отвечает сообщением, а не тишиной', () async {
+      final id = await installedGame(const ['readme.txt']);
+
+      library.add(GameExecutableDetectRequested(id));
+      final state = await waitFor((s) => s.notice != null);
+
+      expect(state.pendingExecutables, isNull);
+      expect(state.notice!.message, isNotEmpty);
+    });
+
+    test('выбранное убирает найденное с глаз', () async {
+      final exe = Platform.isWindows ? 'game.exe' : 'game.sh';
+      final id = await installedGame([exe]);
+
+      library.add(GameExecutableDetectRequested(id));
+      final pick = await waitFor((s) => s.pendingExecutables != null);
+      library.add(
+        GameExecutableSet(id, pick.pendingExecutables!.candidates.first.path),
+      );
+      // Ждём саму правку: занятость и выбранное гаснут разными эмитами,
+      // и первый из них ничего ещё не значит.
+      await waitFor((s) => s.gameById(id)!.executablePath != null);
+
+      expect(library.state.pendingExecutables, isNull);
+    });
+  });
+
   group('папка установки в проводнике', () {
     /// Блок со своим проводником: настоящий открыл бы окно посреди прогона.
     Future<LibraryBloc> blocWith(List<List<String>> calls) async {

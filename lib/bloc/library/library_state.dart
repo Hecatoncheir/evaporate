@@ -5,6 +5,20 @@ part of 'library_bloc.dart';
 /// Снимки сохранений живут не здесь, а в `SavesState`: они меняются своим
 /// чередом, а страница библиотеки подписана на это состояние целиком — и
 /// перестраивала сетку обложек на каждый снятый снимок.
+/// Найденные в папке игры исполняемые файлы, из которых ещё выбирают.
+class ExecutablePick extends Equatable {
+  const ExecutablePick({required this.gameId, required this.candidates});
+
+  final String gameId;
+  final List<ExecutableCandidate> candidates;
+
+  @override
+  List<Object?> get props => [
+    gameId,
+    [for (final candidate in candidates) candidate.path],
+  ];
+}
+
 class LibraryState extends Equatable implements BusyState<LibraryState> {
   const LibraryState({
     this.games = const [],
@@ -13,6 +27,7 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
     this.loaded = false,
     this.notice,
     this.savePathsProgress,
+    this.pendingExecutables,
   });
 
   final List<Game> games;
@@ -29,6 +44,13 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
 
   /// Ход подготовки базы путей, пока она качается и разбирается.
   final CatalogProgress? savePathsProgress;
+
+  /// Найденное в папке игры, о чём ещё спрашивают человека.
+  ///
+  /// Обход папки идёт секундами и лежит на диске: виджету не положено ни
+  /// того, ни другого. А выбирать всё равно человеку — у сборок с
+  /// лаунчером и движком исполняемых файлов несколько.
+  final ExecutablePick? pendingExecutables;
 
   Game? gameById(String? id) {
     if (id == null) return null;
@@ -64,6 +86,7 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
     bool? loaded,
     Object? notice = _unset,
     Object? savePathsProgress = _unset,
+    Object? pendingExecutables = _unset,
   }) {
     return LibraryState(
       games: games ?? this.games,
@@ -74,6 +97,9 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
       savePathsProgress: savePathsProgress == _unset
           ? this.savePathsProgress
           : savePathsProgress as CatalogProgress?,
+      pendingExecutables: pendingExecutables == _unset
+          ? this.pendingExecutables
+          : pendingExecutables as ExecutablePick?,
     );
   }
 
@@ -111,6 +137,7 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
     busy,
     loaded,
     savePathsProgress,
+    pendingExecutables,
     notice,
   ];
 

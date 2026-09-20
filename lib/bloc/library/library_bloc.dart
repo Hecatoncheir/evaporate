@@ -89,6 +89,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     on<GameDownloadFinished>(_onDownloadFinished);
     on<GameDownloadRejected>(_onDownloadRejected);
     on<GameExecutableSet>(_onExecutableSet);
+    on<GameExecutableDetectRequested>(_onExecutableDetectRequested);
+    on<GameExecutablePickDismissed>(_onExecutablePickDismissed);
     on<GameFolderOpenRequested>(_onFolderOpenRequested);
     on<FilesDropped>(_onFilesDropped);
     on<ScannedGamesAdded>(_onScannedGamesAdded);

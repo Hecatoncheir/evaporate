@@ -109,12 +109,45 @@ extension _LibraryEdits on LibraryBloc {
   }
 
   void _onExecutableSet(GameExecutableSet event, Emitter<LibraryState> emit) {
+    emit(state.copyWith(pendingExecutables: null));
     _edit(
       event.gameId,
       emit,
       (game) => game.copyWith(executablePath: event.path),
     );
   }
+
+  /// Ищет в папке игры, что запускать, и откладывает найденное до выбора.
+  ///
+  /// Обход идёт секундами: держать его в виджете значило бы держать там же
+  /// и его неудачу. Выбирает при этом человек — у сборок с лаунчером и
+  /// движком имена похожи до неразличимости.
+  Future<void> _onExecutableDetectRequested(
+    GameExecutableDetectRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final dir = state.gameById(event.gameId)?.installDir;
+    if (dir == null) return;
+
+    final candidates = await ExecutableFinder.scan(dir);
+    if (candidates.isEmpty) {
+      emit(state.copyWith(notice: notice(_l.noExecutablesFound)));
+      return;
+    }
+    emit(
+      state.copyWith(
+        pendingExecutables: ExecutablePick(
+          gameId: event.gameId,
+          candidates: candidates,
+        ),
+      ),
+    );
+  }
+
+  void _onExecutablePickDismissed(
+    GameExecutablePickDismissed event,
+    Emitter<LibraryState> emit,
+  ) => emit(state.copyWith(pendingExecutables: null));
 
   /// Показывает папку установки в проводнике.
   ///
