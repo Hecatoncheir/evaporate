@@ -1045,7 +1045,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~13~~ | ~~72~~ | ~~`services/saves/save_manager.dart:415` `_restoreFrom`~~; `:139`, `:219` | сделано: `_checkedManifest` (общий с разбором пакета), `_resolveTargets` и `_backupBeforeRestore`. В `_materialize` флаг `complete` пока на месте |
 | 12 | 43 | `services/download/engine_queue.dart:66` `_launch`, `:20` | `_modelFor()`, предикат `_stillWanted(managed, generation)` вместо условия в четыре строки (`:79–84`), `_startTask()` |
 | ~~12~~ | ~~41~~ | ~~`services/launch/executable_finder.dart:71`, `:143`~~ | сделано: очки за расширение — таблицей по системам, обход папки — `_visitDirectory` |
-| 12 | 31 | `services/launch/windows_installs.dart:62` `installed` | `_query(exec, root)` отдаёт пустой список при сбое — дальше плоско: без повторов и сортировка |
+| ~~12~~ | ~~31~~ | ~~`services/launch/windows_installs.dart:62` `installed`~~ | сделано: `_query` отдаёт пустую строку при сбое — отсутствующая ветвь реестра обычное дело, — и дальше обход идёт плоско |
 | ~~12~~ | ~~27~~ | ~~`services/saves/ludusavi_catalog.dart:126` `find`~~ | сделано как задумано: ленивый `Map<int, LudusaviEntry>` (сбрасывается вместе с манифестом) и общий `ReleaseName.bestMatch` с каталогом Steam — порог остался разным, у базы путей он выше |
 | 10 | 64 | `services/system/update_download.dart:110` `_prepare`, `:424` | шаги `_fetchPart → _verify → _promote → _stage` с локальным `report(phase)`; `_httpFetch` пустить через готовый `_open` (`:403`) |
 | ~~10~~ | ~~27~~ | ~~`core/save_path_template.dart:117` `collapse`~~ | сделано: `_rootsBySpecificity` считается один раз — окружение в Dart читается снимком при старте и на ходу не меняется |

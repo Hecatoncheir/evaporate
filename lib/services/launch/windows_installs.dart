@@ -66,29 +66,38 @@ class WindowsInstalls {
     if (run == null && !Platform.isWindows) return const [];
     final exec = run ?? Process.run;
 
+    // Ключ пути, приведённый к общему виду: один и тот же каталог в разных
+    // ветвях реестра — это одна установка, а не две.
     final found = <String, RegistryInstall>{};
     for (final root in roots) {
-      final ProcessResult result;
-      try {
-        result = await exec('reg', ['query', root, '/s']);
-      } on ProcessException {
-        continue;
-      }
-      if (result.exitCode != 0) continue;
-
-      for (final entry in _parse('${result.stdout}')) {
-        if (checkExists && !await _exists(entry.installDir)) {
-          continue;
-        }
-        found.putIfAbsent(p.normalize(entry.installDir).toLowerCase(), () {
-          return entry;
-        });
+      for (final entry in _parse(await _query(exec, root))) {
+        if (checkExists && !await _exists(entry.installDir)) continue;
+        found.putIfAbsent(
+          p.normalize(entry.installDir).toLowerCase(),
+          () => entry,
+        );
       }
     }
 
-    final list = found.values.toList()
+    return found.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return list;
+  }
+
+  /// Вывод `reg query` по одной ветви.
+  ///
+  /// Сбой — пустая строка, а не отказ: ветви может не быть вовсе (у
+  /// 32-битных записей на 64-битной системе своя), и это обычное дело, а
+  /// не повод бросить обход остальных.
+  static Future<String> _query(
+    Future<ProcessResult> Function(String, List<String>) exec,
+    String root,
+  ) async {
+    try {
+      final result = await exec('reg', ['query', root, '/s']);
+      return result.exitCode == 0 ? '${result.stdout}' : '';
+    } on ProcessException {
+      return '';
+    }
   }
 
   /// Есть ли такая папка.
