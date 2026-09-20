@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
@@ -123,7 +124,7 @@ void main() {
       greaterThan(before.width),
     );
     expect(harness.nav.state.selectedGameId, selected);
-    harness.nav.add(const SectionSelected(3));
+    harness.nav.add(const SectionSelected(AppSection.settings));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Увеличить: Масштаб интерфейса'));
     await tester.pumpAndSettle();
@@ -170,10 +171,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(harness.nav.state.openedGameId, isNotNull);
       expect(tester.takeException(), isNull);
-      for (var section = 1; section < 4; section++) {
+      for (final section in AppSection.values.skip(1)) {
         harness.nav.add(SectionSelected(section));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull, reason: 'section $section');
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'раздел ${section.name}',
+        );
       }
       // Именно прокрутка настроек, а не «последняя из найденных»: список
       // настроек собран не ListView — иначе фокусу некуда идти дальше

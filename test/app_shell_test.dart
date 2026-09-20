@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -131,7 +132,7 @@ void main() {
     addTearDown(harness.dispose);
 
     await harness.pump(tester);
-    harness.nav.add(const SectionSelected(1));
+    harness.nav.add(const SectionSelected(AppSection.downloads));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Движок загрузок'), findsOneWidget);

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/launch/drop_import.dart';
 import 'package:flutter/services.dart';
@@ -216,7 +217,7 @@ void main() {
       await harness.pump(tester);
 
       // Уходим на «Загрузки» — там приёмник и должен ожить.
-      harness.nav.add(const SectionSelected(1));
+      harness.nav.add(const SectionSelected(AppSection.downloads));
       await tester.pumpAndSettle();
 
       await tester.runAsync(() async {
@@ -229,7 +230,7 @@ void main() {
       expect(games, hasLength(1));
       expect(games.single.title, 'Сброшенная игра');
       // И раздел не меняется: задача появляется здесь же, на загрузках.
-      expect(harness.nav.state.section, 1);
+      expect(harness.nav.state.section, AppSection.downloads);
     });
 
     testWidgets('посторонний файл не заводит игру', (tester) async {

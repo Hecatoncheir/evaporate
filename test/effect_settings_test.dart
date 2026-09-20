@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
@@ -139,7 +140,7 @@ void main() {
       TestHarness harness,
       String name,
     ) async {
-      harness.nav.add(const SectionSelected(3));
+      harness.nav.add(const SectionSelected(AppSection.settings));
       await frames(tester);
       final scrollable = find
           .descendant(
@@ -162,7 +163,7 @@ void main() {
       await frames(tester);
       await tester.tap(target);
       await frames(tester);
-      harness.nav.add(const SectionSelected(0));
+      harness.nav.add(const SectionSelected(AppSection.library));
       await frames(tester);
     }
 

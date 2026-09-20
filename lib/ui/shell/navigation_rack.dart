@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
+import '../../models/app_section.dart';
 import '../theme.dart';
 import '../widgets/liquid/liquid_selection.dart';
 import 'navigation_key.dart';
@@ -19,21 +20,21 @@ class NavigationRack extends StatelessWidget {
   });
 
   /// Ключи клавиш: за ними следует плашка выбранного.
-  final List<GlobalKey> targets;
+  final Map<AppSection, GlobalKey> targets;
 
-  final List<String> labels;
-  final List<IconData> icons;
-  final int section;
+  final Map<AppSection, String> labels;
+  final Map<AppSection, IconData> icons;
+  final AppSection section;
 
-  /// Сколько задач в работе у каждого раздела; у большинства ноль.
-  final List<int> queuedAt;
+  /// Сколько задач в работе у раздела. Нет записи — метки нет.
+  final Map<AppSection, int> queuedAt;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return LayoutBuilder(
       builder: (context, box) {
-        final fit = RackFit.forRack(box, labels.length);
+        final fit = RackFit.forRack(box, AppSection.values.length);
         return Container(
           key: const ValueKey('concept-navigation'),
           height: EvaporateLayout.railHeight,
@@ -66,14 +67,14 @@ class NavigationRack extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (var index = 0; index < labels.length; index++)
+                for (final value in AppSection.values)
                   NavigationKey(
-                    targetKey: targets[index],
-                    index: index,
-                    label: labels[index],
-                    icon: icons[index],
-                    selected: section == index,
-                    queued: queuedAt[index],
+                    targetKey: targets[value]!,
+                    section: value,
+                    label: labels[value]!,
+                    icon: icons[value]!,
+                    selected: section == value,
+                    queued: queuedAt[value] ?? 0,
                     fit: fit,
                   ),
               ],

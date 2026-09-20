@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:flutter/material.dart';
@@ -89,7 +90,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    harness.nav.add(const SectionSelected(2));
+    harness.nav.add(const SectionSelected(AppSection.saves));
     await tester.pumpAndSettle();
     return (harness, id);
   }

@@ -7,14 +7,14 @@ sealed class NavigationEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Перейти к разделу по индексу (клик по рейлу).
+/// Перейти к разделу (клавиша обоймы).
 final class SectionSelected extends NavigationEvent {
-  const SectionSelected(this.index);
+  const SectionSelected(this.section);
 
-  final int index;
+  final AppSection section;
 
   @override
-  List<Object?> get props => [index];
+  List<Object?> get props => [section];
 }
 
 /// Следующий/предыдущий раздел по кругу (бамперы геймпада, Ctrl+Tab).

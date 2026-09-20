@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../models/app_section.dart';
 import '../library/library_bloc.dart';
 
 part 'navigation_event.dart';
@@ -22,12 +23,11 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     });
 
     on<SectionSelected>((event, emit) {
-      emit(state.copyWith(section: event.index.clamp(0, sectionCount - 1)));
+      emit(state.copyWith(section: event.section));
     });
 
     on<SectionCycled>((event, emit) {
-      final next = (state.section + event.delta) % sectionCount;
-      emit(state.copyWith(section: next < 0 ? next + sectionCount : next));
+      emit(state.copyWith(section: state.section.shifted(event.delta)));
     });
 
     on<GameSelected>((event, emit) {
@@ -47,7 +47,7 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
     on<SearchFocusRequested>((event, emit) {
       // Поиск живёт над сеткой — страница игры его закрывает собой.
-      emit(state.copyWith(section: 0, openedGameId: null));
+      emit(state.copyWith(section: AppSection.library, openedGameId: null));
       // Фокус — не состояние, а ресурс: его нельзя положить в state,
       // поэтому запрашиваем прямо здесь.
       searchFocus.requestFocus();
@@ -56,13 +56,13 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
 
   StreamSubscription<DroppedGames>? _drops;
 
-  static const sectionCount = 4;
-
   /// Закрывает страницу игры, если она открыта. Возвращает `true`, когда
   /// закрывать было что: кнопке «назад» этого достаточно, чтобы не идти
   /// дальше и не сбрасывать заодно фокус.
   bool closeOpenedGame() {
-    if (state.section != 0 || state.openedGameId == null) return false;
+    if (state.section != AppSection.library || state.openedGameId == null) {
+      return false;
+    }
     add(const GameOpened(null));
     return true;
   }

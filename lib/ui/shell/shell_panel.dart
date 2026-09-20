@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../../models/app_section.dart';
 import '../library/effects/game_wave.dart';
 import '../theme.dart';
 import 'shell_sections.dart';
@@ -16,7 +17,7 @@ class ShellPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final section = context.select<NavigationBloc, int>(
+    final section = context.select<NavigationBloc, AppSection>(
       (bloc) => bloc.state.section,
     );
     final waveEnabled = context.select<SettingsBloc, bool>(
@@ -38,7 +39,7 @@ class ShellPanel extends StatelessWidget {
         child: GameWave(
           key: const ValueKey('library-wave'),
           // Волна — украшение библиотеки: в других разделах её нет.
-          enabled: section == 0 && waveEnabled,
+          enabled: section == AppSection.library && waveEnabled,
           child: FocusTraversalGroup(child: const ShellSections()),
         ),
       ),

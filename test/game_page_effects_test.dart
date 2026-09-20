@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/effects/game_wave.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -215,10 +216,10 @@ void main() {
         }
       });
     }
-    harness.nav.add(const SectionSelected(3));
+    harness.nav.add(const SectionSelected(AppSection.settings));
     await frames(tester, 20);
     expect(motions.every((s) => !s.isAnimating), isTrue);
-    harness.nav.add(const SectionSelected(0));
+    harness.nav.add(const SectionSelected(AppSection.library));
     await frames(tester, 20);
     expect(motions.every((s) => s.isAnimating), isTrue);
     harness.settings.add(

@@ -875,10 +875,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   доступных игр (`available_games.dart:21–30`). Пересчёт места в очереди в
   индекс движка (`queue_column.dart:139–152`) — знание движка внутри
   виджета; событие `DownloadReordered(id, beforeId)` его забирает. **S**
-- [ ] Разделы — перечислением `AppSection`, а не числами: сейчас два
+- [x] Разделы — перечислением `AppSection`, а не числами: сейчас два
   параллельных списка и магическое `_downloadsSection = 1`
   (`navigation.dart:48,60–71`), `sectionCount = 4` в блоке и `section != 0`
   в оболочке. Блок остаётся блоком. **S**
+  *Сделано:* `models/app_section.dart`, подпись — `sectionLabel` рядом с
+  прочими переводимыми подписями моделей. Обойма собирается по
+  `AppSection.values`, метка задач у загрузок — записью в карте, а не
+  номером.
 - [ ] `DownloadHistoryBloc` — см. §3.
 - [ ] **`DownloadsBloc` не проверить без торрентов.** Он создаёт
   `DtorrentEngine` сам и держит по конкретному типу

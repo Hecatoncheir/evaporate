@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/ui/settings/language_picker.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/settings/theme_picker.dart';
@@ -22,7 +23,7 @@ void main() {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
     await harness.pump(tester);
-    harness.nav.add(const SectionSelected(3));
+    harness.nav.add(const SectionSelected(AppSection.settings));
     await tester.pumpAndSettle();
     return harness;
   }
@@ -75,7 +76,7 @@ void main() {
       findsNothing,
     );
 
-    harness.nav.add(const SectionSelected(1));
+    harness.nav.add(const SectionSelected(AppSection.downloads));
     await tester.pumpAndSettle();
 
     // Движок в тестах не поднят, и клавиша на месте: прежде она

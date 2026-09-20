@@ -2,12 +2,12 @@ part of 'navigation_bloc.dart';
 
 class NavigationState extends Equatable {
   const NavigationState({
-    this.section = 0,
+    this.section = AppSection.library,
     this.selectedGameId,
     this.openedGameId,
   });
 
-  final int section;
+  final AppSection section;
 
   /// Игра под курсором в сетке. Кнопка «Играть» работает по ней, не заходя
   /// на страницу игры.
@@ -17,7 +17,7 @@ class NavigationState extends Equatable {
   final String? openedGameId;
 
   NavigationState copyWith({
-    int? section,
+    AppSection? section,
     Object? selectedGameId = _unset,
     Object? openedGameId = _unset,
   }) {

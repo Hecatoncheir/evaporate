@@ -5,6 +5,7 @@ import '../input/gamepad_binding.dart';
 import '../input/gamepad_service.dart';
 import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
+import '../models/app_section.dart';
 import '../models/download_task.dart';
 import '../models/game.dart';
 import '../models/save_profile.dart';
@@ -32,6 +33,17 @@ String navActionLabel(L l, NavAction action) => switch (action) {
   NavAction.prevSection => l.navPreviousSection,
   NavAction.scrollUp => l.navScrollUp,
   NavAction.scrollDown => l.navScrollDown,
+};
+
+/// Имя раздела приложения.
+///
+/// Здесь, а не в самом перечислении: у него нет `BuildContext`, а имя
+/// нужно и обойме, и диктору.
+String sectionLabel(L l, AppSection section) => switch (section) {
+  AppSection.library => l.library,
+  AppSection.downloads => l.downloads,
+  AppSection.saves => l.saves,
+  AppSection.settings => l.settings,
 };
 
 /// Как назвать место, где стоит поискать игры.

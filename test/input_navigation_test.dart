@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/widgets/nav_tile.dart';
 import 'package:flutter/material.dart';
@@ -39,19 +40,19 @@ void main() {
     testWidgets('бамперы переключают разделы по кругу', (tester) async {
       final harness = attach();
       await harness.pump(tester);
-      expect(harness.nav.state.section, 0);
+      expect(harness.nav.state.section, AppSection.library);
 
       await harness.tapButton(tester, GamepadButton.rightBumper);
-      expect(harness.nav.state.section, 1);
+      expect(harness.nav.state.section, AppSection.downloads);
       expect(find.text('СЕЙЧАС СКАЧИВАЕТСЯ'), findsOneWidget);
       expect(find.text('ДАЛЬШЕ В ОЧЕРЕДИ'), findsOneWidget);
 
       await harness.tapButton(tester, GamepadButton.leftBumper);
-      expect(harness.nav.state.section, 0);
+      expect(harness.nav.state.section, AppSection.library);
 
       // С первого раздела назад — на последний.
       await harness.tapButton(tester, GamepadButton.leftBumper);
-      expect(harness.nav.state.section, 3);
+      expect(harness.nav.state.section, AppSection.settings);
     });
 
     testWidgets('Y отправляет фокус в поиск', (tester) async {
@@ -61,7 +62,7 @@ void main() {
       await harness.tapButton(tester, GamepadButton.y);
 
       expect(harness.nav.searchFocus.hasFocus, isTrue);
-      expect(harness.nav.state.section, 0);
+      expect(harness.nav.state.section, AppSection.library);
     });
 
     testWidgets('направления перемещают фокус', (tester) async {
@@ -111,7 +112,7 @@ void main() {
       (tester) async {
         final harness = attach();
         await harness.pump(tester);
-        harness.nav.add(const SectionSelected(3));
+        harness.nav.add(const SectionSelected(AppSection.settings));
         await tester.pumpAndSettle();
 
         final slider = find.byType(Slider);
@@ -193,7 +194,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
       await tester.pumpAndSettle();
 
-      expect(harness.nav.state.section, 1);
+      expect(harness.nav.state.section, AppSection.downloads);
     });
 
     testWidgets('слэш переводит фокус в поиск', (tester) async {

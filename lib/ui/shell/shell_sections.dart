@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
+import '../../models/app_section.dart';
 import '../downloads/downloads_page.dart';
 import '../library/library_page.dart';
 import '../saves/saves_page.dart';
@@ -18,7 +19,7 @@ class ShellSections extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final section = context.select<NavigationBloc, int>(
+    final section = context.select<NavigationBloc, AppSection>(
       (bloc) => bloc.state.section,
     );
     final animated = context.select<SettingsBloc, bool>(
@@ -26,7 +27,7 @@ class ShellSections extends StatelessWidget {
           bloc.state.libraryEffects && bloc.state.interfaceAnimationsEnabled,
     );
     return FadeIndexedStack(
-      index: section,
+      index: section.index,
       enabled: animated,
       children: const [
         LibraryPage(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
+import '../../models/app_section.dart';
 import '../theme.dart';
 import '../widgets/liquid/liquid_selection_ink.dart';
 import 'queue_badge.dart';
@@ -12,7 +13,7 @@ class NavigationKey extends StatelessWidget {
   const NavigationKey({
     super.key,
     required this.targetKey,
-    required this.index,
+    required this.section,
     required this.label,
     required this.icon,
     required this.selected,
@@ -23,7 +24,7 @@ class NavigationKey extends StatelessWidget {
   /// Ключ самой клавиши: по нему плашка выбранного знает, куда перетечь.
   final GlobalKey targetKey;
 
-  final int index;
+  final AppSection section;
   final String label;
   final IconData icon;
   final bool selected;
@@ -41,7 +42,7 @@ class NavigationKey extends StatelessWidget {
       child: TextButton(
         key: targetKey,
         onPressed: () =>
-            context.read<NavigationBloc>().add(SectionSelected(index)),
+            context.read<NavigationBloc>().add(SectionSelected(section)),
         style: _style(colors),
         child: Semantics(
           label: label,

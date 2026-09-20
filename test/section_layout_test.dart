@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -58,10 +59,10 @@ void main() {
     // Имя раздела стоит в обойме сверху — и только там. Заголовок кеглем
     // 34 повторял его на самой странице третий раз, считая метку.
     for (final (section, label, name) in [
-      (0, '[ 01 / КОЛЛЕКЦИЯ ]', 'БИБЛИОТЕКА'),
-      (1, '[ 02 / АКТИВНО ]', 'ЗАГРУЗКИ'),
-      (2, '[ 03 / СИНХРОНИЗАЦИЯ ]', 'СОХРАНЕНИЯ'),
-      (3, '[ 04 / ПАРАМЕТРЫ ]', 'НАСТРОЙКИ'),
+      (AppSection.library, '[ 01 / КОЛЛЕКЦИЯ ]', 'БИБЛИОТЕКА'),
+      (AppSection.downloads, '[ 02 / АКТИВНО ]', 'ЗАГРУЗКИ'),
+      (AppSection.saves, '[ 03 / СИНХРОНИЗАЦИЯ ]', 'СОХРАНЕНИЯ'),
+      (AppSection.settings, '[ 04 / ПАРАМЕТРЫ ]', 'НАСТРОЙКИ'),
     ]) {
       harness.nav.add(SectionSelected(section));
       await tester.pumpAndSettle();

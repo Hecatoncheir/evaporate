@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/ui/settings/about_card.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ void main() {
   Future<void> openSettings(WidgetTester tester, TestHarness harness) async {
     await tester.pumpWidget(harness.buildApp());
     await frames(tester);
-    harness.nav.add(const SectionSelected(3));
+    harness.nav.add(const SectionSelected(AppSection.settings));
     await frames(tester);
   }
 

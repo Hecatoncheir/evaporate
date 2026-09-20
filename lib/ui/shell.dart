@@ -9,6 +9,7 @@ import '../bloc/saves/saves_bloc.dart';
 import '../bloc/settings/settings_bloc.dart';
 import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
+import '../models/app_section.dart';
 import '../models/app_settings.dart';
 import 'feedback/snack.dart';
 import 'library/primary_action.dart';
@@ -34,7 +35,7 @@ class AppShell extends StatelessWidget {
   /// однажды разошлись бы на одном состоянии игры.
   void _primaryAction(BuildContext context) {
     final nav = context.read<NavigationBloc>();
-    if (nav.state.section != 0) return;
+    if (nav.state.section != AppSection.library) return;
 
     final game = context.read<LibraryBloc>().state.gameById(
       nav.state.selectedGameId,

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
@@ -277,7 +278,7 @@ void main() {
         );
         await capture('filters');
         await frames(25);
-        harness.nav.add(const SectionSelected(1));
+        harness.nav.add(const SectionSelected(AppSection.downloads));
         await frames(13);
         expect(state('rail-liquid').isAnimating, isTrue);
         expect(
@@ -289,7 +290,7 @@ void main() {
         await capture('rail');
         await frames(25);
         expect(state('rail-liquid').isAnimating, isFalse);
-        harness.nav.add(const SectionSelected(3));
+        harness.nav.add(const SectionSelected(AppSection.settings));
         await frames(40);
         final effects = find.byKey(const ValueKey('living-library-settings'));
         await tester.scrollUntilVisible(
