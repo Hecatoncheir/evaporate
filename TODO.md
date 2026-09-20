@@ -1162,10 +1162,16 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   Держит это `model_equality_test.dart`: правка, ничего не меняющая, не
   выглядит правкой, а равное состояние геймпада слушателей не будит.
 
-- [ ] Стражи вместо генерации кода: на каждую модель — «все поля не по
+- [x] Стражи вместо генерации кода: на каждую модель — «все поля не по
   умолчанию → `fromJson(toJson(x))` равно `x`» и «`copyWith()` без
   аргументов равно исходному»; у `SaveSnapshot.copyWith`
   (`save_snapshot.dart:54`) нечем сбросить `note`. **S**
+  *`model_roundtrip_test.dart`* держит и то и другое для `Game`,
+  `SaveSnapshot`, `SaveProfile` и `AppSettings` — каждое поле в нём стоит
+  **не** в значении по умолчанию, иначе забытая строка в `toJson`
+  прошла бы незамеченной. Заметку снимка теперь можно и стереть:
+  `copyWith` различает «не трогать» и «снять».
+
 - [ ] Слои: `models/app_settings.dart:2,4` тянет `material` (ради
   `ThemeMode`) и `input`; `models/save_snapshot.dart:1` импортирует сервис. **S**
 - [ ] `GamepadService`: `dispose` (`:253`) закрывает контроллеры раньше, чем

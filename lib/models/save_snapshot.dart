@@ -5,6 +5,8 @@ import 'save_profile.dart';
 
 /// Снимок сохранений: zip-архив в хранилище приложения плюс метаданные.
 /// Тот же формат используется для экспорта на другое устройство (.evsave).
+const _unset = Object();
+
 class SaveSnapshot extends Equatable {
   const SaveSnapshot({
     required this.id,
@@ -55,7 +57,9 @@ class SaveSnapshot extends Equatable {
 
   SaveSnapshot copyWith({
     String? archivePath,
-    String? note,
+    // Заметку надо уметь и стереть, а `null` в обычном параметре значит
+    // «не трогать»: без метки-пустышки снять её было бы нечем.
+    Object? note = _unset,
     List<SnapshotBlob>? blobs,
   }) => SaveSnapshot(
     id: id,
@@ -68,7 +72,7 @@ class SaveSnapshot extends Equatable {
     archivePath: archivePath ?? this.archivePath,
     rules: rules,
     playtime: playtime,
-    note: note ?? this.note,
+    note: note == _unset ? this.note : note as String?,
     fileCount: fileCount,
     origin: origin,
     blobs: blobs ?? this.blobs,
