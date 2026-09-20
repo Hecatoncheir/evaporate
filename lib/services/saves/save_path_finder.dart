@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/save_path_template.dart';
 import '../../models/save_profile.dart';
+import 'folder_match.dart';
 
 /// Откуда взялась подсказка. Обе — догадки, но разные: одна смотрела, что
 /// изменилось за время игры, другая искала по названию. Сказать человеку,
@@ -43,7 +44,7 @@ class SavePathFinder {
     String gameTitle, {
     List<SaveRoot>? searchRoots,
   }) async {
-    final needle = _normalize(gameTitle);
+    final needle = FolderMatch.normalize(gameTitle);
     if (needle.isEmpty) return const [];
 
     final results = <String, SavePathSuggestion>{};
@@ -116,7 +117,7 @@ class SavePathFinder {
       final name = p.basename(entity.path);
       if (name.startsWith('.')) continue;
 
-      final score = _match(_normalize(name), needle);
+      final score = FolderMatch.score(FolderMatch.normalize(name), needle);
       if (score <= 0) continue;
 
       final fileCount = await _countFiles(entity);
@@ -132,33 +133,6 @@ class SavePathFinder {
       );
     }
   }
-
-  /// Совпадение имени папки с названием игры: точное, вхождение, по словам.
-  static int _match(String candidate, String needle) {
-    if (candidate.isEmpty) return 0;
-    if (candidate == needle) return 100;
-    if (candidate.contains(needle) || needle.contains(candidate)) {
-      final shorter = candidate.length < needle.length ? candidate : needle;
-      // Совпадения по двум-трём буквам ничего не значат.
-      return shorter.length >= 4 ? 70 : 0;
-    }
-
-    final words = needle
-        .split(RegExp(r'\s+'))
-        .where((w) => w.length >= 3)
-        .toList();
-    if (words.isEmpty) return 0;
-    final matched = words.where(candidate.contains).length;
-    if (matched == words.length) return 55;
-    if (matched > 0 && words.length > 1) return 30;
-    return 0;
-  }
-
-  static String _normalize(String value) => value
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-zа-я0-9\s]', unicode: true), '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
 
   static Future<int> _countFiles(Directory dir, {int limit = 200}) async {
     var count = 0;

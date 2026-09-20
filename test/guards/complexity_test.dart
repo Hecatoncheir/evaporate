@@ -141,7 +141,7 @@ const _lines = [
   'lib/services/saves/bulk_transfer.dart: BulkTransfer.importAll: 106',
   'lib/services/saves/restore_transaction.dart: _RestoreTransaction._buildRestorePlan: 61',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
-  'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 72',
+  'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 65',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',
   'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',

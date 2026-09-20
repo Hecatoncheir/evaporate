@@ -1081,10 +1081,16 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `update_check.dart:224`, `ludusavi_catalog.dart:154`,
   `update_download.dart:326,424`), выбор «прокси или напрямую» — дважды,
   прореживание хода загрузки — трижды → `HttpFetcher` и `ProgressThrottle`. **M**
-- [ ] `_match` и `_normalize` названий: `save_path_finder.dart:147,167` ≡
+- [x] `_match` и `_normalize` названий: `save_path_finder.dart:147,167` ≡
   `save_activity_watch.dart:227,245`, третья копия нормализации — в
   `release_name.dart:142`. Проверка манифеста — `save_manager.dart:422` ≡
   `:570`; сборка `ScannedGame` — `library_scanner.dart:198` ≡ `:264`. **S**
+  *Копии сведены*: `FolderMatch` (`services/saves/folder_match.dart`) на
+  двоих, `_checkedManifest` и `LibraryScanner._describe` — на два места
+  каждый. **Нормализацию из `ReleaseName` не трогали, и это решение, а
+  не недосмотр**: там знаки заменяются пробелом, здесь убираются, —
+  `Half-Life` превращается в `half life` у одного и в `halflife` у
+  другого, и слияние поменяло бы обоим ответы.
 - [x] В тестируемости мешает `AppLog.instance`: сервисы зовут его напрямую
   (`update_download.dart:102`, `update_installer.dart:96,124,143,165`,
   `proxy_http_overrides.dart:48`), и запись в журнал не проверить без

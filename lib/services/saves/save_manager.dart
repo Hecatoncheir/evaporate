@@ -429,14 +429,7 @@ class SaveManager {
     required bool backupCurrent,
     required bool wipeTarget,
   }) async {
-    final manifest = _readManifest(archive);
-    if (manifest == null) {
-      throw SaveException(_l.saveNotEvaporatePackage);
-    }
-    if (!SaveSnapshot.readableFormats.contains(manifest['format'])) {
-      throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
-    }
-
+    final manifest = _checkedManifest(_readManifest(archive));
     final manifestRules = _readRules(manifest);
 
     final targets = <String, String>{};
@@ -534,6 +527,22 @@ class SaveManager {
     return matches.length == 1 ? matches.single : null;
   }
 
+  /// Манифест, с которым можно работать дальше.
+  ///
+  /// Оба отказа — человеку, а не в журнал: пакет пришёл извне, и «это не
+  /// наш пакет» с «эту версию мы не читаем» он должен различать. Версии
+  /// сверяются по множеству [SaveSnapshot.readableFormats], а не с
+  /// текущей: пакеты переживают версии приложения.
+  Map<String, dynamic> _checkedManifest(Map<String, dynamic>? manifest) {
+    if (manifest == null) {
+      throw SaveException(_l.saveNotEvaporatePackage);
+    }
+    if (!SaveSnapshot.readableFormats.contains(manifest['format'])) {
+      throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
+    }
+    return manifest;
+  }
+
   List<SavePathRule> _readRules(Map<String, dynamic> manifest) {
     try {
       final rules = (manifest['rules'] as List<dynamic>? ?? [])
@@ -574,17 +583,9 @@ class SaveManager {
 
   /// Читает манифест пакета, ничего не распаковывая.
   Future<SavePackageInfo> inspectPackage(String path) async {
-    final manifest = await _withArchive(
-      path,
-      (archive) async => _readManifest(archive),
+    final manifest = _checkedManifest(
+      await _withArchive(path, (archive) async => _readManifest(archive)),
     );
-    if (manifest == null) {
-      throw SaveException(_l.saveNotEvaporatePackage);
-    }
-    if (!SaveSnapshot.readableFormats.contains(manifest['format'])) {
-      throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
-    }
-
     final rules = _readRules(manifest);
 
     final snapshot = SaveSnapshot(

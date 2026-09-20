@@ -195,12 +195,34 @@ class LibraryScanner {
     final verdict = await _classify(dir);
     if (verdict.kind != _Kind.game) return null;
 
+    return _describe(
+      directory: directory,
+      name: title,
+      executable: verdict.executable!,
+      steamApps: steamApps,
+      confident: confident,
+    );
+  }
+
+  /// Собирает найденную игру из папки и того, что о ней знает Steam.
+  ///
+  /// Если игру знает Steam, берём его название и идентификатор: они
+  /// точные, а имя папки — в лучшем случае догадка. Одно на оба пути
+  /// поиска: осмотр одной папки и обход дерева должны звать одну и ту же
+  /// игру одинаково.
+  static ScannedGame _describe({
+    required String directory,
+    required String name,
+    required String executable,
+    required Map<String, SteamApp> steamApps,
+    bool confident = true,
+  }) {
     final known = steamApps[p.normalize(directory)];
-    final cleaned = ReleaseName.clean(title);
+    final cleaned = ReleaseName.clean(name);
     return ScannedGame(
-      title: known?.name ?? (cleaned.isEmpty ? title : cleaned),
+      title: known?.name ?? (cleaned.isEmpty ? name : cleaned),
       installDir: directory,
-      executablePath: verdict.executable!,
+      executablePath: executable,
       steamAppId: known?.appId,
       confident: confident,
     );
@@ -262,17 +284,12 @@ class _Walk {
   }
 
   void add(Directory dir, String executable) {
-    // Если игру знает Steam, берём его название и идентификатор: они
-    // точные, а имя папки — в лучшем случае догадка.
-    final known = steamApps[p.normalize(dir.path)];
-    final name = p.basename(dir.path);
-    final cleaned = ReleaseName.clean(name);
     found.add(
-      ScannedGame(
-        title: known?.name ?? (cleaned.isEmpty ? name : cleaned),
-        installDir: dir.path,
-        executablePath: executable,
-        steamAppId: known?.appId,
+      LibraryScanner._describe(
+        directory: dir.path,
+        name: p.basename(dir.path),
+        executable: executable,
+        steamApps: steamApps,
       ),
     );
   }

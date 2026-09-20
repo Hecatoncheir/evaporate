@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 
 import '../../core/save_path_template.dart';
 import '../../models/save_profile.dart';
+import 'folder_match.dart';
 import 'save_path_finder.dart';
 
 /// Ищет папку сохранений по следам работы игры.
@@ -87,7 +88,7 @@ class SaveActivityWatch {
     List<SaveRoot>? roots,
   }) async {
     final found = <String, SavePathSuggestion>{};
-    final needle = _normalize(gameTitle);
+    final needle = FolderMatch.normalize(gameTitle);
 
     for (final root in roots ?? SavePathFinder.roots()) {
       await _scan(root, since, needle, gameDir, found);
@@ -205,7 +206,7 @@ class SaveActivityWatch {
     required bool insideGame,
     required bool insideKnownGamesFolder,
   }) {
-    final byName = _match(_normalize(name), needle);
+    final byName = FolderMatch.score(FolderMatch.normalize(name), needle);
 
     // Одного лишь `.sav` внутри мало: расширение встречается у чего угодно, и
     // без этой проверки в подсказки попала бы любая посторонняя папка,
@@ -222,32 +223,6 @@ class SaveActivityWatch {
     if (touched.truncated) score -= 45;
     return score;
   }
-
-  /// Совпадение имени папки с названием игры. Та же мерка, что у поиска по
-  /// названию: игры называют свои папки по-разному, но узнаваемо.
-  static int _match(String candidate, String needle) {
-    if (candidate.isEmpty || needle.isEmpty) return 0;
-    if (candidate == needle) return 100;
-    if (candidate.contains(needle) || needle.contains(candidate)) {
-      final shorter = candidate.length < needle.length ? candidate : needle;
-      return shorter.length >= 4 ? 70 : 0;
-    }
-    final words = needle
-        .split(RegExp(r'\s+'))
-        .where((w) => w.length >= 3)
-        .toList();
-    if (words.isEmpty) return 0;
-    final matched = words.where(candidate.contains).length;
-    if (matched == words.length) return 55;
-    if (matched > 0 && words.length > 1) return 30;
-    return 0;
-  }
-
-  static String _normalize(String value) => value
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-zа-я0-9\s]', unicode: true), '')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
 }
 
 class _Touched {
