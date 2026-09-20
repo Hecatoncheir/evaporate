@@ -27,6 +27,7 @@ import 'services/system/managed_window.dart';
 import 'services/system/proxy_http_overrides.dart';
 import 'services/system/update_check.dart';
 import 'services/system/update_installer.dart';
+import 'services/system/window_mode_watch.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
@@ -68,10 +69,7 @@ Future<void> main() async {
 
   final tray = await _installTray(localizations, closeHandler.quit);
 
-  // Пишем всегда, даже когда восстановление выключено: включив его позже,
-  // пользователь получит осмысленные значения, а не размер по умолчанию.
-  final windowSaver = WindowStateSaver(window)..attach();
-  shutdownSteps.add(windowSaver.flush);
+  final windowMode = await _watchWindow(window, shutdownSteps);
 
   // Разрешение у системы не спрашиваем на старте: это делает пользователь
   // кнопкой в настройках, чтобы диалог не выскакивал при первом запуске.
@@ -139,6 +137,7 @@ Future<void> main() async {
       downloads: downloads,
       gamepad: gamepad,
       notifications: notifications,
+      windowMode: windowMode,
       tray: tray,
     ),
   );
@@ -190,6 +189,24 @@ Future<ShutdownStep> _routeThroughProxy(SettingsBloc settings) async {
 
 /// Готовит окно до того, как оно появится на экране: иначе пользователь
 /// увидит, как оно прыгает из одного положения в другое.
+/// Приставляет к окну обоих наблюдателей: того, кто запоминает положение,
+/// и того, кто следит за развёрнутостью.
+///
+/// Положение пишем всегда, даже когда восстановление выключено: включив его
+/// позже, пользователь получит осмысленные значения, а не размер по
+/// умолчанию. Развёрнутость нужна рамке, но следит за ней служба — у окна и
+/// без рамки уже двое слушателей, и третьему в виджете не место.
+Future<WindowModeWatch> _watchWindow(
+  WindowState window,
+  List<ShutdownStep> shutdownSteps,
+) async {
+  final saver = WindowStateSaver(window)..attach();
+  shutdownSteps.add(saver.flush);
+  final mode = WindowModeWatch();
+  await mode.attach();
+  return mode;
+}
+
 Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
   await windowManager.ensureInitialized();
   final window = WindowState(
@@ -245,6 +262,7 @@ class EvaporateApp extends StatefulWidget {
     required this.downloads,
     required this.gamepad,
     required this.notifications,
+    required this.windowMode,
     this.tray,
   });
 
@@ -254,6 +272,7 @@ class EvaporateApp extends StatefulWidget {
   final DownloadsBloc downloads;
   final GamepadService gamepad;
   final NotificationService notifications;
+  final WindowModeWatch windowMode;
   final AppTray? tray;
 
   @override
@@ -309,8 +328,10 @@ class _EvaporateAppState extends State<EvaporateApp> {
             themeMode: settings.themeMode,
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
-            builder: (context, child) =>
-                AppWindowFrame(child: InterfaceScale(child: child!)),
+            builder: (context, child) => AppWindowFrame(
+              mode: widget.windowMode,
+              child: InterfaceScale(child: child!),
+            ),
             // null означает «взять язык системы»: MaterialApp сам
             // подберёт ближайший из поддерживаемых.
             locale: settings.locale == null ? null : Locale(settings.locale!),

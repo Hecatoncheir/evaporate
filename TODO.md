@@ -539,10 +539,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   загрузок — по-своему, с ошибочными и без очереди
   (`downloads_page.dart:54–56`), и это число уходит в показание «N / max».
   Один геттер в состоянии.
-- [ ] Третий слушатель окна: `window_frame.dart:202–262` держит
+- [x] Третий слушатель окна: `window_frame.dart:202–262` держит
   `_maximized`, `_fullScreen` и трюк с `_revision` против гонок — при двух
   уже существующих в `services/system/managed_window.dart:39,91`, о чём
   предупреждает собственный комментарий (`window_frame.dart:144–146`).
+  *Сделано:* `WindowModeWatch` — служба с подменяемым окном, и гонка
+  наконец проверяется: опрос висит, событие приходит раньше ответа,
+  отставший ответ выбрасывается. Рамка подписывается и рисует; форма окна
+  уехала в `WindowShell`.
 - [x] Чужой док-комментарий в `speed_field.dart:6–10` (остался от
   `ThemePicker`, а сам `ThemePicker` в `pickers.dart:115` — без описания).
 

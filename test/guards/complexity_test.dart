@@ -137,7 +137,7 @@ const _lines = [
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 73',
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSteamLookup: 94',
   'lib/input/input_scope.dart: _InputScopeState.build: 64',
-  'lib/main.dart: main: 105',
+  'lib/main.dart: main: 103',
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
   'lib/models/game.dart: Game.copyWith: 63',
   'lib/services/launch/game_launcher.dart: GameLauncher._start: 68',
