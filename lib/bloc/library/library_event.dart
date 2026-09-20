@@ -156,6 +156,22 @@ final class GameDownloadRejected extends LibraryEvent {
 }
 
 /// Человек выбрал, что запускать.
+/// В окно бросили файлы или папки.
+///
+/// Разбор и заведение игр — в блоке: у приёмника нет ни журнала, ни
+/// `Notice`, а исключение из разбора уходило в никуда.
+final class FilesDropped extends LibraryEvent {
+  const FilesDropped(this.paths, {required this.select});
+
+  final List<String> paths;
+
+  /// Подсветить добавленное в сетке библиотеки.
+  final bool select;
+
+  @override
+  List<Object?> get props => [paths, select];
+}
+
 /// Показать папку установки игры в системном проводнике.
 ///
 /// Событием, а не вызовом из виджета: команда отличается системой, отказ

@@ -149,7 +149,6 @@
   "dropHintFolder": "a game folder",
   "dropHintTorrent": ".torrent — I'll queue it",
   "dropNothing": "Nothing to add: drop a game folder or a .torrent here",
-  "dropQueued": "Queued: {count}",
   "dropRelease": "Drop it — I'll add it to the library",
   "durationHours": "{hours} h",
   "durationHoursMinutes": "{hours} h {minutes} min",

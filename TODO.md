@@ -461,7 +461,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   системный диалог, затирается. Окно узкое, но корень тот же. Правильно
   сделано в `sync_folder_card.dart:75–79`. Лечение — правка функцией от
   текущего значения: `SettingsPatched((s) => s.copyWith(…))`. **S**
-- [ ] **Сброс файлов в окно — без `catch` и мимо `Notice`.**
+- [x] **Сброс файлов в окно — без `catch` и мимо `Notice`.**
   `widgets/game_drop_target.dart:88–180`: свой `_importing`, разбор путей,
   генерация id, ожидание `library.stream.firstWhere` (`:174`, копия из
   диалога добавления), `SnackBar` напрямую (`:119,125`). `finally` флаг
@@ -469,6 +469,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   необработанным — человек бросил файл, и не произошло ничего, ни
   сообщения, ни записи в журнале. Лечение — событие `FilesDropped(paths)` в
   `LibraryBloc` (этап 4). **M**
+  *Сделано:* у приёмника остался один приём. Что завелось, библиотека
+  публикует потоком `gameDrops` — раздачу ставят в очередь загрузки, а
+  подсвечивает добавленное навигация: ни то ни другое не её дело.
+  Разбор подменяем (`inspectDrop`), и в виджет-тестах он не ходит на
+  диск — настоящий I/O внутри `testWidgets` не завершается никогда.
 - [x] **Запуск пишет устаревшую игру.** `library_bloc.dart:415`:
   `games[index] = game.copyWith(status: running)`, где `game` — из события, а
   перед этим два ожидания (снимок перед запуском идёт секунды). Брать
@@ -841,7 +846,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`WindowMaximized`, `WindowUnmaximized`, `FullScreenEntered`,
   `FullScreenLeft`) и `WindowSizeToggled` от клавиши. Последовательная
   обработка убирает трюк с `_revision`, а слушатель окна снова один. **M**
-- [ ] **`FilesDropped(paths)`** в `LibraryBloc` вместо логики в
+- [x] **`FilesDropped(paths)`** в `LibraryBloc` вместо логики в
   `GameDropTarget`: разбор, занятость, `Notice`. Игры из `.torrent`
   библиотека публикует потоком, как `gameExits`, а `DownloadsBloc`
   подписывается и сам шлёт себе `DownloadRequested` — зависимость остаётся

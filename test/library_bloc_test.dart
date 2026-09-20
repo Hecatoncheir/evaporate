@@ -8,6 +8,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
+import 'package:evaporate/services/launch/drop_import.dart';
 import 'package:evaporate/services/launch/game_launcher.dart';
 import 'package:evaporate/services/system/autostart.dart';
 import 'package:evaporate/services/system/file_manager.dart';
@@ -593,6 +594,102 @@ void main() {
       final game = state.gameById(id)!;
       expect(game.installDir, dir.path);
       expect(game.executablePath, '/выбрано/человеком.exe');
+    });
+  });
+
+  group('брошенное в окно', () {
+    Future<LibraryBloc> blocInspecting(
+      Future<List<DropCandidate>> Function(Iterable<String>) inspect,
+    ) async {
+      await library.close();
+      library = LibraryBloc(
+        automaticMetadata: false,
+        paths: paths,
+        settings: settings,
+        inspectDrop: inspect,
+      );
+      return library;
+    }
+
+    test('брошенная папка становится игрой', () async {
+      await blocInspecting(
+        (paths) async => [
+          for (final path in paths)
+            DropCandidate(
+              path: path,
+              kind: DropKind.folder,
+              title: 'Сброшенная',
+            ),
+        ],
+      );
+
+      library.add(const FilesDropped(['/игры/Сброшенная'], select: true));
+      final state = await waitFor((s) => s.games.isNotEmpty);
+
+      expect(state.games.single.title, 'Сброшенная');
+      expect(state.games.single.status, GameStatus.installed);
+      expect(state.notice!.isError, isFalse);
+    });
+
+    // Прежде разбор жил в приёмнике без `catch`: исключение уходило
+    // необработанным, и человек, бросивший файл, не получал ничего — ни
+    // игры, ни сообщения, ни строки в журнале.
+    test('неудачный разбор приходит сообщением, а не тишиной', () async {
+      await blocInspecting(
+        (_) async => throw const FileSystemException('диск отвалился'),
+      );
+
+      library.add(const FilesDropped(['/игры/Сброшенная'], select: true));
+      final state = await waitFor((s) => s.notice != null);
+
+      expect(state.notice!.isError, isTrue);
+      expect(state.notice!.message, contains('диск отвалился'));
+      expect(state.games, isEmpty);
+    });
+
+    test('неподходящее не заводит игру, но и не пропадает молча', () async {
+      await blocInspecting(
+        (paths) async => [
+          for (final path in paths)
+            DropCandidate(
+              path: path,
+              kind: DropKind.unsupported,
+              title: 'файл.txt',
+            ),
+        ],
+      );
+
+      library.add(const FilesDropped(['/файл.txt'], select: false));
+      final state = await waitFor((s) => s.notice != null);
+
+      expect(state.games, isEmpty);
+      expect(state.notice!.message, isNotEmpty);
+    });
+
+    // Подсветить добавленное и поставить раздачу в очередь — не дело
+    // библиотеки; она лишь сообщает, что у неё завелось.
+    test('о заведённом узнают снаружи', () async {
+      await blocInspecting(
+        (paths) async => [
+          for (final path in paths)
+            DropCandidate(path: path, kind: DropKind.torrent, title: 'Раздача'),
+        ],
+      );
+      final dropped = <DroppedGames>[];
+      final watch = library.gameDrops.listen(dropped.add);
+
+      library.add(const FilesDropped(['/раздача.torrent'], select: true));
+      await waitFor((s) => s.games.isNotEmpty);
+      // Поток доставляет слушателям микрозадачей позже состояния.
+      await Future<void>.delayed(Duration.zero);
+      await watch.cancel();
+
+      expect(dropped, hasLength(1));
+      expect(dropped.single.select, isTrue);
+      expect(
+        dropped.single.games.single.source!.kind,
+        GameSourceKind.torrentFile,
+      );
     });
   });
 

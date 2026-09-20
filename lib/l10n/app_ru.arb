@@ -98,13 +98,6 @@
       }
     }
   },
-  "@dropQueued": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "@durationHours": {
     "placeholders": {
       "hours": {
@@ -782,7 +775,6 @@
   "dropHintFolder": "папку с игрой",
   "dropHintTorrent": ".torrent — поставлю в очередь",
   "dropNothing": "Добавить нечего: сюда тащат папку с игрой или .torrent",
-  "dropQueued": "Поставлено в очередь: {count}",
   "dropRelease": "Отпустите — добавлю в библиотеку",
   "durationHours": "{hours} ч",
   "durationHoursMinutes": "{hours} ч {minutes} мин",

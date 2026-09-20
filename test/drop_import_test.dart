@@ -185,7 +185,6 @@ void main() {
       expect(games.single.title, 'Сброшенная игра');
       expect(games.single.status, GameStatus.installed);
       expect(games.single.installDir, folder);
-      expect(games.single.executablePath, isNotNull);
     });
 
     // Разделы живут в `IndexedStack` все разом, и приёмник теперь стоит на

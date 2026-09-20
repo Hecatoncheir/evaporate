@@ -84,6 +84,9 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     _settingsSubscription = settings.stream.listen(
       (value) => add(DownloadSettingsApplied(value)),
     );
+    // Раздача, брошенная в окно, ставится в очередь здесь: библиотека
+    // заводит игру, а что делать с её источником — дело загрузок.
+    _dropSubscription = library.gameDrops.listen(_onGamesDropped);
   }
 
   final AppPaths paths;
@@ -99,6 +102,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   final SettingsBloc settings;
   final DtorrentEngine engine;
   late final StreamSubscription<AppSettings> _settingsSubscription;
+  late final StreamSubscription<DroppedGames> _dropSubscription;
 
   /// Загрузка идёт долго, и окно к её концу обычно свёрнуто — о финале
   /// сообщает система, а не SnackBar в невидимом окне.
@@ -161,6 +165,20 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
   ) => applyLimits();
 
   // ------------------------------------------------------------ действия
+
+  /// Ставит в очередь то из брошенного, что качают.
+  ///
+  /// Папка уже лежит на диске — качать нечего; отказ движка объяснит сам
+  /// [DownloadRequested], и молчания, как прежде, не будет.
+  void _onGamesDropped(DroppedGames dropped) {
+    for (final game in dropped.games) {
+      final source = game.source;
+      if (source == null || source.kind == GameSourceKind.localFolder) {
+        continue;
+      }
+      add(DownloadRequested(game: game, source: source));
+    }
+  }
 
   Future<void> _onDownloadRequested(
     DownloadRequested event,
@@ -533,6 +551,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState> {
     engine.stats.removeListener(_pushStats);
     library.launcher.runningIds.removeListener(_onRunningChanged);
     await _settingsSubscription.cancel();
+    await _dropSubscription.cancel();
     // Гасим задачи именно дожидаясь: `dispose` бросает их на полпути, а
     // движок ведёт свой файл состояния — оборванная задача теряет то,
     // что успела скачать сверх последней записи.

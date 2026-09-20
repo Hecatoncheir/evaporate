@@ -281,7 +281,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
         BlocProvider.value(value: library),
         BlocProvider.value(value: saves),
         BlocProvider.value(value: downloads),
-        BlocProvider(create: (_) => NavigationBloc()),
+        BlocProvider(create: (_) => NavigationBloc(library: library)),
       ],
       // Сервис ввода состояния не имеет — его внедряет обычный Provider,
       // на котором flutter_bloc и так построен.

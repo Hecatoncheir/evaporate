@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
 import '../../core/format.dart';
@@ -14,6 +15,7 @@ import '../../models/catalog_progress.dart';
 import '../../models/game.dart';
 import '../../models/game_rating.dart';
 import '../../models/save_profile.dart';
+import '../../services/launch/drop_import.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/launch/steam_shortcuts.dart';
@@ -25,6 +27,7 @@ import '../../services/system/file_manager.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
+part 'library_drops.dart';
 part 'library_edits.dart';
 part 'library_event.dart';
 part 'library_metadata.dart';
@@ -51,6 +54,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     SteamShortcuts? steamShortcuts,
     LudusaviCatalog? savePaths,
     FileManager? fileManager,
+    Future<List<DropCandidate>> Function(Iterable<String>)? inspectDrop,
     L Function()? localizations,
     this.automaticMetadata = true,
   }) : steam = steam ?? SteamCatalog(proxy: () => settings.state.proxy),
@@ -71,6 +75,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
        _shotsDir = paths.shotsDir,
        _launcher = launcher ?? GameLauncher(),
        _fileManager = fileManager ?? FileManager(),
+       _inspectDrop = inspectDrop ?? DropImport.inspect,
        super(const LibraryState()) {
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
@@ -82,6 +87,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<GameDownloadRejected>(_onDownloadRejected);
     on<GameExecutableSet>(_onExecutableSet);
     on<GameFolderOpenRequested>(_onFolderOpenRequested);
+    on<FilesDropped>(_onFilesDropped);
     on<GameInstallDirSet>(_onInstallDirSet);
     on<SaveRulesAdded>(_onSaveRulesAdded);
     on<SaveRuleRemoved>(_onSaveRuleRemoved);
@@ -159,6 +165,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   final GameLauncher _launcher;
   final FileManager _fileManager;
 
+  /// Разбор брошенного в окно. Подменяется в прогоне: настоящий ходит по
+  /// диску, а проверять нужно и тот случай, когда он не смог.
+  final Future<List<DropCandidate>> Function(Iterable<String>) _inspectDrop;
+
   /// Кто вышел из игры и сколько отыграл.
   ///
   /// Публикуется наружу, а не решается здесь: что делать с сохранениями
@@ -170,6 +180,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   /// Игра ушла из библиотеки: её снимки больше никому не нужны.
   Stream<String> get gameRemovals => _removals.stream;
 
+  /// Что завелось из брошенного в окно: загрузки ставят раздачи в очередь,
+  /// навигация подсвечивает последнюю.
+  Stream<DroppedGames> get gameDrops => _drops.stream;
+
   /// Что сделать с сохранениями перед запуском игры.
   ///
   /// Ставит его блок сохранений — снимок его дело, — но **дождаться** его
@@ -178,6 +192,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   final _exits = StreamController<GameExit>.broadcast();
   final _removals = StreamController<String>.broadcast();
+  final _drops = StreamController<DroppedGames>.broadcast();
 
   Timer? _persistTimer;
   bool _closing = false;
@@ -443,6 +458,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     await _store.flush();
     await _exits.close();
     await _removals.close();
+    await _drops.close();
     _launcher.runningIds.removeListener(_pushRunningGames);
     _launcher.dispose();
     return super.close();

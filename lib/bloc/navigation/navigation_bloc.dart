@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../library/library_bloc.dart';
 
 part 'navigation_event.dart';
 part 'navigation_state.dart';
@@ -8,7 +12,15 @@ part 'navigation_state.dart';
 /// Раздел и выбранная игра. Геймпаду нужно дотянуться до них снаружи:
 /// кнопка «Играть» нажимается независимо от того, какой виджет в фокусе.
 class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
-  NavigationBloc() : super(const NavigationState()) {
+  NavigationBloc({LibraryBloc? library}) : super(const NavigationState()) {
+    // Игру, брошенную в окно библиотеки, подсвечиваем: иначе она затеряется
+    // среди прочих. Библиотека об этом не знает — она лишь сообщает, что у
+    // неё завелось.
+    _drops = library?.gameDrops.listen((dropped) {
+      if (!dropped.select || dropped.games.isEmpty) return;
+      add(GameSelected(dropped.games.last.id));
+    });
+
     on<SectionSelected>((event, emit) {
       emit(state.copyWith(section: event.index.clamp(0, sectionCount - 1)));
     });
@@ -42,6 +54,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
     });
   }
 
+  StreamSubscription<DroppedGames>? _drops;
+
   static const sectionCount = 4;
 
   /// Закрывает страницу игры, если она открыта. Возвращает `true`, когда
@@ -57,7 +71,8 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   final FocusNode searchFocus = FocusNode(debugLabel: 'search');
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
+    await _drops?.cancel();
     searchFocus.dispose();
     return super.close();
   }

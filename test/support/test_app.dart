@@ -11,6 +11,7 @@ import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/input/gamepad_service.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/services/launch/drop_import.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:evaporate/ui/shell.dart';
@@ -51,19 +52,52 @@ class _WidgetLibraryStore extends JsonStore {
 /// события мимо фейкового времени теста, и `pump` их не прокручивал бы.
 /// Временную папку, наоборот, готовим снаружи — реальный файловый I/O
 /// внутри `testWidgets` не завершается никогда.
-class TestHarness {
-  TestHarness(this.tmp, {List<SaveRoot> Function()? saveRoots})
-    : paths = AppPaths.custom(
-        dataDir: p.join(tmp.path, 'data'),
-        defaultInstallDir: p.join(tmp.path, 'games'),
+/// Разбор сброшенного по одному имени, без диска: папка — то, у чего нет
+/// расширения, `.torrent` — раздача, остальное неподходящее.
+Future<List<DropCandidate>> dropByName(Iterable<String> paths) async => [
+  for (final path in paths)
+    if (p.extension(path).toLowerCase() == '.torrent')
+      DropCandidate(
+        path: path,
+        kind: DropKind.torrent,
+        title: p.basenameWithoutExtension(path),
+      )
+    else if (p.extension(path).isEmpty)
+      DropCandidate(
+        path: path,
+        kind: DropKind.folder,
+        title: p.basename(path),
+        executablePath: p.join(path, 'game'),
+      )
+    else
+      DropCandidate(
+        path: path,
+        kind: DropKind.unsupported,
+        title: p.basename(path),
       ),
-      gamepadEvents = StreamController<NormalizedGamepadEvent>.broadcast() {
+];
+
+class TestHarness {
+  TestHarness(
+    this.tmp, {
+    List<SaveRoot> Function()? saveRoots,
+    Future<List<DropCandidate>> Function(Iterable<String>)? inspectDrop,
+  }) : paths = AppPaths.custom(
+         dataDir: p.join(tmp.path, 'data'),
+         defaultInstallDir: p.join(tmp.path, 'games'),
+       ),
+       gamepadEvents = StreamController<NormalizedGamepadEvent>.broadcast() {
     settings = SettingsBloc(paths, store: _WidgetLibraryStore());
     library = LibraryBloc(
       store: _libraryStore,
       automaticMetadata: false,
       paths: paths,
       settings: settings,
+      // Разбор сброшенного ходит по диску, а настоящий файловый I/O внутри
+      // `testWidgets` не завершается никогда — та же ловушка, что и с
+      // `saveRoots`. Здесь решают по имени; сам разбор проверен отдельно,
+      // на настоящих файлах и без окна.
+      inspectDrop: inspectDrop ?? dropByName,
     );
     saves = SavesBloc(
       paths: paths,

@@ -130,7 +130,6 @@ const _complexity = [
   'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
   'lib/ui/library/add_game_dialog.dart: _AddGameDialogState._buildRequest: 17',
   'lib/ui/settings/about_card.dart: _AboutCardState._install: 16',
-  'lib/ui/widgets/game_drop_target.dart: _GameDropTargetState._handleDrop: 18',
 ];
 
 const _lines = [
