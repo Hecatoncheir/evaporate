@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/download_history_cubit.dart';
+import '../../bloc/download_history/download_history_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../labels.dart';
@@ -31,10 +31,10 @@ class DownloadChart extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: BlocBuilder<DownloadHistoryCubit, List<SpeedSample>>(
+        child: BlocBuilder<DownloadHistoryBloc, DownloadSpeedHistory>(
           builder: (context, history) => CustomPaint(
             painter: _SpeedChartPainter(
-              samples: history,
+              samples: history.samples,
               networkColor: context.colors.primary,
               diskColor: context.colors.accent,
               gridColor: context.colors.outline,
@@ -87,12 +87,12 @@ class _SpeedChartPainter extends CustomPainter {
       if (sample.download > maximum) maximum = sample.download;
     }
 
-    final slot = size.width / DownloadHistoryCubit.length;
+    final slot = size.width / DownloadHistoryBloc.length;
     final barPaint = Paint()
       ..color = networkColor.withValues(alpha: 0.62)
       ..strokeWidth = (slot * 0.62).clamp(1.0, 5.0)
       ..strokeCap = StrokeCap.round;
-    final offset = DownloadHistoryCubit.length - values.length;
+    final offset = DownloadHistoryBloc.length - values.length;
     for (var i = 0; i < values.length; i++) {
       final height = values[i].download / maximum * (size.height - 4);
       final x = (offset + i + 0.5) * slot;

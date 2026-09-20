@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:evaporate/bloc/download_history_cubit.dart';
+import 'package:evaporate/bloc/download_history/download_history_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/ui/downloads/download_chart.dart';
@@ -32,8 +32,8 @@ void main() {
     WidgetTester tester,
     List<SpeedSample> history,
   ) async {
-    final cubit = _Prepared(history);
-    addTearDown(cubit.close);
+    final bloc = _Prepared(history);
+    addTearDown(bloc.close);
 
     final key = GlobalKey();
     await tester.pumpWidget(
@@ -43,8 +43,8 @@ void main() {
         supportedLocales: L.supportedLocales,
         locale: const Locale('ru'),
         home: Scaffold(
-          body: BlocProvider<DownloadHistoryCubit>.value(
-            value: cubit,
+          body: BlocProvider<DownloadHistoryBloc>.value(
+            value: bloc,
             child: Center(
               child: RepaintBoundary(
                 key: key,
@@ -137,11 +137,11 @@ void main() {
 
 /// История, поданная целиком: строить её выборка за выборкой значило бы
 /// подделывать ещё и время между ними.
-class _Prepared extends DownloadHistoryCubit {
+class _Prepared extends DownloadHistoryBloc {
   _Prepared(List<SpeedSample> history)
     : super(
         const DownloadTask(id: 't', name: 'n', state: DownloadState.active),
       ) {
-    emit(history);
+    emit(DownloadSpeedHistory(samples: history));
   }
 }

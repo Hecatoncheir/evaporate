@@ -891,7 +891,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   прочими переводимыми подписями моделей. Обойма собирается по
   `AppSection.values`, метка задач у загрузок — записью в карте, а не
   номером.
-- [ ] `DownloadHistoryBloc` — см. §3.
+- [x] `DownloadHistoryBloc` — см. §3.
 - [ ] **`DownloadsBloc` не проверить без торрентов.** Он создаёт
   `DtorrentEngine` сам и держит по конкретному типу
   (`downloads_bloc.dart:43,100`). Одним параметром конструктора это не

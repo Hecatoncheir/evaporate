@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/download_history_cubit.dart';
+import '../../bloc/download_history/download_history_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../labels.dart';
@@ -19,7 +19,7 @@ class DownloadMetrics extends StatelessWidget {
     final l = L.of(context);
     // Историю читаем из общего Cubit: на странице игры по ней же рисуется
     // подложка под заголовком, и расходиться этим двум нельзя.
-    final history = context.watch<DownloadHistoryCubit>();
+    final history = context.watch<DownloadHistoryBloc>().state;
 
     return Wrap(
       spacing: 10,

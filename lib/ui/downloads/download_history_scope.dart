@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/download_history_cubit.dart';
+import '../../bloc/download_history/download_history_bloc.dart';
 import '../../models/download_task.dart';
 
 /// Держит историю скоростей и кормит её задачей.
@@ -24,17 +26,17 @@ class DownloadHistoryScope extends StatefulWidget {
 }
 
 class _DownloadHistoryScopeState extends State<DownloadHistoryScope> {
-  late final DownloadHistoryCubit _history = DownloadHistoryCubit(widget.task);
+  late final DownloadHistoryBloc _history = DownloadHistoryBloc(widget.task);
 
   @override
   void didUpdateWidget(covariant DownloadHistoryScope oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _history.sample(widget.task, oldWidget.task);
+    _history.add(SpeedSampled(task: widget.task, previous: oldWidget.task));
   }
 
   @override
   void dispose() {
-    _history.close();
+    unawaited(_history.close());
     super.dispose();
   }
 
