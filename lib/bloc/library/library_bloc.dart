@@ -336,14 +336,20 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
 
     await covers.deleteCover(game.coverPath);
     await covers.deleteShots(game.shotPaths);
-    if (event.deleteFiles && game.installDir != null) {
-      final dir = Directory(game.installDir!);
-      // Не удаляем что-то за пределами папки установки — страховка от опечаток.
-      if (await dir.exists() &&
-          p.isWithin(settings.state.installDir, dir.path)) {
-        await dir.delete(recursive: true);
-      }
-    }
+    if (event.deleteFiles) await _deleteInstallDir(game);
+  }
+
+  /// Убирает саму игру с диска — но только внутри папки загрузок.
+  ///
+  /// Страховка от опечаток: путь установки задаёт человек, и снести по
+  /// нему что-нибудь за пределами своей папки приложение не вправе.
+  Future<void> _deleteInstallDir(Game game) async {
+    final installDir = game.installDir;
+    if (installDir == null) return;
+    final dir = Directory(installDir);
+    if (!await dir.exists()) return;
+    if (!p.isWithin(settings.state.installDir, dir.path)) return;
+    await dir.delete(recursive: true);
   }
 
   // ------------------------------------------------------------- запуск

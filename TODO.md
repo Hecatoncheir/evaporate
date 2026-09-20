@@ -1050,7 +1050,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | ~~10~~ | ~~64~~ | ~~`services/system/update_download.dart:110` `_prepare`, `:424`~~ | сделано: шаги `_fetchPart → _promote → stage` с локальным `report(phase)`; `fetch` транспорта пущен через общий `_open` |
 | ~~10~~ | ~~27~~ | ~~`core/save_path_template.dart:117` `collapse`~~ | сделано: `_rootsBySpecificity` считается один раз — окружение в Dart читается снимком при старте и на ходу не меняется |
 | ~~—~~ | ~~72~~ | ~~`input/input_scope.dart:188` `build`, `:118` `_move`~~ | сделано: один `NavActionIntent(action)` вместо пяти намерений с пятью `CallbackAction`, таблица клавиш — константой рядом. Клавиатура теперь и правда сводится к `NavAction`: нажатие клавиши идёт тем же путём, что и нажатие геймпада |
-| 12 | 32 | `bloc/library/library_bloc.dart:359` `_onGameRemoved` | три удаления — тремя методами; «своё ли это» — одной проверкой |
+| ~~12~~ | ~~32~~ | ~~`bloc/library/library_bloc.dart:359` `_onGameRemoved`~~ | сделано: обложки и кадры убирает `CoverCache`, папку установки — `_deleteInstallDir`, и «своё ли это» проверяется по одному разу в каждом |
 | 9 | 44 | `bloc/library/library_bloc.dart:306` `_onGameUpdated` | исчезает целиком (этап 1) |
 | ~~10~~ | ~~68~~ | ~~`ui/library/portal_sparks.dart:136` `edgeAt`~~ | сделано иначе, чем задумано: не таблица сегментов, а половина контура и поворот — вторая половина повторяет первую, и расходиться им негде. `advance` отдал рождение искр в `_emit` |
 | 11 | 29 | `ui/library/library_atmosphere.dart:89` `_tick` | общий шаг часов — один на три копии (этап 1, риски) |
