@@ -1,9 +1,39 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:socks5_proxy/socks_client.dart' as socks;
 
 import '../../models/proxy_settings.dart';
 import 'app_log.dart';
+
+/// Куда сейчас уходит HTTP приложения.
+enum ProxyRouting {
+  /// Прокси не задан: идём напрямую, как и просили.
+  direct,
+
+  /// Идём через прокси.
+  through,
+
+  /// Прокси задан, но его адрес не разрешается, и соединения отклоняются.
+  ///
+  /// Отдельное состояние, а не «как будто напрямую»: прокси включают ради
+  /// скрытности, и молчаливый переход на прямые запросы — худшее, что
+  /// можно сделать с таким намерением.
+  blocked,
+}
+
+/// Соединение отклонено: прокси задан, а ходить через него сейчас нечем.
+///
+/// Исключение, а не тихий прямой запрос: пусть загрузка сорвётся с
+/// понятной причиной, чем уйдёт к трекеру с настоящим адресом человека.
+class ProxyUnreachableException implements Exception {
+  const ProxyUnreachableException(this.host);
+
+  final String host;
+
+  @override
+  String toString() => 'прокси «$host» недоступен: соединение отклонено';
+}
 
 /// Уводит весь HTTP приложения в прокси пользователя.
 ///
@@ -19,7 +49,11 @@ import 'app_log.dart';
 /// клиента через [directHttpClient] — иначе отдельный флаг «в Steam ходить
 /// напрямую» перестал бы что-либо значить.
 class ProxyHttpOverrides extends HttpOverrides {
-  ProxyHttpOverrides({AppLog Function()? log}) : _log = log ?? _appLog;
+  ProxyHttpOverrides({
+    AppLog Function()? log,
+    Future<List<InternetAddress>> Function(String host)? lookup,
+  }) : _log = log ?? _appLog,
+       _lookup = lookup ?? InternetAddress.lookup;
 
   /// Куда писать о неразобранном адресе. Функцией — как `L Function()` у
   /// блоков: журнал заводится в `main`, а в тестах подменяется без правки
@@ -28,8 +62,19 @@ class ProxyHttpOverrides extends HttpOverrides {
 
   static AppLog _appLog() => AppLog.instance;
 
+  /// Чем разрешать имя. Подменяется в прогоне: настоящий DNS в тестах —
+  /// это и сеть, и чужой ответ, который однажды окажется другим.
+  final Future<List<InternetAddress>> Function(String host) _lookup;
+
   ProxySettings _settings = const ProxySettings();
   InternetAddress? _address;
+
+  /// Куда уходит HTTP приложения прямо сейчас.
+  ///
+  /// Слушателем, а не возвращаемым значением [apply]: прокси меняется и
+  /// сам по себе — из потока настроек, — а сказать о том, что он отвалился,
+  /// надо человеку, а не тому, кто его применил.
+  final routing = ValueNotifier(ProxyRouting.direct);
 
   ProxySettings get settings => _settings;
 
@@ -42,6 +87,11 @@ class ProxyHttpOverrides extends HttpOverrides {
   Future<void> apply(ProxySettings settings) async {
     _settings = settings;
     _address = settings.isUsable ? await _resolve(settings.host) : null;
+    routing.value = switch ((settings.isUsable, _address)) {
+      (false, _) => ProxyRouting.direct,
+      (true, null) => ProxyRouting.blocked,
+      _ => ProxyRouting.through,
+    };
   }
 
   Future<InternetAddress?> _resolve(String host) async {
@@ -49,11 +99,9 @@ class ProxyHttpOverrides extends HttpOverrides {
     final literal = InternetAddress.tryParse(cleaned);
     if (literal != null) return literal;
     try {
-      final found = await InternetAddress.lookup(cleaned);
+      final found = await _lookup(cleaned);
       return found.isEmpty ? null : found.first;
     } on Object catch (error) {
-      // Молчать нельзя: без адреса запросы пойдут напрямую, а человек будет
-      // уверен, что идут через прокси.
       _log().write('прокси: не разобрать адрес «$host»', error);
       return null;
     }
@@ -64,6 +112,13 @@ class ProxyHttpOverrides extends HttpOverrides {
     final client = super.createHttpClient(context);
     final settings = _settings;
     final address = _address;
+    // Прокси просили, а адреса у нас нет — отказываем. Прежде здесь
+    // возвращался обычный клиент, и запросы шли напрямую: объявление
+    // трекеру уходило с настоящим адресом человека, а он видел включённый
+    // переключатель и строку в журнале, которую никто не читает.
+    if (settings.isUsable && address == null) {
+      return _refusing(client, settings.host);
+    }
     if (!settings.isUsable || address == null) return client;
 
     switch (settings.kind) {
@@ -91,6 +146,17 @@ class ProxyHttpOverrides extends HttpOverrides {
     }
     return client;
   }
+
+  /// Клиент, который не соединяется ни с кем.
+  ///
+  /// Отказ ставится подменой способа соединяться, а не выдуманным адресом
+  /// прокси: запрос к несуществующему узлу ждал бы таймаута и выглядел бы
+  /// оборванной сетью, а здесь причина названа своими словами и доходит до
+  /// того, кто запрос сделал.
+  HttpClient _refusing(HttpClient client, String host) =>
+      client
+        ..connectionFactory = (_, _, _) =>
+            throw ProxyUnreachableException(host);
 }
 
 /// Клиент, которого перехват не касается.

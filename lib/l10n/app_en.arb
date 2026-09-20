@@ -309,6 +309,7 @@
   "noticePathsAdded": "Paths added from {source}: {count} ({title})",
   "noticePathsAlreadySet": "The database paths are already set",
   "noticePathsNothingFound": "The path database has nothing for this game",
+  "noticeProxyBlocked": "Proxy “{host}” is unavailable: the name does not resolve. Connections are refused — otherwise they would go out directly, with your real address.",
   "noticeRegistryLeft": "{message}; registry keys left behind: {count}",
   "noticeRestoreDone": "Done: {files} files restored.",
   "noticeRestoredFiles": "Restored {files} files ({size}).",

@@ -19,6 +19,7 @@ import '../../services/download/integrity_check.dart';
 import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
+import '../../services/system/proxy_http_overrides.dart';
 import '../bloc_common.dart';
 import '../library/library_bloc.dart';
 import '../notice.dart';
@@ -41,6 +42,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     NotificationService? notifications,
     L Function()? localizations,
     DownloadEngine? engine,
+    this._proxyRouting,
   }) : _localizations = localizations ?? _defaultLocalizations,
        notifications = notifications ?? const NoopNotificationService(),
        engine =
@@ -82,6 +84,8 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     on<EngineStatsChanged>((event, emit) {
       emit(state.copyWith(stats: event.stats));
     });
+    on<ProxyRoutingChanged>(_onProxyRoutingChanged);
+    _proxyRouting?.addListener(_pushProxyRouting);
 
     this.engine.tasks.addListener(_pushTasks);
     this.engine.status.addListener(_pushStatus);
@@ -120,6 +124,34 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   /// Игры, установка которых уже дообрабатывается, — чтобы не запускать
   /// сканирование исполняемых файлов дважды.
   final Set<String> _finalizing = {};
+
+  /// Куда уходит HTTP приложения. Следит за этим служба перехвата, а
+  /// сказать человеку может только блок: у службы ни `Notice`, ни языка.
+  final ValueListenable<ProxyRouting>? _proxyRouting;
+
+  void _pushProxyRouting() => add(ProxyRoutingChanged(_proxyRouting!.value));
+
+  /// Прокси задан, а ходить через него нечем — соединения отклоняются, и
+  /// молчать об этом нельзя.
+  ///
+  /// Сообщением, а не тишиной: прокси включают ради скрытности, и человек,
+  /// не узнавший об отказе, решит, что «ничего не качается» — а не что его
+  /// прокси отвалился. Прежде о таком знал только журнал, и запросы при
+  /// этом уходили напрямую.
+  void _onProxyRoutingChanged(
+    ProxyRoutingChanged event,
+    Emitter<DownloadsState> emit,
+  ) {
+    if (event.routing != ProxyRouting.blocked) return;
+    emit(
+      state.copyWith(
+        notice: notice(
+          _l.noticeProxyBlocked(settings.state.proxy.host),
+          isError: true,
+        ),
+      ),
+    );
+  }
 
   void _pushTasks() => add(EngineTasksChanged(engine.tasks.value));
 
@@ -598,6 +630,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     engine.status.removeListener(_pushStatus);
     engine.stats.removeListener(_pushStats);
     library.launcher.runningIds.removeListener(_onRunningChanged);
+    _proxyRouting?.removeListener(_pushProxyRouting);
     await _settingsSubscription.cancel();
     await _dropSubscription.cancel();
     // Гасим задачи именно дожидаясь: `dispose` бросает их на полпути, а

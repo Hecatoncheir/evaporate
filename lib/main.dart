@@ -53,7 +53,7 @@ Future<void> main() async {
   // поэтому дожидаемся первого состояния из хранилища.
   await settings.loaded;
 
-  final stopProxyRouting = await _routeThroughProxy(settings);
+  final (proxyRouting, stopProxyRouting) = await _routeThroughProxy(settings);
 
   L localizations() {
     final code = settings.state.locale;
@@ -78,6 +78,7 @@ Future<void> main() async {
     settings: settings,
     localizations: localizations,
     shutdownSteps: shutdownSteps,
+    proxyRouting: proxyRouting.routing,
   );
   shutdownSteps.add(tray.dispose);
 
@@ -141,12 +142,16 @@ Future<void> _startLog(AppPaths paths) async {
 }
 
 /// Пускает весь HTTP приложения через прокси и следит за его сменой.
-/// Возвращает шаг завершения: отписаться от изменений настроек.
 ///
 /// Прокси применяется перехватом создания клиента, а не настройкой каждого:
 /// объявление трекеру внутри библиотеки заводит клиента само, и наши
 /// настройки мимо него проходят. Дотянуться до него больше неоткуда.
-Future<ShutdownStep> _routeThroughProxy(SettingsBloc settings) async {
+///
+/// Возвращает и сам перехват: его `routing` берут загрузки, чтобы сказать
+/// человеку, если прокси отвалился. Шаг завершения — отписка от настроек.
+Future<(ProxyHttpOverrides, ShutdownStep)> _routeThroughProxy(
+  SettingsBloc settings,
+) async {
   final routing = ProxyHttpOverrides();
   await routing.apply(settings.state.proxy);
   HttpOverrides.global = routing;
@@ -154,7 +159,7 @@ Future<ShutdownStep> _routeThroughProxy(SettingsBloc settings) async {
       .map((state) => state.proxy)
       .distinct()
       .listen((proxy) => unawaited(routing.apply(proxy)));
-  return changes.cancel;
+  return (routing, changes.cancel);
 }
 
 /// Готовит окно до того, как оно появится на экране: иначе пользователь

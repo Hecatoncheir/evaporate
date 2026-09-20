@@ -133,3 +133,17 @@ final class EngineStatsChanged extends DownloadsEvent {
   @override
   List<Object?> get props => [stats];
 }
+
+/// Прокси сменил положение: идём через него, напрямую или никак.
+///
+/// Приходит извне, как и события движка: за прокси следит служба, а
+/// сказать о нём человеку может только блок — у службы ни `Notice`, ни
+/// языка.
+final class ProxyRoutingChanged extends DownloadsEvent {
+  const ProxyRoutingChanged(this.routing);
+
+  final ProxyRouting routing;
+
+  @override
+  List<Object?> get props => [routing];
+}

@@ -6,7 +6,10 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/services/download/integrity_check.dart';
+import 'package:evaporate/services/system/proxy_http_overrides.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -27,6 +30,7 @@ void main() {
   late LibraryBloc library;
   late DownloadsBloc downloads;
   late FakeDownloadEngine engine;
+  late ValueNotifier<ProxyRouting> proxyRouting;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_downloads_');
@@ -41,11 +45,13 @@ void main() {
       settings: settings,
     );
     engine = FakeDownloadEngine();
+    proxyRouting = ValueNotifier(ProxyRouting.direct);
     downloads = DownloadsBloc(
       paths: paths,
       library: library,
       settings: settings,
       engine: engine,
+      proxyRouting: proxyRouting,
     );
   });
 
@@ -436,6 +442,47 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       expect(engine.appliedLimits, settings.state.limits);
+    });
+  });
+
+  // Прокси включают ради скрытности, и «не смогли — пошли напрямую» здесь
+  // худший ответ. Служба перехвата теперь отказывает, а сказать об этом
+  // человеку может только блок: у службы ни `Notice`, ни языка.
+  group('об отвалившемся прокси человеку говорят', () {
+    Future<void> useProxy() async {
+      settings.add(
+        SettingsPatched(
+          (s) => s.copyWith(
+            proxy: const ProxySettings(
+              enabled: true,
+              host: 'proxy.example',
+              port: 1080,
+            ),
+          ),
+        ),
+      );
+      await waitForState(settings, (s) => s.proxy.host == 'proxy.example');
+    }
+
+    test('отказ прокси приходит сообщением об ошибке', () async {
+      await useProxy();
+
+      proxyRouting.value = ProxyRouting.blocked;
+      final state = await waitForState(downloads, (s) => s.notice != null);
+
+      expect(state.notice!.isError, isTrue);
+      expect(state.notice!.message, contains('proxy.example'));
+    });
+
+    // Иначе всякая смена настроек заканчивалась бы сообщением о прокси,
+    // который работает.
+    test('работающий прокси человека не беспокоит', () async {
+      await useProxy();
+
+      proxyRouting.value = ProxyRouting.through;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(downloads.state.notice, isNull);
     });
   });
 }

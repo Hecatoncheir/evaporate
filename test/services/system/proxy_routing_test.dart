@@ -55,10 +55,14 @@ void main() {
   ProxySettings socksSettings() =>
       ProxySettings(enabled: true, host: '127.0.0.1', port: proxyServer.port);
 
-  Future<void> install(ProxySettings settings) async {
-    final overrides = ProxyHttpOverrides();
+  Future<ProxyHttpOverrides> install(
+    ProxySettings settings, {
+    Future<List<InternetAddress>> Function(String host)? lookup,
+  }) async {
+    final overrides = ProxyHttpOverrides(lookup: lookup);
     await overrides.apply(settings);
     HttpOverrides.global = overrides;
+    return overrides;
   }
 
   group('прокси перехватывает создание клиента', () {
@@ -90,6 +94,74 @@ void main() {
 
       expect(announces, hasLength(1));
       expect(proxied, 0);
+    });
+  });
+
+  // Прокси включают ради скрытности, и «не смогли — пойдём напрямую» здесь
+  // худший из возможных ответов: объявление трекеру уходило с настоящим
+  // адресом человека, а он видел включённый переключатель и строку в
+  // журнале, которую никто не читает.
+  group('прокси, до которого не дотянуться, не пускает запрос напрямую', () {
+    ProxySettings named() =>
+        const ProxySettings(enabled: true, host: 'proxy.example', port: 1080);
+
+    Future<List<InternetAddress>> unresolvable(String host) =>
+        Future.error(const SocketException('имя не разрешается'));
+
+    test('запрос отклоняется, а не уходит мимо прокси', () async {
+      await install(named(), lookup: unresolvable);
+
+      final client = HttpClient();
+      // Через `Future(...)`, потому что отказ прилетает синхронно: клиент
+      // зовёт способ соединяться, не дожидаясь возврата из `getUrl`.
+      await expectLater(
+        Future(
+          () => client.getUrl(
+            Uri.parse('http://127.0.0.1:${tracker.port}/announce?probe=3'),
+          ),
+        ),
+        throwsA(isA<ProxyUnreachableException>()),
+      );
+      client.close();
+
+      expect(announces, isEmpty, reason: 'запрос ушёл напрямую');
+    });
+
+    test(
+      'о неразрешённом имени видно снаружи, а не только в журнале',
+      () async {
+        final overrides = await install(named(), lookup: unresolvable);
+
+        expect(overrides.routing.value, ProxyRouting.blocked);
+      },
+    );
+
+    test('разрешившееся имя запросов не отклоняет', () async {
+      final overrides = await install(
+        ProxySettings(
+          enabled: true,
+          host: 'proxy.example',
+          port: proxyServer.port,
+        ),
+        lookup: (_) async => [InternetAddress.loopbackIPv4],
+      );
+
+      expect(overrides.routing.value, ProxyRouting.through);
+
+      final client = HttpClient();
+      final request = await client.getUrl(
+        Uri.parse('http://127.0.0.1:${tracker.port}/announce?probe=4'),
+      );
+      await (await request.close()).drain<void>();
+      client.close();
+
+      expect(proxied, 1);
+    });
+
+    test('выключенный прокси остаётся прямым путём', () async {
+      final overrides = await install(const ProxySettings());
+
+      expect(overrides.routing.value, ProxyRouting.direct);
     });
   });
 

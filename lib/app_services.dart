@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
 import 'bloc/saves/saves_bloc.dart';
@@ -10,6 +12,7 @@ import 'l10n/app_localizations.dart';
 import 'services/notifications/notification_service.dart';
 import 'services/notifications/system_notification_service.dart';
 import 'services/system/app_shutdown.dart';
+import 'services/system/proxy_http_overrides.dart';
 
 /// Блоки и службы приложения, собранные в нужном порядке.
 ///
@@ -45,6 +48,7 @@ class AppServices {
     required SettingsBloc settings,
     required L Function() localizations,
     required List<ShutdownStep> shutdownSteps,
+    ValueListenable<ProxyRouting>? proxyRouting,
   }) async {
     final notifications = await _notifications(localizations);
 
@@ -70,6 +74,7 @@ class AppServices {
       settings: settings,
       notifications: notifications,
       localizations: localizations,
+      proxyRouting: proxyRouting,
     );
     // Движок поднимается в фоне: даже если он не поднимется, приложение
     // должно открыться — библиотекой и сейвами можно пользоваться.

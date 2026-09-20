@@ -949,6 +949,7 @@
   "noticePathsAdded": "Добавлено путей из {source}: {count} ({title})",
   "noticePathsAlreadySet": "Пути из базы уже заданы",
   "noticePathsNothingFound": "В базе путей ничего не нашлось для этой игры",
+  "noticeProxyBlocked": "Прокси «{host}» недоступен: имя не разрешается. Соединения отклонены — иначе они ушли бы напрямую, с настоящим адресом.",
   "noticeRegistryLeft": "{message}; в реестре осталось веток: {count}",
   "noticeRestoreDone": "Готово: {files} файлов восстановлено.",
   "noticeRestoredFiles": "Восстановлено {files} файлов ({size}).",
