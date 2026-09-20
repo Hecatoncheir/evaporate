@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -188,7 +189,10 @@ void main() {
         addTearDown(harness.dispose);
         harness.settings.add(
           SettingsChanged(
-            harness.settings.state.copyWith(liquidSelectionEnabled: true),
+            harness.settings.state.withEffect(
+              LibraryEffect.liquidSelection,
+              on: true,
+            ),
           ),
         );
         for (final title in [
@@ -317,7 +321,7 @@ void main() {
         await tester.tap(off);
         await frames(5);
         expect(harness.settings.state.libraryEffects, isFalse);
-        expect(harness.settings.state.portalEnabled, isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
         expect(tester.takeException(), isNull);
       },
     );

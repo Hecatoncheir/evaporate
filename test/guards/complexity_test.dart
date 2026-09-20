@@ -125,13 +125,11 @@ const _complexity = [
 const _lines = [
   'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
   'lib/main.dart: main: 103',
-  'lib/models/app_settings.dart: AppSettings.copyWith: 73',
   'lib/models/game.dart: Game.copyWith: 63',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',
   'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',
-  'lib/ui/settings/effect_details.dart: EffectDetails._effects: 92',
   'lib/ui/widgets/liquid/liquid_selection_path.dart: liquidSelectionPath: 71',
   'lib/ui/widgets/window_chrome.dart: WindowChrome.resizeZones: 84',
 ];

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_surface.dart';
 import 'package:evaporate/ui/library/effects/game_wave.dart';
@@ -367,7 +368,10 @@ void main() {
       if (particles) {
         harness.settings.add(
           SettingsChanged(
-            harness.settings.state.copyWith(particlesEnabled: true),
+            harness.settings.state.withEffect(
+              LibraryEffect.particles,
+              on: true,
+            ),
           ),
         );
       }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
+import '../../models/library_effect.dart';
 import '../../models/shelf.dart';
 import '../widgets/game_drop_target.dart';
 import 'effects/library_atmosphere.dart';
@@ -78,8 +79,8 @@ class LibraryBody extends StatelessWidget {
         final height = constraints.maxHeight;
         return LibraryAtmosphere(
           enabled: effects.libraryEffects,
-          particlesEnabled: effects.particlesEnabled,
-          ambientEnabled: effects.ambientEnabled,
+          particlesEnabled: effects.isOn(LibraryEffect.particles),
+          ambientEnabled: effects.isOn(LibraryEffect.ambient),
           targetKey: () => grid.targetKey(selectedId),
           child: Column(
             children: [

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
+import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/settings/language_picker.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/settings/theme_picker.dart';
@@ -108,8 +109,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(harness.settings.state.libraryEffects, isTrue);
-    expect(harness.settings.state.portalEnabled, isFalse);
-    expect(harness.settings.state.interfaceAnimationsEnabled, isTrue);
+    expect(harness.settings.state.isOn(LibraryEffect.portal), isFalse);
+    expect(
+      harness.settings.state.isOn(LibraryEffect.interfaceAnimations),
+      isTrue,
+    );
 
     // Под «Подробно» флаги на месте — и каждое украшение по-прежнему своё.
     await tester.tap(find.byKey(const ValueKey('effects-details')));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
+import '../../models/library_effect.dart';
 import '../theme.dart';
 import '../widgets/liquid/liquid_selection.dart';
 import 'library_grid_controller.dart';
@@ -52,7 +53,9 @@ class LibraryGrid extends StatelessWidget {
         return LiquidSelection(
           key: const ValueKey('grid-liquid'),
           targetKey: () => controller.targetKey(selectedId),
-          enabled: effects.libraryEffects && effects.liquidSelectionEnabled,
+          enabled:
+              effects.libraryEffects &&
+              effects.isOn(LibraryEffect.liquidSelection),
           color: context.colors.selection,
           radius: EvaporateTheme.radiusPanel,
           padding: const EdgeInsets.all(7),

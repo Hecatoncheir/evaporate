@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_section.dart';
+import '../../models/library_effect.dart';
 import '../theme.dart';
 import '../widgets/liquid/liquid_selection.dart';
 import 'navigation_key.dart';
@@ -62,7 +63,9 @@ class NavigationRack extends StatelessWidget {
             color: colors.selection,
             radius: EvaporateTheme.radiusChip,
             enabled: context.select<SettingsBloc, bool>(
-              (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+              (b) =>
+                  b.state.libraryEffects &&
+                  b.state.isOn(LibraryEffect.liquidSelection),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

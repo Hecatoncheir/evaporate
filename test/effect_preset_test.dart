@@ -1,5 +1,6 @@
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/effect_preset.dart';
+import 'package:evaporate/models/library_effect.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -17,7 +18,9 @@ void main() {
     });
 
     test('выключение не стирает собранный человеком набор', () {
-      final mine = base.copyWith(particlesEnabled: true, portalEnabled: false);
+      final mine = base
+          .withEffect(LibraryEffect.particles, on: true)
+          .withEffect(LibraryEffect.portal, on: false);
 
       final off = EffectPreset.off.applyTo(mine);
 
@@ -31,20 +34,20 @@ void main() {
       final calm = EffectPreset.calm.applyTo(base);
 
       expect(calm.libraryEffects, isTrue);
-      expect(calm.interfaceAnimationsEnabled, isTrue);
-      expect(calm.coverBackdropEnabled, isTrue);
+      expect(calm.isOn(LibraryEffect.interfaceAnimations), isTrue);
+      expect(calm.isOn(LibraryEffect.coverBackdrop), isTrue);
       for (final off in [
-        calm.particlesEnabled,
-        calm.wavesEnabled,
-        calm.foilEnabled,
-        calm.cardTiltEnabled,
-        calm.liquidDistortionEnabled,
-        calm.liquidSelectionEnabled,
-        calm.ambientEnabled,
-        calm.heroSweepEnabled,
-        calm.shotsBackdropEnabled,
-        calm.dropsEnabled,
-        calm.portalEnabled,
+        calm.isOn(LibraryEffect.particles),
+        calm.isOn(LibraryEffect.waves),
+        calm.isOn(LibraryEffect.foil),
+        calm.isOn(LibraryEffect.cardTilt),
+        calm.isOn(LibraryEffect.liquidDistortion),
+        calm.isOn(LibraryEffect.liquidSelection),
+        calm.isOn(LibraryEffect.ambient),
+        calm.isOn(LibraryEffect.heroSweep),
+        calm.isOn(LibraryEffect.shotsBackdrop),
+        calm.isOn(LibraryEffect.drops),
+        calm.isOn(LibraryEffect.portal),
       ]) {
         expect(off, isFalse);
       }
@@ -55,9 +58,9 @@ void main() {
       final full = EffectPreset.full.applyTo(base);
 
       expect(full.effectPreset, EffectPreset.full);
-      expect(full.particlesEnabled, isTrue);
-      expect(full.liquidDistortionEnabled, isTrue);
-      expect(full.dropsEnabled, isTrue);
+      expect(full.isOn(LibraryEffect.particles), isTrue);
+      expect(full.isOn(LibraryEffect.liquidDistortion), isTrue);
+      expect(full.isOn(LibraryEffect.drops), isTrue);
     });
 
     test('наборы выстроены лестницей', () {
@@ -68,19 +71,34 @@ void main() {
       final full = EffectPreset.full.applyTo(base);
 
       bool subset(AppSettings a, AppSettings b) => [
-        (a.particlesEnabled, b.particlesEnabled),
-        (a.wavesEnabled, b.wavesEnabled),
-        (a.foilEnabled, b.foilEnabled),
-        (a.cardTiltEnabled, b.cardTiltEnabled),
-        (a.liquidDistortionEnabled, b.liquidDistortionEnabled),
-        (a.liquidSelectionEnabled, b.liquidSelectionEnabled),
-        (a.ambientEnabled, b.ambientEnabled),
-        (a.heroSweepEnabled, b.heroSweepEnabled),
-        (a.shotsBackdropEnabled, b.shotsBackdropEnabled),
-        (a.coverBackdropEnabled, b.coverBackdropEnabled),
-        (a.interfaceAnimationsEnabled, b.interfaceAnimationsEnabled),
-        (a.dropsEnabled, b.dropsEnabled),
-        (a.portalEnabled, b.portalEnabled),
+        (a.isOn(LibraryEffect.particles), b.isOn(LibraryEffect.particles)),
+        (a.isOn(LibraryEffect.waves), b.isOn(LibraryEffect.waves)),
+        (a.isOn(LibraryEffect.foil), b.isOn(LibraryEffect.foil)),
+        (a.isOn(LibraryEffect.cardTilt), b.isOn(LibraryEffect.cardTilt)),
+        (
+          a.isOn(LibraryEffect.liquidDistortion),
+          b.isOn(LibraryEffect.liquidDistortion),
+        ),
+        (
+          a.isOn(LibraryEffect.liquidSelection),
+          b.isOn(LibraryEffect.liquidSelection),
+        ),
+        (a.isOn(LibraryEffect.ambient), b.isOn(LibraryEffect.ambient)),
+        (a.isOn(LibraryEffect.heroSweep), b.isOn(LibraryEffect.heroSweep)),
+        (
+          a.isOn(LibraryEffect.shotsBackdrop),
+          b.isOn(LibraryEffect.shotsBackdrop),
+        ),
+        (
+          a.isOn(LibraryEffect.coverBackdrop),
+          b.isOn(LibraryEffect.coverBackdrop),
+        ),
+        (
+          a.isOn(LibraryEffect.interfaceAnimations),
+          b.isOn(LibraryEffect.interfaceAnimations),
+        ),
+        (a.isOn(LibraryEffect.drops), b.isOn(LibraryEffect.drops)),
+        (a.isOn(LibraryEffect.portal), b.isOn(LibraryEffect.portal)),
       ].every((pair) => !pair.$1 || pair.$2);
 
       expect(subset(calm, standard), isTrue);
@@ -90,7 +108,7 @@ void main() {
     test('свой набор не притворяется готовым', () {
       final custom = EffectPreset.calm
           .applyTo(base)
-          .copyWith(portalEnabled: true);
+          .withEffect(LibraryEffect.portal, on: true);
 
       expect(custom.effectPreset, isNull);
     });
@@ -101,15 +119,15 @@ void main() {
       for (final preset in EffectPreset.values) {
         expect(
           preset
-              .applyTo(base.copyWith(selectionFrameEnabled: true))
-              .selectionFrameEnabled,
+              .applyTo(base.withEffect(LibraryEffect.selectionFrame, on: true))
+              .isOn(LibraryEffect.selectionFrame),
           isTrue,
           reason: 'набор ${preset.name} погасил рамку',
         );
         expect(
           preset
-              .applyTo(base.copyWith(selectionFrameEnabled: false))
-              .selectionFrameEnabled,
+              .applyTo(base.withEffect(LibraryEffect.selectionFrame, on: false))
+              .isOn(LibraryEffect.selectionFrame),
           isFalse,
           reason: 'набор ${preset.name} зажёг рамку',
         );

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
+import '../../models/library_effect.dart';
 import 'featured_game.dart';
 import 'primary_action.dart';
 
@@ -48,8 +49,10 @@ class LibraryFeaturedSlot extends StatelessWidget {
     return FeaturedGame(
       game: game,
       compact: height < _roomyHeight,
-      sweepEnabled: effects.libraryEffects && effects.heroSweepEnabled,
-      shotsEnabled: effects.libraryEffects && effects.shotsBackdropEnabled,
+      sweepEnabled:
+          effects.libraryEffects && effects.isOn(LibraryEffect.heroSweep),
+      shotsEnabled:
+          effects.libraryEffects && effects.isOn(LibraryEffect.shotsBackdrop),
       onOpen: () => context.read<NavigationBloc>().add(GameOpened(game.id)),
       onPrimary: () => dispatchPrimaryAction(context, game),
     );

@@ -1144,12 +1144,22 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   разворачивает `...part.toJson()` — ни пакетов, ни миграции. И это не
   только про чтение кода: событие, правящее `DownloadLink`, физически не
   сможет затереть `GameMetadata`. **M**
-- [ ] Эффекты в `AppSettings` — `enum LibraryEffect(jsonKey, defaultOn)` и
+- [x] Эффекты в `AppSettings` — `enum LibraryEffect(jsonKey, defaultOn)` и
   `Set<LibraryEffect>` вместо тринадцати булевых полей, выписанных семь раз
   в `app_settings.dart` и трижды в `effect_preset.dart:35–85`: `copyWith`,
   `toJson`, `fromJson`, `props` и наборы становятся циклами, набор —
   литералом множества. Старые ключи читаются как раньше. Остальное — в
   группы `Appearance`, `StartupSettings`, `SaveAutomation`. **M**
+  *Сделано ровно так*, с одной разницей: значения по умолчанию не флагом у
+  каждого, а одним списком `LibraryEffect.shipped` — он же и есть набор
+  «обычно», и две записи одного и того же однажды разошлись бы. Читают
+  украшения через `isOn`, пишут через `withEffect`; ключи в файле прежние.
+  Ушло около двухсот строк: `app_settings.dart` 407 → 309,
+  `effect_preset.dart` 108 → 80, `effect_details.dart` 170 → 83, а список
+  переключателей в настройках стал перебором самой перечислимой.
+  **Группы `Appearance`, `StartupSettings`, `SaveAutomation` не заведены** —
+  это отдельная работа, и у неё своя цена: каждая группа означает ещё один
+  слой в `copyWith` и в чтении настроек из виджетов.
 - [x] Равенство. У `Game`, `SaveProfile`, `SavePathRule`, `SaveSnapshot`,
   `SnapshotBlob`, `GamepadStatus`, `GamepadBinding` нет `==` (`Equatable`
   уже в зависимостях). Следствия: `LibraryState.props` сравнивает игры по

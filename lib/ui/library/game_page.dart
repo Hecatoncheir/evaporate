@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/game.dart';
+import '../../models/library_effect.dart';
 import 'back_to_library_button.dart';
 import 'detail/cover_backdrop.dart';
 import 'game_detail.dart';
@@ -16,7 +17,7 @@ class GamePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final backdrop = context.select<SettingsBloc, bool>(
-      (bloc) => bloc.state.coverBackdropEnabled,
+      (bloc) => bloc.state.isOn(LibraryEffect.coverBackdrop),
     );
     return Stack(
       children: [

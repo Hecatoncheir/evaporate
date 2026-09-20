@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_section.dart';
+import '../../models/library_effect.dart';
 import '../library/effects/game_wave.dart';
 import '../theme.dart';
 import 'shell_sections.dart';
@@ -21,7 +22,8 @@ class ShellPanel extends StatelessWidget {
       (bloc) => bloc.state.section,
     );
     final waveEnabled = context.select<SettingsBloc, bool>(
-      (bloc) => bloc.state.libraryEffects && bloc.state.wavesEnabled,
+      (bloc) =>
+          bloc.state.libraryEffects && bloc.state.isOn(LibraryEffect.waves),
     );
     final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
     return ClipRRect(

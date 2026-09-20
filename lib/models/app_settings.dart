@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../input/gamepad_binding.dart';
 import 'app_theme_mode.dart';
+import 'library_effect.dart';
 import 'proxy_settings.dart';
 import 'speed_limits.dart';
 import 'window_start_mode.dart';
@@ -20,20 +21,7 @@ class AppSettings extends Equatable {
     this.checkUpdates = true,
     this.themeMode = AppThemeMode.system,
     this.libraryEffects = true,
-    this.particlesEnabled = false,
-    this.wavesEnabled = true,
-    this.foilEnabled = true,
-    this.cardTiltEnabled = true,
-    this.liquidDistortionEnabled = false,
-    this.liquidSelectionEnabled = false,
-    this.ambientEnabled = true,
-    this.heroSweepEnabled = true,
-    this.shotsBackdropEnabled = true,
-    this.coverBackdropEnabled = true,
-    this.interfaceAnimationsEnabled = true,
-    this.dropsEnabled = false,
-    this.portalEnabled = true,
-    this.selectionFrameEnabled = false,
+    this.effects = LibraryEffect.shipped,
     this.interfaceScale = 1,
     this.libraryScale = 1,
     this.locale,
@@ -82,55 +70,26 @@ class AppSettings extends Equatable {
   /// Общий выключатель; индивидуальные предпочтения сохраняются под ним.
   final bool libraryEffects;
 
-  /// Включаются только по желанию — в том числе в настройках, записанных
-  /// до появления этого переключателя: частицы заметнее прочего и на слабой
-  /// машине стоят дороже всех.
-  final bool particlesEnabled;
-  final bool wavesEnabled;
-  final bool foilEnabled;
-  final bool cardTiltEnabled;
-  final bool liquidDistortionEnabled;
-  final bool liquidSelectionEnabled;
-  final bool ambientEnabled;
-
-  /// Полоса света, раз в несколько секунд проходящая по крупной обложке.
-  /// Единственное, что двигается по картинке само, — она и отличает живой
-  /// кадр от вклеенной картинки. Своя настройка, потому что цена у неё
-  /// своя: кадры идут всё время, пока библиотека открыта.
-  final bool heroSweepEnabled;
-
-  /// Кадры из игры подложкой под крупной обложкой библиотеки: показываются
-  /// по кругу и медленно ползут. Есть далеко не у всех игр — кадры приходят
-  /// из Steam, а половина торрент-библиотеки с ним не сходится.
-  final bool shotsBackdropEnabled;
-
-  /// Обложка приглушённым фоном на странице игры.
-  final bool coverBackdropEnabled;
-
-  /// Проявления, переезды и всход полки. Включены по умолчанию: это не
-  /// украшение сверху, а то, чем оболочка объясняет, что куда переехало.
-  /// Системную просьбу не двигаться они слушают и без этой настройки.
-  final bool interfaceAnimationsEnabled;
-
-  /// Капли, стекающие по обложке выбранной игры. Единственный эффект на
-  /// шейдере: рисует его видеокарта, и на слабой машине лучше знать об этом
-  /// заранее, чем удивляться. Поэтому по умолчанию выключен.
-  final bool dropsEnabled;
-
-  /// Искры, бегущие по краю обложки выбранной игры. Включены по умолчанию;
-  /// при желании их можно выключить в настройках.
-  final bool portalEnabled;
-
-  /// Рамка вокруг обложки, на которой стоит фокус.
+  /// Какие украшения включены.
   ///
-  /// Выключена по умолчанию — в том числе в настройках, записанных до
-  /// появления переключателя: место в сетке и без неё показывает рост
-  /// обложки, а сама она спорит с рисунком.
+  /// Набором, а не полем на каждое: чем они отличаются друг от друга,
+  /// сказано один раз — в [LibraryEffect], — а здесь остаётся только
+  /// выбор человека.
+  final Set<LibraryEffect> effects;
+
+  /// Включено ли украшение само по себе.
   ///
-  /// Общему выключателю эффектов не подчиняется: рамка — не украшение, а
-  /// указатель места для того, кто ходит клавиатурой или геймпадом, и
-  /// включают её осознанно.
-  final bool selectionFrameEnabled;
+  /// Общий выключатель здесь не участвует: смотреть на него — дело
+  /// виджета, а рамка выбора ему и вовсе не подчиняется.
+  bool isOn(LibraryEffect effect) => effects.contains(effect);
+
+  /// Те же настройки с переключённым украшением.
+  AppSettings withEffect(LibraryEffect effect, {required bool on}) => copyWith(
+    effects: {
+      for (final each in LibraryEffect.values)
+        if (each == effect ? on : isOn(each)) each,
+    },
+  );
 
   /// Масштаб интерфейса и размер обложек независимы друг от друга и
   /// переживают перезапуск.
@@ -175,20 +134,7 @@ class AppSettings extends Equatable {
     bool? checkUpdates,
     AppThemeMode? themeMode,
     bool? libraryEffects,
-    bool? particlesEnabled,
-    bool? wavesEnabled,
-    bool? foilEnabled,
-    bool? cardTiltEnabled,
-    bool? liquidDistortionEnabled,
-    bool? liquidSelectionEnabled,
-    bool? ambientEnabled,
-    bool? heroSweepEnabled,
-    bool? shotsBackdropEnabled,
-    bool? coverBackdropEnabled,
-    bool? interfaceAnimationsEnabled,
-    bool? dropsEnabled,
-    bool? portalEnabled,
-    bool? selectionFrameEnabled,
+    Set<LibraryEffect>? effects,
     double? interfaceScale,
     double? libraryScale,
     Object? locale = _u,
@@ -209,24 +155,7 @@ class AppSettings extends Equatable {
       checkUpdates: checkUpdates ?? this.checkUpdates,
       themeMode: themeMode ?? this.themeMode,
       libraryEffects: libraryEffects ?? this.libraryEffects,
-      particlesEnabled: particlesEnabled ?? this.particlesEnabled,
-      wavesEnabled: wavesEnabled ?? this.wavesEnabled,
-      foilEnabled: foilEnabled ?? this.foilEnabled,
-      cardTiltEnabled: cardTiltEnabled ?? this.cardTiltEnabled,
-      liquidDistortionEnabled:
-          liquidDistortionEnabled ?? this.liquidDistortionEnabled,
-      liquidSelectionEnabled:
-          liquidSelectionEnabled ?? this.liquidSelectionEnabled,
-      ambientEnabled: ambientEnabled ?? this.ambientEnabled,
-      heroSweepEnabled: heroSweepEnabled ?? this.heroSweepEnabled,
-      shotsBackdropEnabled: shotsBackdropEnabled ?? this.shotsBackdropEnabled,
-      coverBackdropEnabled: coverBackdropEnabled ?? this.coverBackdropEnabled,
-      interfaceAnimationsEnabled:
-          interfaceAnimationsEnabled ?? this.interfaceAnimationsEnabled,
-      dropsEnabled: dropsEnabled ?? this.dropsEnabled,
-      portalEnabled: portalEnabled ?? this.portalEnabled,
-      selectionFrameEnabled:
-          selectionFrameEnabled ?? this.selectionFrameEnabled,
+      effects: effects ?? this.effects,
       interfaceScale: interfaceScale ?? this.interfaceScale,
       libraryScale: libraryScale ?? this.libraryScale,
       locale: locale == _u ? this.locale : locale as String?,
@@ -249,20 +178,10 @@ class AppSettings extends Equatable {
     'checkUpdates': checkUpdates,
     'themeMode': themeMode.name,
     'libraryEffects': libraryEffects,
-    'particlesEnabled': particlesEnabled,
-    'wavesEnabled': wavesEnabled,
-    'foilEnabled': foilEnabled,
-    'cardTiltEnabled': cardTiltEnabled,
-    'liquidDistortionEnabled': liquidDistortionEnabled,
-    'liquidSelectionEnabled': liquidSelectionEnabled,
-    'ambientEnabled': ambientEnabled,
-    'heroSweepEnabled': heroSweepEnabled,
-    'shotsBackdropEnabled': shotsBackdropEnabled,
-    'coverBackdropEnabled': coverBackdropEnabled,
-    'interfaceAnimationsEnabled': interfaceAnimationsEnabled,
-    'dropsEnabled': dropsEnabled,
-    'portalEnabled': portalEnabled,
-    'selectionFrameEnabled': selectionFrameEnabled,
+    // Ключи прежние, по одному на украшение: профили, записанные до
+    // появления набора, читаются как раньше — и записываются так же.
+    for (final effect in LibraryEffect.values)
+      effect.jsonKey: effects.contains(effect),
     'interfaceScale': interfaceScale,
     'libraryScale': libraryScale,
     if (locale != null) 'locale': locale,
@@ -271,58 +190,42 @@ class AppSettings extends Equatable {
     'gamepad': gamepad.toJson(),
   };
 
-  factory AppSettings.fromJson(
-    Map<String, dynamic> json,
-    String fallbackDir,
-  ) => AppSettings(
-    installDir: json['installDir'] as String? ?? fallbackDir,
-    maxConcurrent: _concurrency(json['maxConcurrent']),
-    syncFolder: json['syncFolder'] as String?,
-    autoExportToSync: json['autoExportToSync'] as bool? ?? true,
-    autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
-    autoSnapshotOnLaunch: json['autoSnapshotOnLaunch'] as bool? ?? false,
-    systemNotifications: json['systemNotifications'] as bool? ?? true,
-    launchAtStartup: json['launchAtStartup'] as bool? ?? false,
-    windowStart: _windowStartFromJson(json),
-    checkUpdates: json['checkUpdates'] as bool? ?? true,
-    themeMode: _themeModeFromName(json['themeMode'] as String?),
-    libraryEffects: json['libraryEffects'] as bool? ?? true,
-    particlesEnabled: json['particlesEnabled'] as bool? ?? false,
-    wavesEnabled: json['wavesEnabled'] as bool? ?? true,
-    foilEnabled: json['foilEnabled'] as bool? ?? true,
-    cardTiltEnabled: json['cardTiltEnabled'] as bool? ?? true,
-    liquidDistortionEnabled: json['liquidDistortionEnabled'] as bool? ?? false,
-    liquidSelectionEnabled: json['liquidSelectionEnabled'] as bool? ?? false,
-    ambientEnabled: json['ambientEnabled'] as bool? ?? true,
-    heroSweepEnabled: json['heroSweepEnabled'] as bool? ?? true,
-    shotsBackdropEnabled: json['shotsBackdropEnabled'] as bool? ?? true,
-    coverBackdropEnabled: json['coverBackdropEnabled'] as bool? ?? true,
-    interfaceAnimationsEnabled:
-        json['interfaceAnimationsEnabled'] as bool? ?? true,
-    dropsEnabled: json['dropsEnabled'] as bool? ?? false,
-    portalEnabled: json['portalEnabled'] as bool? ?? true,
-    selectionFrameEnabled: json['selectionFrameEnabled'] as bool? ?? false,
-    interfaceScale: _scale(
-      json['interfaceScale'],
-      minInterfaceScale,
-      maxInterfaceScale,
-    ),
-    libraryScale: _scale(
-      json['libraryScale'],
-      minLibraryScale,
-      maxLibraryScale,
-    ),
-    locale: _localeFromJson(json['locale']),
-    limits: json['limits'] == null
-        ? SpeedLimits.unlimited
-        : SpeedLimits.fromJson(json['limits'] as Map<String, dynamic>),
-    proxy: json['proxy'] == null
-        ? const ProxySettings()
-        : ProxySettings.fromJson(json['proxy'] as Map<String, dynamic>),
-    gamepad: json['gamepad'] == null
-        ? const GamepadBinding()
-        : GamepadBinding.fromJson(json['gamepad'] as Map<String, dynamic>),
-  );
+  factory AppSettings.fromJson(Map<String, dynamic> json, String fallbackDir) =>
+      AppSettings(
+        installDir: json['installDir'] as String? ?? fallbackDir,
+        maxConcurrent: _concurrency(json['maxConcurrent']),
+        syncFolder: json['syncFolder'] as String?,
+        autoExportToSync: json['autoExportToSync'] as bool? ?? true,
+        autoSnapshotOnExit: json['autoSnapshotOnExit'] as bool? ?? true,
+        autoSnapshotOnLaunch: json['autoSnapshotOnLaunch'] as bool? ?? false,
+        systemNotifications: json['systemNotifications'] as bool? ?? true,
+        launchAtStartup: json['launchAtStartup'] as bool? ?? false,
+        windowStart: _windowStartFromJson(json),
+        checkUpdates: json['checkUpdates'] as bool? ?? true,
+        themeMode: _themeModeFromName(json['themeMode'] as String?),
+        libraryEffects: json['libraryEffects'] as bool? ?? true,
+        effects: _effectsFromJson(json),
+        interfaceScale: _scale(
+          json['interfaceScale'],
+          minInterfaceScale,
+          maxInterfaceScale,
+        ),
+        libraryScale: _scale(
+          json['libraryScale'],
+          minLibraryScale,
+          maxLibraryScale,
+        ),
+        locale: _localeFromJson(json['locale']),
+        limits: json['limits'] == null
+            ? SpeedLimits.unlimited
+            : SpeedLimits.fromJson(json['limits'] as Map<String, dynamic>),
+        proxy: json['proxy'] == null
+            ? const ProxySettings()
+            : ProxySettings.fromJson(json['proxy'] as Map<String, dynamic>),
+        gamepad: json['gamepad'] == null
+            ? const GamepadBinding()
+            : GamepadBinding.fromJson(json['gamepad'] as Map<String, dynamic>),
+      );
 
   @override
   List<Object?> get props => [
@@ -338,20 +241,7 @@ class AppSettings extends Equatable {
     checkUpdates,
     themeMode,
     libraryEffects,
-    particlesEnabled,
-    wavesEnabled,
-    foilEnabled,
-    cardTiltEnabled,
-    liquidDistortionEnabled,
-    liquidSelectionEnabled,
-    ambientEnabled,
-    heroSweepEnabled,
-    shotsBackdropEnabled,
-    coverBackdropEnabled,
-    interfaceAnimationsEnabled,
-    dropsEnabled,
-    portalEnabled,
-    selectionFrameEnabled,
+    effects,
     interfaceScale,
     libraryScale,
     locale,
@@ -385,6 +275,18 @@ class AppSettings extends Equatable {
 
   /// Неизвестное значение — это «как в системе»: чужой или испорченный
   /// файл настроек не должен запирать пользователя в чужой теме.
+  /// Украшения из файла настроек.
+  ///
+  /// Ключи читаются по одному, как и писались: профиль, записанный до
+  /// появления набора, приходит с прежними полями, а неназванное берёт
+  /// значение по умолчанию — там могло не быть ещё и самого украшения.
+  static Set<LibraryEffect> _effectsFromJson(Map<String, dynamic> json) => {
+    for (final effect in LibraryEffect.values)
+      if (json[effect.jsonKey] as bool? ??
+          LibraryEffect.shipped.contains(effect))
+        effect,
+  };
+
   static AppThemeMode _themeModeFromName(String? name) => switch (name) {
     'light' => AppThemeMode.light,
     'dark' => AppThemeMode.dark,

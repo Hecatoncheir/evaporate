@@ -4,6 +4,7 @@ import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/game_rating.dart';
+import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
@@ -104,20 +105,15 @@ void main() {
     checkUpdates: false,
     themeMode: AppThemeMode.light,
     libraryEffects: false,
-    particlesEnabled: true,
-    wavesEnabled: false,
-    foilEnabled: false,
-    cardTiltEnabled: false,
-    liquidDistortionEnabled: true,
-    liquidSelectionEnabled: true,
-    ambientEnabled: false,
-    heroSweepEnabled: false,
-    shotsBackdropEnabled: false,
-    coverBackdropEnabled: false,
-    interfaceAnimationsEnabled: false,
-    dropsEnabled: true,
-    portalEnabled: false,
-    selectionFrameEnabled: true,
+    // Набор нарочно не совпадает с поставляемым: забытое украшение в
+    // `toJson` или `fromJson` иначе прошло бы незамеченным.
+    effects: {
+      LibraryEffect.particles,
+      LibraryEffect.liquidDistortion,
+      LibraryEffect.liquidSelection,
+      LibraryEffect.drops,
+      LibraryEffect.selectionFrame,
+    },
     interfaceScale: 1.25,
     libraryScale: 0.9,
     locale: 'en',

@@ -11,6 +11,7 @@ import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
 import '../models/app_section.dart';
 import '../models/app_settings.dart';
+import '../models/library_effect.dart';
 import 'feedback/snack.dart';
 import 'library/primary_action.dart';
 import 'shell/shell_layout.dart';
@@ -49,7 +50,8 @@ class AppShell extends StatelessWidget {
     final nav = context.read<NavigationBloc>();
     final gamepad = context.read<GamepadService>();
     final ambientEnabled = context.select<SettingsBloc, bool>(
-      (bloc) => bloc.state.libraryEffects && bloc.state.ambientEnabled,
+      (bloc) =>
+          bloc.state.libraryEffects && bloc.state.isOn(LibraryEffect.ambient),
     );
     // Свет корпуса берётся от выбранной игры, поэтому оболочке нужно и то,
     // что выбрано, и название — два разных блока.

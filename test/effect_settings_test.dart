@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
 import 'package:evaporate/ui/library/effects/portal/portal_sparks.dart';
@@ -21,20 +22,20 @@ void main() {
       AppSettings.fromJson(const {'libraryEffects': true}, '/games'),
       AppSettings.fromJson(const {'libraryEffects': false}, '/games'),
     ]) {
-      expect(settings.particlesEnabled, isFalse);
-      expect(settings.wavesEnabled, isTrue);
-      expect(settings.foilEnabled, isTrue);
-      expect(settings.cardTiltEnabled, isTrue);
-      expect(settings.liquidDistortionEnabled, isFalse);
-      expect(settings.liquidSelectionEnabled, isFalse);
-      expect(settings.ambientEnabled, isTrue);
-      expect(settings.heroSweepEnabled, isTrue);
-      expect(settings.shotsBackdropEnabled, isTrue);
-      expect(settings.coverBackdropEnabled, isTrue);
-      expect(settings.interfaceAnimationsEnabled, isTrue);
-      expect(settings.dropsEnabled, isFalse);
-      expect(settings.portalEnabled, isTrue);
-      expect(settings.selectionFrameEnabled, isFalse);
+      expect(settings.isOn(LibraryEffect.particles), isFalse);
+      expect(settings.isOn(LibraryEffect.waves), isTrue);
+      expect(settings.isOn(LibraryEffect.foil), isTrue);
+      expect(settings.isOn(LibraryEffect.cardTilt), isTrue);
+      expect(settings.isOn(LibraryEffect.liquidDistortion), isFalse);
+      expect(settings.isOn(LibraryEffect.liquidSelection), isFalse);
+      expect(settings.isOn(LibraryEffect.ambient), isTrue);
+      expect(settings.isOn(LibraryEffect.heroSweep), isTrue);
+      expect(settings.isOn(LibraryEffect.shotsBackdrop), isTrue);
+      expect(settings.isOn(LibraryEffect.coverBackdrop), isTrue);
+      expect(settings.isOn(LibraryEffect.interfaceAnimations), isTrue);
+      expect(settings.isOn(LibraryEffect.drops), isFalse);
+      expect(settings.isOn(LibraryEffect.portal), isTrue);
+      expect(settings.isOn(LibraryEffect.selectionFrame), isFalse);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),
@@ -42,19 +43,19 @@ void main() {
     }
     const base = AppSettings(installDir: '/games');
     for (final changed in [
-      base.copyWith(particlesEnabled: true),
-      base.copyWith(wavesEnabled: false),
-      base.copyWith(foilEnabled: false),
-      base.copyWith(cardTiltEnabled: false),
-      base.copyWith(liquidDistortionEnabled: true),
-      base.copyWith(liquidSelectionEnabled: true),
-      base.copyWith(ambientEnabled: false),
-      base.copyWith(heroSweepEnabled: false),
-      base.copyWith(shotsBackdropEnabled: false),
-      base.copyWith(interfaceAnimationsEnabled: false),
-      base.copyWith(dropsEnabled: true),
-      base.copyWith(portalEnabled: false),
-      base.copyWith(selectionFrameEnabled: true),
+      base.withEffect(LibraryEffect.particles, on: true),
+      base.withEffect(LibraryEffect.waves, on: false),
+      base.withEffect(LibraryEffect.foil, on: false),
+      base.withEffect(LibraryEffect.cardTilt, on: false),
+      base.withEffect(LibraryEffect.liquidDistortion, on: true),
+      base.withEffect(LibraryEffect.liquidSelection, on: true),
+      base.withEffect(LibraryEffect.ambient, on: false),
+      base.withEffect(LibraryEffect.heroSweep, on: false),
+      base.withEffect(LibraryEffect.shotsBackdrop, on: false),
+      base.withEffect(LibraryEffect.interfaceAnimations, on: false),
+      base.withEffect(LibraryEffect.drops, on: true),
+      base.withEffect(LibraryEffect.portal, on: false),
+      base.withEffect(LibraryEffect.selectionFrame, on: true),
     ]) {
       expect(changed, isNot(base));
       final restored = AppSettings.fromJson(changed.toJson(), '/games');
@@ -185,7 +186,7 @@ void main() {
         Future<void> toggle(String name) => toggleEffect(tester, harness, name);
 
         await toggle('particles');
-        expect(harness.settings.state.particlesEnabled, isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.particles), isTrue);
         expect(atmosphere.field.particles, isNotEmpty);
         await toggle('waves');
         expect(find.byKey(const ValueKey('detail-wave-paint')), findsNothing);
@@ -194,7 +195,7 @@ void main() {
         expect(atmosphere.field.particles, isEmpty);
         await toggle('particles');
         expect(atmosphere.field.particles, isNotEmpty);
-        expect(harness.settings.state.portalEnabled, isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
         final sparks = find.byWidgetPredicate(
           (widget) => widget is PortalSparks && widget.enabled,
         );
@@ -218,16 +219,16 @@ void main() {
           secondGame,
         );
         await toggle('portal');
-        expect(harness.settings.state.portalEnabled, isFalse);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isFalse);
         expect(sparks, findsNothing);
         await toggle('portal');
-        expect(harness.settings.state.portalEnabled, isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
         expect(sparks, findsOneWidget);
         await toggle('master');
         expect(atmosphere.field.particles, isEmpty);
         expect(atmosphere.isAnimating, isFalse);
-        expect(harness.settings.state.particlesEnabled, isTrue);
-        expect(harness.settings.state.portalEnabled, isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.particles), isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
         expect(sparks, findsNothing);
         await toggle('master');
         expect(atmosphere.field.particles, isNotEmpty);
@@ -265,12 +266,15 @@ void main() {
       );
 
       await focusCover();
-      expect(harness.settings.state.selectionFrameEnabled, isFalse);
+      expect(
+        harness.settings.state.isOn(LibraryEffect.selectionFrame),
+        isFalse,
+      );
       expect(frame, findsNothing);
 
       await toggleEffect(tester, harness, 'selectionFrame');
       await focusCover();
-      expect(harness.settings.state.selectionFrameEnabled, isTrue);
+      expect(harness.settings.state.isOn(LibraryEffect.selectionFrame), isTrue);
       expect(frame, findsOneWidget);
 
       await toggleEffect(tester, harness, 'selectionFrame');

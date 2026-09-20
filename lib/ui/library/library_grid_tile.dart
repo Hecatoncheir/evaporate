@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
+import '../../models/library_effect.dart';
 import '../theme.dart';
 import '../widgets/rise_in.dart';
 import 'effects/foil/foil_card.dart';
@@ -62,7 +63,9 @@ class LibraryGridTile extends StatelessWidget {
       onEnter: (_) => onHover(true),
       onExit: (_) => onHover(false),
       child: RiseIn(
-        enabled: effects.libraryEffects && effects.interfaceAnimationsEnabled,
+        enabled:
+            effects.libraryEffects &&
+            effects.isOn(LibraryEffect.interfaceAnimations),
         // Очередь всхода — только для первого экрана. Дальше ленивая сетка
         // строит плитки по мере прокрутки, и задержка означала бы, что
         // домотанное появляется через полсекунды после того, как человек
@@ -82,19 +85,22 @@ class LibraryGridTile extends StatelessWidget {
             child: FoilCard(
               active: active,
               enabled: effects.libraryEffects,
-              foilEnabled: effects.foilEnabled,
-              tiltEnabled: effects.cardTiltEnabled,
-              distortionEnabled: effects.liquidDistortionEnabled,
+              foilEnabled: effects.isOn(LibraryEffect.foil),
+              tiltEnabled: effects.isOn(LibraryEffect.cardTilt),
+              distortionEnabled: effects.isOn(LibraryEffect.liquidDistortion),
               child: GameCoverTile(
                 focusNode: focusNode,
                 key: ValueKey(game.id),
                 game: game,
                 selected: selected,
-                dropsEnabled: effects.libraryEffects && effects.dropsEnabled,
-                portalEnabled: effects.libraryEffects && effects.portalEnabled,
+                dropsEnabled:
+                    effects.libraryEffects && effects.isOn(LibraryEffect.drops),
+                portalEnabled:
+                    effects.libraryEffects &&
+                    effects.isOn(LibraryEffect.portal),
                 // Рамка живёт мимо общего выключателя эффектов: она
                 // показывает, где ты в сетке, а не украшает её.
-                frameEnabled: effects.selectionFrameEnabled,
+                frameEnabled: effects.isOn(LibraryEffect.selectionFrame),
                 onOpen: onOpen,
                 // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть»
                 // должна работать по той игре, на которую смотришь, не

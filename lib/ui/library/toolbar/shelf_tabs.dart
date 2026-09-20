@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../models/library_effect.dart';
 import '../../../models/shelf.dart';
 import '../../theme.dart';
 import '../../widgets/liquid/liquid_selection.dart';
@@ -36,7 +37,9 @@ class _ShelfTabsState extends State<ShelfTabs> {
       color: context.colors.selection,
       radius: EvaporateTheme.radiusControl,
       enabled: context.select<SettingsBloc, bool>(
-        (b) => b.state.libraryEffects && b.state.liquidSelectionEnabled,
+        (b) =>
+            b.state.libraryEffects &&
+            b.state.isOn(LibraryEffect.liquidSelection),
       ),
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,
