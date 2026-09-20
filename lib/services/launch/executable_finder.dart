@@ -88,26 +88,39 @@ class ExecutableFinder {
       if (name.startsWith('.')) continue;
 
       if (entity is Directory) {
-        // На macOS .app — это папка, но для нас это единица запуска.
-        if (Platform.isMacOS && name.endsWith('.app')) {
-          out.add(
-            ExecutableCandidate(
-              path: entity.path,
-              name: name,
-              score: _score(name, depth) + 40,
-              sizeBytes: await _dirSize(entity),
-            ),
-          );
-          continue;
-        }
-        await _walk(entity, folderName, depth + 1, maxDepth, out);
+        await _visitDirectory(entity, name, folderName, depth, maxDepth, out);
         continue;
       }
-
       if (entity is! File) continue;
       final candidate = await _evaluateFile(entity, name, depth, folderName);
       if (candidate != null) out.add(candidate);
     }
+  }
+
+  /// Папка: либо заходим внутрь, либо это сама единица запуска.
+  ///
+  /// На macOS `.app` — папка, но для нас это одно целое: внутрь неё лезть
+  /// незачем, а запускать надо её.
+  static Future<void> _visitDirectory(
+    Directory dir,
+    String name,
+    String folderName,
+    int depth,
+    int maxDepth,
+    List<ExecutableCandidate> out,
+  ) async {
+    if (Platform.isMacOS && name.endsWith('.app')) {
+      out.add(
+        ExecutableCandidate(
+          path: dir.path,
+          name: name,
+          score: _score(name, depth) + 40,
+          sizeBytes: await _dirSize(dir),
+        ),
+      );
+      return;
+    }
+    await _walk(dir, folderName, depth + 1, maxDepth, out);
   }
 
   static Future<ExecutableCandidate?> _evaluateFile(
@@ -135,26 +148,31 @@ class ExecutableFinder {
     );
   }
 
+  /// Очки за расширение — по системам.
+  ///
+  /// Таблицей, а не цепочкой условий: видно сразу, чем системы расходятся,
+  /// а добавить расширение — значит дописать строку.
+  static const _extensionScores = <String, Map<String, int>>{
+    'windows': {'.exe': 30, '.bat': 10},
+    'macos': {'.sh': 20, '.command': 20},
+    'linux': {'.sh': 25, '.x86_64': 25, '.appimage': 25},
+  };
+
   /// Насколько файл похож на то, чем игру запускают, — по одному лишь имени
   /// и праву на исполнение. Null означает «это точно не запуск».
   ///
   /// Системы тут расходятся: на Windows игру запускают `.exe` и `.bat`, на
-  /// остальных — скрипты и всё, чему выставлен бит исполнения.
+  /// остальных — скрипты и всё, чему выставлен бит исполнения. Незнакомая
+  /// система считается линуксом: другого разумного ответа для неё нет.
   static Future<int?> _launchScore(File file, String lower) async {
-    if (Platform.isWindows) {
-      if (lower.endsWith('.exe')) return 30;
-      if (lower.endsWith('.bat')) return 10;
-      return null;
+    final table =
+        _extensionScores[Platform.operatingSystem] ??
+        _extensionScores['linux']!;
+    for (final entry in table.entries) {
+      if (lower.endsWith(entry.key)) return entry.value;
     }
-    if (Platform.isMacOS) {
-      if (lower.endsWith('.sh') || lower.endsWith('.command')) return 20;
-      return await _isExecutable(file) ? 15 : null;
-    }
-    if (lower.endsWith('.sh') ||
-        lower.endsWith('.x86_64') ||
-        lower.endsWith('.appimage')) {
-      return 25;
-    }
+    // На Windows бит исполнения ничего не значит — там решает расширение.
+    if (Platform.isWindows) return null;
     return await _isExecutable(file) ? 15 : null;
   }
 
