@@ -7,19 +7,19 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../core/app_paths.dart';
-import '../../core/format.dart';
 import '../../core/json_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/catalog_progress.dart';
 import '../../models/game.dart';
-import '../../models/game_rating.dart';
 import '../../models/save_profile.dart';
 import '../../services/launch/drop_import.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/launch/game_launcher.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/steam_shortcuts.dart';
+import '../../services/metadata/cover_cache.dart';
+import '../../services/metadata/game_metadata_fetcher.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/saves/ludusavi_catalog.dart';
 import '../../services/saves/save_path_globs.dart';
@@ -54,6 +54,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     JsonStore? store,
     GameLauncher? launcher,
     SteamCatalog? steam,
+    CoverCache? covers,
+    GameMetadataFetcher? metadata,
     SteamShortcuts? steamShortcuts,
     LudusaviCatalog? savePaths,
     FileManager? fileManager,
@@ -74,12 +76,16 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
            ),
        _localizations = localizations ?? _defaultLocalizations,
        _store = store ?? JsonStore(paths.libraryFile),
-       _coversDir = paths.coversDir,
-       _shotsDir = paths.shotsDir,
+       covers =
+           covers ??
+           CoverCache(coversDir: paths.coversDir, shotsDir: paths.shotsDir),
        _launcher = launcher ?? GameLauncher(),
        _fileManager = fileManager ?? FileManager(),
        _inspectDrop = inspectDrop ?? DropImport.inspect,
        super(const LibraryState()) {
+    // В списке инициализаторов `steam` — ещё параметр: одноимённое поле
+    // он закрывает, а сборщику нужен именно готовый каталог.
+    this.metadata = metadata ?? GameMetadataFetcher(this.steam);
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
     on<GameStatusChanged>(_onStatusChanged);
@@ -137,13 +143,16 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
 
   /// Отключается в изолированных тестах без сетевых сервисов.
   final bool automaticMetadata;
-  final String _coversDir;
-  final String _shotsDir;
 
-  /// Сколько кадров храним на игру. Больше подложка не покажет: она водит
-  /// их по кругу, и на пятом обороте смотреть уже перестают, а файл на
-  /// диске каждый лишний кадр занимает у каждой игры.
-  static const _maxShots = 5;
+  /// Обложки и кадры — файлы, и правила у них свои: трогаем только свой
+  /// кэш. Отсюда отдельный сервис, а не `File` по месту.
+  final CoverCache covers;
+
+  /// Кто ходит в Steam за `appid`, описанием, обложкой и оценкой.
+  ///
+  /// Поле, а не `late`: то же самое нужно `_onMetadataRefresh`, и оба
+  /// подменяются в тестах одним параметром конструктора.
+  late final GameMetadataFetcher metadata;
 
   /// Откуда брать переводы для уведомлений.
   ///
@@ -325,16 +334,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     // Снимки этой игры уносит блок сохранений: список их держит он.
     _removals.add(game.id);
 
-    final cover = game.coverPath;
-    if (cover != null && p.isWithin(_coversDir, cover)) {
-      final file = File(cover);
-      if (await file.exists()) await file.delete();
-    }
-    for (final shot in game.shotPaths) {
-      if (!p.isWithin(_shotsDir, shot)) continue;
-      final file = File(shot);
-      if (await file.exists()) await file.delete();
-    }
+    await covers.deleteCover(game.coverPath);
+    await covers.deleteShots(game.shotPaths);
     if (event.deleteFiles && game.installDir != null) {
       final dir = Directory(game.installDir!);
       // Не удаляем что-то за пределами папки установки — страховка от опечаток.

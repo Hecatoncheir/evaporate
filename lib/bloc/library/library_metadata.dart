@@ -25,9 +25,9 @@ extension _LibraryMetadata on LibraryBloc {
   /// Ищет игру в Steam и дополняет карточку. Название не трогаем: имя
   /// в библиотеке пользователь мог задать сам.
   ///
-  /// Читается сверху вниз как список шагов: спросить Steam, забрать оценку
-  /// и обложку, убедиться, что игра всё ещё та самая, записать найденное.
-  /// Каждый шаг — отдельный метод ниже.
+  /// Сеть — у `GameMetadataFetcher`, файлы — у `CoverCache`, здесь
+  /// остаётся состояние: отметить попытку, спросить, убедиться, что игра
+  /// всё ещё та самая, записать найденное.
   Future<void> _onSteamLookup(
     SteamLookupRequested event,
     Emitter<LibraryState> emit,
@@ -49,9 +49,13 @@ extension _LibraryMetadata on LibraryBloc {
       // Маркер записан до сети: даже аварийный выход не вызывает повтор.
       await persist();
 
-      final match = await _askSteamAbout(game, event.query);
+      final found = await metadata.fetch(
+        game,
+        query: event.query,
+        cancelled: () => _closing,
+      );
       if (_closing) return;
-      if (match == null) {
+      if (found == null) {
         finishBusy(
           emit,
           key,
@@ -60,101 +64,78 @@ extension _LibraryMetadata on LibraryBloc {
         return;
       }
 
-      final reviews = await _steamReviews(match.appId);
-      if (_closing) return;
-      final coverBytes = await steam.coverBytes(match);
-      if (_closing) return;
-
-      var current = _stillSameGame(game);
-      if (current == null) {
-        finishBusy(emit, key);
-        return;
-      }
-
-      final previousCover = current.coverPath;
-      final coverFile = await _writeSteamCover(game, coverBytes, previousCover);
-      final previousShots = current.shotPaths;
-      final shotPaths = await _writeSteamShots(game, match);
-
-      // Запись файла — тоже ожидание, и за него игру могли убрать. Свежий
-      // файл тогда удаляем: иначе в кэше копились бы обложки-сироты.
-      current = _stillSameGame(game);
-      if (current == null) {
-        await _deleteCoverFile(coverFile?.path);
-        await _deleteShotFiles(shotPaths);
-        finishBusy(emit, key);
-        return;
-      }
-
-      final coverPath = coverFile?.path ?? previousCover;
-      final rating = _ratingOf(match, reviews);
-      final games = [...state.games];
-      games[games.indexWhere((g) => g.id == game.id)] = current.copyWith(
-        steamAppId: match.appId,
-        coverUrl: match.headerImage,
-        description: match.description,
-        coverPath: coverPath,
-        // Пустую подборку не записываем по той же причине, что и пустую
-        // оценку: сорвавшаяся загрузка кадров стёрла бы подложку, которая
-        // уже показана.
-        shotPaths: shotPaths.isEmpty ? current.shotPaths : shotPaths,
-        // Пустую оценку не записываем: сорвавшийся запрос стёр бы то, что
-        // уже показано, и страница обеднела бы от неудачного обновления.
-        rating: rating.hasAnything ? rating : current.rating,
-      );
-      emit(
-        state.copyWith(
-          games: games,
-          busy: busyWith(key, value: false),
-          notice: event.automatic
-              ? state.notice
-              : notice(_l.noticeSteamFound(match.name)),
-        ),
-      );
-      await persist();
-
-      if (coverPath != previousCover) {
-        await _deleteReplacedCover(previousCover);
-      }
-      if (shotPaths.isNotEmpty) await _deleteShotFiles(previousShots);
-      _continueWithSavePaths(game.id, automatic: event.automatic);
+      await _applyMetadata(game, found, event, emit);
     } on Object catch (error) {
       finishBusy(emit, key, message: error.toString(), isError: true);
     }
   }
 
-  /// Спрашивает Steam об игре.
+  /// Раскладывает найденное по карточке игры.
   ///
-  /// Идентификатор уже известен — спрашиваем прямо по нему. Поиск по
-  /// названию тут не только лишний, но и вреден: он способен ответить
-  /// другой игрой.
-  Future<SteamGame?> _askSteamAbout(Game game, String? query) =>
-      game.steamAppId != null
-      ? steam.details(game.steamAppId!)
-      : steam.bestMatch(query ?? game.title);
-
-  /// Обзоры — отдельным запросом: в `appdetails` их нет вовсе.
-  ///
-  /// Своя попытка и свой отказ: промолчи Steam об обзорах, игра всё равно
-  /// получит и обложку, и описание, и пути сохранений — терять их из-за
-  /// числа рядом с оценкой не за что.
-  Future<SteamReviews?> _steamReviews(int appId) async {
-    try {
-      return await steam.reviews(appId);
-    } on Object {
-      return null;
+  /// Проверка «та ли игра» стоит дважды, и обе нужны: сначала после сети,
+  /// потом после записи файлов — запись тоже ожидание, и за него игру
+  /// могли убрать. Свежие файлы тогда удаляем сами, иначе в кэше копились
+  /// бы обложки-сироты.
+  Future<void> _applyMetadata(
+    Game game,
+    GameMetadata found,
+    SteamLookupRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final key = LibraryBloc.steamKey(game.id);
+    var current = _stillSameGame(game);
+    if (current == null) {
+      finishBusy(emit, key);
+      return;
     }
-  }
 
-  /// Оценка игроков: доля положительных — из обзоров, Metacritic — из тех
-  /// же `appdetails`, откуда пришло описание.
-  GameRating _ratingOf(SteamGame match, SteamReviews? reviews) => GameRating(
-    score: reviews?.score,
-    summary: reviews?.summary,
-    positive: reviews?.positive ?? 0,
-    negative: reviews?.negative ?? 0,
-    metacritic: match.metacritic,
-  );
+    final previousCover = current.coverPath;
+    final previousShots = current.shotPaths;
+    final written = await covers.writeCover(
+      game.id,
+      found.coverBytes,
+      current: previousCover,
+    );
+    final shotPaths = await covers.writeShots(game.id, found.shots);
+
+    current = _stillSameGame(game);
+    if (current == null) {
+      await covers.delete(written);
+      await covers.deleteShots(shotPaths);
+      finishBusy(emit, key);
+      return;
+    }
+
+    final coverPath = written ?? previousCover;
+    final games = [...state.games];
+    games[games.indexWhere((g) => g.id == game.id)] = current.copyWith(
+      steamAppId: found.match.appId,
+      coverUrl: found.match.headerImage,
+      description: found.match.description,
+      coverPath: coverPath,
+      // Пустую подборку не записываем по той же причине, что и пустую
+      // оценку: сорвавшаяся загрузка кадров стёрла бы подложку, которая
+      // уже показана.
+      shotPaths: shotPaths.isEmpty ? current.shotPaths : shotPaths,
+      // Пустую оценку не записываем: сорвавшийся запрос стёр бы то, что
+      // уже показано, и страница обеднела бы от неудачного обновления.
+      rating: found.rating.hasAnything ? found.rating : current.rating,
+    );
+    emit(
+      state.copyWith(
+        games: games,
+        busy: busyWith(key, value: false),
+        notice: event.automatic
+            ? state.notice
+            : notice(_l.noticeSteamFound(found.match.name)),
+      ),
+    );
+    await persist();
+
+    if (coverPath != previousCover) await covers.deleteCover(previousCover);
+    if (shotPaths.isNotEmpty) await covers.deleteShots(previousShots);
+    _continueWithSavePaths(game.id, automatic: event.automatic);
+  }
 
   /// Та же ли игра лежит в состоянии, что и до похода в сеть.
   ///
@@ -165,97 +146,6 @@ extension _LibraryMetadata on LibraryBloc {
     final current = state.gameById(game.id);
     if (current == null || current.addedAt != game.addedAt) return null;
     return current;
-  }
-
-  /// Кладёт обложку из Steam в кэш приложения и возвращает её файл.
-  ///
-  /// Возвращает null, если писать было нечего или не вышло: из-за картинки
-  /// не теряют ни идентификатор, ни описание, ни поиск сейвов. Обложку,
-  /// выбранную человеком самим, не трогаем — она лежит вне кэша.
-  Future<File?> _writeSteamCover(
-    Game game,
-    List<int>? bytes,
-    String? currentCover,
-  ) async {
-    final ourOwn = currentCover == null || p.isWithin(_coversDir, currentCover);
-    if (bytes == null || !ourOwn) return null;
-
-    final stamp = DateTime.now().microsecondsSinceEpoch;
-    final file = File(
-      p.join(_coversDir, '${safeFileName(game.id)}-$stamp-steam.jpg'),
-    );
-    try {
-      await file.parent.create(recursive: true);
-      await file.writeAsBytes(bytes, flush: true);
-      return file;
-    } on FileSystemException {
-      // Ошибка кэша обложки не отменяет ID, описание и поиск сейвов.
-      await _deleteCoverFile(file.path);
-      return null;
-    }
-  }
-
-  /// Кладёт кадры из игры в кэш приложения и возвращает их пути.
-  ///
-  /// Кадров у игры бывает два десятка, берём первые [_maxShots]: подложка
-  /// показывает их по кругу, и на пятом обороте человек уже не смотрит, а
-  /// каждый следующий — это ещё файл на диске у каждой игры библиотеки.
-  ///
-  /// Неудача одного кадра не отменяет остальные, а неудача всех не отменяет
-  /// ни идентификатор, ни описание: подложка — украшение, и терять из-за
-  /// неё метаданные не за что.
-  Future<List<String>> _writeSteamShots(Game game, SteamGame match) async {
-    final wanted = match.screenshots.take(LibraryBloc._maxShots);
-    if (wanted.isEmpty) return const [];
-
-    final stamp = DateTime.now().microsecondsSinceEpoch;
-    final written = <String>[];
-    var index = 0;
-    for (final url in wanted) {
-      if (_closing) break;
-      final bytes = await steam.imageBytes(url);
-      if (bytes == null) continue;
-      final file = File(
-        p.join(_shotsDir, '${safeFileName(game.id)}-$stamp-$index.jpg'),
-      );
-      index++;
-      try {
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(bytes, flush: true);
-        written.add(file.path);
-      } on FileSystemException {
-        // Один не записавшийся кадр подборку не отменяет.
-      }
-    }
-    return written;
-  }
-
-  /// Убирает кадры, которые больше не нужны: заменённые новой подборкой или
-  /// осиротевшие, пока мы ходили в сеть. Чужое не трогаем — только свой кэш.
-  Future<void> _deleteShotFiles(List<String> paths) async {
-    for (final path in paths) {
-      if (!p.isWithin(_shotsDir, path)) continue;
-      await _deleteCoverFile(path);
-    }
-  }
-
-  /// Убирает файл обложки, который оказался не нужен. Ошибку удаления
-  /// гасим: из-за неубранной картинки не теряют найденные метаданные.
-  Future<void> _deleteCoverFile(String? path) async {
-    if (path == null) return;
-    try {
-      final file = File(path);
-      if (await file.exists()) await file.delete();
-    } on FileSystemException {
-      // Лишний файл в кэше безвреден, а отменять из-за него нечего.
-    }
-  }
-
-  /// Убирает обложку, которую только что заменили новой. Трогаем лишь свой
-  /// кэш: обложку, выбранную человеком, удалять нельзя — она не наша.
-  Future<void> _deleteReplacedCover(String? path) async {
-    if (path == null || !p.isWithin(_coversDir, path)) return;
-    await _deleteCoverFile(path);
   }
 
   /// Следующее звено цепочки: по найденному `appid` ищутся пути сохранений.
@@ -417,7 +307,7 @@ extension _LibraryMetadata on LibraryBloc {
   ///
   /// Название игры и здесь не переписывается, а обложка, выбранная
   /// человеком, остаётся его: за это отвечают те же `_onSteamLookup` и
-  /// `_writeSteamCover`, через которые всё и пойдёт.
+  /// `CoverCache`, через которые всё и пойдёт.
   Future<void> _onMetadataRefresh(
     MetadataRefreshRequested event,
     Emitter<LibraryState> emit,

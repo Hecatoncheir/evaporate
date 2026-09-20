@@ -120,7 +120,6 @@ int top(int x) => x > 0 ? x : -x;
 
 const _complexity = [
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 18',
-  'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSteamLookup: 29',
   'lib/services/launch/game_launcher.dart: GameLauncher._start: 17',
   'lib/services/launch/steam_shortcuts.dart: SteamShortcuts._mostRecentAccount: 16',
   'lib/services/launch/vdf.dart: Vdf._tokens: 16',
@@ -133,7 +132,6 @@ const _complexity = [
 const _lines = [
   'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
   'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 73',
-  'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSteamLookup: 94',
   'lib/input/input_scope.dart: _InputScopeState.build: 64',
   'lib/main.dart: main: 103',
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
