@@ -627,9 +627,10 @@ void main() {
         path: p.join(tmp.path, 'app.log'),
         previousPath: p.join(tmp.path, 'app.log.1'),
       );
-      AppLog.instance = appLog;
 
-      await UpdateInstaller.collectLog(tmp.path);
+      // Журнал передаётся, а не ставится глобалом: поставленный и не
+      // возвращённый обратно, он утащил бы к себе записи следующих тестов.
+      await UpdateInstaller.collectLog(tmp.path, log: appLog);
       await appLog.flush();
 
       expect(await log.exists(), isFalse);
@@ -673,6 +674,35 @@ void main() {
           ? 'POSIX-помощник не запускается на Windows'
           : null,
     );
+
+    // Замена идёт последним, что делает приложение перед закрытием, и
+    // единственный след её начала — эта строка: не запишись она в тот же
+    // журнал, что читает человек, «окно закрылось и не открылось»
+    // осталось бы без объяснений.
+    test('о начале замены пишут в переданный журнал', () async {
+      final journal = AppLog(
+        path: p.join(tmp.path, 'app.log'),
+        previousPath: p.join(tmp.path, 'app.log.1'),
+      );
+      final setup = File(p.join(tmp.path, 'evaporate-9.9.9-windows-setup.exe'));
+      await setup.writeAsBytes(const [1]);
+      await File(p.join(tmp.path, 'unins000.exe')).writeAsBytes(const [1]);
+      final installer = UpdateInstaller(
+        workDir: tmp.path,
+        layout: InstallLayout(
+          root: tmp.path,
+          executable: p.join(tmp.path, 'evaporate.exe'),
+        ),
+        platform: 'windows',
+        start: (executable, arguments) async => dummyProcess(),
+        log: () => journal,
+      );
+
+      await installer.apply(setup.path);
+      await journal.flush();
+
+      expect(await journal.tail(), anyElement(contains('запускаю setup')));
+    });
 
     test('windows запускает setup напрямую, без PowerShell', () async {
       final setup = File(p.join(tmp.path, 'evaporate-9.9.9-windows-setup.exe'));
@@ -771,9 +801,8 @@ void main() {
         path: p.join(tmp.path, 'app.log'),
         previousPath: p.join(tmp.path, 'app.log.1'),
       );
-      AppLog.instance = appLog;
 
-      await UpdateInstaller.collectLog(tmp.path);
+      await UpdateInstaller.collectLog(tmp.path, log: appLog);
       await appLog.flush();
 
       final written = (await appLog.tail()).join(Platform.lineTerminator);

@@ -19,6 +19,15 @@ import 'app_log.dart';
 /// клиента через [directHttpClient] — иначе отдельный флаг «в Steam ходить
 /// напрямую» перестал бы что-либо значить.
 class ProxyHttpOverrides extends HttpOverrides {
+  ProxyHttpOverrides({AppLog Function()? log}) : _log = log ?? _appLog;
+
+  /// Куда писать о неразобранном адресе. Функцией — как `L Function()` у
+  /// блоков: журнал заводится в `main`, а в тестах подменяется без правки
+  /// глобала.
+  final AppLog Function() _log;
+
+  static AppLog _appLog() => AppLog.instance;
+
   ProxySettings _settings = const ProxySettings();
   InternetAddress? _address;
 
@@ -35,7 +44,7 @@ class ProxyHttpOverrides extends HttpOverrides {
     _address = settings.isUsable ? await _resolve(settings.host) : null;
   }
 
-  static Future<InternetAddress?> _resolve(String host) async {
+  Future<InternetAddress?> _resolve(String host) async {
     final cleaned = host.trim().replaceFirst(RegExp(r'^\w+://'), '');
     final literal = InternetAddress.tryParse(cleaned);
     if (literal != null) return literal;
@@ -45,7 +54,7 @@ class ProxyHttpOverrides extends HttpOverrides {
     } on Object catch (error) {
       // Молчать нельзя: без адреса запросы пойдут напрямую, а человек будет
       // уверен, что идут через прокси.
-      AppLog.instance.write('прокси: не разобрать адрес «$host»', error);
+      _log().write('прокси: не разобрать адрес «$host»', error);
       return null;
     }
   }

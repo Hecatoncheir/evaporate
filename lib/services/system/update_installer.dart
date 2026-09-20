@@ -23,10 +23,12 @@ class UpdateInstaller {
     Future<Process> Function(String executable, List<String> arguments)? start,
     @visibleForTesting int? processId,
     @visibleForTesting String? platform,
+    AppLog Function()? log,
   }) : _layout = layout ?? InstallLayout.current(),
        _start = start ?? _detached,
        _pid = processId ?? pid,
-       _os = platform ?? Platform.operatingSystem;
+       _os = platform ?? Platform.operatingSystem,
+       _log = log ?? _appLog;
 
   /// Куда класть файлы обновления и журнал.
   final String workDir;
@@ -43,6 +45,17 @@ class UpdateInstaller {
   /// Куда о себе пишет установщик Windows.
   static String setupLogPath(String workDir) =>
       p.join(workDir, 'evaporate-update-setup.log');
+
+  /// Куда писать о ходе замены.
+  ///
+  /// Функцией, а не готовым журналом, по той же причине, что и `L
+  /// Function()` у блоков: журнал заводится в `main` и к моменту сборки
+  /// сервиса может быть ещё не тем, каким станет. А в тестах он
+  /// подменяется без правки глобала — иначе одна забытая перестановка
+  /// обратно тянула бы записи чужих тестов в свой файл.
+  final AppLog Function() _log;
+
+  static AppLog _appLog() => AppLog.instance;
 
   final InstallLayout? _layout;
   final Future<Process> Function(String, List<String>) _start;
@@ -93,7 +106,7 @@ class UpdateInstaller {
       if (p.extension(stagedRoot).toLowerCase() != '.exe') {
         throw const UpdateException('Установщик Windows не найден');
       }
-      AppLog.instance.write('обновление: запускаю setup $stagedRoot');
+      _log().write('обновление: запускаю setup $stagedRoot');
       // Свой номер процесса передаём затем, чтобы установщик дождался
       // нашего выхода: файлы работающего приложения Windows заменить не
       // даёт, а закрыться раньше его запуска мы не можем — запускать
@@ -121,7 +134,7 @@ class UpdateInstaller {
       await Process.run('chmod', ['+x', script.path]);
     }
 
-    AppLog.instance.write('обновление: запускаю замену из $stagedRoot');
+    _log().write('обновление: запускаю замену из $stagedRoot');
     final command = UpdateScript.command(script.path);
     await _start(command.first, command.sublist(1));
   }
@@ -132,7 +145,8 @@ class UpdateInstaller {
   /// журнал сам он не может — пишет в свой, а мы переносим при следующем
   /// запуске. Иначе о неудавшейся замене не узнал бы никто: человек видел бы
   /// только прежнюю версию и гадал.
-  static Future<void> collectLog(String workDir) async {
+  static Future<void> collectLog(String workDir, {AppLog? log}) async {
+    final journal = log ?? AppLog.instance;
     final file = File(logPath(workDir));
     try {
       // Проверка на месте, а не выходом из метода: журнал помощника и
@@ -140,14 +154,14 @@ class UpdateInstaller {
       // повод не забрать второй.
       if (await file.exists()) {
         for (final line in (await file.readAsString()).split('\n')) {
-          if (line.trim().isNotEmpty) AppLog.instance.write(line.trim());
+          if (line.trim().isNotEmpty) journal.write(line.trim());
         }
         await file.delete();
       }
     } on Object {
       // Записи помощника — не то, ради чего стоит ронять запуск.
     }
-    await _collectSetupLog(workDir);
+    await _collectSetupLog(workDir, journal);
   }
 
   /// Забирает из журнала установщика Windows то, ради чего его просили
@@ -156,13 +170,13 @@ class UpdateInstaller {
   /// Целиком он не нужен — это сотни строк о каждом файле. Нужны строки об
   /// отказе: без них неудавшееся обновление выглядело так — окно
   /// закрылось, новая версия не появилась, и ни следа почему.
-  static Future<void> _collectSetupLog(String workDir) async {
+  static Future<void> _collectSetupLog(String workDir, AppLog journal) async {
     final file = File(setupLogPath(workDir));
     try {
       if (!await file.exists()) return;
       final failures = (await file.readAsLines()).where(_looksLikeFailure);
       for (final line in failures.take(_setupLogLimit)) {
-        AppLog.instance.write('обновление: ${line.trim()}');
+        journal.write('обновление: ${line.trim()}');
       }
       await file.delete();
     } on Object {

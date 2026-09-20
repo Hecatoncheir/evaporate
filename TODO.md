@@ -1085,11 +1085,16 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `save_activity_watch.dart:227,245`, третья копия нормализации — в
   `release_name.dart:142`. Проверка манифеста — `save_manager.dart:422` ≡
   `:570`; сборка `ScannedGame` — `library_scanner.dart:198` ≡ `:264`. **S**
-- [ ] В тестируемости мешает `AppLog.instance`: сервисы зовут его напрямую
+- [x] В тестируемости мешает `AppLog.instance`: сервисы зовут его напрямую
   (`update_download.dart:102`, `update_installer.dart:96,124,143,165`,
   `proxy_http_overrides.dart:48`), и запись в журнал не проверить без
   правки глобала (а `update_install_test.dart:544,688` ставит его и не
   возвращает). Передавать функцией, как уже передаётся `L Function()`. **S**
+  *Все три сервиса берут `AppLog Function()` параметром*, `collectLog` —
+  готовый журнал (метод статический, конструктора у него нет), а оба теста
+  перестали трогать глобал. Блоки и `bloc_common` по-прежнему пишут в
+  `AppLog.instance`: у них журнал один на приложение и подменять его
+  незачем.
 
 Длинные `build` (глубина дерева 9–11) лечатся этапом 3:
 `rule_tile.dart:24` (83 строки), `sync_folder_card.dart:24` (87),

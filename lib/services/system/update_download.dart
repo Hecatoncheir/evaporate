@@ -66,12 +66,20 @@ class UpdateDownload {
       void Function(int received, int total) onProgress,
     )?
     download,
+    AppLog Function()? log,
   }) : _platform = platform ?? currentPlatformKey(),
        _fetch = fetch ?? _httpFetch,
-       _download = download ?? _httpDownload;
+       _download = download ?? _httpDownload,
+       _log = log ?? _appLog;
 
   /// Куда складывать скачанное — папка данных приложения.
   final String workDir;
+
+  /// Куда писать о ходе загрузки. Функцией — как `L Function()` у блоков:
+  /// журнал заводится в `main`, а в тестах подменяется без правки глобала.
+  final AppLog Function() _log;
+
+  static AppLog _appLog() => AppLog.instance;
   final String _platform;
 
   /// Мелочь вроде `SHA256SUMS` — её проще прочитать целиком.
@@ -100,10 +108,7 @@ class UpdateDownload {
     } on Object catch (error) {
       // Журнал ведёт сервис, а не виджет: у экрана нет ни языка для таких
       // записей, ни права их писать — там всё видимое переводится.
-      AppLog.instance.write(
-        'обновление ${release.version} не подготовилось',
-        error,
-      );
+      _log().write('обновление ${release.version} не подготовилось', error);
       rethrow;
     }
   }
@@ -210,10 +215,7 @@ class UpdateDownload {
     } on Object catch (error) {
       // Файла сумм может не быть у старых релизов — размера уже достаточно.
       // Но пропуск сверки — не мелочь, и след его должен остаться.
-      AppLog.instance.write(
-        'обновление: суммы не получены, сверка пропущена',
-        error,
-      );
+      _log().write('обновление: суммы не получены, сверка пропущена', error);
       return;
     }
 
