@@ -833,7 +833,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   месте пришлось бы пережидать в каждом виджет-тесте, который что-нибудь
   ищет. `Shelf` и `gamesOnShelf` переехали в `lib/models`: блоку `lib/ui`
   закрыт.
-- [ ] **`ScanBloc`** для окна поиска игр: `ScanSession` — внешний источник,
+- [x] **`ScanBloc`** для окна поиска игр: `ScanSession` — внешний источник,
   как движок загрузок, то есть блок по правилу самого `CLAUDE.md`. События:
   `ScanStarted`, `ScanNarrowed(dir)`, `ScanFolderDropped(paths)` (забирает
   `Directory.exists` из `scan_folder_dialog.dart:106`), `ScanStopRequested`,
@@ -841,6 +841,14 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   пересобирается на каждую строку списка (`:81–88`), а в библиотеку уходит
   N событий `GameAdded` (`:118–133`) — вместо них одно `ScannedGamesAdded`.
   Признак «тащат над окном» остаётся в `State`. **M**
+  *Сделано.* Отбор переживает приход новой находки, `Directory.exists`
+  уехал из виджета, а заведение идёт одним событием — не десятком с
+  десятком отложенных записей. Окно разложено на `ScanDialogView` и
+  `ScanDialogBody`.
+  *Попутно выяснено и записано в тесте:* блок, заведённый **внутри**
+  `tester.runAsync` вместе с диалогом, доставляет свои события в
+  настоящем времени, а не в фейковом времени теста, — и `pump` их не
+  ждёт. Отметке в проверке нужен `runAsync` перед кадром.
 - [x] **`RestorePreviewBloc`** вместо `SaveFreshnessCubit`: состояние
   `{freshness, targets, newer}`. Сейчас правило «снимок новее здешних
   сейвов» живёт в виджете (`restore_dialog.dart:39–41`), а `previewTargets`

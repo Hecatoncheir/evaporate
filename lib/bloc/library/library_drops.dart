@@ -60,6 +60,41 @@ extension _LibraryDrops on LibraryBloc {
     _drops.add(DroppedGames(games: added, select: event.select));
   }
 
+  /// Заводит всё, что человек отметил в окне поиска.
+  ///
+  /// Игры уже разобраны сканером: здесь остаётся дать им идентификаторы и
+  /// положить в состояние — одной записью, а не десятком.
+  void _onScannedGamesAdded(
+    ScannedGamesAdded event,
+    Emitter<LibraryState> emit,
+  ) {
+    if (event.games.isEmpty) return;
+    final added = [for (final game in event.games) _gameFromScan(game)];
+    emit(state.copyWith(games: [...state.games, ...added]));
+    _schedulePersist();
+    for (final game in added) {
+      _queueMetadata(game);
+    }
+  }
+
+  Game _gameFromScan(ScannedGame scanned) => Game(
+    id: const Uuid().v4(),
+    title: scanned.title,
+    addedAt: DateTime.now(),
+    source: GameSource(
+      kind: GameSourceKind.localFolder,
+      value: scanned.installDir,
+    ),
+    installDir: scanned.installDir,
+    executablePath: scanned.executablePath,
+    status: GameStatus.installed,
+    steamAppId: scanned.steamAppId,
+    saveProfile: SaveProfile(
+      autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
+      autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
+    ),
+  );
+
   /// Игра из брошенного: папка — уже установленная, `.torrent` — ещё нет.
   Game _gameFromDrop(DropCandidate candidate) {
     final installed = candidate.kind == DropKind.folder;

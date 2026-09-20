@@ -116,6 +116,23 @@ void main() {
     return harness;
   }
 
+  /// Снимает или ставит галочку у находки.
+  ///
+  /// Отметка идёт событием блока, а блок окна заведён **внутри**
+  /// `runAsync` вместе с самим диалогом: его события доходят в настоящем
+  /// времени, а не в фейковом времени теста. Поэтому сперва даём им дойти
+  /// и только потом просим кадр — так же, как ждём обхода папок.
+  Future<void> toggle(WidgetTester tester, String title) async {
+    await tester.tap(
+      find.ancestor(
+        of: find.text(title),
+        matching: find.byType(CheckboxListTile),
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    await tester.pump();
+  }
+
   /// Нажатие «Добавить» вместе с отложенной записью библиотеки на диск.
   Future<void> addChosen(WidgetTester tester, int count) async {
     await tester.tap(find.widgetWithText(FilledButton, 'Добавить: $count'));
@@ -160,13 +177,7 @@ void main() {
     await prepare(tester, () => gameDir('Лишняя'));
 
     final harness = await openScan(tester);
-    await tester.tap(
-      find.ancestor(
-        of: find.text('Лишняя'),
-        matching: find.byType(CheckboxListTile),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await toggle(tester, 'Лишняя');
 
     await addChosen(tester, 1);
 
@@ -179,13 +190,7 @@ void main() {
     await prepare(tester, () => gameDir('Единственная'));
 
     await openScan(tester);
-    await tester.tap(
-      find.ancestor(
-        of: find.text('Единственная'),
-        matching: find.byType(CheckboxListTile),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await toggle(tester, 'Единственная');
 
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Добавить: 0'),

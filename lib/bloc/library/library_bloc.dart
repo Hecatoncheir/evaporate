@@ -18,6 +18,7 @@ import '../../models/save_profile.dart';
 import '../../services/launch/drop_import.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/launch/game_launcher.dart';
+import '../../services/launch/library_scanner.dart';
 import '../../services/launch/steam_shortcuts.dart';
 import '../../services/metadata/steam_catalog.dart';
 import '../../services/saves/ludusavi_catalog.dart';
@@ -90,6 +91,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     on<GameExecutableSet>(_onExecutableSet);
     on<GameFolderOpenRequested>(_onFolderOpenRequested);
     on<FilesDropped>(_onFilesDropped);
+    on<ScannedGamesAdded>(_onScannedGamesAdded);
     on<GameInstallDirSet>(_onInstallDirSet);
     on<SaveRulesAdded>(_onSaveRulesAdded);
     on<SaveRuleRemoved>(_onSaveRuleRemoved);

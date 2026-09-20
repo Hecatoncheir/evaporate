@@ -163,6 +163,21 @@ final class GameDownloadRejected extends LibraryEvent {
 }
 
 /// Человек выбрал, что запускать.
+/// Завести в библиотеку отмеченное в окне поиска.
+///
+/// Одним событием, а не по одному на игру: их бывают десятки, и каждое
+/// откладывало бы свою запись на диск и свой поиск метаданных.
+final class ScannedGamesAdded extends LibraryEvent {
+  const ScannedGamesAdded(this.games);
+
+  final List<ScannedGame> games;
+
+  @override
+  List<Object?> get props => [
+    [for (final game in games) game.installDir],
+  ];
+}
+
 /// В окно бросили файлы или папки.
 ///
 /// Разбор и заведение игр — в блоке: у приёмника нет ни журнала, ни
