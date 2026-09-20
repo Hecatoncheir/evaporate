@@ -1,16 +1,32 @@
 import 'dart:io';
 
-import 'package:archive/archive_io.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
-import '../../models/save_snapshot.dart';
 import '../system/app_log.dart';
 import 'evsave_package.dart';
 import 'save_exception.dart';
+
+/// Откуда берутся байты одного файла снимка.
+///
+/// Источников два — запись пакета и файл хранилища по содержимому, — а
+/// раскладка одна. Она самое опасное место приложения: второй её
+/// реализации быть не должно, поэтому различается ровно то, откуда байты
+/// текут и чем проверяется, что дотекли целиком.
+abstract class RestoreSource {
+  /// Имя внутри пакета: `data/<ruleId>/<путь внутри правила>`. По нему
+  /// файл и находит своё место, откуда бы он ни брался.
+  String get name;
+
+  int get size;
+
+  /// Кладёт содержимое по пути [path] — и отвечает за то, что положенное
+  /// совпадает с обещанным.
+  Future<void> writeTo(String path);
+}
 
 /// Проверка пакета, подготовка новых целей и откат файловой транзакции.
 /// Ни один исходный путь не изменяется до полной подготовки всех целей.
@@ -100,39 +116,35 @@ class RestoreTransaction {
     }
   }
 
-  /// Собирает план: какой файл пакета в какое место ляжет.
+  /// Собирает план: какой файл снимка в какое место ляжет.
   ///
-  /// План строится целиком до первой записи на диск. Пакет приходит извне,
-  /// и половина разобранного пакета хуже, чем неразобранный.
-  RestorePlan buildPlan(Archive archive, Map<String, RestoreTarget> targets) {
+  /// План строится целиком до первой записи на диск. Снимок мог прийти
+  /// извне, а половина разобранного пакета хуже, чем неразобранный.
+  RestorePlan buildPlan(
+    Iterable<RestoreSource> sources,
+    Map<String, RestoreTarget> targets,
+  ) {
     final plan = _PlanBuilder(this);
-    for (final entry in _payloadEntries(archive, targets)) {
+    for (final entry in _payloadEntries(sources, targets)) {
       plan.add(entry);
     }
     return plan.build();
   }
 
-  /// Записи пакета, которым есть куда лечь.
+  /// Файлы снимка, которым есть куда лечь.
   ///
-  /// Манифест, папки и правила, которых у этой игры нет, отсеиваются молча
-  /// — пакет мог прийти с устройства, где правил больше. А вот ссылка не
-  /// отсеивается, а останавливает разбор: в наших пакетах её не бывает, и
-  /// чужая уводит запись куда угодно.
+  /// Правила, которых у этой игры нет, отсеиваются молча: снимок мог
+  /// прийти с устройства, где путей больше.
   Iterable<RestorePayload> _payloadEntries(
-    Archive archive,
+    Iterable<RestoreSource> sources,
     Map<String, RestoreTarget> targets,
   ) sync* {
-    for (final file in archive.files) {
-      if (file.isSymbolicLink) {
-        throw SaveException(_l.savePathEscapes(file.name));
-      }
-      if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
-
-      final parsed = EvsavePackage.parseEntryName(file.name);
+    for (final source in sources) {
+      final parsed = EvsavePackage.parseEntryName(source.name);
       if (parsed == null) continue;
       final target = targets[parsed.ruleId];
       if (target == null) continue;
-      yield RestorePayload(file: file, target: target, name: parsed);
+      yield RestorePayload(source: source, target: target, name: parsed);
     }
   }
 
@@ -144,18 +156,18 @@ class RestoreTransaction {
   String destinationFor(RestorePayload payload, {required int sameRule}) {
     final parts = _safeRelativeParts(
       payload.name.relativePath,
-      payload.file.name,
+      payload.source.name,
     );
     if (payload.target.isFile) {
       if (sameRule > 0 || parts.length != 1) {
-        throw SaveException(_l.savePathEscapes(payload.file.name));
+        throw SaveException(_l.savePathEscapes(payload.source.name));
       }
       return payload.target.path;
     }
 
     final destination = p.normalize(p.joinAll([payload.target.path, ...parts]));
     if (!p.isWithin(payload.target.path, destination)) {
-      throw SaveException(_l.savePathEscapes(payload.file.name));
+      throw SaveException(_l.savePathEscapes(payload.source.name));
     }
     return destination;
   }
@@ -260,7 +272,7 @@ class RestoreTransaction {
       throw FileSystemException('Expected a file', target.path);
     }
     // Ровно одна запись на такую цель — это проверено при сборке плана.
-    await _writeArchiveFile(entries.single.archiveFile, candidatePath);
+    await entries.single.source.writeTo(candidatePath);
   }
 
   /// Собирает новую папку целиком: при слиянии — поверх копии нынешней,
@@ -281,10 +293,7 @@ class RestoreTransaction {
     }
     for (final entry in entries) {
       final relative = p.relative(entry.destination, from: target.path);
-      await _writeArchiveFile(
-        entry.archiveFile,
-        p.join(candidate.path, relative),
-      );
+      await entry.source.writeTo(p.join(candidate.path, relative));
     }
   }
 
@@ -357,26 +366,6 @@ class RestoreTransaction {
     }
   }
 
-  Future<void> _writeArchiveFile(ArchiveFile file, String path) async {
-    final outFile = File(path);
-    await outFile.parent.create(recursive: true);
-    final output = OutputFileStream(path);
-    try {
-      file.writeContent(output);
-    } finally {
-      await output.close();
-    }
-    var crc = 0;
-    var size = 0;
-    await for (final chunk in outFile.openRead()) {
-      size += chunk.length;
-      crc = getCrc32(chunk, crc);
-    }
-    if (size != file.size || (file.crc32 != null && crc != file.crc32)) {
-      throw SaveException(_l.saveArchiveReadFailed(file.name));
-    }
-  }
-
   Future<void> _copyDirectory(Directory source, Directory target) async {
     await for (final entity in source.list(
       recursive: true,
@@ -430,12 +419,12 @@ class RestoreTarget {
 
 class RestoreEntry {
   const RestoreEntry({
-    required this.archiveFile,
+    required this.source,
     required this.target,
     required this.destination,
   });
 
-  final ArchiveFile archiveFile;
+  final RestoreSource source;
   final RestoreTarget target;
   final String destination;
 }
@@ -472,12 +461,12 @@ class _CommittedTarget {
 /// Запись пакета вместе с правилом, к которому она относится.
 class RestorePayload {
   const RestorePayload({
-    required this.file,
+    required this.source,
     required this.target,
     required this.name,
   });
 
-  final ArchiveFile file;
+  final RestoreSource source;
   final RestoreTarget target;
   final EntryName name;
 }
@@ -508,16 +497,16 @@ class _PlanBuilder {
     // Два файла пакета в одно место — спор о том, чьё содержимое окажется
     // на диске. Решать его молча нельзя.
     if (!_destinations.add(destination)) {
-      throw SaveException(_saves._l.saveArchiveReadFailed(payload.file.name));
+      throw SaveException(_saves._l.saveArchiveReadFailed(payload.source.name));
     }
 
-    _bytes += payload.file.size;
+    _bytes += payload.source.size;
     if (_bytes > _saves.maxSnapshotBytes) {
       throw SaveException(_saves._l.saveTooLarge(formatBytes(_bytes)));
     }
     _entries.add(
       RestoreEntry(
-        archiveFile: payload.file,
+        source: payload.source,
         target: payload.target,
         destination: destination,
       ),

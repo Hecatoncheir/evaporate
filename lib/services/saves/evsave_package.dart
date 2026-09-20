@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
+import 'restore_transaction.dart';
 import 'save_exception.dart';
 
 /// Пакет `.evsave`: открыть, прочитать манифест, разобрать имена записей.
@@ -78,6 +79,21 @@ class EvsavePackage {
     return EntryName(parts[1], parts.sublist(2).join('/'));
   }
 
+  /// Записи пакета, из которых складывается снимок.
+  ///
+  /// Манифест и папки пропускаются, а вот ссылка не пропускается, а
+  /// останавливает разбор: в наших пакетах её не бывает, и чужая уводит
+  /// запись куда угодно.
+  Iterable<RestoreSource> entriesOf(Archive archive) sync* {
+    for (final file in archive.files) {
+      if (file.isSymbolicLink) {
+        throw SaveException(_l.savePathEscapes(file.name));
+      }
+      if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
+      yield ArchiveEntrySource(file, localizations: _localizations);
+    }
+  }
+
   /// Манифест, с которым можно работать дальше.
   ///
   /// Оба отказа — человеку, а не в журнал: пакет пришёл извне, и «это не
@@ -119,4 +135,44 @@ class EntryName {
 
   final String ruleId;
   final String relativePath;
+}
+
+/// Файл, лежащий в самом пакете.
+///
+/// Записанное сверяется по длине и CRC из заголовка zip: пакет приходит
+/// извне, и обрыв на середине выглядит как обычный файл.
+class ArchiveEntrySource implements RestoreSource {
+  ArchiveEntrySource(this._file, {required this._localizations});
+
+  final ArchiveFile _file;
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  @override
+  String get name => _file.name;
+
+  @override
+  int get size => _file.size;
+
+  @override
+  Future<void> writeTo(String path) async {
+    final outFile = File(path);
+    await outFile.parent.create(recursive: true);
+    final output = OutputFileStream(path);
+    try {
+      _file.writeContent(output);
+    } finally {
+      await output.close();
+    }
+    var crc = 0;
+    var size = 0;
+    await for (final chunk in outFile.openRead()) {
+      size += chunk.length;
+      crc = getCrc32(chunk, crc);
+    }
+    if (size != _file.size || (_file.crc32 != null && crc != _file.crc32)) {
+      throw SaveException(_l.saveArchiveReadFailed(_file.name));
+    }
+  }
 }

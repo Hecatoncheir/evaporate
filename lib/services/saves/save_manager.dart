@@ -325,53 +325,69 @@ class SaveManager {
     required bool backupCurrent,
     required bool wipeTarget,
   }) async {
-    // Снимок из хранилища по содержимому своего архива не имеет, поэтому
-    // собираем временный. Разбирать его дальше будет тот же самый код:
-    // раскладка файлов по целям — самое опасное место приложения, и
-    // заводить ей вторую реализацию ради экономии временного файла значило
-    // бы удвоить то, что обязано быть одним.
-    final source = snapshot.isDeduplicated
-        ? await _materialize(snapshot, _temporaryPackagePath(snapshot))
-        : null;
-    final path = source?.path ?? snapshot.archivePath;
-
-    try {
-      return await _package.open(
-        path,
-        (archive) => _restoreFrom(
-          archive: archive,
-          game: game,
-          snapshot: snapshot,
-          backupCurrent: backupCurrent,
-          wipeTarget: wipeTarget,
-        ),
+    // Снимок из хранилища раскладывают прямо оттуда. Прежде из него
+    // собирался временный `.evsave`, и гигабайты сейвов сжимались, чтобы
+    // тут же разжаться, — минуты работы и замершее окно ради файла,
+    // который удаляли следующей строкой. Раскладка при этом осталась
+    // одна: различается только то, откуда текут байты.
+    if (snapshot.isDeduplicated) {
+      return _restoreUsing(
+        game: game,
+        snapshot: snapshot,
+        rules: snapshot.rules,
+        sources: await _storedSources(snapshot),
+        backupCurrent: backupCurrent,
+        wipeTarget: wipeTarget,
       );
-    } finally {
-      if (source != null && await source.exists()) await source.delete();
     }
+
+    // Снимки, снятые до появления хранилища, лежат своими архивами.
+    return _package.open(
+      snapshot.archivePath,
+      (archive) => _restoreUsing(
+        game: game,
+        snapshot: snapshot,
+        rules: _package.rulesOf(
+          _package.checkedManifest(_package.manifestOf(archive)),
+        ),
+        sources: _package.entriesOf(archive).toList(),
+        backupCurrent: backupCurrent,
+        wipeTarget: wipeTarget,
+      ),
+    );
   }
 
-  /// Куда собрать пакет, который нужен только на время операции.
-  String _temporaryPackagePath(SaveSnapshot snapshot) => p.join(
-    _paths.snapshotDirFor(snapshot.gameId),
-    '.${snapshot.id}-${DateTime.now().microsecondsSinceEpoch}'
-    '${SaveSnapshot.fileExtension}',
-  );
+  /// Содержимое снимка из хранилища.
+  ///
+  /// Пропажу ловим здесь, до первой записи на диск: план строится целиком
+  /// заранее, и половина разложенного снимка хуже, чем неразложенный.
+  Future<List<RestoreSource>> _storedSources(SaveSnapshot snapshot) async {
+    final sources = <RestoreSource>[];
+    for (final blob in snapshot.blobs) {
+      if (!await store.fileFor(blob.hash).exists()) {
+        throw SaveException(_l.saveArchiveMissing(blob.name));
+      }
+      sources.add(
+        StoredBlobSource(blob, store: store, localizations: _localizations),
+      );
+    }
+    return sources;
+  }
 
-  Future<RestoreReport> _restoreFrom({
-    required Archive archive,
+  Future<RestoreReport> _restoreUsing({
     required Game game,
     required SaveSnapshot snapshot,
+    required List<SavePathRule> rules,
+    required List<RestoreSource> sources,
     required bool backupCurrent,
     required bool wipeTarget,
   }) async {
-    final manifest = _package.checkedManifest(_package.manifestOf(archive));
-    final resolved = await _resolveTargets(game, _package.rulesOf(manifest));
+    final resolved = await _resolveTargets(game, rules);
     if (resolved.byRuleId.isEmpty) {
       throw SaveException(_l.saveNoTargets);
     }
 
-    final plan = _restore.buildPlan(archive, resolved.byRuleId);
+    final plan = _restore.buildPlan(sources, resolved.byRuleId);
     final backup = backupCurrent
         ? await _backupBeforeRestore(game, snapshot)
         : null;

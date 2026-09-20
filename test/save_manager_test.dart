@@ -966,6 +966,99 @@ void main() {
       expect(info.isCompatible, isTrue);
     });
 
+    // Снимок из хранилища раскладывают прямо оттуда. Прежде из него
+    // собирался временный `.evsave` — гигабайты сжимались, чтобы тут же
+    // разжаться, — и восстановление стоило минут замершего окна.
+    test(
+      'снимок из хранилища восстанавливается без временного пакета',
+      () async {
+        final saves = await writeSaves('прямо', {
+          'slot.sav': 'исходное',
+          'вложено/meta.json': '{"level":3}',
+        });
+        final game = gameWith(
+          id: 'g1',
+          title: 'Игра',
+          rules: [
+            SavePathRule(
+              id: 'rule-1',
+              label: SavePathRule.defaultLabel,
+              template: saves.path,
+            ),
+          ],
+        );
+        final snapshot = await manager.createSnapshot(game);
+        await File(p.join(saves.path, 'slot.sav')).writeAsString('испорчено');
+
+        final report = await manager.restoreSnapshot(
+          game: game,
+          snapshot: snapshot,
+          backupCurrent: false,
+        );
+
+        expect(report.isComplete, isTrue);
+        expect(report.filesWritten, 2);
+        expect(
+          await File(p.join(saves.path, 'slot.sav')).readAsString(),
+          'исходное',
+        );
+        expect(
+          await File(p.join(saves.path, 'вложено', 'meta.json')).readAsString(),
+          '{"level":3}',
+        );
+        // Ни одного `.evsave` рядом со снимками: временный пакет больше не
+        // собирается. Папки снимков может не быть вовсе — снимку из
+        // хранилища своего файла не нужно.
+        final dir = Directory(paths.snapshotDirFor('g1'));
+        final leftovers = dir.existsSync()
+            ? dir
+                  .listSync()
+                  .whereType<File>()
+                  .where((f) => f.path.endsWith(SaveSnapshot.fileExtension))
+                  .toList()
+            : const <File>[];
+        expect(leftovers, isEmpty);
+      },
+    );
+
+    // Содержимое могло унести уборкой или потерять на диске. Узнать об
+    // этом человек должен до того, как его сейвы тронут: половина
+    // разложенного снимка хуже, чем неразложенный.
+    test(
+      'пропавшее содержимое останавливает восстановление до записи',
+      () async {
+        final saves = await writeSaves('пропажа', {'slot.sav': 'исходное'});
+        final game = gameWith(
+          id: 'g1',
+          title: 'Игра',
+          rules: [
+            SavePathRule(
+              id: 'rule-1',
+              label: SavePathRule.defaultLabel,
+              template: saves.path,
+            ),
+          ],
+        );
+        final snapshot = await manager.createSnapshot(game);
+        await File(p.join(saves.path, 'slot.sav')).writeAsString('нынешнее');
+        await manager.store.fileFor(snapshot.blobs.single.hash).delete();
+
+        await expectLater(
+          manager.restoreSnapshot(
+            game: game,
+            snapshot: snapshot,
+            backupCurrent: false,
+          ),
+          throwsA(isA<SaveException>()),
+        );
+        expect(
+          await File(p.join(saves.path, 'slot.sav')).readAsString(),
+          'нынешнее',
+          reason: 'сейвы тронули, хотя раскладывать было нечего',
+        );
+      },
+    );
+
     // Снимки, снятые до появления хранилища, лежат своими архивами и
     // обязаны продолжать работать: их не переписывают, они уходят сами.
     test('снимок со своим архивом восстанавливается по-прежнему', () async {

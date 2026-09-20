@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n/app_localizations.dart';
 import '../../models/snapshot_blob.dart';
+import 'restore_transaction.dart';
+import 'save_exception.dart';
 
 // Часть снимка, а не хранилища: её читают и модели, и пакет `.evsave`.
 export '../../models/snapshot_blob.dart';
@@ -283,4 +286,38 @@ class _DigestSink implements Sink<Digest> {
 
   @override
   void close() {}
+}
+
+/// Файл снимка, лежащий в хранилище по содержимому.
+///
+/// Сжатое представление разворачивается прямо в цель: временный пакет для
+/// этого не нужен, а вот проверка нужна — гигабайт, оборвавшийся на
+/// середине, выглядит как обычный файл.
+class StoredBlobSource implements RestoreSource {
+  StoredBlobSource(
+    this._blob, {
+    required this._store,
+    required this._localizations,
+  });
+
+  final SnapshotBlob _blob;
+  final SnapshotStore _store;
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  @override
+  String get name => _blob.name;
+
+  @override
+  int get size => _blob.size;
+
+  @override
+  Future<void> writeTo(String path) async {
+    await _store.extractTo(_blob.hash, path);
+    final written = await File(path).length();
+    if (written != _blob.size) {
+      throw SaveException(_l.saveArchiveReadFailed(_blob.name));
+    }
+  }
 }
