@@ -430,62 +430,81 @@ class SaveManager {
     required bool wipeTarget,
   }) async {
     final manifest = _checkedManifest(_readManifest(archive));
-    final manifestRules = _readRules(manifest);
-
-    final targets = <String, String>{};
-    final targetByRuleId = <String, _RestoreTarget>{};
-    final unresolved = <String>[];
-
-    for (final rule in manifestRules) {
-      final local = _matchLocalRule(game, rule);
-      if (local == null) {
-        unresolved.add(rule.label);
-        continue;
-      }
-      final resolved = local.resolve(gameDir: game.installDir);
-      if (resolved == null) {
-        unresolved.add(rule.label);
-        continue;
-      }
-      final isFile =
-          local.kind == SavePathKind.file ||
-          rule.kind == SavePathKind.file ||
-          await File(resolved).exists();
-      targetByRuleId[rule.id] = _RestoreTarget(
-        path: p.normalize(p.absolute(resolved)),
-        isFile: isFile,
-      );
-      targets[local.label] = resolved;
-    }
-
-    if (targetByRuleId.isEmpty) {
+    final resolved = await _resolveTargets(game, _readRules(manifest));
+    if (resolved.byRuleId.isEmpty) {
       throw SaveException(_l.saveNoTargets);
     }
 
-    final plan = _buildRestorePlan(archive, targetByRuleId);
-
-    SaveSnapshot? backup;
-    if (backupCurrent) {
-      try {
-        backup = await createSnapshot(
-          game,
-          origin: SnapshotOrigin.preRestore,
-          note: _l.saveAutoBackupNote(formatDateTime(snapshot.createdAt)),
-        );
-      } on SaveNothingFoundException {
-        // Первый запуск на этом устройстве: резервировать пока нечего.
-      }
-    }
-
+    final plan = _buildRestorePlan(archive, resolved.byRuleId);
+    final backup = backupCurrent
+        ? await _backupBeforeRestore(game, snapshot)
+        : null;
     await _commitRestore(plan, wipeTarget: wipeTarget);
 
     return RestoreReport(
       filesWritten: plan.entries.length,
       bytesWritten: plan.bytes,
-      targets: targets,
-      unresolved: unresolved,
+      targets: resolved.byLabel,
+      unresolved: resolved.unresolved,
       backup: backup,
     );
+  }
+
+  /// Куда на этом устройстве ложится каждое правило пакета.
+  ///
+  /// Правило, которому места не нашлось, не отменяет остальные: пакет
+  /// мог прийти с системы, где путей больше, — но названо оно будет в
+  /// отчёте, иначе человек считал бы, что перенеслось всё.
+  Future<_ResolvedTargets> _resolveTargets(
+    Game game,
+    List<SavePathRule> manifestRules,
+  ) async {
+    final byLabel = <String, String>{};
+    final byRuleId = <String, _RestoreTarget>{};
+    final unresolved = <String>[];
+
+    for (final rule in manifestRules) {
+      final local = _matchLocalRule(game, rule);
+      final resolved = local?.resolve(gameDir: game.installDir);
+      if (local == null || resolved == null) {
+        unresolved.add(rule.label);
+        continue;
+      }
+      // Файл это или папка, решают оба правила и сам диск: замена идёт
+      // целиком, и ошибиться здесь значит снести папку вместо файла.
+      final isFile =
+          local.kind == SavePathKind.file ||
+          rule.kind == SavePathKind.file ||
+          await File(resolved).exists();
+      byRuleId[rule.id] = _RestoreTarget(
+        path: p.normalize(p.absolute(resolved)),
+        isFile: isFile,
+      );
+      byLabel[local.label] = resolved;
+    }
+
+    return _ResolvedTargets(
+      byLabel: byLabel,
+      byRuleId: byRuleId,
+      unresolved: unresolved,
+    );
+  }
+
+  /// Снимок того, что лежит сейчас, — до того, как его заменят.
+  Future<SaveSnapshot?> _backupBeforeRestore(
+    Game game,
+    SaveSnapshot snapshot,
+  ) async {
+    try {
+      return await createSnapshot(
+        game,
+        origin: SnapshotOrigin.preRestore,
+        note: _l.saveAutoBackupNote(formatDateTime(snapshot.createdAt)),
+      );
+    } on SaveNothingFoundException {
+      // Первый запуск на этом устройстве: резервировать пока нечего.
+      return null;
+    }
   }
 
   /// Куда лягут файлы снимка на этом устройстве: метка правила → путь.
@@ -806,4 +825,22 @@ class _EntryName {
 
   final String ruleId;
   final String relativePath;
+}
+
+/// Цели восстановления: куда лечь правилам пакета на этом устройстве.
+class _ResolvedTargets {
+  const _ResolvedTargets({
+    required this.byLabel,
+    required this.byRuleId,
+    required this.unresolved,
+  });
+
+  /// Метка правила → путь. Это показывают человеку до восстановления.
+  final Map<String, String> byLabel;
+
+  /// Идентификатор правила пакета → куда его файлы лягут.
+  final Map<String, _RestoreTarget> byRuleId;
+
+  /// Метки правил, которым места на этом устройстве не нашлось.
+  final List<String> unresolved;
 }

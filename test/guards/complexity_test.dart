@@ -129,7 +129,6 @@ const _lines = [
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
   'lib/models/game.dart: Game.copyWith: 63',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
-  'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 65',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',
   'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',
