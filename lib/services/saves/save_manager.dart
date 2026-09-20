@@ -14,6 +14,7 @@ import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../system/app_log.dart';
 import 'evsave_package.dart';
+import 'restore_transaction.dart';
 import 'rule_matcher.dart';
 import 'save_collector.dart';
 import 'save_exception.dart';
@@ -22,8 +23,6 @@ import 'snapshot_store.dart';
 // Исключения уехали в свой файл — их бросают и пакет, и раскладка, — но
 // зовут их отсюда по всему приложению.
 export 'save_exception.dart';
-
-part 'restore_transaction.dart';
 
 /// Что получилось при восстановлении: UI показывает это пользователю,
 /// а не молча делает вид, что всё прошло гладко.
@@ -99,6 +98,14 @@ class SaveManager {
 
   /// Кто разбирает сам файл пакета: архив, манифест, имена записей.
   late final _package = EvsavePackage(localizations: _localizations);
+
+  /// Кто трогает чужие сохранения на месте: подготовка целей, замена и
+  /// откат, если замена сорвалась.
+  late final _restore = RestoreTransaction(
+    localizations: _localizations,
+    maxSnapshotBytes: maxSnapshotBytes,
+    rename: _renameForRestore,
+  );
   // Подмена файловой операции позволяет проверять откат при сбое на
   // второй цели без ненадёжных тестов прав доступа на разных ОС.
   final Future<FileSystemEntity> Function(FileSystemEntity, String)
@@ -142,7 +149,7 @@ class SaveManager {
     SnapshotOrigin origin = SnapshotOrigin.manual,
     String? note,
   }) => store.guard(() async {
-    await _recoverInterrupted(game);
+    await _restore.recoverInterrupted(game);
     return _createSnapshot(game, origin: origin, note: note);
   });
 
@@ -303,7 +310,7 @@ class SaveManager {
     bool backupCurrent = true,
     bool wipeTarget = false,
   }) => store.guard(() async {
-    await _recoverInterrupted(game);
+    await _restore.recoverInterrupted(game);
     return _restoreSnapshot(
       game: game,
       snapshot: snapshot,
@@ -364,11 +371,11 @@ class SaveManager {
       throw SaveException(_l.saveNoTargets);
     }
 
-    final plan = _buildRestorePlan(archive, resolved.byRuleId);
+    final plan = _restore.buildPlan(archive, resolved.byRuleId);
     final backup = backupCurrent
         ? await _backupBeforeRestore(game, snapshot)
         : null;
-    await _commitRestore(plan, wipeTarget: wipeTarget);
+    await _restore.commit(plan, wipeTarget: wipeTarget);
 
     return RestoreReport(
       filesWritten: plan.entries.length,
@@ -389,7 +396,7 @@ class SaveManager {
     List<SavePathRule> manifestRules,
   ) async {
     final byLabel = <String, String>{};
-    final byRuleId = <String, _RestoreTarget>{};
+    final byRuleId = <String, RestoreTarget>{};
     final unresolved = <String>[];
 
     for (final rule in manifestRules) {
@@ -405,7 +412,7 @@ class SaveManager {
           local.kind == SavePathKind.file ||
           rule.kind == SavePathKind.file ||
           await File(resolved).exists();
-      byRuleId[rule.id] = _RestoreTarget(
+      byRuleId[rule.id] = RestoreTarget(
         path: p.normalize(p.absolute(resolved)),
         isFile: isFile,
       );
@@ -642,7 +649,7 @@ class _ResolvedTargets {
   final Map<String, String> byLabel;
 
   /// Идентификатор правила пакета → куда его файлы лягут.
-  final Map<String, _RestoreTarget> byRuleId;
+  final Map<String, RestoreTarget> byRuleId;
 
   /// Метки правил, которым места на этом устройстве не нашлось.
   final List<String> unresolved;

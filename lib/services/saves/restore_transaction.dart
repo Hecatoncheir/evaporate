@@ -1,8 +1,46 @@
-part of 'save_manager.dart';
+import 'dart:io';
+
+import 'package:archive/archive_io.dart';
+import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
+
+import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/game.dart';
+import '../../models/save_snapshot.dart';
+import '../system/app_log.dart';
+import 'evsave_package.dart';
+import 'save_exception.dart';
 
 /// Проверка пакета, подготовка новых целей и откат файловой транзакции.
 /// Ни один исходный путь не изменяется до полной подготовки всех целей.
-extension _RestoreTransaction on SaveManager {
+///
+/// Своим классом, а не расширением менеджера: это единственное место, где
+/// приложение трогает **чужие сохранения на месте**, и у него своя цена
+/// ошибки. Всё, что ему нужно от менеджера, — переводы, предел размера и
+/// переименование (подменяемое в тестах, чтобы проверить откат).
+class RestoreTransaction {
+  RestoreTransaction({
+    required this._localizations,
+    required this.maxSnapshotBytes,
+    required Future<FileSystemEntity> Function(FileSystemEntity, String) rename,
+  }) : _renameForRestore = rename;
+
+  /// Откуда брать переводы: отказы отсюда доходят до человека словами.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  /// Предел размера снимка: предохранитель от «указал папку игры целиком».
+  final int maxSnapshotBytes;
+
+  /// Переименование цели. Подменяется в тестах: сорвавшаяся замена — то
+  /// самое, ради чего вся транзакция и заведена.
+  final Future<FileSystemEntity> Function(FileSystemEntity, String)
+  _renameForRestore;
+
+  static const _uuid = Uuid();
+
   /// Приводит в порядок следы прерванной раскладки у целей игры.
   ///
   /// Раскладка отодвигает цель в `<цель>.evaporate-old-*` и ставит на её
@@ -16,7 +54,7 @@ extension _RestoreTransaction on SaveManager {
   /// - при целой цели резервная копия остаётся: замена могла дойти до
   ///   конца, а могла и нет, и копия бывает единственной прежней версией.
   ///   Её судьбу решает человек, а в журнал уходит, где она лежит.
-  Future<void> _recoverInterrupted(Game game) async {
+  Future<void> recoverInterrupted(Game game) async {
     for (final rule in game.saveProfile.rulesForCurrentPlatform) {
       final target = rule.resolve(gameDir: game.installDir);
       if (target != null) await _recoverTarget(target);
@@ -66,10 +104,7 @@ extension _RestoreTransaction on SaveManager {
   ///
   /// План строится целиком до первой записи на диск. Пакет приходит извне,
   /// и половина разобранного пакета хуже, чем неразобранный.
-  _RestorePlan _buildRestorePlan(
-    Archive archive,
-    Map<String, _RestoreTarget> targets,
-  ) {
+  RestorePlan buildPlan(Archive archive, Map<String, RestoreTarget> targets) {
     final plan = _PlanBuilder(this);
     for (final entry in _payloadEntries(archive, targets)) {
       plan.add(entry);
@@ -83,9 +118,9 @@ extension _RestoreTransaction on SaveManager {
   /// — пакет мог прийти с устройства, где правил больше. А вот ссылка не
   /// отсеивается, а останавливает разбор: в наших пакетах её не бывает, и
   /// чужая уводит запись куда угодно.
-  Iterable<_Payload> _payloadEntries(
+  Iterable<RestorePayload> _payloadEntries(
     Archive archive,
-    Map<String, _RestoreTarget> targets,
+    Map<String, RestoreTarget> targets,
   ) sync* {
     for (final file in archive.files) {
       if (file.isSymbolicLink) {
@@ -97,7 +132,7 @@ extension _RestoreTransaction on SaveManager {
       if (parsed == null) continue;
       final target = targets[parsed.ruleId];
       if (target == null) continue;
-      yield _Payload(file: file, target: target, name: parsed);
+      yield RestorePayload(file: file, target: target, name: parsed);
     }
   }
 
@@ -106,7 +141,7 @@ extension _RestoreTransaction on SaveManager {
   /// [sameRule] — сколько записей этого правила уже разобрано. Правило на
   /// один файл описывает ровно один файл: второй означает, что пакет
   /// собран не так, как их пишем мы.
-  String _destinationFor(_Payload payload, {required int sameRule}) {
+  String destinationFor(RestorePayload payload, {required int sameRule}) {
     final parts = _safeRelativeParts(
       payload.name.relativePath,
       payload.file.name,
@@ -143,7 +178,7 @@ extension _RestoreTransaction on SaveManager {
 
   /// Цели не должны лежать одна в другой: замена идёт папкой целиком, и
   /// вложенная цель исчезла бы вместе со старым содержимым внешней.
-  void _checkTargetsDoNotOverlap(Set<_RestoreTarget> targets) {
+  void checkTargetsDoNotOverlap(Set<RestoreTarget> targets) {
     final paths = [for (final target in targets) target.path];
     for (var i = 0; i < paths.length; i++) {
       for (var j = i + 1; j < paths.length; j++) {
@@ -162,10 +197,7 @@ extension _RestoreTransaction on SaveManager {
   /// Порядок шагов и есть возможность откатиться: сначала рядом с каждой
   /// целью собирается её замена, потом прежнее отодвигается в резервную
   /// копию, и только в самом конце копии убираются.
-  Future<void> _commitRestore(
-    _RestorePlan plan, {
-    required bool wipeTarget,
-  }) async {
+  Future<void> commit(RestorePlan plan, {required bool wipeTarget}) async {
     // Оба списка нужны и откату, и уборке, поэтому живут здесь, а шаги
     // только дописывают в них.
     final prepared = <_PreparedTarget>[];
@@ -186,13 +218,13 @@ extension _RestoreTransaction on SaveManager {
 
   /// Собирает замену рядом с каждой целью, не трогая саму цель.
   Future<void> _prepareTargets(
-    _RestorePlan plan,
+    RestorePlan plan,
     List<_PreparedTarget> prepared, {
     required bool wipeTarget,
   }) async {
     for (final group in plan.byTarget.entries) {
       final target = group.key;
-      final token = SaveManager._uuid.v4();
+      final token = _uuid.v4();
       final candidatePath = p.join(
         p.dirname(target.path),
         '.${p.basename(target.path)}.evaporate-new-$token',
@@ -220,9 +252,9 @@ extension _RestoreTransaction on SaveManager {
   }
 
   Future<void> _prepareFileTarget(
-    _RestoreTarget target,
+    RestoreTarget target,
     String candidatePath,
-    List<_RestoreEntry> entries,
+    List<RestoreEntry> entries,
   ) async {
     if (await Directory(target.path).exists()) {
       throw FileSystemException('Expected a file', target.path);
@@ -234,9 +266,9 @@ extension _RestoreTransaction on SaveManager {
   /// Собирает новую папку целиком: при слиянии — поверх копии нынешней,
   /// при замене — с чистого места.
   Future<void> _prepareDirectoryTarget(
-    _RestoreTarget target,
+    RestoreTarget target,
     String candidatePath,
-    List<_RestoreEntry> entries, {
+    List<RestoreEntry> entries, {
     required bool wipeTarget,
   }) async {
     if (await File(target.path).exists()) {
@@ -263,8 +295,7 @@ extension _RestoreTransaction on SaveManager {
     List<_CommittedTarget> committed,
   ) async {
     for (final item in prepared) {
-      final backupPath =
-          '${item.target.path}.evaporate-old-${SaveManager._uuid.v4()}';
+      final backupPath = '${item.target.path}.evaporate-old-${_uuid.v4()}';
       final existed = await _entityExists(item.target);
       if (existed) {
         await _renameEntity(item.target, item.target.path, backupPath);
@@ -365,14 +396,14 @@ extension _RestoreTransaction on SaveManager {
     }
   }
 
-  Future<bool> _entityExists(_RestoreTarget target) => target.isFile
+  Future<bool> _entityExists(RestoreTarget target) => target.isFile
       ? File(target.path).exists()
       : Directory(target.path).exists();
 
-  Future<void> _renameEntity(_RestoreTarget target, String from, String to) =>
+  Future<void> _renameEntity(RestoreTarget target, String from, String to) =>
       _renameForRestore(target.isFile ? File(from) : Directory(from), to);
 
-  Future<void> _deleteEntity(_RestoreTarget target, String path) async {
+  Future<void> _deleteEntity(RestoreTarget target, String path) async {
     if (target.isFile) {
       final file = File(path);
       if (await file.exists()) await file.delete();
@@ -383,40 +414,40 @@ extension _RestoreTransaction on SaveManager {
   }
 }
 
-class _RestoreTarget {
-  const _RestoreTarget({required this.path, required this.isFile});
+class RestoreTarget {
+  const RestoreTarget({required this.path, required this.isFile});
 
   final String path;
   final bool isFile;
 
   @override
   bool operator ==(Object other) =>
-      other is _RestoreTarget && other.path == path && other.isFile == isFile;
+      other is RestoreTarget && other.path == path && other.isFile == isFile;
 
   @override
   int get hashCode => Object.hash(path, isFile);
 }
 
-class _RestoreEntry {
-  const _RestoreEntry({
+class RestoreEntry {
+  const RestoreEntry({
     required this.archiveFile,
     required this.target,
     required this.destination,
   });
 
   final ArchiveFile archiveFile;
-  final _RestoreTarget target;
+  final RestoreTarget target;
   final String destination;
 }
 
-class _RestorePlan {
-  const _RestorePlan({required this.entries, required this.bytes});
+class RestorePlan {
+  const RestorePlan({required this.entries, required this.bytes});
 
-  final List<_RestoreEntry> entries;
+  final List<RestoreEntry> entries;
   final int bytes;
 
-  Map<_RestoreTarget, List<_RestoreEntry>> get byTarget {
-    final result = <_RestoreTarget, List<_RestoreEntry>>{};
+  Map<RestoreTarget, List<RestoreEntry>> get byTarget {
+    final result = <RestoreTarget, List<RestoreEntry>>{};
     for (final entry in entries) {
       result.putIfAbsent(entry.target, () => []).add(entry);
     }
@@ -427,27 +458,27 @@ class _RestorePlan {
 class _PreparedTarget {
   const _PreparedTarget({required this.target, required this.path});
 
-  final _RestoreTarget target;
+  final RestoreTarget target;
   final String path;
 }
 
 class _CommittedTarget {
   const _CommittedTarget({required this.target, required this.backupPath});
 
-  final _RestoreTarget target;
+  final RestoreTarget target;
   final String? backupPath;
 }
 
 /// Запись пакета вместе с правилом, к которому она относится.
-class _Payload {
-  const _Payload({
+class RestorePayload {
+  const RestorePayload({
     required this.file,
     required this.target,
     required this.name,
   });
 
   final ArchiveFile file;
-  final _RestoreTarget target;
+  final RestoreTarget target;
   final EntryName name;
 }
 
@@ -460,15 +491,15 @@ class _Payload {
 class _PlanBuilder {
   _PlanBuilder(this._saves);
 
-  final SaveManager _saves;
-  final List<_RestoreEntry> _entries = [];
+  final RestoreTransaction _saves;
+  final List<RestoreEntry> _entries = [];
   final Set<String> _destinations = {};
   final Map<String, int> _perRule = {};
   int _bytes = 0;
 
-  void add(_Payload payload) {
+  void add(RestorePayload payload) {
     final ruleId = payload.name.ruleId;
-    final destination = _saves._destinationFor(
+    final destination = _saves.destinationFor(
       payload,
       sameRule: _perRule[ruleId] ?? 0,
     );
@@ -485,7 +516,7 @@ class _PlanBuilder {
       throw SaveException(_saves._l.saveTooLarge(formatBytes(_bytes)));
     }
     _entries.add(
-      _RestoreEntry(
+      RestoreEntry(
         archiveFile: payload.file,
         target: payload.target,
         destination: destination,
@@ -493,13 +524,13 @@ class _PlanBuilder {
     );
   }
 
-  _RestorePlan build() {
-    _saves._checkTargetsDoNotOverlap({
+  RestorePlan build() {
+    _saves.checkTargetsDoNotOverlap({
       for (final entry in _entries) entry.target,
     });
     if (_entries.isEmpty) {
       throw SaveNothingFoundException(_saves._l.saveNothingFound);
     }
-    return _RestorePlan(entries: _entries, bytes: _bytes);
+    return RestorePlan(entries: _entries, bytes: _bytes);
   }
 }
