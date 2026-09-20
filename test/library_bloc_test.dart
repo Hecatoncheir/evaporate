@@ -307,6 +307,7 @@ void main() {
       paths: paths,
       library: library,
       settings: settings,
+      saveRoots: () => const [],
     );
     addTearDown(reopened.close);
     reopened.add(const SavesLoadRequested());

@@ -1219,6 +1219,10 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   блок-тестов создают `SavesBloc` без `saveRoots`
   (`save_conflict_test.dart:32`) — по умолчанию туда попадают настоящие
   «Документы». **M**
+  *«Документы» закрыты и больше не откроются*: девять таких мест получили
+  пустой список, а держит это страж `test/guards/test_hygiene_test.dart` —
+  новый `SavesBloc` без `saveRoots` роняет прогон. Общая обвязка
+  (`BlocFixture`, `pumpUntil`, `hostWidget`) пока не заведена.
 - [x] Кандидаты во флаки — положительная проверка после фиксированной
   паузы: `drop_import_test.dart:178,202,224,245` (300 мс),
   `cover_backdrop_test.dart:82`. `fake_async` уже транзитивен — перенести в

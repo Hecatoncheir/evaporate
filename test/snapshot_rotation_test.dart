@@ -36,7 +36,12 @@ void main() {
       paths: paths,
       settings: settings,
     );
-    saves = SavesBloc(paths: paths, library: library, settings: settings);
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
+      saveRoots: () => const [],
+    );
   });
 
   tearDown(() async {

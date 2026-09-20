@@ -32,7 +32,12 @@ void main() {
       paths: paths,
       settings: settings,
     );
-    saves = SavesBloc(paths: paths, library: library, settings: settings);
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
+      saveRoots: () => const [],
+    );
   });
 
   tearDown(() async {
@@ -95,6 +100,7 @@ void main() {
       paths: paths,
       library: library,
       settings: settings,
+      saveRoots: () => const [],
     );
     addTearDown(reopened.close);
     // Свой файл дописывается уже после того, как состояние поднято: сначала
@@ -140,6 +146,7 @@ void main() {
       paths: paths,
       library: library,
       settings: settings,
+      saveRoots: () => const [],
     );
     addTearDown(reopened.close);
     reopened.add(const SavesLoadRequested());
