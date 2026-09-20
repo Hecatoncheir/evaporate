@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../bloc/restore_preview/restore_preview_bloc.dart';
 import '../../../../core/format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/save_snapshot.dart';
@@ -14,7 +15,7 @@ class RestoreDialogBody extends StatelessWidget {
   const RestoreDialogBody({
     super.key,
     required this.snapshot,
-    required this.targets,
+    required this.preview,
     required this.backup,
     required this.wipe,
     required this.onBackup,
@@ -23,8 +24,8 @@ class RestoreDialogBody extends StatelessWidget {
 
   final SaveSnapshot snapshot;
 
-  /// Метка правила и путь, в который оно развернулось на этой машине.
-  final Map<String, String> targets;
+  /// Куда лягут файлы и что лежит там сейчас.
+  final RestorePreview preview;
 
   final bool backup;
   final bool wipe;
@@ -48,11 +49,11 @@ class RestoreDialogBody extends StatelessWidget {
             ),
             style: context.text.prose,
           ),
-          LocalFreshnessNote(snapshotAt: snapshot.createdAt),
+          LocalFreshnessNote(preview: preview),
           const SizedBox(height: 14),
           Text(l.filesGoHere, style: context.text.captionMuted),
           const SizedBox(height: 6),
-          RestoreTargetList(targets: targets),
+          RestoreTargetList(targets: preview.targets),
           const SizedBox(height: 12),
           RestoreOptionsForm(
             backup: backup,

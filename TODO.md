@@ -836,7 +836,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   пересобирается на каждую строку списка (`:81–88`), а в библиотеку уходит
   N событий `GameAdded` (`:118–133`) — вместо них одно `ScannedGamesAdded`.
   Признак «тащат над окном» остаётся в `State`. **M**
-- [ ] **`RestorePreviewBloc`** вместо `SaveFreshnessCubit`: состояние
+- [x] **`RestorePreviewBloc`** вместо `SaveFreshnessCubit`: состояние
   `{freshness, targets, newer}`. Сейчас правило «снимок новее здешних
   сейвов» живёт в виджете (`restore_dialog.dart:39–41`), а `previewTargets`
   зовётся из `build` через `context.read<SavesBloc>().saveManager`

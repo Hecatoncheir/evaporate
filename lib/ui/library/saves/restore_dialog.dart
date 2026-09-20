@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../bloc/save_freshness_cubit.dart';
+import '../../../bloc/restore_preview/restore_preview_bloc.dart';
 import '../../../bloc/saves/saves_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
@@ -27,28 +27,26 @@ class _RestoreDialogState extends State<RestoreDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Чтение диска живёт в Cubit: виджету не положено ни держать
+    // Чтение диска живёт в блоке: виджету не положено ни держать
     // асинхронность, ни ловить её ошибки — это правило блоков, и модальное
     // окно от него не освобождено.
     return BlocProvider(
       create: (context) =>
-          SaveFreshnessCubit(context.read<SavesBloc>().saveManager)
-            ..read(widget.game),
-      child: Builder(
-        builder: (context) {
-          // Спрашиваем у менеджера, а не считаем сами: раскладывать файлы
-          // будет он, и обещать здесь что-то своё значит обещать не то.
-          final targets = context.read<SavesBloc>().saveManager.previewTargets(
-            widget.game,
-            widget.snapshot,
-          );
+          RestorePreviewBloc(context.read<SavesBloc>().saveManager)..add(
+            RestorePreviewRequested(
+              game: widget.game,
+              snapshot: widget.snapshot,
+            ),
+          ),
+      child: BlocBuilder<RestorePreviewBloc, RestorePreview>(
+        builder: (context, preview) {
           final l = L.of(context);
 
           return AlertDialog(
             title: Text(l.restoreSaves),
             content: RestoreDialogBody(
               snapshot: widget.snapshot,
-              targets: targets,
+              preview: preview,
               backup: _backup,
               wipe: _wipe,
               onBackup: (value) => setState(() => _backup = value),
@@ -62,7 +60,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
               FilledButton(
                 // Восстанавливать некуда — клавиша погашена, а куда именно
                 // некуда, сказано выше списком целей.
-                onPressed: targets.isEmpty
+                onPressed: preview.targets.isEmpty
                     ? null
                     : () => Navigator.pop(
                         context,
