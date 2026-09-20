@@ -6,6 +6,14 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+  # Сборку тесты не проверяют вовсе: ни раннеры плагинов, ни CMake, ни
+  # шейдер `drops.frag`, ни мастер установки они не компилируют. Пока
+  # собирали только на теге, сломанное обнаруживалось в день выпуска —
+  # то есть в худший из возможных. Раз в неделю дешевле: минуты раннеров
+  # тратятся однажды, а не на каждый пуш, и неделя — верхний предел того,
+  # сколько поломка проживёт незамеченной.
+  schedule:
+    - cron: '0 6 * * 1'
 
 # Новый пуш в ту же ветку отменяет предыдущий прогон — не жжём минуты
 # раннеров на устаревшем коде.
@@ -142,12 +150,13 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     needs: [analyze, test]
-    # Только для тегов и ручного запуска: на пуше в main три сборки
-    # выясняли бы то же, что и тесты, вчетверо дольше — сборка macOS
-    # занимает минуты, а ответ «тесты прошли» нужен сразу.
+    # На теге, вручную и раз в неделю по расписанию: на каждом пуше в main
+    # три сборки выясняли бы то же, что и тесты, вчетверо дольше — сборка
+    # macOS занимает минуты, а ответ «тесты прошли» нужен сразу.
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -201,10 +210,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [analyze, test]
-    # Только для тегов и ручного запуска — см. сборку macOS.
+    # На теге, вручную и по расписанию — см. сборку macOS.
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -262,10 +272,11 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     needs: [analyze, test]
-    # Только для тегов и ручного запуска — см. сборку macOS.
+    # На теге, вручную и по расписанию — см. сборку macOS.
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
-      github.event_name == 'workflow_dispatch'
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v7.0.1
 
