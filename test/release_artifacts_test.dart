@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:evaporate/services/system/update_check.dart';
@@ -12,6 +13,16 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final ci = File('.github/workflows/ci.yml').readAsStringSync();
 
+  /// То же, но без строк-комментариев.
+  ///
+  /// Хвост имени встречается в `ci.yml` дважды: в команде упаковки и в
+  /// пояснении рядом с ней. Ищи страж по всему тексту — переименуй сборка
+  /// файл, пояснение осталось бы прежним, и он промолчал бы ровно там, где
+  /// заведён кричать.
+  final commands = LineSplitter.split(ci)
+      .where((line) => !line.trimLeft().startsWith('#'))
+      .join('\n');
+
   group('сборка кладёт в релиз то, что ищет приложение', () {
     for (final platform in ['macos', 'linux']) {
       test('обновление для $platform собирается под ожидаемым именем', () {
@@ -19,7 +30,7 @@ void main() {
 
         expect(suffix, isNotNull);
         expect(
-          ci,
+          commands,
           contains(suffix!),
           reason:
               'Приложение ищет в релизе файл с хвостом «$suffix». Сборка '
@@ -77,10 +88,10 @@ void main() {
     // Установщик каждой системы должен доезжать до релиза: ради него всё и
     // затевалось — поставить приложение, не разбираясь с архивом.
     test('каждая сборка вызывает свою упаковку установщика', () {
-      expect(ci, contains('tool/package_macos.sh'));
-      expect(ci, contains('tool/package_linux.sh'));
-      expect(ci, contains('tool/package_run.sh'));
-      expect(ci, contains(r'windows\installer.iss'));
+      expect(commands, contains('tool/package_macos.sh'));
+      expect(commands, contains('tool/package_linux.sh'));
+      expect(commands, contains('tool/package_run.sh'));
+      expect(commands, contains(r'windows\installer.iss'));
     });
   });
 }
