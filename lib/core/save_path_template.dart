@@ -124,14 +124,7 @@ class SavePathTemplate {
         return '$game/${rest.replaceAll(r'\', '/')}';
       }
     }
-    final entries = placeholders.entries.toList()
-      ..sort((a, b) {
-        // Сначала самый специфичный корень, затем — предпочтение.
-        final byLength = b.value.length.compareTo(a.value.length);
-        if (byLength != 0) return byLength;
-        return _preference.indexOf(a.key).compareTo(_preference.indexOf(b.key));
-      });
-    for (final entry in entries) {
+    for (final entry in _rootsBySpecificity) {
       if (p.isWithin(entry.value, normalized) ||
           p.equals(entry.value, normalized)) {
         final rest = p.relative(normalized, from: entry.value);
@@ -141,6 +134,20 @@ class SavePathTemplate {
     }
     return normalized;
   }
+
+  /// Корни от самого специфичного к самому общему, а при равной длине —
+  /// в порядке предпочтения.
+  ///
+  /// Считается один раз: [collapse] зовут в обходах папок, на каждый
+  /// найденный путь, — а пересборка карты корней с сортировкой стоила там
+  /// больше, чем сам разбор пути. Значения берутся из окружения, которое
+  /// в Dart читается снимком при старте и на ходу не меняется.
+  static final List<MapEntry<String, String>> _rootsBySpecificity =
+      placeholders.entries.toList()..sort((a, b) {
+        final byLength = b.value.length.compareTo(a.value.length);
+        if (byLength != 0) return byLength;
+        return _preference.indexOf(a.key).compareTo(_preference.indexOf(b.key));
+      });
 
   static bool isPortable(String template) =>
       template.contains(game) || placeholders.keys.any(template.contains);
