@@ -278,6 +278,62 @@ void main() {
     });
   });
 
+  group('выключение не оставляет следов', () {
+    // Раскладку правят одним нажатием, и «выключить — включить» подряд
+    // приходит двумя вызовами без паузы. Пока подписка обнулялась после
+    // ожидания отписки, включение видело её живой, уходило ни с чем — и
+    // геймпад оставался выключенным до перезапуска приложения.
+    test('«выкл → вкл» подряд оставляет геймпад работающим', () async {
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final service = GamepadService(source: events.stream);
+      final got = <NavAction>[];
+      final sub = service.actions.listen(got.add);
+      await service.start();
+
+      service.binding = const GamepadBinding(enabled: false);
+      service.binding = const GamepadBinding();
+      await settle();
+
+      events.add(buttonEvent(GamepadButton.a, 1));
+      await settle();
+
+      expect(got, [NavAction.confirm]);
+
+      await sub.cancel();
+      service.dispose();
+      await events.close();
+    });
+
+    // Закрытие посреди удержания: поток действий закрывается сразу, а
+    // отписка от потока плагина идёт своим чередом. Ни один оставшийся
+    // таймер не должен договорить в закрытый поток.
+    test('закрытие посреди удержания проходит тихо', () async {
+      final events = StreamController<NormalizedGamepadEvent>.broadcast(
+        onCancel: () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      );
+      final errors = <Object>[];
+
+      // Своя зона, чтобы отказ таймера был виден проверкой, а не общим
+      // «тест упал»: стреляет он уже после `dispose`.
+      await runZonedGuarded(() async {
+        final service = GamepadService(
+          source: events.stream,
+          repeatDelay: const Duration(milliseconds: 10),
+          repeatInterval: const Duration(milliseconds: 10),
+        );
+        await service.start();
+        events.add(buttonEvent(GamepadButton.dpadDown, 1));
+        await settle();
+
+        service.dispose();
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+      }, (error, _) => errors.add(error));
+
+      expect(errors, isEmpty);
+      await events.close();
+    });
+  });
+
   test('раскладка переживает сохранение и чтение', () {
     const binding = GamepadBinding(deadzone: 0.62);
     final restored = GamepadBinding.fromJson(

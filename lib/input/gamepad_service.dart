@@ -44,6 +44,9 @@ class GamepadService {
   final _rawButtons = StreamController<GamepadButton>.broadcast();
   final _status = ValueNotifier<GamepadStatus>(const GamepadStatus());
 
+  /// Отписывается `stop`, но по локальной копии: поле обнуляется раньше,
+  /// чем ждём отписки. Линтеру этого не видно.
+  // ignore: cancel_subscriptions
   StreamSubscription<NormalizedGamepadEvent>? _subscription;
 
   /// Действия, удерживаемые прямо сейчас, и их таймеры автоповтора.
@@ -144,16 +147,26 @@ class GamepadService {
   }
 
   Future<void> stop() async {
-    await _subscription?.cancel();
+    // Всё своё гасим **синхронно**, и только потом ждём отписки: раскладку
+    // правят одним нажатием, «выключить — включить» приходит двумя
+    // вызовами подряд, и `start()` видел ещё не обнулённую подписку. Он
+    // уходил ни с чем, а геймпад оставался выключенным до перезапуска.
+    final subscription = _subscription;
     _subscription = null;
     _cancelAllRepeats();
     _held.clear();
     _pressed.clear();
+    // Отписка от потока плагина не мгновенна, и ждать её, держа таймеры
+    // повтора, незачем.
+    await subscription?.cancel();
   }
 
   /// Открыто для тестов: позволяет прогнать сценарий без железа.
   @visibleForTesting
   void handleEvent(NormalizedGamepadEvent event) {
+    // Событие, пришедшее после закрытия: отписка не мгновенна, а поток
+    // действий уже закрыт.
+    if (_actions.isClosed) return;
     // Список устройств спрашивают один раз, при запуске, и геймпад,
     // подключённый позже, в него не попадал: сам он работал, но подсказки
     // управления внизу окна молчали, потому что смотрят на этот список.
