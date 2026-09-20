@@ -62,13 +62,7 @@ class _SpeedChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    final gridPaint = Paint()
-      ..color = gridColor.withValues(alpha: 0.42)
-      ..strokeWidth = 1;
-    for (var i = 1; i < 4; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
+    _drawGrid(canvas, size);
 
     final values = samples.isEmpty
         ? const [SpeedSample(download: 0, disk: 0)]
@@ -87,26 +81,63 @@ class _SpeedChartPainter extends CustomPainter {
       if (sample.download > maximum) maximum = sample.download;
     }
 
+    _drawBars(canvas, size, values, maximum);
+    _drawDiskLine(canvas, size, values, maximum);
+  }
+
+  /// Где стоит выборка [i] из [count].
+  ///
+  /// Свежее прижато к правому краю: пока минута не набралась, слева
+  /// остаётся пустота, а не растянутые на всю ширину три столбца.
+  static double _x(Size size, int count, int i) =>
+      (DownloadHistoryBloc.length - count + i + 0.5) *
+      (size.width / DownloadHistoryBloc.length);
+
+  void _drawGrid(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = gridColor.withValues(alpha: 0.42)
+      ..strokeWidth = 1;
+    for (var i = 1; i < 4; i++) {
+      final y = size.height * i / 4;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  /// Сеть — столбцами: рывок в ней виден сам по себе.
+  void _drawBars(
+    Canvas canvas,
+    Size size,
+    List<SpeedSample> values,
+    int maximum,
+  ) {
     final slot = size.width / DownloadHistoryBloc.length;
-    final barPaint = Paint()
+    final paint = Paint()
       ..color = networkColor.withValues(alpha: 0.62)
       ..strokeWidth = (slot * 0.62).clamp(1.0, 5.0)
       ..strokeCap = StrokeCap.round;
-    final offset = DownloadHistoryBloc.length - values.length;
     for (var i = 0; i < values.length; i++) {
       final height = values[i].download / maximum * (size.height - 4);
-      final x = (offset + i + 0.5) * slot;
+      final x = _x(size, values.length, i);
       canvas.drawLine(
         Offset(x, size.height),
         Offset(x, size.height - height),
-        barPaint,
+        paint,
       );
     }
+  }
 
+  /// Диск — линией поверх столбцов, и только когда точек больше одной:
+  /// линия из одной точки не рисуется ничем.
+  void _drawDiskLine(
+    Canvas canvas,
+    Size size,
+    List<SpeedSample> values,
+    int maximum,
+  ) {
     if (values.length < 2) return;
     final path = Path();
     for (var i = 0; i < values.length; i++) {
-      final x = (offset + i + 0.5) * slot;
+      final x = _x(size, values.length, i);
       final y = (size.height - values[i].disk / maximum * (size.height - 4))
           .clamp(2.0, size.height);
       if (i == 0) {

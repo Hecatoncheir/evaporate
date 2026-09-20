@@ -1,15 +1,13 @@
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/saves/saves_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
-import '../../services/saves/save_manager.dart';
-import '../theme.dart';
 import '../widgets/busy_spinner.dart';
 import '../widgets/section_card.dart';
-import 'sync_package_row.dart';
+import 'sync_folder_contents.dart';
+import 'sync_folder_prompt.dart';
 
 /// Папка синхронизации: где лежат пакеты с других устройств и что с ними
 /// делать.
@@ -22,66 +20,33 @@ class SyncFolderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settingsStore = context.read<SettingsBloc>();
     final folder = context.select<SettingsBloc, String?>(
       (bloc) => bloc.state.syncFolder,
-    );
-    final packages = context.select<SavesBloc, List<SavePackageInfo>>(
-      (bloc) => bloc.state.syncPackages,
     );
     final scanning = context.select<SavesBloc, bool>(
       (bloc) => bloc.state.scanningSync,
     );
-    final scannedOnce = context.select<SavesBloc, bool>(
-      (bloc) => bloc.state.syncScanned,
-    );
-    void onScan() =>
-        context.read<SavesBloc>().add(const SyncFolderScanRequested());
 
     return SectionCard(
       title: L.of(context).syncFolder,
       icon: Icons.sync,
+      // Пока папки нет, проверять нечего — и клавиши тоже нет.
       trailing: folder == null
           ? null
           : TextButton.icon(
-              onPressed: scanning ? null : onScan,
+              onPressed: scanning
+                  ? null
+                  : () => context.read<SavesBloc>().add(
+                      const SyncFolderScanRequested(),
+                    ),
               icon: scanning
                   ? const BusySpinner()
                   : const Icon(Icons.refresh, size: 16),
               label: Text(L.of(context).check),
             ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (folder == null) ...[
-            Text(L.of(context).syncFolderNote, style: context.text.paragraph),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final dir = await getDirectoryPath();
-                if (dir == null) return;
-                settingsStore.add(
-                  SettingsPatched((s) => s.copyWith(syncFolder: dir)),
-                );
-              },
-              icon: const Icon(Icons.folder_outlined, size: 16),
-              label: Text(L.of(context).chooseFolder),
-            ),
-          ] else ...[
-            SelectableText(folder, style: context.text.path),
-            const SizedBox(height: 14),
-            if (packages.isEmpty)
-              Text(
-                scannedOnce
-                    ? L.of(context).noPackagesFound
-                    : L.of(context).checkFolderHint,
-                style: context.text.bodyMuted,
-              )
-            else
-              for (final package in packages) SyncPackageRow(package: package),
-          ],
-        ],
-      ),
+      child: folder == null
+          ? const SyncFolderPrompt()
+          : SyncFolderContents(folder: folder),
     );
   }
 }

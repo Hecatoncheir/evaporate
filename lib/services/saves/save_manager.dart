@@ -180,6 +180,51 @@ class SaveManager {
     }
 
     // Сначала обходим файлы, чтобы манифест содержал честные размеры.
+    final found = await _collectByRules(game, rules);
+
+    if (found.entries.isEmpty) {
+      throw SaveNothingFoundException(_l.saveNothingFound);
+    }
+    if (found.totalBytes > maxSnapshotBytes) {
+      throw SaveException(_l.saveTooLarge(formatBytes(found.totalBytes)));
+    }
+
+    // Своего архива у снимка нет: файлы уходят в хранилище по содержимому,
+    // а пакет собирается из ссылок, когда его просят унести наружу.
+    // Одинаковые файлы соседних снимков при этом лежат на диске один раз.
+    final blobs = <SnapshotBlob>[];
+    for (final entry in found.entries) {
+      blobs.add(await store.put(entry.archiveName, File(entry.sourcePath)));
+    }
+
+    return SaveSnapshot(
+      id: _uuid.v4(),
+      gameId: game.id,
+      gameTitle: game.title,
+      createdAt: DateTime.now(),
+      deviceName: currentDeviceName(),
+      platform: currentPlatformKey(),
+      sizeBytes: found.totalBytes,
+      archivePath: '',
+      rules: found.rules,
+      playtime: game.playtime,
+      note: note,
+      fileCount: found.entries.length,
+      origin: origin,
+      blobs: blobs,
+    );
+  }
+
+  /// Обходит правила игры и собирает то, что по ним нашлось.
+  ///
+  /// Правила возвращаются не теми, что были: у сработавшего уточняется
+  /// вид (файл или папка), а не сработавшие в снимок не попадают вовсе —
+  /// иначе на другом устройстве пришлось бы гадать, почему по правилу
+  /// ничего не лежит.
+  Future<
+    ({List<CollectedFile> entries, List<SavePathRule> rules, int totalBytes})
+  >
+  _collectByRules(Game game, List<SavePathRule> rules) async {
     final entries = <CollectedFile>[];
     final usedRules = <SavePathRule>[];
     var totalBytes = 0;
@@ -203,40 +248,7 @@ class SaveManager {
       }
     }
 
-    if (entries.isEmpty) {
-      throw SaveNothingFoundException(_l.saveNothingFound);
-    }
-    if (totalBytes > maxSnapshotBytes) {
-      throw SaveException(_l.saveTooLarge(formatBytes(totalBytes)));
-    }
-
-    final id = _uuid.v4();
-    final stamp = DateTime.now();
-
-    // Своего архива у снимка нет: файлы уходят в хранилище по содержимому,
-    // а пакет собирается из ссылок, когда его просят унести наружу.
-    // Одинаковые файлы соседних снимков при этом лежат на диске один раз.
-    final blobs = <SnapshotBlob>[];
-    for (final entry in entries) {
-      blobs.add(await store.put(entry.archiveName, File(entry.sourcePath)));
-    }
-
-    return SaveSnapshot(
-      id: id,
-      gameId: game.id,
-      gameTitle: game.title,
-      createdAt: stamp,
-      deviceName: currentDeviceName(),
-      platform: currentPlatformKey(),
-      sizeBytes: totalBytes,
-      archivePath: '',
-      rules: usedRules,
-      playtime: game.playtime,
-      note: note,
-      fileCount: entries.length,
-      origin: origin,
-      blobs: blobs,
-    );
+    return (entries: entries, rules: usedRules, totalBytes: totalBytes);
   }
 
   /// Собирает настоящий `.evsave` из ссылок на содержимое.

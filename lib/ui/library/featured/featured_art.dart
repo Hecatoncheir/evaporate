@@ -55,48 +55,56 @@ class FeaturedArt extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) => fallback,
                   ),
           ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  AppColors.heroShadeStrong,
-                  AppColors.heroShadeMiddle,
-                  AppColors.heroShadeClear,
-                ],
-                stops: [0, 0.5, 0.86],
-              ),
-            ),
-          ),
+          _shadeLeft,
           // В полосе клавиши стоят справа, прямо на картинке, и им нужна
           // своя подложка: в полном кадре правая половина остаётся
           // открытой, а здесь на ней белая надпись.
-          if (compact)
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerRight,
-                  end: Alignment.centerLeft,
-                  colors: [AppColors.heroShadeStrong, AppColors.heroShadeClear],
-                  stops: [0, 0.46],
-                ),
-              ),
-            ),
+          if (compact) _shadeRight,
           // Второе затемнение снизу: у надписи должна быть подложка
           // независимо от того, что на картинке.
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-                colors: [AppColors.heroShadeMiddle, AppColors.heroShadeClear],
-                stops: [0, 0.62],
-              ),
-            ),
-          ),
+          _shadeBottom,
         ],
       ),
     );
   }
 }
+
+/// Затемнения — постоянными, а не тремя вложенными литералами внутри
+/// `build`: это одно и то же при каждой перерисовке, а в стопке видно
+/// только, в каком порядке они ложатся.
+const _shadeLeft = DecoratedBox(
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        AppColors.heroShadeStrong,
+        AppColors.heroShadeMiddle,
+        AppColors.heroShadeClear,
+      ],
+      stops: [0, 0.5, 0.86],
+    ),
+  ),
+);
+
+const _shadeRight = DecoratedBox(
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.centerRight,
+      end: Alignment.centerLeft,
+      colors: [AppColors.heroShadeStrong, AppColors.heroShadeClear],
+      stops: [0, 0.46],
+    ),
+  ),
+);
+
+const _shadeBottom = DecoratedBox(
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
+      colors: [AppColors.heroShadeMiddle, AppColors.heroShadeClear],
+      stops: [0, 0.62],
+    ),
+  ),
+);

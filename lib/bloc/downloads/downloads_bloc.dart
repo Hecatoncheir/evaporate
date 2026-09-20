@@ -15,6 +15,7 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../../services/download/dtorrent_engine.dart';
+import '../../services/download/integrity_check.dart';
 import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
@@ -441,6 +442,10 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
 
   /// Загрузка закончилась: определяем папку игры и пытаемся угадать,
   /// что именно запускать.
+  ///
+  /// Исходов у проверки два, и каждый — со своей записью в библиотеку,
+  /// своим сообщением и своим уведомлением; оба вынесены шагами, потому
+  /// что вместе они читаются как одна функция про две разные развязки.
   Future<void> _finalize(
     Game game,
     DownloadTask task,
@@ -449,64 +454,92 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     if (!_finalizing.add(game.id)) return;
     try {
       final installDir = deriveInstallDir(task) ?? settings.state.installDir;
-      String? executable;
-      if (game.executablePath == null) {
-        final candidates = await ExecutableFinder.scan(installDir);
-        if (candidates.isNotEmpty) executable = candidates.first.path;
-      }
+      final executable = await _guessExecutable(game, installDir);
       // Хеши кусков сверяются при скачивании, но пропавший или обрезанный
       // файл протокол уже не заметит — проверяем перед тем, как объявить
       // игру готовой.
       final report = await engine.verify(task.id);
       if (!report.isValid) {
-        library.add(
-          GameDownloadRejected(
-            game.id,
-            installDir: installDir,
-            reason: _l.noticeDownloadIncompleteBody(report.describe(_l)),
-          ),
-        );
-        await library.persist();
-        emit(
-          state.copyWith(
-            notice: notice(
-              _l.noticeDownloadIncomplete(game.title, report.describe(_l)),
-              isError: true,
-            ),
-          ),
-        );
-        _notifySystem(
-          AppNotification(
-            title: _l.noticeDownloadIncompleteShort,
-            body: '«${game.title}»: ${report.describe(_l)}',
-            kind: NotificationKind.downloadFailed,
-          ),
-        );
+        await _rejectIncomplete(game, installDir, report, emit);
         return;
       }
-
-      library.add(
-        GameDownloadFinished(
-          game.id,
-          installDir: installDir,
-          sizeBytes: task.totalBytes,
-          executablePath: executable,
-          metadataQuery: task.name,
-        ),
-      );
-      await library.persist();
-
-      emit(state.copyWith(notice: notice(_l.noticeGameDownloaded(game.title))));
-      _notifySystem(
-        AppNotification(
-          title: _l.noticeDownloadFinished,
-          body: _l.noticeGameReady(game.title),
-          kind: NotificationKind.downloadFinished,
-        ),
-      );
+      await _acceptFinished(game, task, installDir, executable, emit);
     } finally {
       _finalizing.remove(game.id);
     }
+  }
+
+  /// Что запускать, если человек ещё не выбрал сам.
+  ///
+  /// Выбранное им не трогаем: загрузка могла быть повторной.
+  Future<String?> _guessExecutable(Game game, String installDir) async {
+    if (game.executablePath != null) return null;
+    final candidates = await ExecutableFinder.scan(installDir);
+    return candidates.isEmpty ? null : candidates.first.path;
+  }
+
+  /// Скачанное не сошлось с хешами: игра не готова, и об этом говорят
+  /// трижды — записью в библиотеку, сообщением на экране и уведомлением.
+  Future<void> _rejectIncomplete(
+    Game game,
+    String installDir,
+    IntegrityReport report,
+    Emitter<DownloadsState> emit,
+  ) async {
+    final reason = report.describe(_l);
+    library.add(
+      GameDownloadRejected(
+        game.id,
+        installDir: installDir,
+        reason: _l.noticeDownloadIncompleteBody(reason),
+      ),
+    );
+    await library.persist();
+    emit(
+      state.copyWith(
+        notice: notice(
+          _l.noticeDownloadIncomplete(game.title, reason),
+          isError: true,
+        ),
+      ),
+    );
+    _notifySystem(
+      AppNotification(
+        title: _l.noticeDownloadIncompleteShort,
+        body: '«${game.title}»: $reason',
+        kind: NotificationKind.downloadFailed,
+      ),
+    );
+  }
+
+  /// Игра готова: размер и папку знает задача, остальное доберёт поиск
+  /// метаданных по имени раздачи.
+  Future<void> _acceptFinished(
+    Game game,
+    DownloadTask task,
+    String installDir,
+    String? executable,
+    Emitter<DownloadsState> emit,
+  ) async {
+    library.add(
+      GameDownloadFinished(
+        game.id,
+        installDir: installDir,
+        sizeBytes: task.totalBytes,
+        executablePath: executable,
+        metadataQuery: task.name,
+      ),
+    );
+    await library.persist();
+
+    emit(state.copyWith(notice: notice(_l.noticeGameDownloaded(game.title))));
+    _notifySystem(
+      AppNotification(
+        title: _l.noticeDownloadFinished,
+        body: _l.noticeGameReady(game.title),
+        kind: NotificationKind.downloadFinished,
+      ),
+    );
   }
 
   /// Убирает с диска то, что задача успела скачать.

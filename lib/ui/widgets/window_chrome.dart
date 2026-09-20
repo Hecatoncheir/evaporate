@@ -32,92 +32,84 @@ class WindowChrome {
   /// Длина уголка вдоль каждой стороны.
   static const corner = 8.0;
 
-  /// Полосы и уголки для окна размера [size]. Уголок — две полосы, сходящиеся
-  /// под прямым углом: квадрат восемь на восемь залез бы на кнопку, а полоса
-  /// в четыре точки под кнопками уже не проходит.
-  static List<({ResizeEdge edge, Rect rect})> resizeZones(Size size) {
-    final w = size.width;
-    final h = size.height;
+  /// Полосы и уголки для окна размера [size].
+  static List<({ResizeEdge edge, Rect rect})> resizeZones(Size size) => [
+    ..._sides(size),
+    ..._corners(size),
+  ];
+
+  /// Полосы вдоль сторон — между уголками, а не во всю длину: иначе они
+  /// накрыли бы уголок, и тянуть за угол получалось бы только мимо него.
+  static List<({ResizeEdge edge, Rect rect})> _sides(Size size) {
+    final along = size.width - corner * 2;
+    final down = size.height - corner * 2;
     return [
       (
         edge: ResizeEdge.top,
-        rect: Rect.fromLTWH(corner, 0, w - corner * 2, WindowChrome.edge),
+        rect: Rect.fromLTWH(corner, 0, along, WindowChrome.edge),
       ),
       (
         edge: ResizeEdge.bottom,
         rect: Rect.fromLTWH(
           corner,
-          h - WindowChrome.edge,
-          w - corner * 2,
+          size.height - WindowChrome.edge,
+          along,
           WindowChrome.edge,
         ),
       ),
       (
         edge: ResizeEdge.left,
-        rect: Rect.fromLTWH(0, corner, WindowChrome.edge, h - corner * 2),
+        rect: Rect.fromLTWH(0, corner, WindowChrome.edge, down),
       ),
       (
         edge: ResizeEdge.right,
         rect: Rect.fromLTWH(
-          w - WindowChrome.edge,
+          size.width - WindowChrome.edge,
           corner,
           WindowChrome.edge,
-          h - corner * 2,
-        ),
-      ),
-      (
-        edge: ResizeEdge.topLeft,
-        rect: const Rect.fromLTWH(0, 0, corner, WindowChrome.edge),
-      ),
-      (
-        edge: ResizeEdge.topLeft,
-        rect: const Rect.fromLTWH(0, 0, WindowChrome.edge, corner),
-      ),
-      (
-        edge: ResizeEdge.topRight,
-        rect: Rect.fromLTWH(w - corner, 0, corner, WindowChrome.edge),
-      ),
-      (
-        edge: ResizeEdge.topRight,
-        rect: Rect.fromLTWH(
-          w - WindowChrome.edge,
-          0,
-          WindowChrome.edge,
-          corner,
-        ),
-      ),
-      (
-        edge: ResizeEdge.bottomLeft,
-        rect: Rect.fromLTWH(
-          0,
-          h - WindowChrome.edge,
-          corner,
-          WindowChrome.edge,
-        ),
-      ),
-      (
-        edge: ResizeEdge.bottomLeft,
-        rect: Rect.fromLTWH(0, h - corner, WindowChrome.edge, corner),
-      ),
-      (
-        edge: ResizeEdge.bottomRight,
-        rect: Rect.fromLTWH(
-          w - corner,
-          h - WindowChrome.edge,
-          corner,
-          WindowChrome.edge,
-        ),
-      ),
-      (
-        edge: ResizeEdge.bottomRight,
-        rect: Rect.fromLTWH(
-          w - WindowChrome.edge,
-          h - corner,
-          WindowChrome.edge,
-          corner,
+          down,
         ),
       ),
     ];
+  }
+
+  /// Уголок — две полосы, сходящиеся под прямым углом: квадрат восемь на
+  /// восемь залез бы на кнопку, а полоса в четыре точки под кнопками уже
+  /// не проходит.
+  ///
+  /// Все четыре устроены одинаково с точностью до того, у какого края
+  /// стоят, — поэтому таблицей, а не двенадцатью выписанными
+  /// прямоугольниками, в которых ошибка на одно число не видна глазом.
+  static Iterable<({ResizeEdge edge, Rect rect})> _corners(Size size) sync* {
+    const thickness = WindowChrome.edge;
+    const corners = [
+      (edge: ResizeEdge.topLeft, atLeft: true, atTop: true),
+      (edge: ResizeEdge.topRight, atLeft: false, atTop: true),
+      (edge: ResizeEdge.bottomLeft, atLeft: true, atTop: false),
+      (edge: ResizeEdge.bottomRight, atLeft: false, atTop: false),
+    ];
+
+    for (final at in corners) {
+      // Вдоль верхней или нижней стороны — и вдоль левой или правой.
+      yield (
+        edge: at.edge,
+        rect: Rect.fromLTWH(
+          at.atLeft ? 0 : size.width - corner,
+          at.atTop ? 0 : size.height - thickness,
+          corner,
+          thickness,
+        ),
+      );
+      yield (
+        edge: at.edge,
+        rect: Rect.fromLTWH(
+          at.atLeft ? 0 : size.width - thickness,
+          at.atTop ? 0 : size.height - corner,
+          thickness,
+          corner,
+        ),
+      );
+    }
   }
 
   /// Курсор говорит, что край можно потянуть: полосу в четыре точки иначе

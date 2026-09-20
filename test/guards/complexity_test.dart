@@ -123,16 +123,13 @@ int top(int x) => x > 0 ? x : -x;
 /// лечится ранним выходом, таблицей или именованным шагом.
 const _complexity = <String>[];
 
-const _lines = [
-  'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
-  'lib/models/game.dart: Game.copyWith: 63',
-  'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
-  'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',
-  'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
-  'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',
-  'lib/ui/widgets/liquid/liquid_selection_path.dart: liquidSelectionPath: 71',
-  'lib/ui/widgets/window_chrome.dart: WindowChrome.resizeZones: 84',
-];
+/// Осталась одна запись, и она держится за разбор `Game` (этап 6 в
+/// `TODO.md`), а не за длину сама по себе: в `copyWith` двадцать семь
+/// полей, каждое по строке в параметрах и по строке в вызове, и ни
+/// ранний выход, ни именованный шаг тут ничего не сокращают — только
+/// меньшее число полей. Разложить `Game` на значения решено отдельной
+/// работой, целиком, а не попутно.
+const _lines = ['lib/models/game.dart: Game.copyWith: 63'];
 
 /// Пусто, и пополнять нечем: вложенность глубже трёх лечится ранним
 /// выходом или своей функцией — это всегда дешевле, чем запись здесь.
