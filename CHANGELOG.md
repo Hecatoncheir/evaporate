@@ -3,7 +3,7 @@
 Формат следует [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версии — [семантическому версионированию](https://semver.org/lang/ru/).
 
-## [Не выпущено]
+## [0.36.0] — 2026-09-21
 
 ### Изменено
 
@@ -1516,6 +1516,7 @@ Dart с поддержкой SOCKS5 вплоть до обмена с пирам
 формате `.evsave`, управление мышью, клавиатурой и геймпадом, системные
 уведомления о фоновых событиях.
 
+[0.36.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.36.0
 [0.35.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.35.0
 [0.34.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.34.0
 [0.33.0]: https://github.com/Hecatoncheir/evaporate/releases/tag/v0.33.0
