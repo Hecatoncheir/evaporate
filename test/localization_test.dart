@@ -52,20 +52,28 @@ void main() {
     test('подстановки совпадают в обоих языках', () {
       final ru = arb('ru');
       final en = arb('en');
-      final braces = RegExp(r'\{(\w+)\}');
 
       for (final key in ru.keys.where((k) => !k.startsWith('@'))) {
-        final inRu = braces
-            .allMatches(ru[key] as String)
-            .map((m) => m.group(1))
-            .toSet();
-        final inEn = braces
-            .allMatches(en[key] as String)
-            .map((m) => m.group(1))
-            .toSet();
-
-        expect(inEn, inRu, reason: 'подстановки разошлись в ключе $key');
+        expect(
+          placeholdersIn(en[key] as String),
+          placeholdersIn(ru[key] as String),
+          reason: 'подстановки разошлись в ключе $key',
+        );
       }
+    });
+
+    // Формы числа у языков разные: у русского их четыре, у английского
+    // две. Проверяем не текст, а то, что склонение вообще работает, —
+    // иначе «1 файлов» вернулось бы незамеченным.
+    test('число склоняется по правилам своего языка', () {
+      final ru = LRu();
+      final en = LEn();
+
+      expect(ru.filesCount(1), '1 файл');
+      expect(ru.filesCount(3), '3 файла');
+      expect(ru.filesCount(7), '7 файлов');
+      expect(en.filesCount(1), '1 file');
+      expect(en.filesCount(3), '3 files');
     });
   });
 
@@ -181,3 +189,16 @@ void main() {
     );
   });
 }
+
+/// Имена подстановок в строке ARB, включая ICU.
+///
+/// Обычная подстановка — `{name}`, но у множественного числа она стоит
+/// иначе: `{count, plural, one{…}}`. Ищи страж только первую — и перевод,
+/// где число названо лишь во главе ICU, выглядел бы потерявшим его.
+Set<String> placeholdersIn(String text) => {
+  for (final match in RegExp(r'\{(\w+)\}').allMatches(text)) match.group(1)!,
+  for (final match in RegExp(
+    r'\{(\w+),\s*(?:plural|select|date|time)',
+  ).allMatches(text))
+    match.group(1)!,
+};
