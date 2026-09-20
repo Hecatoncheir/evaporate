@@ -13,24 +13,17 @@ import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../system/app_log.dart';
+import 'evsave_package.dart';
 import 'rule_matcher.dart';
 import 'save_collector.dart';
+import 'save_exception.dart';
 import 'snapshot_store.dart';
 
+// Исключения уехали в свой файл — их бросают и пакет, и раскладка, — но
+// зовут их отсюда по всему приложению.
+export 'save_exception.dart';
+
 part 'restore_transaction.dart';
-
-class SaveException implements Exception {
-  SaveException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
-class SaveNothingFoundException extends SaveException {
-  SaveNothingFoundException(super.message);
-}
 
 /// Что получилось при восстановлении: UI показывает это пользователю,
 /// а не молча делает вид, что всё прошло гладко.
@@ -103,6 +96,9 @@ class SaveManager {
 
   /// Кто решает, какому здешнему правилу отвечает правило из пакета.
   final _rules = const RuleMatcher();
+
+  /// Кто разбирает сам файл пакета: архив, манифест, имена записей.
+  late final _package = EvsavePackage(localizations: _localizations);
   // Подмена файловой операции позволяет проверять откат при сбое на
   // второй цели без ненадёжных тестов прав доступа на разных ОС.
   final Future<FileSystemEntity> Function(FileSystemEntity, String)
@@ -333,7 +329,7 @@ class SaveManager {
     final path = source?.path ?? snapshot.archivePath;
 
     try {
-      return await _withArchive(
+      return await _package.open(
         path,
         (archive) => _restoreFrom(
           archive: archive,
@@ -362,8 +358,8 @@ class SaveManager {
     required bool backupCurrent,
     required bool wipeTarget,
   }) async {
-    final manifest = _checkedManifest(_readManifest(archive));
-    final resolved = await _resolveTargets(game, _readRules(manifest));
+    final manifest = _package.checkedManifest(_package.manifestOf(archive));
+    final resolved = await _resolveTargets(game, _package.rulesOf(manifest));
     if (resolved.byRuleId.isEmpty) {
       throw SaveException(_l.saveNoTargets);
     }
@@ -457,41 +453,6 @@ class SaveManager {
   Map<String, String> previewTargets(Game game, SaveSnapshot snapshot) =>
       _rules.preview(game, snapshot);
 
-  /// Манифест, с которым можно работать дальше.
-  ///
-  /// Оба отказа — человеку, а не в журнал: пакет пришёл извне, и «это не
-  /// наш пакет» с «эту версию мы не читаем» он должен различать. Версии
-  /// сверяются по множеству [SaveSnapshot.readableFormats], а не с
-  /// текущей: пакеты переживают версии приложения.
-  Map<String, dynamic> _checkedManifest(Map<String, dynamic>? manifest) {
-    if (manifest == null) {
-      throw SaveException(_l.saveNotEvaporatePackage);
-    }
-    if (!SaveSnapshot.readableFormats.contains(manifest['format'])) {
-      throw SaveException(_l.saveUnsupportedVersion('${manifest['format']}'));
-    }
-    return manifest;
-  }
-
-  List<SavePathRule> _readRules(Map<String, dynamic> manifest) {
-    try {
-      final rules = (manifest['rules'] as List<dynamic>? ?? [])
-          .map((e) => SavePathRule.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final ids = <String>{};
-      for (final rule in rules) {
-        if (rule.id.isEmpty ||
-            rule.id.contains(RegExp(r'[/\\]')) ||
-            !ids.add(rule.id)) {
-          throw const FormatException('Invalid or duplicate rule ID');
-        }
-      }
-      return rules;
-    } on Object catch (error) {
-      throw SaveException(_l.saveArchiveReadFailed('$error'));
-    }
-  }
-
   /// Копирует пакет наружу — на флешку, в облачную папку, куда угодно.
   Future<File> exportSnapshot(
     SaveSnapshot snapshot,
@@ -513,10 +474,13 @@ class SaveManager {
 
   /// Читает манифест пакета, ничего не распаковывая.
   Future<SavePackageInfo> inspectPackage(String path) async {
-    final manifest = _checkedManifest(
-      await _withArchive(path, (archive) async => _readManifest(archive)),
+    final manifest = _package.checkedManifest(
+      await _package.open(
+        path,
+        (archive) async => _package.manifestOf(archive),
+      ),
     );
-    final rules = _readRules(manifest);
+    final rules = _package.rulesOf(manifest);
 
     final snapshot = SaveSnapshot(
       id: manifest['id'] as String? ?? _uuid.v4(),
@@ -561,11 +525,11 @@ class SaveManager {
     await dir.create(recursive: true);
     final blobs = <SnapshotBlob>[];
 
-    await _withArchive(path, (archive) async {
+    await _package.open(path, (archive) async {
       _checkDeclaredSize(archive);
       for (final file in archive.files) {
         if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
-        if (_parseEntryName(file.name) == null) continue;
+        if (EvsavePackage.parseEntryName(file.name) == null) continue;
         blobs.add(await _importEntry(file, dir));
       }
     });
@@ -664,66 +628,6 @@ class SaveManager {
     result.sort((a, b) => b.snapshot.createdAt.compareTo(a.snapshot.createdAt));
     return result;
   }
-
-  /// Открывает пакет, отдаёт его [use] и закрывает всё, что открыл.
-  ///
-  /// Закрывать приходится двоих: архив держит потоки своих записей, а
-  /// разборщик — поток самого файла, и `Archive.clear` его не трогает. На
-  /// Windows незакрытый поток держит пакет запертым до выхода из
-  /// приложения: ни удалить битый, ни заменить исправным, ни убрать
-  /// временный пакет после восстановления.
-  Future<T> _withArchive<T>(
-    String path,
-    Future<T> Function(Archive archive) use,
-  ) async {
-    if (!await File(path).exists()) {
-      throw SaveException(_l.fileNotFound(path));
-    }
-    final input = InputFileStream(path);
-    try {
-      final Archive archive;
-      try {
-        archive = ZipDecoder().decodeStream(input);
-      } on Object catch (error) {
-        throw SaveException(_l.saveArchiveReadFailed('$error'));
-      }
-      try {
-        return await use(archive);
-      } finally {
-        await archive.clear();
-      }
-    } finally {
-      await input.close();
-    }
-  }
-
-  Map<String, dynamic>? _readManifest(Archive archive) {
-    for (final file in archive.files) {
-      if (file.name != SaveSnapshot.manifestEntry) continue;
-      try {
-        final decoded = jsonDecode(utf8.decode(file.content));
-        if (decoded is Map<String, dynamic>) return decoded;
-      } on Object {
-        return null;
-      }
-    }
-    return null;
-  }
-
-  static _EntryName? _parseEntryName(String name) {
-    final normalized = name.replaceAll(r'\', '/');
-    final parts = normalized.split('/');
-    if (parts.length < 3) return null;
-    if (parts.first != SaveSnapshot.dataPrefix) return null;
-    return _EntryName(parts[1], parts.sublist(2).join('/'));
-  }
-}
-
-class _EntryName {
-  const _EntryName(this.ruleId, this.relativePath);
-
-  final String ruleId;
-  final String relativePath;
 }
 
 /// Цели восстановления: куда лечь правилам пакета на этом устройстве.

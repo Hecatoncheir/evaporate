@@ -93,7 +93,7 @@ extension _RestoreTransaction on SaveManager {
       }
       if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
 
-      final parsed = SaveManager._parseEntryName(file.name);
+      final parsed = EvsavePackage.parseEntryName(file.name);
       if (parsed == null) continue;
       final target = targets[parsed.ruleId];
       if (target == null) continue;
@@ -448,7 +448,7 @@ class _Payload {
 
   final ArchiveFile file;
   final _RestoreTarget target;
-  final _EntryName name;
+  final EntryName name;
 }
 
 /// Строит план и сам сторожит его правила.
