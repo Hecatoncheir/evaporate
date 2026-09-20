@@ -36,6 +36,28 @@ extension _SavesHints on SavesBloc {
     );
   }
 
+  /// Смотрит, лежат ли на диске папки правил игры.
+  ///
+  /// Одним заходом на все правила: строка правила спрашивала диск сама,
+  /// дважды на каждое правило и на каждый кадр.
+  void _onSavePathsPresenceRequested(
+    SavePathsPresenceRequested event,
+    Emitter<SavesState> emit,
+  ) {
+    // Спрашиваем диск синхронно, и это не оплошность: проверок столько,
+    // сколько правил у одной игры, идут они раз на событие, а не на кадр,
+    // — тогда как ожидание здесь не закончилось бы в виджет-тестах вовсе.
+    final presence = <String, bool>{};
+    for (final rule in event.game.saveProfile.rules) {
+      final resolved = rule.resolve(gameDir: event.game.installDir);
+      if (resolved == null) continue;
+      presence[resolved] =
+          Directory(resolved).existsSync() || File(resolved).existsSync();
+    }
+    if (presence.isEmpty) return;
+    emit(state.copyWith(pathPresence: {...state.pathPresence, ...presence}));
+  }
+
   /// Ищет папку по названию игры в местах, где сохранения держат обычно.
   ///
   /// Обход идёт секундами, а клавиша всё это время на экране: без ключа

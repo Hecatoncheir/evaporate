@@ -505,8 +505,12 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`cover_drops.dart:96,110`): `dispose()` зовётся только в `dispose`
   виджета, а замена случается на каждый уход выделения с плитки. Кодек не
   освобождается, если `getNextFrame` бросит (`:86–88`).
-- [ ] Синхронный диск в `build`: `existsSync` дважды на каждое правило
+- [x] Синхронный диск в `build`: `existsSync` дважды на каждое правило
   (`saves/rule_tile.dart:27–29`). Признак «папка есть» — подавать снаружи.
+  *Сделано:* `SavePathsPresenceRequested` и `pathPresence` в состоянии
+  сохранений. Проверка идёт раз на событие, а не на кадр, и у неё три
+  исхода, как у свежести сейвов: есть, нет и «ещё не знаем» — последнее
+  строка правила не выдаёт за «нет».
 - [ ] Ошибки мимо `Notice` и журнала: `showError` и `SnackBar` прямо из
   виджетов — `saves_section.dart:250,416`, ~~`detail/info_section.dart:111`
   (там же `Process.run` в виджете, `:102–113`)~~ (сделано:

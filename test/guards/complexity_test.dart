@@ -151,7 +151,6 @@ const _lines = [
   'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
   'lib/ui/library/library_page.dart: _LibraryPageState.build: 73',
   'lib/ui/library/saves/rule_dialog.dart: _RuleDialogState.build: 83',
-  'lib/ui/library/saves/rule_tile.dart: RuleTile.build: 65',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',
   'lib/ui/settings/effect_details.dart: EffectDetails._effects: 92',
   'lib/ui/settings/log_card.dart: _LogCardState.build: 65',

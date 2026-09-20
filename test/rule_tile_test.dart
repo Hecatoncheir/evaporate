@@ -29,6 +29,7 @@ void main() {
                 platform: 'windows',
               ),
               gameDir: null,
+              exists: false,
               onRemove: () {},
             ),
           ),
@@ -37,5 +38,48 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
+  });
+
+  /// Строка правила с заданным признаком «папка на диске».
+  Future<void> pumpTile(WidgetTester tester, {required bool? exists}) =>
+      tester.pumpWidget(
+        MaterialApp(
+          theme: EvaporateTheme.dark(),
+          localizationsDelegates: L.localizationsDelegates,
+          supportedLocales: L.supportedLocales,
+          locale: const Locale('ru'),
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              child: RuleTile(
+                rule: const SavePathRule(
+                  id: 'r',
+                  label: 'Сохранения',
+                  template: '{APPSUPPORT}/Игра',
+                ),
+                gameDir: null,
+                exists: exists,
+                onRemove: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+  // Проверка идёт мимо отрисовки и приходит позже первого кадра. Пока её
+  // нет, сказать «на диске нет» значит утверждать то, чего не знаешь, —
+  // ровно там, где человек решает, чинить ли правило.
+  testWidgets('непроверенное не объявляется отсутствующим', (tester) async {
+    await pumpTile(tester, exists: null);
+
+    expect(find.text('нет на диске'), findsNothing);
+    expect(find.byIcon(Icons.folder_off_outlined), findsNothing);
+  });
+
+  testWidgets('о пропавшей папке говорят прямо', (tester) async {
+    await pumpTile(tester, exists: false);
+
+    expect(find.text('нет на диске'), findsOneWidget);
+    expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
   });
 }

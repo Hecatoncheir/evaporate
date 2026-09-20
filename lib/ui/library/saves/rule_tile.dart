@@ -1,78 +1,51 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
-import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/save_profile.dart';
-import '../../labels.dart';
 import '../../theme.dart';
 import '../../widgets/inset_tile.dart';
-import 'save_tag.dart';
+import 'rule_label_row.dart';
 
 class RuleTile extends StatelessWidget {
   const RuleTile({
     super.key,
     required this.rule,
     required this.gameDir,
+    required this.exists,
     required this.onRemove,
   });
 
   final SavePathRule rule;
   final String? gameDir;
+
+  /// Лежит ли папка на диске. `null` — ещё не проверяли, и молчим: сказать
+  /// «на диске нет» о непроверенном значило бы соврать там, где человек
+  /// решает, чинить ли правило.
+  final bool? exists;
+
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    final resolved = rule.resolve(gameDir: gameDir);
-    final exists =
-        resolved != null &&
-        (Directory(resolved).existsSync() || File(resolved).existsSync());
+    final missing = exists == false;
 
     return InsetTile(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            exists ? Icons.folder_outlined : Icons.folder_off_outlined,
+            missing ? Icons.folder_off_outlined : Icons.folder_outlined,
             size: 17,
-            color: exists
-                ? context.colors.accent
-                : context.colors.textSecondary,
+            color: missing
+                ? context.colors.textSecondary
+                : context.colors.accent,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Перенос, а не строка: метку задаёт человек, и длинная
-                // вместе с тегами вылезала за край узкой колонки.
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      ruleLabelText(L.of(context), rule.label),
-                      style: context.text.bodyStrong,
-                    ),
-                    if (rule.platform != null)
-                      SaveTag(
-                        text: platformLabel(rule.platform!),
-                        color: context.colors.textSecondary,
-                      ),
-                    if (!rule.isPortable)
-                      SaveTag(
-                        text: L.of(context).notPortablePath,
-                        color: context.colors.warning,
-                      ),
-                    if (!exists)
-                      SaveTag(
-                        text: L.of(context).missingOnDisk,
-                        color: context.colors.textSecondary,
-                      ),
-                  ],
-                ),
+                RuleLabelRow(rule: rule, missing: missing),
                 const SizedBox(height: 3),
                 SelectableText(rule.template, style: context.text.path),
               ],

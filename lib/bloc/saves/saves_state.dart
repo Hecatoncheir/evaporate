@@ -10,6 +10,7 @@ class SavesState extends Equatable {
   const SavesState({
     this.snapshots = const {},
     this.saveHints = const {},
+    this.pathPresence = const {},
     this.syncPackages = const [],
     this.scanningSync = false,
     this.syncScanned = false,
@@ -25,6 +26,13 @@ class SavesState extends Equatable {
   /// Папки, изменившиеся, пока игра работала, — по игре. Это догадка, и
   /// пока человек её не подтвердил, правилом она не становится.
   final Map<String, List<SavePathSuggestion>> saveHints;
+
+  /// Лежит ли на диске папка правила — по развёрнутому пути.
+  ///
+  /// Пусто — не «нет», а «не знаем»: пока проверка не прошла, говорить
+  /// человеку «на диске нет» нельзя. Раньше это спрашивалось у диска прямо
+  /// в `build`, дважды на каждое правило и на каждый кадр.
+  final Map<String, bool> pathPresence;
 
   /// Пакеты `.evsave`, найденные в папке синхронизации.
   final List<SavePackageInfo> syncPackages;
@@ -51,9 +59,14 @@ class SavesState extends Equatable {
   List<SavePathSuggestion> hintsFor(String gameId) =>
       saveHints[gameId] ?? const <SavePathSuggestion>[];
 
+  /// `null` — ещё не проверяли.
+  bool? pathExists(String? resolved) =>
+      resolved == null ? null : pathPresence[resolved];
+
   SavesState copyWith({
     Map<String, List<SaveSnapshot>>? snapshots,
     Map<String, List<SavePathSuggestion>>? saveHints,
+    Map<String, bool>? pathPresence,
     List<SavePackageInfo>? syncPackages,
     bool? scanningSync,
     bool? syncScanned,
@@ -65,6 +78,7 @@ class SavesState extends Equatable {
     return SavesState(
       snapshots: snapshots ?? this.snapshots,
       saveHints: saveHints ?? this.saveHints,
+      pathPresence: pathPresence ?? this.pathPresence,
       syncPackages: syncPackages ?? this.syncPackages,
       scanningSync: scanningSync ?? this.scanningSync,
       syncScanned: syncScanned ?? this.syncScanned,
@@ -81,6 +95,7 @@ class SavesState extends Equatable {
   List<Object?> get props => [
     snapshots,
     saveHints,
+    pathPresence,
     syncPackages,
     scanningSync,
     syncScanned,

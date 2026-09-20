@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../bloc/library/library_bloc.dart';
+import '../../../bloc/saves/saves_bloc.dart';
 import '../../../core/format.dart';
 import '../../../core/save_path_template.dart';
 import '../../../l10n/app_localizations.dart';
@@ -19,14 +20,46 @@ import '../saves/rule_dialog.dart';
 import '../saves/rule_tile.dart';
 import '../saves/watched_folders.dart';
 
-class SavePathsSection extends StatelessWidget {
+class SavePathsSection extends StatefulWidget {
   const SavePathsSection({super.key, required this.game});
 
   final Game game;
 
   @override
+  State<SavePathsSection> createState() => _SavePathsSectionState();
+}
+
+class _SavePathsSectionState extends State<SavePathsSection> {
+  Game get game => widget.game;
+
+  @override
+  void initState() {
+    super.initState();
+    _askPresence();
+  }
+
+  @override
+  void didUpdateWidget(SavePathsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (game.saveProfile.rules != oldWidget.game.saveProfile.rules ||
+        game.installDir != oldWidget.game.installDir) {
+      _askPresence();
+    }
+  }
+
+  /// Спрашивает у блока, лежат ли папки правил на диске.
+  ///
+  /// Раньше об этом спрашивали сам диск — синхронно, из `build`, дважды на
+  /// каждое правило и на каждый кадр.
+  void _askPresence() {
+    if (game.saveProfile.rules.isEmpty) return;
+    context.read<SavesBloc>().add(SavePathsPresenceRequested(game));
+  }
+
+  @override
   Widget build(BuildContext context) {
     final rules = game.saveProfile.rules;
+    final presence = context.watch<SavesBloc>().state;
 
     return SectionCard(
       title: L.of(context).savePaths,
@@ -67,6 +100,9 @@ class SavePathsSection extends StatelessWidget {
               RuleTile(
                 rule: rule,
                 gameDir: game.installDir,
+                exists: presence.pathExists(
+                  rule.resolve(gameDir: game.installDir),
+                ),
                 onRemove: () => _removeRule(context, rule),
               ),
           ],

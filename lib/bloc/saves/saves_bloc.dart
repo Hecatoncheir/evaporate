@@ -81,6 +81,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState> {
     on<SnapshotDeleted>(_onSnapshotDeleted);
     on<SaveHintsRequested>(_onSaveHintsRequested);
     on<SavePathSuggestionsRequested>(_onSavePathSuggestionsRequested);
+    on<SavePathsPresenceRequested>(_onSavePathsPresenceRequested);
     on<SaveHintsAccepted>(_onSaveHintsAccepted);
     on<SaveHintsDismissed>(_onSaveHintsDismissed);
     on<BulkExportRequested>(_onBulkExport);

@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/saves/ludusavi_catalog.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -249,6 +250,39 @@ void main() {
       );
 
       expect(state.notice!.message, contains('поиска по названию'));
+    });
+  });
+
+  group('папки правил на диске', () {
+    test(
+      'проверка отвечает и про существующую папку, и про пропавшую',
+      () async {
+        final present = await Directory(p.join(tmp.path, 'есть')).create();
+        final gone = p.join(tmp.path, 'унесли');
+        final game = await addGame('Hollow Knight');
+
+        library.add(
+          SaveRulesAdded(game.id, [
+            SavePathRule(id: 'a', label: 'Есть', template: present.path),
+            SavePathRule(id: 'b', label: 'Нет', template: gone),
+          ]),
+        );
+        final withRules = await waitFor(
+          (s) => s.gameById(game.id)!.saveProfile.rules.length == 2,
+        );
+
+        saves.add(SavePathsPresenceRequested(withRules.gameById(game.id)!));
+        final state = await waitForSaves((s) => s.pathPresence.isNotEmpty);
+
+        expect(state.pathExists(present.path), isTrue);
+        expect(state.pathExists(gone), isFalse);
+      },
+    );
+
+    // «Не знаем» и «нет» путать нельзя: пока проверка не прошла, строка
+    // правила молчит, а не заявляет, что папки нет.
+    test('непроверенный путь — не «нет»', () {
+      expect(const SavesState().pathExists('/какой-то/путь'), isNull);
     });
   });
 }

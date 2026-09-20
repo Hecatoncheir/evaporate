@@ -105,6 +105,18 @@ final class SaveHintsRequested extends SavesEvent {
   List<Object?> get props => [game, since];
 }
 
+/// Проверить, лежат ли на диске папки правил игры.
+///
+/// Спрашивать диск из `build` нельзя: он синхронный, а кадров много.
+final class SavePathsPresenceRequested extends SavesEvent {
+  const SavePathsPresenceRequested(this.game);
+
+  final Game game;
+
+  @override
+  List<Object?> get props => [game];
+}
+
 /// Поискать папку сохранений по названию игры.
 ///
 /// Догадка, как и наблюдение за игрой, поэтому и ложится туда же — в
