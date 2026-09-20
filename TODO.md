@@ -1043,7 +1043,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | 15 | 38 | `services/launch/steam_shortcuts.dart:355` `_putArtwork`, `:421`, `:127` | таблица `SteamArtwork.files(id)` и один цикл; `sync*`-итератор сегментов JPEG + `firstWhere`; разбор заголовков картинок (`:396–459`) — в свой файл |
 | ~~14~~ | ~~72~~ | ~~`bloc/library/library_metadata.dart:497` `_onSavePathsLookup`~~ | сделано: `done()` ушёл в `finally`, запись найденного — в `_applyFoundPaths` |
 | ~~13~~ | ~~72~~ | ~~`services/saves/save_manager.dart:415` `_restoreFrom`~~; `:139`, `:219` | сделано: `_checkedManifest` (общий с разбором пакета), `_resolveTargets` и `_backupBeforeRestore`. В `_materialize` флаг `complete` пока на месте |
-| 12 | 43 | `services/download/engine_queue.dart:66` `_launch`, `:20` | `_modelFor()`, предикат `_stillWanted(managed, generation)` вместо условия в четыре строки (`:79–84`), `_startTask()` |
+| ~~12~~ | ~~43~~ | ~~`services/download/engine_queue.dart:66` `_launch`, `:20`~~ | сделано: `_modelFor` был и раньше, добавились предикат `_stillWanted(managed, generation)` и `_startTask` |
 | ~~12~~ | ~~41~~ | ~~`services/launch/executable_finder.dart:71`, `:143`~~ | сделано: очки за расширение — таблицей по системам, обход папки — `_visitDirectory` |
 | ~~12~~ | ~~31~~ | ~~`services/launch/windows_installs.dart:62` `installed`~~ | сделано: `_query` отдаёт пустую строку при сбое — отсутствующая ветвь реестра обычное дело, — и дальше обход идёт плоско |
 | ~~12~~ | ~~27~~ | ~~`services/saves/ludusavi_catalog.dart:126` `find`~~ | сделано как задумано: ленивый `Map<int, LudusaviEntry>` (сбрасывается вместе с манифестом) и общий `ReleaseName.bestMatch` с каталогом Steam — порог остался разным, у базы путей он выше |

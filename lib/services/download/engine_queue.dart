@@ -31,14 +31,10 @@ extension EngineQueue on DtorrentEngine {
   /// Поднимает задачу: для magnet сначала качаются метаданные.
   Future<void> _launch(_ManagedDownload managed) async {
     final generation = managed.generation;
-    bool stillWanted() =>
-        generation == managed.generation &&
-        !managed.pausedByUser &&
-        managed.started;
     try {
       managed.error = null;
       final model = await _modelFor(managed);
-      if (!stillWanted()) return;
+      if (!_stillWanted(managed, generation)) return;
       // Метаданные не пришли — это ошибка со словами, а не тихий выход:
       // иначе задача навсегда оставалась бы «получающей метаданные» и
       // держала слот очереди.
@@ -46,29 +42,47 @@ extension EngineQueue on DtorrentEngine {
         await _fail(managed, _l.metadataNotFound);
         return;
       }
-
-      managed.model = model;
-      managed.name = model.name;
-
-      final task = dt.TorrentTask.newTask(
-        model,
-        managed.savePath,
-        false,
-        null,
-        null,
-        null,
-        buildProxyConfig(),
-      );
-      managed.task = task;
-      await task.start();
-      // Ограничение задаётся задаче, а не движку целиком, поэтому новую
-      // нужно догнать текущими настройками.
-      _limitTask(task);
+      await _startTask(managed, model);
     } on Object catch (error) {
       if (generation == managed.generation) {
         await _fail(managed, error.toString());
       }
     }
+  }
+
+  /// Нужно ли ещё то, чего мы дождались.
+  ///
+  /// Метаданные идут из сети и приходят через минуты. За это время задачу
+  /// могли поставить на паузу, снять или поднять заново — а снятие
+  /// увеличивает поколение, и дождавшийся ответ принадлежит прошлой жизни
+  /// задачи, а не нынешней.
+  bool _stillWanted(_ManagedDownload managed, int generation) =>
+      generation == managed.generation &&
+      !managed.pausedByUser &&
+      managed.started;
+
+  /// Поднимает задачу движка по готовой модели раздачи.
+  Future<void> _startTask(
+    _ManagedDownload managed,
+    dt.TorrentModel model,
+  ) async {
+    managed.model = model;
+    managed.name = model.name;
+
+    final task = dt.TorrentTask.newTask(
+      model,
+      managed.savePath,
+      false,
+      null,
+      null,
+      null,
+      buildProxyConfig(),
+    );
+    managed.task = task;
+    await task.start();
+    // Ограничение задаётся задаче, а не движку целиком, поэтому новую
+    // нужно догнать текущими настройками.
+    _limitTask(task);
   }
 
   /// Файл раздачи, если он есть, иначе метаданные из сети.
