@@ -1,3 +1,4 @@
+import 'package:evaporate/bloc/rule_form/rule_form_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';

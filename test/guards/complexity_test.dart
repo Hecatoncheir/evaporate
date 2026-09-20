@@ -148,7 +148,6 @@ const _lines = [
   'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 72',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',
   'lib/ui/library/featured/featured_art.dart: FeaturedArt.build: 76',
-  'lib/ui/library/saves/rule_dialog.dart: _RuleDialogState.build: 83',
   'lib/ui/saves/sync_folder_card.dart: SyncFolderCard.build: 63',
   'lib/ui/settings/effect_details.dart: EffectDetails._effects: 92',
   'lib/ui/widgets/liquid/liquid_selection_path.dart: liquidSelectionPath: 71',

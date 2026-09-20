@@ -1,24 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/format.dart';
-import '../../../core/save_path_template.dart';
+import '../../../bloc/rule_form/rule_form_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/save_profile.dart';
-import '../../theme.dart';
-import '../../widgets/inline_warning.dart';
+import 'rule_form_fields.dart';
 
-class RuleDraft {
-  const RuleDraft(
-    this.label,
-    this.template, {
-    required this.currentPlatformOnly,
-  });
-
-  final String label;
-  final String template;
-  final bool currentPlatformOnly;
-}
-
+/// Окно правила: метка, шаблон пути и «только на этой системе».
+///
+/// Что из набранного следует — развернётся ли путь, переживёт ли переезд,
+/// не занята ли метка и можно ли вообще сохранять — считает
+/// `RuleFormBloc`. Контроллеры текста остаются здесь: это не состояние, а
+/// ресурс.
 class RuleDialog extends StatefulWidget {
   const RuleDialog({
     super.key,
@@ -46,7 +39,6 @@ class RuleDialog extends StatefulWidget {
 class _RuleDialogState extends State<RuleDialog> {
   late final _labelController = TextEditingController(text: widget.label);
   late final _templateController = TextEditingController(text: widget.template);
-  bool _currentPlatformOnly = false;
 
   @override
   void dispose() {
@@ -58,102 +50,35 @@ class _RuleDialogState extends State<RuleDialog> {
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
-    final template = _templateController.text;
-    final draft = _draft();
-    final labelTaken = widget.profile.labelTaken(
-      draft.label,
-      platform: draft.currentPlatformOnly ? currentPlatformKey() : null,
-    );
-    // Пустой шаблон развернулся бы в рабочую папку процесса, а занятая
-    // метка сделала бы оба правила непереносимыми.
-    final canSave = draft.template.isNotEmpty && !labelTaken;
-
-    return AlertDialog(
-      title: Text(l.savePath),
-      content: SizedBox(
-        width: 540,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _labelController,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                labelText: l.label,
-                helperText: l.labelNote,
-                errorText: labelTaken ? l.labelTaken : null,
-                errorMaxLines: 2,
-              ),
+    return BlocProvider(
+      create: (context) => RuleFormBloc(
+        label: widget.label,
+        template: widget.template,
+        profile: widget.profile,
+        gameDir: widget.gameDir,
+      ),
+      child: BlocBuilder<RuleFormBloc, RuleForm>(
+        builder: (context, form) => AlertDialog(
+          title: Text(l.savePath),
+          content: RuleFormFields(
+            form: form,
+            labelController: _labelController,
+            templateController: _templateController,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l.cancel),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _templateController,
-              onChanged: (_) => setState(() {}),
-              style: context.text.path.copyWith(
-                color: context.colors.textPrimary,
-              ),
-              decoration: InputDecoration(labelText: l.pathTemplate),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l.expandsTo(
-                SavePathTemplate.expand(template, gameDir: widget.gameDir),
-              ),
-              style: context.text.captionMuted,
-            ),
-            // Путь без плейсхолдера на другом устройстве не развернётся
-            // ни во что осмысленное — об этом предупреждают сразу.
-            if (!SavePathTemplate.isPortable(template)) ...[
-              const SizedBox(height: 10),
-              InlineWarning(l.absolutePathWarning),
-            ],
-            const SizedBox(height: 12),
-            CheckboxListTile(
-              value: _currentPlatformOnly,
-              onChanged: (value) =>
-                  setState(() => _currentPlatformOnly = value ?? false),
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              title: Text(
-                l.onlyForPlatform(platformLabel(currentPlatformKey())),
-                style: context.text.body,
-              ),
-              subtitle: Text(
-                l.onlyForPlatformNote,
-                style: context.text.caption,
-              ),
+            FilledButton(
+              onPressed: form.canSave
+                  ? () => Navigator.pop(context, form.draft)
+                  : null,
+              child: Text(l.save),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.cancel),
-        ),
-        FilledButton(
-          onPressed: canSave ? () => Navigator.pop(context, draft) : null,
-          child: Text(l.save),
-        ),
-      ],
-    );
-  }
-
-  /// Правило, каким его записывают.
-  ///
-  /// Метка по умолчанию — именно константа, а не `L.of(context).saves`.
-  /// Показывают её переведённой (`ruleLabelText`), но хранят и
-  /// сопоставляют как есть: правила сходятся между устройствами по метке,
-  /// и записанное здесь «Saves» с английского интерфейса не сошлось бы
-  /// с «Сохранениями» на русском. Сейв просто не восстановился бы, и
-  /// никто не догадался бы почему.
-  RuleDraft _draft() {
-    final label = _labelController.text.trim();
-    return RuleDraft(
-      label.isEmpty ? SavePathRule.defaultLabel : label,
-      _templateController.text.trim(),
-      currentPlatformOnly: _currentPlatformOnly,
     );
   }
 }

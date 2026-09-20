@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../bloc/library/library_bloc.dart';
+import '../../../bloc/rule_form/rule_form_bloc.dart';
 import '../../../bloc/saves/saves_bloc.dart';
 import '../../../core/format.dart';
 import '../../../core/save_path_template.dart';
