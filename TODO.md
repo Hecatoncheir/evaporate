@@ -1070,6 +1070,11 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   (`_matchLocalRule` + `previewTargets`), а `RestoreTransaction` сделать
   настоящим классом вместо расширения. Сам `SaveManager` остаётся фасадом
   под `store.guard`. **L**
+  *Наполовину.* `SaveCollector` (обход диска: отбор файлов, мусор, время
+  последней правки) и `RuleMatcher` (сопоставление правил и предпросмотр
+  целей — теперь буквально одним кодом) выделены и проверяются своими
+  тестами, без пакетов и снимков; менеджер 846 → 753 строки. Осталось
+  `EvsavePackage` и `RestoreTransaction` классом.
 - [ ] `DtorrentEngine` с четырьмя `part`-файлами: состояние задачи — в
   шести полях (`started`, `pausedByUser`, `error`, `task`, `model`,
   `generation`), правится в шести местах, а `_ManagedDownload` зовёт

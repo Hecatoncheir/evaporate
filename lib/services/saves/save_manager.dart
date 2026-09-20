@@ -13,6 +13,8 @@ import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../system/app_log.dart';
+import 'rule_matcher.dart';
+import 'save_collector.dart';
 import 'snapshot_store.dart';
 
 part 'restore_transaction.dart';
@@ -95,6 +97,12 @@ class SaveManager {
   final SnapshotStore store;
 
   final AppPaths _paths;
+
+  /// Кто ходит по диску: отбор файлов для снимка и время последней правки.
+  final _files = const SaveCollector();
+
+  /// Кто решает, какому здешнему правилу отвечает правило из пакета.
+  final _rules = const RuleMatcher();
   // Подмена файловой операции позволяет проверять откат при сбое на
   // второй цели без ненадёжных тестов прав доступа на разных ОС.
   final Future<FileSystemEntity> Function(FileSystemEntity, String)
@@ -120,9 +128,6 @@ class SaveManager {
 
   static L _defaultLocalizations() => LRu();
   static const _uuid = Uuid();
-
-  /// Системный мусор не должен попадать в сейвы.
-  static const _skipNames = {'.DS_Store', 'Thumbs.db', 'desktop.ini'};
 
   /// Предохранитель от «указал папку игры целиком вместо папки сейвов».
   static const defaultMaxSnapshotBytes = 4 * 1024 * 1024 * 1024;
@@ -161,7 +166,7 @@ class SaveManager {
     }
 
     // Сначала обходим файлы, чтобы манифест содержал честные размеры.
-    final entries = <_PendingEntry>[];
+    final entries = <CollectedFile>[];
     final usedRules = <SavePathRule>[];
     var totalBytes = 0;
 
@@ -171,7 +176,7 @@ class SaveManager {
       // нечего, и это не ошибка.
       if (resolved == null) continue;
       final isFile = await File(resolved).exists();
-      final collected = await _collect(rule, resolved);
+      final collected = await _files.collect(rule, resolved);
       if (collected.isEmpty) continue;
       usedRules.add(
         rule.copyWith(
@@ -280,84 +285,12 @@ class SaveManager {
     for (final rule in game.saveProfile.rulesForCurrentPlatform) {
       final resolved = rule.resolve(gameDir: game.installDir);
       if (resolved == null) continue;
-      newest = _later(newest, await _newestChangeAt(resolved));
-    }
-    return newest;
-  }
-
-  /// Позднее из двух времён. null означает «ничего не было».
-  static DateTime? _later(DateTime? a, DateTime? b) {
-    if (a == null) return b;
-    if (b == null) return a;
-    return b.isAfter(a) ? b : a;
-  }
-
-  /// Когда в последний раз менялось то, на что указывает один путь.
-  ///
-  /// Правило указывает и на отдельный файл, и на папку: во втором случае
-  /// смотрим всё её содержимое, до самого дна.
-  Future<DateTime?> _newestChangeAt(String path) async {
-    final file = File(path);
-    if (await file.exists()) return (await file.stat()).modified;
-
-    final directory = Directory(path);
-    if (!await directory.exists()) return null;
-
-    DateTime? newest;
-    await for (final entity in directory.list(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (entity is! File) continue;
-      // Служебные файлы системы меняются сами по себе и о прогрессе
-      // человека не говорят ничего.
-      if (_skipNames.contains(p.basename(entity.path))) continue;
-      newest = _later(newest, (await entity.stat()).modified);
-    }
-    return newest;
-  }
-
-  Future<List<_PendingEntry>> _collect(
-    SavePathRule rule,
-    String resolved,
-  ) async {
-    final entries = <_PendingEntry>[];
-    final prefix = '${SaveSnapshot.dataPrefix}/${rule.id}';
-
-    final file = File(resolved);
-    if (await file.exists()) {
-      entries.add(
-        _PendingEntry(
-          sourcePath: resolved,
-          archiveName: '$prefix/${p.basename(resolved)}',
-          size: await file.length(),
-        ),
-      );
-      return entries;
-    }
-
-    final directory = Directory(resolved);
-    if (!await directory.exists()) return entries;
-
-    await for (final entity in directory.list(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (entity is! File) continue;
-      final name = p.basename(entity.path);
-      if (_skipNames.contains(name)) continue;
-      final relative = p
-          .relative(entity.path, from: directory.path)
-          .replaceAll(r'\', '/');
-      entries.add(
-        _PendingEntry(
-          sourcePath: entity.path,
-          archiveName: '$prefix/$relative',
-          size: await entity.length(),
-        ),
+      newest = SaveCollector.later(
+        newest,
+        await _files.newestChangeAt(resolved),
       );
     }
-    return entries;
+    return newest;
   }
 
   /// Разворачивает снапшот на текущем устройстве.
@@ -464,7 +397,7 @@ class SaveManager {
     final unresolved = <String>[];
 
     for (final rule in manifestRules) {
-      final local = _matchLocalRule(game, rule);
+      final local = _rules.localFor(game, rule);
       final resolved = local?.resolve(gameDir: game.installDir);
       if (local == null || resolved == null) {
         unresolved.add(rule.label);
@@ -521,30 +454,8 @@ class SaveManager {
   /// который здесь не будет записан никогда. Обещание диалога и поведение
   /// восстановления обязаны совпадать, иначе диалог не предупреждение, а
   /// выдумка.
-  Map<String, String> previewTargets(Game game, SaveSnapshot snapshot) {
-    final targets = <String, String>{};
-    for (final rule in snapshot.rules) {
-      final local = _matchLocalRule(game, rule);
-      if (local == null) continue;
-      final resolved = local.resolve(gameDir: game.installDir);
-      if (resolved != null) targets[local.label] = resolved;
-    }
-    return targets;
-  }
-
-  /// Путь из внешнего манифеста никогда не становится локальной целью.
-  /// Сопоставляем только с явно настроенными у игры путями: id -> метка.
-  SavePathRule? _matchLocalRule(Game game, SavePathRule incoming) {
-    final local = game.saveProfile.rulesForCurrentPlatform;
-    for (final rule in local) {
-      if (rule.id == incoming.id) return rule;
-    }
-    final wanted = incoming.label.trim().toLowerCase();
-    final matches = local
-        .where((rule) => rule.label.trim().toLowerCase() == wanted)
-        .toList();
-    return matches.length == 1 ? matches.single : null;
-  }
+  Map<String, String> previewTargets(Game game, SaveSnapshot snapshot) =>
+      _rules.preview(game, snapshot);
 
   /// Манифест, с которым можно работать дальше.
   ///
@@ -806,18 +717,6 @@ class SaveManager {
     if (parts.first != SaveSnapshot.dataPrefix) return null;
     return _EntryName(parts[1], parts.sublist(2).join('/'));
   }
-}
-
-class _PendingEntry {
-  const _PendingEntry({
-    required this.sourcePath,
-    required this.archiveName,
-    required this.size,
-  });
-
-  final String sourcePath;
-  final String archiveName;
-  final int size;
 }
 
 class _EntryName {
