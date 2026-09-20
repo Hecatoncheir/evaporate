@@ -118,9 +118,10 @@ int top(int x) => x > 0 ? x : -x;
   });
 }
 
-const _complexity = [
-  'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
-];
+/// Пусто, и это не случайность: пятнадцать ветвлений в одной функции —
+/// потолок, за которым её перестают читать целиком. Новое нарушение
+/// лечится ранним выходом, таблицей или именованным шагом.
+const _complexity = <String>[];
 
 const _lines = [
   'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',

@@ -169,11 +169,7 @@ class SaveActivityWatch {
         followLinks: false,
       )) {
         if (++seen > _fileBudget) break;
-        if (entity is! File) continue;
-        if (p.split(entity.path).length - rootDepth > _depth) continue;
-
-        final stat = await _statOrNull(entity);
-        if (stat == null || stat.modified.isBefore(since)) continue;
+        if (!await _touchedAfter(entity, since, rootDepth: rootDepth)) continue;
 
         count++;
         if (_saveLike.contains(p.extension(entity.path).toLowerCase())) {
@@ -188,6 +184,23 @@ class SaveActivityWatch {
       saveLike: saveLike,
       truncated: seen > _fileBudget,
     );
+  }
+
+  /// Считается ли этот файл тронутым за время работы игры.
+  ///
+  /// Три отказа подряд, и каждый о своём: папки не в счёт; глубже
+  /// нескольких уровней сейвы не прячут, а обход дорожает; нечитаемый
+  /// файл о прогрессе ничего не говорит.
+  static Future<bool> _touchedAfter(
+    FileSystemEntity entity,
+    DateTime since, {
+    required int rootDepth,
+  }) async {
+    if (entity is! File) return false;
+    if (p.split(entity.path).length - rootDepth > _depth) return false;
+
+    final stat = await _statOrNull(entity);
+    return stat != null && !stat.modified.isBefore(since);
   }
 
   /// Сведения о файле; null — прочитать не вышло, и такой файл не в счёт.
