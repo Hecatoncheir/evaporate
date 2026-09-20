@@ -11,8 +11,8 @@ import 'start_now_tile.dart';
 
 /// Содержимое окна «Добавить игру»: откуда брать, что именно, как назвать и
 /// ставить ли сразу в загрузку.
-class AddGameForm extends StatelessWidget {
-  const AddGameForm({
+class AddGameFields extends StatelessWidget {
+  const AddGameFields({
     super.key,
     required this.kind,
     required this.onKind,
@@ -21,6 +21,7 @@ class AddGameForm extends StatelessWidget {
     required this.filePath,
     required this.folderPath,
     required this.onMagnetChanged,
+    required this.onTitleChanged,
     required this.onPickTorrent,
     required this.onPickFolder,
     required this.startImmediately,
@@ -36,6 +37,7 @@ class AddGameForm extends StatelessWidget {
   final String? filePath;
   final String? folderPath;
   final ValueChanged<String> onMagnetChanged;
+  final ValueChanged<String> onTitleChanged;
   final VoidCallback onPickTorrent;
   final VoidCallback onPickFolder;
   final bool startImmediately;
@@ -68,6 +70,7 @@ class AddGameForm extends StatelessWidget {
         const SizedBox(height: 16),
         TextField(
           controller: titleController,
+          onChanged: onTitleChanged,
           decoration: InputDecoration(
             labelText: l.title,
             hintText: l.titleHint,
