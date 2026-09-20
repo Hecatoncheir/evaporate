@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
+import '../../models/shelf.dart';
 import '../widgets/game_drop_target.dart';
 import 'effects/library_atmosphere.dart';
 import 'library_empty_state.dart';
@@ -10,7 +11,6 @@ import 'library_grid.dart';
 import 'library_grid_controller.dart';
 import 'library_heading_bar.dart';
 import 'library_shelf_bar.dart';
-import 'shelf.dart';
 
 /// Сама страница библиотеки: заголовок, крупный кадр, полки и сетка.
 ///

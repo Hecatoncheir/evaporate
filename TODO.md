@@ -824,10 +824,15 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 - [ ] **`AddGameBloc`** вместо `_AddGameDialogState` (`_busy`, `_error`,
   проверки броском строк, ожидание появления игры в чужом состоянии —
   `add_game_dialog.dart:249–262`). **M**
-- [ ] **`LibraryViewBloc`** — запрос и полка из `_LibraryPageState`
+- [x] **`LibraryViewBloc`** — запрос и полка из `_LibraryPageState`
   (`library_page.dart:45–46`), отбор и сортировка (`:444–491`) — чистыми
   функциями рядом с блоком, под тестом; событие набора — с задержкой. В
   `State` остаются наведение, фокус, прокрутка. **M**
+  *Сделано, кроме задержки на набор — и это решение, а не пропуск.* Отбор
+  и сортировка полусотни игр стоят доли миллисекунды, а таймер в этом
+  месте пришлось бы пережидать в каждом виджет-тесте, который что-нибудь
+  ищет. `Shelf` и `gamesOnShelf` переехали в `lib/models`: блоку `lib/ui`
+  закрыт.
 - [ ] **`ScanBloc`** для окна поиска игр: `ScanSession` — внешний источник,
   как движок загрузок, то есть блок по правилу самого `CLAUDE.md`. События:
   `ScanStarted`, `ScanNarrowed(dir)`, `ScanFolderDropped(paths)` (забирает

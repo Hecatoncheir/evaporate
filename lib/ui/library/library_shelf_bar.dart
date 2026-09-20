@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/game.dart';
-import 'shelf.dart';
+import '../../models/shelf.dart';
 import 'toolbar.dart';
 
 /// Панель полок над сеткой: сами полки со счётчиками, поиск и клавиши

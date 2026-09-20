@@ -5,10 +5,12 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/library/library_bloc.dart';
+import '../../bloc/library_view/library_view_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
+import '../../models/shelf.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
 import 'add_game_dialog.dart';
@@ -16,7 +18,6 @@ import 'game_page.dart';
 import 'library_body.dart';
 import 'library_grid_controller.dart';
 import 'scan_folder_dialog.dart';
-import 'shelf.dart';
 
 /// Библиотека: сетка вертикальных обложек, поверх неё — страница игры.
 ///
@@ -36,9 +37,11 @@ class LibraryPage extends StatefulWidget {
 }
 
 class _LibraryPageState extends State<LibraryPage> {
-  String _query = '';
-  Shelf _shelf = Shelf.all;
+  /// Запрос и полка — свой блок экрана: в `State` остаются только
+  /// ресурсы, то есть наведение, фокус и прокрутка.
+  final _view = LibraryViewBloc();
   final _grid = LibraryGridController();
+  late final StreamSubscription<LibraryView> _viewChanges;
 
   /// Какая игра была открыта на прошлой сборке — по её исчезновению и видно,
   /// что экран закрыли.
@@ -53,12 +56,19 @@ class _LibraryPageState extends State<LibraryPage> {
     // Наведение меняет и крупный кадр наверху, и свет вокруг сетки:
     // перестраивается вся страница, а не одна плитка.
     _grid.addListener(_onGridChanged);
+    // Блок свой, и провайдера над страницей у него нет: подписываемся
+    // прямо здесь — так же, как на наведение в сетке.
+    _viewChanges = _view.stream.listen((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _onGridChanged() => setState(() {});
 
   @override
   void dispose() {
+    unawaited(_viewChanges.cancel());
+    unawaited(_view.close());
     _grid
       ..removeListener(_onGridChanged)
       ..dispose();
@@ -109,8 +119,9 @@ class _LibraryPageState extends State<LibraryPage> {
     );
     _grid.forgetGone(all.map((game) => game.id).toSet());
 
-    final found = _search(all);
-    final games = gamesOnShelf(found, _shelf);
+    final view = _view.state;
+    final found = view.found(all);
+    final games = gamesOnShelf(found, view.shelf);
 
     // Открытую игру могли удалить, а выбранную — отфильтровать. И то и
     // другое чинится после кадра: менять состояние во время сборки нельзя.
@@ -124,14 +135,14 @@ class _LibraryPageState extends State<LibraryPage> {
       games: games,
       found: found,
       libraryIsEmpty: all.isEmpty,
-      shelf: _shelf,
+      shelf: view.shelf,
       selectedId: navState.selectedGameId,
       effects: effects,
       scale: scale,
       scanning: _scanning,
       searchFocus: nav.searchFocus,
-      onShelf: (value) => setState(() => _shelf = value),
-      onQuery: (value) => setState(() => _query = value),
+      onShelf: (value) => _view.add(LibraryShelfSelected(value)),
+      onQuery: (value) => _view.add(LibraryQueryChanged(value)),
       onReturnToGames: () => _returnToGames(games, nav),
       onScan: () => _scanFolder(context),
       onAdd: () => _addGame(context),
@@ -177,34 +188,6 @@ class _LibraryPageState extends State<LibraryPage> {
       if (mounted) _focusGame(state.selectedGameId ?? before, games);
     });
   }
-
-  List<Game> _search(List<Game> games) {
-    final query = _query.trim().toLowerCase();
-    final filtered = query.isEmpty
-        ? [...games]
-        : games.where((g) => g.title.toLowerCase().contains(query)).toList();
-    filtered.sort((a, b) {
-      // Сначала то, что происходит прямо сейчас, потом недавно запущенное.
-      final byActivity = _activityRank(a).compareTo(_activityRank(b));
-      if (byActivity != 0) return byActivity;
-      final aPlayed = a.lastPlayed;
-      final bPlayed = b.lastPlayed;
-      if (aPlayed != null && bPlayed != null) return bPlayed.compareTo(aPlayed);
-      if (aPlayed != null) return -1;
-      if (bPlayed != null) return 1;
-      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-    });
-    return filtered;
-  }
-
-  static int _activityRank(Game game) => switch (game.status) {
-    GameStatus.running => 0,
-    GameStatus.downloading => 1,
-    GameStatus.paused => 2,
-    GameStatus.error => 3,
-    GameStatus.installed => 4,
-    GameStatus.notInstalled => 5,
-  };
 
   /// Добавление по одной терпимо для трёх игр и мучительно для сорока.
   ///
