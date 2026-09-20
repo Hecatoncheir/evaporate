@@ -151,6 +151,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
 
   /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
   /// подтверждения обращается к менеджеру напрямую.
+  // ignore: avoid_public_bloc_methods
   SaveManager get saveManager => _saves;
 
   static L _defaultLocalizations() => LRu();

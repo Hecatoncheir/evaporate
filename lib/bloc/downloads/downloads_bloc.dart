@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
+// Движок и лаунчер отдают `ValueListenable`, а подписаться на него нечем,
+// кроме `foundation`. Виджетов и `BuildContext` здесь по-прежнему нет.
+// ignore: avoid_flutter_imports
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;

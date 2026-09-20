@@ -266,13 +266,28 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   — вложенным `analysis_options.yaml` только для `lib/bloc` и
   `lib/services`: в UI он зашумит. Строка `use_super_parameters`
   (`analysis_options.yaml:52`) лишняя — правило уже в наборе. **S**
-- [ ] `bloc_lint` 💬. Его `prefer_bloc` — ровно правило «по умолчанию Bloc»,
+- [x] `bloc_lint` 💬. Его `prefer_bloc` — ровно правило «по умолчанию Bloc»,
   поставленное на ворота; из рекомендованного набора полезны
   `avoid_flutter_imports` и `avoid_public_fields`. Запускается не
   анализатором, а `bloc lint .` из `bloc_tools` — отдельный шаг CI.
   `avoid_public_bloc_methods` сработает на осознанных `persist()`,
   `snapshotBeforeLaunch`, `applyLimits`, `closeOpenedGame` — их придётся
   либо исключить с объяснением, либо перевести в события. **S**
+  *Зависимость заведена по решению владельца.* Включены `prefer_bloc`,
+  `avoid_flutter_imports`, `avoid_public_bloc_methods`,
+  `prefer_file_naming_conventions` и `prefer_void_public_cubit_methods` —
+  набор в `analysis_options.yaml` под ключом `bloc`, шаг CI «Правила
+  bloc» с закреплённой версией `bloc_tools`. Нарушений ноль: девять
+  осознанных мест помечены `// ignore:` каждое со своим объяснением
+  (потоки наружу, хук «снять сейв перед запуском», ожидание первого
+  чтения настроек, `ValueListenable` от движка).
+  **`avoid_public_fields` не включён**, и это решение: он про то, что
+  данные блока живут в состоянии, а срабатывает на двадцати двух
+  внедрённых зависимостях (`settings`, `library`, `engine`,
+  `notifications`, `paths`) — их публичность и есть способ подменить их в
+  прогоне, а в состояние им нельзя.
+  Проверяется только `lib`: в тестах живут блоки-двойники, и
+  `prefer_file_naming_conventions` требует от `_CounterBloc` своего файла.
 - [x] Страж мёртвых ключей ARB: сейчас их девять (`downloadPaused`,
   `findGamesInFolder`, `gamesWithPaths`, `noticeRestorePartial`, `ofAmount`,
   `pickGameOnTheLeft`, `torrentFallbackName`, `updateNoteLine1`,
@@ -1002,13 +1017,29 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   меняется по нажатию человека, и `select` на каждое поле был бы длиннее
   самой карточки. Заодно раскладка страницы уехала в `LibraryBody`: у
   `LibraryPage` на руках остались выбор, поиск, фокус и системные окна.
-- [ ] **`GameRepository`** 💬 — единственный владелец списка игр и файла
+- [x] **`GameRepository`** 💬 — единственный владелец списка игр и файла
   `library.json`; правка — функцией от текущего значения
   (`patch(id, (game) => …)`). `LibraryBloc`, `DownloadsBloc`, `SavesBloc`
   зависят от него, а не друг от друга — так советует и документация bloc
   («связывать блоки через доменный слой»). Уходят: слияние в
   `_onGameUpdated`, трюк `SavesBloc._updateGame`, ожидание игры в диалоге
   добавления. Делать после намеренческих событий из этапа 1. **L**
+  *Решено не заводить, и вот на чём это решение стоит.* Три беды, ради
+  которых слой предлагался, к этому дню закрыты по отдельности и
+  дешевле: слияние в `_onGameUpdated` исчезло вместе с самим событием —
+  правка игры стала намерением; `SavesBloc._updateGame` исчез там же.
+  Осталось одно ожидание в `AddGameBloc._startIfRequested`, на одну
+  строку и с записанной причиной, — ради него слой не заводят.
+  Зависимость блоков при этом уже односторонняя и объяснена в
+  `CLAUDE.md`: сохранения знают библиотеку, библиотека о них — нет, а всё
+  обратное идёт потоками (`gameExits`, `gameRemovals`, `gameDrops`).
+  Репозиторий эту зависимость не убрал бы, а переставил: на его месте
+  оказались бы те же потоки, отложенная запись, `beforeLaunch` и
+  порядок гашения — то есть ровно то, что сейчас проверено тестами и
+  ни разу не гоняется. Цена **L**, выигрыш — чистота схемы; при таком
+  счёте это работа, которую заводят под конкретную нужду, а не впрок.
+  Если нужда появится (третий блок, которому понадобится править игры),
+  решение стоит пересмотреть — но начинать с него, а не со слоя.
 - [x] `LibraryBloc` пишет файлы сам (обложки, кадры —
   `library_metadata.dart:175–259`). Вынести в `CoverCache` и
   `GameMetadataFetcher`: `_onSteamLookup` (94 строки, сложность 21) станет

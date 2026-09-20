@@ -62,6 +62,9 @@ class NavigationBloc extends Bloc<NavigationEvent, NavigationState> {
   /// Закрывает страницу игры, если она открыта. Возвращает `true`, когда
   /// закрывать было что: кнопке «назад» этого достаточно, чтобы не идти
   /// дальше и не сбрасывать заодно фокус.
+  // Событие ничего не возвращает, а «было что закрывать» — это ответ, по
+  // которому вызывающий решает, идти ли дальше.
+  // ignore: avoid_public_bloc_methods
   bool closeOpenedGame() {
     if (state.section != AppSection.library || state.openedGameId == null) {
       return false;

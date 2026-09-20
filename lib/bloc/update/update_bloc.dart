@@ -71,6 +71,10 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
   L get _l => _localizations();
 
   /// Есть ли куда записывать запись в меню приложений.
+  // Свойство системы, а не состояние: оно не меняется, и событие, которое
+  // положило бы его в состояние, пришлось бы слать на каждом открытии
+  // карточки.
+  // ignore: avoid_public_bloc_methods
   bool get menuEntrySupported => _desktop.isSupported;
 
   Future<void> _onCheck(

@@ -33,6 +33,7 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
 
   /// Завершается после первой попытки чтения, даже если состояние совпало с
   /// настройками по умолчанию и Bloc поэтому не отправил событие в stream.
+  // ignore: avoid_public_bloc_methods
   Future<void> get loaded => _loaded.future;
 
   Future<void> _onLoadRequested(

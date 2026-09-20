@@ -65,6 +65,7 @@ dependencies:
   yaml: ^3.1.4
 
 dev_dependencies:
+  bloc_lint: ^0.4.2
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter

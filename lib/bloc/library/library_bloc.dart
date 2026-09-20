@@ -190,19 +190,23 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
   /// после выхода, знает `SavesBloc`. Зависимость идёт в одну сторону — он
   /// знает библиотеку, библиотека о нём нет, — и передать ему событие
   /// напрямую нечем.
+  // ignore: avoid_public_bloc_methods
   Stream<GameExit> get gameExits => _exits.stream;
 
   /// Игра ушла из библиотеки: её снимки больше никому не нужны.
+  // ignore: avoid_public_bloc_methods
   Stream<String> get gameRemovals => _removals.stream;
 
   /// Что завелось из брошенного в окно: загрузки ставят раздачи в очередь,
   /// навигация подсвечивает последнюю.
+  // ignore: avoid_public_bloc_methods
   Stream<DroppedGames> get gameDrops => _drops.stream;
 
   /// Что сделать с сохранениями перед запуском игры.
   ///
   /// Ставит его блок сохранений — снимок его дело, — но **дождаться** его
   /// должна библиотека, а события не дожидаются. Отсюда хук, а не событие.
+  // ignore: avoid_public_bloc_methods
   Future<void> Function(Game game)? beforeLaunch;
 
   final _exits = StreamController<GameExit>.broadcast();
@@ -212,6 +216,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
   Timer? _persistTimer;
   bool _closing = false;
 
+  /// Кто сейчас запущен. Загрузки смотрят на это, чтобы снять предел
+  /// скорости на время игры, — им нужен сам источник, а не снимок в
+  /// состоянии: он меняется от процесса, а не от события.
+  // ignore: avoid_public_bloc_methods
   GameLauncher get launcher => _launcher;
 
   static L _defaultLocalizations() => LRu();

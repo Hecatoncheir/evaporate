@@ -75,3 +75,34 @@ linter:
 
     # `setEnabled(true)` на месте вызова не говорит, что включается.
     - avoid_positional_boolean_parameters
+
+# Правила bloc_lint. Их читает не анализатор, а `bloc lint .` из
+# `bloc_tools` — отдельный шаг CI, потому что своего плагина у пакета нет.
+#
+# Список — не «рекомендованный набор», а то, что проект и правда держит:
+#
+# - `prefer_bloc` — это и есть записанное в CLAUDE.md «по умолчанию Bloc»,
+#   поставленное на ворота. Cubit в приложении не осталось, и правило
+#   стережёт, чтобы новый не завёлся молча;
+# - `avoid_flutter_imports` — блок без `BuildContext` и виджетов. Одно
+#   исключение помечено в коде: движок загрузок отдаёт `ValueListenable`,
+#   и подписаться на него нечем, кроме `foundation`;
+# - `avoid_public_bloc_methods` — с блоком говорят событиями. Восемь мест
+#   помечены `// ignore:` каждое со своим объяснением рядом: поток наружу,
+#   хук «снять сейв перед запуском», ожидание первого чтения настроек —
+#   это не «метод вместо события», а то, чего событием не выразить;
+# - `prefer_file_naming_conventions` и `prefer_void_public_cubit_methods`
+#   — даром: нарушений нет ни одного.
+#
+# `avoid_public_fields` не включён намеренно. Он про то, что данные блока
+# живут в состоянии, а срабатывает на двадцати двух внедрённых
+# зависимостях (`settings`, `library`, `engine`, `notifications`, `paths`)
+# — их публичность и есть способ подменить их в прогоне, а в состояние им
+# нельзя.
+bloc:
+  rules:
+    - avoid_flutter_imports
+    - avoid_public_bloc_methods
+    - prefer_bloc
+    - prefer_file_naming_conventions
+    - prefer_void_public_cubit_methods
