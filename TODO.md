@@ -1035,7 +1035,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | Сложн. | Строк | Где | Что сделать |
 |---|---|---|---|
 | ~~22~~ | ~~106~~ | ~~`services/saves/bulk_transfer.dart:136` `importAll` (и `:63` `exportAll`)~~ | сделано как задумано: `_importOne`/`_exportOne` на ранних выходах, плюс `_restoreOne` и `_localIsNewer`; накопители ушли — счёт снимает сам отчёт, и разойтись с ним записям негде |
-| 22 | 61 | `services/saves/restore_transaction.dart:10` `_buildRestorePlan` | конвейер: `_payloadEntries()` → `_destinationFor(target, parts)` → `_PlanBuilder.add()`; строитель сам держит `destinations`, `filesPerRule`, `bytes` и сам бросает |
+| ~~22~~ | ~~61~~ | ~~`services/saves/restore_transaction.dart:10` `_buildRestorePlan`~~ | сделано конвейером, как задумано: `_payloadEntries()` → `_destinationFor()` → `_PlanBuilder.add()`; счётчики и отказы держит строитель |
 | 21 | 94 | `bloc/library/library_metadata.dart:31` `_onSteamLookup` | сеть и файлы — в сервис (этап 4) |
 | 16 | 71 | `services/launch/game_launcher.dart:70` `launch` | `_resolveExecutable(game)` (все отказы и «бандл → бинарник») → один `Process.start` → `_track()`; сейчас развилка по системе стоит дважды (`:82,99`) |
 | 15 | 46 | `ui/widgets/game_drop_target.dart:88` `_handleDrop` | уходит в блок событием `FilesDropped` (этап 4) |

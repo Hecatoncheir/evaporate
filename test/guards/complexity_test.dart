@@ -123,7 +123,6 @@ const _complexity = [
   'lib/services/launch/game_launcher.dart: GameLauncher._start: 17',
   'lib/services/launch/vdf.dart: Vdf._tokens: 16',
   'lib/services/launch/vdf.dart: Vdf.parse: 19',
-  'lib/services/saves/restore_transaction.dart: _RestoreTransaction._buildRestorePlan: 25',
   'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
 ];
 
@@ -135,7 +134,6 @@ const _lines = [
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
   'lib/models/game.dart: Game.copyWith: 63',
   'lib/services/launch/game_launcher.dart: GameLauncher._start: 68',
-  'lib/services/saves/restore_transaction.dart: _RestoreTransaction._buildRestorePlan: 61',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
   'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 65',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',

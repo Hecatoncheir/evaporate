@@ -70,13 +70,23 @@ extension _RestoreTransaction on SaveManager {
     Archive archive,
     Map<String, _RestoreTarget> targets,
   ) {
-    final entries = <_RestoreEntry>[];
-    final destinations = <String>{};
-    // Правило на один файл описывает ровно один файл: второй означает, что
-    // пакет собран не так, как их пишем мы.
-    final filesPerRule = <String, int>{};
-    var bytes = 0;
+    final plan = _PlanBuilder(this);
+    for (final entry in _payloadEntries(archive, targets)) {
+      plan.add(entry);
+    }
+    return plan.build();
+  }
 
+  /// Записи пакета, которым есть куда лечь.
+  ///
+  /// Манифест, папки и правила, которых у этой игры нет, отсеиваются молча
+  /// — пакет мог прийти с устройства, где правил больше. А вот ссылка не
+  /// отсеивается, а останавливает разбор: в наших пакетах её не бывает, и
+  /// чужая уводит запись куда угодно.
+  Iterable<_Payload> _payloadEntries(
+    Archive archive,
+    Map<String, _RestoreTarget> targets,
+  ) sync* {
     for (final file in archive.files) {
       if (file.isSymbolicLink) {
         throw SaveException(_l.savePathEscapes(file.name));
@@ -87,45 +97,32 @@ extension _RestoreTransaction on SaveManager {
       if (parsed == null) continue;
       final target = targets[parsed.ruleId];
       if (target == null) continue;
+      yield _Payload(file: file, target: target, name: parsed);
+    }
+  }
 
-      final parts = _safeRelativeParts(parsed.relativePath, file.name);
-      final String destination;
-      if (target.isFile) {
-        final count = (filesPerRule[parsed.ruleId] ?? 0) + 1;
-        filesPerRule[parsed.ruleId] = count;
-        if (count > 1 || parts.length != 1) {
-          throw SaveException(_l.savePathEscapes(file.name));
-        }
-        destination = target.path;
-      } else {
-        destination = p.normalize(p.joinAll([target.path, ...parts]));
-        if (!p.isWithin(target.path, destination)) {
-          throw SaveException(_l.savePathEscapes(file.name));
-        }
+  /// Куда ляжет одна запись пакета.
+  ///
+  /// [sameRule] — сколько записей этого правила уже разобрано. Правило на
+  /// один файл описывает ровно один файл: второй означает, что пакет
+  /// собран не так, как их пишем мы.
+  String _destinationFor(_Payload payload, {required int sameRule}) {
+    final parts = _safeRelativeParts(
+      payload.name.relativePath,
+      payload.file.name,
+    );
+    if (payload.target.isFile) {
+      if (sameRule > 0 || parts.length != 1) {
+        throw SaveException(_l.savePathEscapes(payload.file.name));
       }
-
-      // Два файла пакета в одно место — спор о том, чьё содержимое окажется
-      // на диске. Решать его молча нельзя.
-      if (!destinations.add(destination)) {
-        throw SaveException(_l.saveArchiveReadFailed(file.name));
-      }
-
-      bytes += file.size;
-      if (bytes > maxSnapshotBytes) {
-        throw SaveException(_l.saveTooLarge(formatBytes(bytes)));
-      }
-      entries.add(
-        _RestoreEntry(
-          archiveFile: file,
-          target: target,
-          destination: destination,
-        ),
-      );
+      return payload.target.path;
     }
 
-    _checkTargetsDoNotOverlap(entries.map((entry) => entry.target).toSet());
-    if (entries.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
-    return _RestorePlan(entries: entries, bytes: bytes);
+    final destination = p.normalize(p.joinAll([payload.target.path, ...parts]));
+    if (!p.isWithin(payload.target.path, destination)) {
+      throw SaveException(_l.savePathEscapes(payload.file.name));
+    }
+    return destination;
   }
 
   /// Разбирает путь внутри пакета на части и убеждается, что он никуда не
@@ -439,4 +436,70 @@ class _CommittedTarget {
 
   final _RestoreTarget target;
   final String? backupPath;
+}
+
+/// Запись пакета вместе с правилом, к которому она относится.
+class _Payload {
+  const _Payload({
+    required this.file,
+    required this.target,
+    required this.name,
+  });
+
+  final ArchiveFile file;
+  final _RestoreTarget target;
+  final _EntryName name;
+}
+
+/// Строит план и сам сторожит его правила.
+///
+/// Счётчики — сколько записей у правила, какие места уже заняты, сколько
+/// всего байт — держит он, а не тот, кто перебирает пакет: иначе они
+/// расползаются по циклу, и увидеть, что именно проверяется, можно только
+/// прочитав его целиком.
+class _PlanBuilder {
+  _PlanBuilder(this._saves);
+
+  final SaveManager _saves;
+  final List<_RestoreEntry> _entries = [];
+  final Set<String> _destinations = {};
+  final Map<String, int> _perRule = {};
+  int _bytes = 0;
+
+  void add(_Payload payload) {
+    final ruleId = payload.name.ruleId;
+    final destination = _saves._destinationFor(
+      payload,
+      sameRule: _perRule[ruleId] ?? 0,
+    );
+    _perRule[ruleId] = (_perRule[ruleId] ?? 0) + 1;
+
+    // Два файла пакета в одно место — спор о том, чьё содержимое окажется
+    // на диске. Решать его молча нельзя.
+    if (!_destinations.add(destination)) {
+      throw SaveException(_saves._l.saveArchiveReadFailed(payload.file.name));
+    }
+
+    _bytes += payload.file.size;
+    if (_bytes > _saves.maxSnapshotBytes) {
+      throw SaveException(_saves._l.saveTooLarge(formatBytes(_bytes)));
+    }
+    _entries.add(
+      _RestoreEntry(
+        archiveFile: payload.file,
+        target: payload.target,
+        destination: destination,
+      ),
+    );
+  }
+
+  _RestorePlan build() {
+    _saves._checkTargetsDoNotOverlap({
+      for (final entry in _entries) entry.target,
+    });
+    if (_entries.isEmpty) {
+      throw SaveNothingFoundException(_saves._l.saveNothingFound);
+    }
+    return _RestorePlan(entries: _entries, bytes: _bytes);
+  }
 }
