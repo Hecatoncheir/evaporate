@@ -29,47 +29,78 @@ void main() {
     );
   });
 
-  test('theme exports particle colours without changing their values', () {
-    expect(libraryInkColors, const [
-      Color(0xFFF2C368),
-      Color(0xFF49B7E0),
-      Color(0xFFE0574A),
-      Color(0xFFF2A93B),
-      Color(0xFF9A7BD8),
-      Color(0xFFF2C368),
-    ]);
-    expect(EffectsPalette.cartridge.particleBase, const Color(0xFF8C3A10));
-    expect(EffectsPalette.arclight.particleBase, const Color(0xFFE9C877));
+  // Проверяем свойства, а не числа: список значений рядом с их же
+  // копией из темы ловит только то, что кто-то поменял цвет, — и падает
+  // на каждой правке оттенка, ничего о ней не сказав.
+  test('частицы идут по кольцу цветов и возвращаются к нему', () {
+    expect(libraryInkColors.first, libraryInkColors.last, reason: 'кольцо');
+    expect(libraryInkColors, everyElement(isA<Color>()));
+
     for (final effects in [EffectsPalette.arclight, EffectsPalette.cartridge]) {
+      // Без свечения частица своего цвета схемы, в полном — цвета кольца.
       expect(effects.particle(phase: 0, glow: 0), effects.particleBase);
       expect(effects.particle(phase: 0, glow: 1), libraryInkColors.first);
+
+      // Соседние фазы дают разные цвета — иначе кольцо не водило бы.
+      expect(
+        effects.particle(phase: 0.1, glow: 1),
+        isNot(effects.particle(phase: 0, glow: 1)),
+      );
+      // А полный оборот возвращает к началу: кольцо замкнуто.
+      expect(
+        effects.particle(phase: 0.5, glow: 1),
+        effects.particle(phase: 0, glow: 1),
+      );
     }
   });
 
-  test('wave and artwork palettes keep their theme values', () {
-    expect(EffectsPalette.arclight.waveColors, const [
-      Color(0xFFE9C877),
-      Color(0xFF49B7E0),
-      Color(0xFFE0574A),
-      Color(0xFFC9C2B2),
-    ]);
-    expect(EffectsPalette.cartridge.waveColors, const [
-      Color(0xFFFF4A17),
-      Color(0xFFFFC400),
-      Color(0xFF0090A8),
-      Color(0xFFB3261E),
-    ]);
-    for (final title in ['Celeste', 'Hades', 'Игра']) {
-      final hue = (title.hashCode % 360).abs().toDouble();
-      expect(gameCoverColors(title), [
-        HSLColor.fromAHSL(1, hue, 0.34, 0.30).toColor(),
-        HSLColor.fromAHSL(1, (hue + 24) % 360, 0.32, 0.13).toColor(),
-      ]);
+  test('у схем свои цвета волны, и ни одна не повторяет другую', () {
+    final arclight = EffectsPalette.arclight.waveColors;
+    final cartridge = EffectsPalette.cartridge.waveColors;
 
-      // Свет корпуса держится выверенных якорей, а не всего круга:
-      // свободный оттенок от хеша однажды выдаёт болотно-зелёный, и
+    expect(arclight, hasLength(cartridge.length));
+    expect(
+      arclight.toSet(),
+      hasLength(arclight.length),
+      reason: 'без повторов',
+    );
+    expect(cartridge.toSet(), hasLength(cartridge.length));
+    expect(arclight, isNot(cartridge), reason: 'два облика, а не один');
+    for (final color in [...arclight, ...cartridge]) {
+      expect(color.a, 1, reason: 'волна не прозрачная');
+    }
+  });
+
+  test('обложка без картинки одинакова от запуска к запуску', () {
+    for (final title in ['Celeste', 'Hades', 'Игра']) {
+      final colors = gameCoverColors(title);
+
+      expect(colors, hasLength(2));
+      expect(
+        gameCoverColors(title),
+        colors,
+        reason: 'та же игра — тот же цвет',
+      );
+      // Низ темнее верха: на этой паре лежит подпись, и градиент обязан
+      // идти в одну сторону.
+      expect(
+        HSLColor.fromColor(colors.last).lightness,
+        lessThan(HSLColor.fromColor(colors.first).lightness),
+      );
+    }
+    expect(
+      gameCoverColors('Celeste'),
+      isNot(gameCoverColors('Hades')),
+      reason: 'разные игры — разные обложки',
+    );
+  });
+
+  test('свет корпуса держится выверенных якорей', () {
+    for (final title in ['Celeste', 'Hades', 'Игра']) {
+      // Свободный оттенок от хеша однажды выдаёт болотно-зелёный, и
       // оболочка выглядит сломанной, а не «своей у каждого».
       final ambient = gameAmbientColors(title);
+
       expect(ambient, hasLength(3));
       expect(gameAmbientColors(title), ambient, reason: 'один и тот же свет');
       final lead = HSLColor.fromColor(ambient.first).hue;
@@ -82,9 +113,14 @@ void main() {
         reason: 'оттенок $lead ушёл от якорей $ambientHues',
       );
     }
-    expect(AppColors.coverOverlay, Colors.black.withValues(alpha: 0.66));
-    expect(AppColors.detailOverlay, Colors.black.withValues(alpha: 0.62));
-    expect(AppColors.coverText, Colors.white);
-    expect(AppColors.transparent, Colors.transparent);
+  });
+
+  test('затемнения поверх обложки и правда затемняют', () {
+    // Белый текст поверх картинки читается только по тёмной подложке, и
+    // насколько она тёмная — вопрос не вкуса, а читаемости.
+    expect(AppColors.coverOverlay.a, greaterThan(0.5));
+    expect(AppColors.detailOverlay.a, greaterThan(0.5));
+    expect(HSLColor.fromColor(AppColors.coverText).lightness, 1);
+    expect(AppColors.transparent.a, 0);
   });
 }
