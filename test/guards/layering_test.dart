@@ -79,7 +79,9 @@ void main() {
 const _intoUi = <String>[];
 
 const _belowServices = [
+  // Остаётся намеренно. Раскладка геймпада — настройка, и хранить её
+  // больше негде; а перенести `GamepadBinding` в модели значило бы
+  // притащить туда `package:gamepads` — плагин с платформенным кодом,
+  // то есть ровно то, от чего этот слой и берегут.
   'lib/models/app_settings.dart -> lib/input/gamepad_binding.dart',
-  'lib/models/app_settings.dart -> package:flutter/material.dart',
-  'lib/models/save_snapshot.dart -> lib/services/saves/snapshot_store.dart',
 ];

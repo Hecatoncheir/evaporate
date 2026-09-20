@@ -1,38 +1,12 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:equatable/equatable.dart';
 import 'package:path/path.dart' as p;
 
-/// Один файл снимка: имя внутри пакета и содержимое, найденное по хешу.
-///
-/// [size] — размер исходного файла, не сжатого: он идёт в манифест пакета и
-/// должен совпасть с тем, что увидит другое устройство.
-class SnapshotBlob extends Equatable {
-  const SnapshotBlob({
-    required this.name,
-    required this.hash,
-    required this.size,
-  });
+import '../../models/snapshot_blob.dart';
 
-  /// Имя внутри `.evsave`: `data/<ruleId>/<путь внутри правила>`.
-  final String name;
-
-  /// sha256 содержимого. Он же адрес файла в хранилище.
-  final String hash;
-  final int size;
-
-  Map<String, dynamic> toJson() => {'name': name, 'hash': hash, 'size': size};
-
-  factory SnapshotBlob.fromJson(Map<String, dynamic> json) => SnapshotBlob(
-    name: json['name'] as String,
-    hash: json['hash'] as String,
-    size: json['size'] as int? ?? 0,
-  );
-
-  @override
-  List<Object?> get props => [name, hash, size];
-}
+// Часть снимка, а не хранилища: её читают и модели, и пакет `.evsave`.
+export '../../models/snapshot_blob.dart';
 
 /// Файлы снимков, сложенные по содержимому.
 ///

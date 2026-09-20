@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/app_theme_mode.dart';
 import 'top_action.dart';
 
 /// Клавиша смены оформления в верхней рейке.
@@ -16,23 +17,24 @@ class ThemeCycleAction extends StatelessWidget {
   /// Порядок перебора: из системного — в светлое, дальше в тёмное и назад
   /// в системное. Подпись на клавише обещает то, что получится после
   /// нажатия.
-  static ThemeMode nextTheme(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => ThemeMode.light,
-    ThemeMode.light => ThemeMode.dark,
-    ThemeMode.dark => ThemeMode.system,
+  static AppThemeMode nextTheme(AppThemeMode mode) => switch (mode) {
+    AppThemeMode.system => AppThemeMode.light,
+    AppThemeMode.light => AppThemeMode.dark,
+    AppThemeMode.dark => AppThemeMode.system,
   };
 
-  static IconData _icon(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => Icons.brightness_auto_outlined,
-    ThemeMode.light => Icons.light_mode_outlined,
-    ThemeMode.dark => Icons.dark_mode_outlined,
+  static IconData _icon(AppThemeMode mode) => switch (mode) {
+    AppThemeMode.system => Icons.brightness_auto_outlined,
+    AppThemeMode.light => Icons.light_mode_outlined,
+    AppThemeMode.dark => Icons.dark_mode_outlined,
   };
 
-  static String _label(BuildContext context, ThemeMode mode) => switch (mode) {
-    ThemeMode.system => L.of(context).systemThemeAction,
-    ThemeMode.light => L.of(context).lightThemeAction,
-    ThemeMode.dark => L.of(context).darkThemeAction,
-  };
+  static String _label(BuildContext context, AppThemeMode mode) =>
+      switch (mode) {
+        AppThemeMode.system => L.of(context).systemThemeAction,
+        AppThemeMode.light => L.of(context).lightThemeAction,
+        AppThemeMode.dark => L.of(context).darkThemeAction,
+      };
 
   @override
   Widget build(BuildContext context) {

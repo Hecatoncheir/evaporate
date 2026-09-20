@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../models/app_theme_mode.dart';
 import 'segmented_setting.dart';
 
 /// Выбор оформления.
@@ -11,27 +12,27 @@ import 'segmented_setting.dart';
 class ThemePicker extends StatelessWidget {
   const ThemePicker({super.key, required this.value, required this.onChanged});
 
-  final ThemeMode value;
-  final ValueChanged<ThemeMode> onChanged;
+  final AppThemeMode value;
+  final ValueChanged<AppThemeMode> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
-    return SegmentedSetting<ThemeMode>(
+    return SegmentedSetting<AppThemeMode>(
       label: l.appearance,
       segments: [
         ButtonSegment(
-          value: ThemeMode.system,
+          value: AppThemeMode.system,
           icon: const Icon(Icons.brightness_auto_outlined, size: 17),
           label: Text(l.themeSystem),
         ),
         ButtonSegment(
-          value: ThemeMode.light,
+          value: AppThemeMode.light,
           icon: const Icon(Icons.light_mode_outlined, size: 17),
           label: Text(l.themeLight),
         ),
         ButtonSegment(
-          value: ThemeMode.dark,
+          value: AppThemeMode.dark,
           icon: const Icon(Icons.dark_mode_outlined, size: 17),
           label: Text(l.themeDark),
         ),

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../services/saves/snapshot_store.dart';
 import 'save_profile.dart';
+import 'snapshot_blob.dart';
 
 /// Снимок сохранений: zip-архив в хранилище приложения плюс метаданные.
 /// Тот же формат используется для экспорта на другое устройство (.evsave).

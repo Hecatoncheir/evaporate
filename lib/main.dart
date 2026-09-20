@@ -329,7 +329,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
             debugShowCheckedModeBanner: false,
             theme: EvaporateTheme.light(),
             darkTheme: EvaporateTheme.dark(),
-            themeMode: settings.themeMode,
+            themeMode: settings.themeMode.material,
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
             builder: (context, child) => AppWindowFrame(

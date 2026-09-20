@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
 
 import '../input/gamepad_binding.dart';
+import 'app_theme_mode.dart';
 import 'proxy_settings.dart';
 import 'speed_limits.dart';
 import 'window_start_mode.dart';
@@ -18,7 +18,7 @@ class AppSettings extends Equatable {
     this.launchAtStartup = false,
     this.windowStart = WindowStartMode.remembered,
     this.checkUpdates = true,
-    this.themeMode = ThemeMode.system,
+    this.themeMode = AppThemeMode.system,
     this.libraryEffects = true,
     this.particlesEnabled = false,
     this.wavesEnabled = true,
@@ -77,7 +77,7 @@ class AppSettings extends Equatable {
   final bool checkUpdates;
 
   /// Светлая, тёмная или как в системе.
-  final ThemeMode themeMode;
+  final AppThemeMode themeMode;
 
   /// Общий выключатель; индивидуальные предпочтения сохраняются под ним.
   final bool libraryEffects;
@@ -173,7 +173,7 @@ class AppSettings extends Equatable {
     bool? launchAtStartup,
     WindowStartMode? windowStart,
     bool? checkUpdates,
-    ThemeMode? themeMode,
+    AppThemeMode? themeMode,
     bool? libraryEffects,
     bool? particlesEnabled,
     bool? wavesEnabled,
@@ -385,10 +385,10 @@ class AppSettings extends Equatable {
 
   /// Неизвестное значение — это «как в системе»: чужой или испорченный
   /// файл настроек не должен запирать пользователя в чужой теме.
-  static ThemeMode _themeModeFromName(String? name) => switch (name) {
-    'light' => ThemeMode.light,
-    'dark' => ThemeMode.dark,
-    _ => ThemeMode.system,
+  static AppThemeMode _themeModeFromName(String? name) => switch (name) {
+    'light' => AppThemeMode.light,
+    'dark' => AppThemeMode.dark,
+    _ => AppThemeMode.system,
   };
 
   static const _u = Object();

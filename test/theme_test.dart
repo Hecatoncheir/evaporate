@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -211,7 +212,7 @@ void main() {
 
   group('выбор темы хранится', () {
     test('режим переживает запись и чтение', () {
-      for (final mode in ThemeMode.values) {
+      for (final mode in AppThemeMode.values) {
         final settings = const AppSettings(installDir: '/games')
             .copyWith(themeMode: mode);
 
@@ -229,13 +230,13 @@ void main() {
         'themeMode': 'сепия',
       }, '/games');
 
-      expect(restored.themeMode, ThemeMode.system);
+      expect(restored.themeMode, AppThemeMode.system);
     });
 
     test('по умолчанию тема системная', () {
       expect(
         const AppSettings(installDir: '/games').themeMode,
-        ThemeMode.system,
+        AppThemeMode.system,
       );
     });
   });

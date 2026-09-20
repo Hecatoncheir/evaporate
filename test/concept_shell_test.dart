@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,14 +17,14 @@ void main() {
     addTearDown(harness.dispose);
 
     await harness.pump(tester);
-    expect(harness.settings.state.themeMode, ThemeMode.system);
+    expect(harness.settings.state.themeMode, AppThemeMode.system);
 
     // Прежде клавиша переключала тёмное со светлым и молча съедала «как в
     // системе»: вернуть его было можно только в настройках.
     for (final (tooltip, mode) in [
-      ('Светлая тема', ThemeMode.light),
-      ('Тёмная тема', ThemeMode.dark),
-      ('Как в системе', ThemeMode.system),
+      ('Светлая тема', AppThemeMode.light),
+      ('Тёмная тема', AppThemeMode.dark),
+      ('Как в системе', AppThemeMode.system),
     ]) {
       await tester.tap(find.byTooltip(tooltip));
       await tester.pumpAndSettle();

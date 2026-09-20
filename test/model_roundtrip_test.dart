@@ -1,6 +1,7 @@
 import 'package:evaporate/input/gamepad_binding.dart';
 import 'package:evaporate/input/nav_action.dart';
 import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/game_rating.dart';
 import 'package:evaporate/models/proxy_settings.dart';
@@ -9,7 +10,6 @@ import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/models/speed_limits.dart';
 import 'package:evaporate/models/window_start_mode.dart';
 import 'package:evaporate/services/saves/snapshot_store.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamepads/gamepads.dart';
 
@@ -102,7 +102,7 @@ void main() {
     launchAtStartup: true,
     windowStart: WindowStartMode.minimized,
     checkUpdates: false,
-    themeMode: ThemeMode.light,
+    themeMode: AppThemeMode.light,
     libraryEffects: false,
     particlesEnabled: true,
     wavesEnabled: false,

@@ -14,4 +14,5 @@ export 'theme/hardware_surface_theme.dart';
 export 'theme/layout.dart';
 export 'theme/motion.dart';
 export 'theme/palette.dart';
+export 'theme/theme_mode.dart';
 export 'theme/typography.dart';
