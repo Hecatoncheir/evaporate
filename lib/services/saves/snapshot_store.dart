@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:equatable/equatable.dart';
 import 'package:path/path.dart' as p;
 
 /// Один файл снимка: имя внутри пакета и содержимое, найденное по хешу.
 ///
 /// [size] — размер исходного файла, не сжатого: он идёт в манифест пакета и
 /// должен совпасть с тем, что увидит другое устройство.
-class SnapshotBlob {
+class SnapshotBlob extends Equatable {
   const SnapshotBlob({
     required this.name,
     required this.hash,
@@ -28,6 +29,9 @@ class SnapshotBlob {
     hash: json['hash'] as String,
     size: json['size'] as int? ?? 0,
   );
+
+  @override
+  List<Object?> get props => [name, hash, size];
 }
 
 /// Файлы снимков, сложенные по содержимому.

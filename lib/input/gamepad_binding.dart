@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:gamepads/gamepads.dart';
 
 import 'nav_action.dart';
@@ -8,7 +9,7 @@ import 'nav_action.dart';
 /// SDL-базу, поэтому здесь мы работаем с [GamepadButton], а не с сырыми
 /// кодами. Раскладка всё равно вынесена в настройки: расположение A/B на
 /// Nintendo-совместимых контроллерах зеркальное, и это вопрос вкуса.
-class GamepadBinding {
+class GamepadBinding extends Equatable {
   const GamepadBinding({
     this.buttons = defaultButtons,
     this.deadzone = 0.5,
@@ -103,6 +104,9 @@ class GamepadBinding {
       enabled: json['enabled'] as bool? ?? true,
     );
   }
+
+  @override
+  List<Object?> get props => [buttons, deadzone, releaseZone, enabled];
 }
 
 /// Человеческие названия кнопок — в подсказках и на экране настройки.

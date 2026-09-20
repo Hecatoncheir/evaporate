@@ -1,9 +1,11 @@
+import 'package:equatable/equatable.dart';
+
 import '../services/saves/snapshot_store.dart';
 import 'save_profile.dart';
 
 /// Снимок сохранений: zip-архив в хранилище приложения плюс метаданные.
 /// Тот же формат используется для экспорта на другое устройство (.evsave).
-class SaveSnapshot {
+class SaveSnapshot extends Equatable {
   const SaveSnapshot({
     required this.id,
     required this.gameId,
@@ -145,6 +147,24 @@ class SaveSnapshot {
   static const manifestEntry = 'manifest.json';
   static const dataPrefix = 'data';
   static const fileExtension = '.evsave';
+
+  @override
+  List<Object?> get props => [
+    id,
+    gameId,
+    gameTitle,
+    createdAt,
+    deviceName,
+    platform,
+    sizeBytes,
+    archivePath,
+    blobs,
+    rules,
+    playtime,
+    note,
+    fileCount,
+    origin,
+  ];
 }
 
 enum SnapshotOrigin { manual, autoOnExit, autoOnLaunch, imported, preRestore }

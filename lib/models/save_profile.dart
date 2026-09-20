@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
@@ -6,7 +7,7 @@ import '../core/save_path_template.dart';
 
 /// Одна папка (или файл) с сохранениями. Хранится шаблоном, а не абсолютным
 /// путём — см. [SavePathTemplate].
-class SavePathRule {
+class SavePathRule extends Equatable {
   /// Метка по умолчанию. Намеренно не переводится: по ней правила
   /// сопоставляются между устройствами, и переведись она — снимок с русской
   /// машины перестал бы сходиться с правилом на английской. Показывают её
@@ -140,11 +141,14 @@ class SavePathRule {
   );
 
   static const _u = Object();
+
+  @override
+  List<Object?> get props => [id, label, template, platform, kind];
 }
 
 enum SavePathKind { file, directory }
 
-class SaveProfile {
+class SaveProfile extends Equatable {
   const SaveProfile({
     this.rules = const [],
     this.autoSnapshotOnExit = true,
@@ -259,4 +263,12 @@ class SaveProfile {
     autoSnapshotOnLaunch: json['autoSnapshotOnLaunch'] as bool? ?? false,
     keepSnapshots: json['keepSnapshots'] as int? ?? 20,
   );
+
+  @override
+  List<Object?> get props => [
+    rules,
+    autoSnapshotOnExit,
+    autoSnapshotOnLaunch,
+    keepSnapshots,
+  ];
 }

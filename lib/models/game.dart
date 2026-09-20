@@ -1,3 +1,5 @@
+import 'package:equatable/equatable.dart';
+
 import 'game_rating.dart';
 import 'save_profile.dart';
 
@@ -5,7 +7,7 @@ enum GameSourceKind { magnet, torrentFile, localFolder }
 
 /// Откуда игра берётся. Приложение не содержит каталога контента —
 /// источник всегда задаёт пользователь.
-class GameSource {
+class GameSource extends Equatable {
   const GameSource({required this.kind, required this.value});
 
   final GameSourceKind kind;
@@ -29,12 +31,15 @@ class GameSource {
     ),
     value: json['value'] as String,
   );
+
+  @override
+  List<Object?> get props => [kind, value];
 }
 
 enum GameStatus { notInstalled, downloading, paused, installed, running, error }
 
-class Game {
-  Game({
+class Game extends Equatable {
+  const Game({
     required this.id,
     required this.title,
     required this.addedAt,
@@ -282,4 +287,34 @@ class Game {
   }
 
   static const _u = Object();
+
+  @override
+  List<Object?> get props => [
+    id,
+    title,
+    addedAt,
+    source,
+    installDir,
+    executablePath,
+    launchArgs,
+    coverPath,
+    coverUrl,
+    shotPaths,
+    description,
+    rating,
+    steamAppId,
+    steamLookupAttempted,
+    savePathsLookupAttempted,
+    ludusaviTemplates,
+    ludusaviResolvedPaths,
+    notes,
+    saveProfile,
+    playtime,
+    lastPlayed,
+    status,
+    downloadTaskId,
+    infoHash,
+    sizeBytes,
+    lastError,
+  ];
 }

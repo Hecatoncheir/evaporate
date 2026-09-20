@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gamepads/gamepads.dart';
 
@@ -278,7 +279,7 @@ class GamepadService {
   }
 }
 
-class GamepadStatus {
+class GamepadStatus extends Equatable {
   const GamepadStatus({
     this.available = false,
     this.devices = const [],
@@ -295,4 +296,7 @@ class GamepadStatus {
   /// описываются словами и потому живут в слое интерфейса —
   /// `gamepadStatusLabel`: у класса-значения языка взять неоткуда.
   String? get soleDevice => devices.length == 1 ? devices.first : null;
+
+  @override
+  List<Object?> get props => [available, devices, message];
 }

@@ -1150,7 +1150,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `toJson`, `fromJson`, `props` и наборы становятся циклами, набор —
   литералом множества. Старые ключи читаются как раньше. Остальное — в
   группы `Appearance`, `StartupSettings`, `SaveAutomation`. **M**
-- [ ] Равенство. У `Game`, `SaveProfile`, `SavePathRule`, `SaveSnapshot`,
+- [x] Равенство. У `Game`, `SaveProfile`, `SavePathRule`, `SaveSnapshot`,
   `SnapshotBlob`, `GamepadStatus`, `GamepadBinding` нет `==` (`Equatable`
   уже в зависимостях). Следствия: `LibraryState.props` сравнивает игры по
   ссылке, и `copyWith` с теми же значениями даёт «новое» состояние и
@@ -1158,6 +1158,10 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   по ссылке; `_recheckDevices` (`gamepad_service.dart:104`) раз в секунду
   кладёт равный `GamepadStatus`, и слушатели (`app_footer.dart:47`,
   `gamepad_settings.dart:97,273`) перестраиваются раз в секунду. **S**
+  *Все семь стали `Equatable`*, `Game` заодно получил `const`-конструктор.
+  Держит это `model_equality_test.dart`: правка, ничего не меняющая, не
+  выглядит правкой, а равное состояние геймпада слушателей не будит.
+
 - [ ] Стражи вместо генерации кода: на каждую модель — «все поля не по
   умолчанию → `fromJson(toJson(x))` равно `x`» и «`copyWith()` без
   аргументов равно исходному»; у `SaveSnapshot.copyWith`
