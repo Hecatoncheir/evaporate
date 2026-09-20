@@ -128,7 +128,6 @@ const _complexity = [
   'lib/services/saves/bulk_transfer.dart: BulkTransfer.importAll: 24',
   'lib/services/saves/restore_transaction.dart: _RestoreTransaction._buildRestorePlan: 25',
   'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
-  'lib/ui/settings/about_card.dart: _AboutCardState._install: 16',
 ];
 
 const _lines = [
@@ -155,5 +154,4 @@ const _lines = [
 
 const _nesting = [
   'lib/services/metadata/steam_catalog.dart: SteamCatalog.imageBytes: 4',
-  'lib/ui/settings/about_card.dart: _AboutCardState._install: 4',
 ];
