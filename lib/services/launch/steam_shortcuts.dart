@@ -7,10 +7,14 @@ import 'package:path/path.dart' as p;
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/game.dart';
-import '../system/app_log.dart';
 import 'binary_vdf.dart';
-import 'steam_install.dart';
-import 'vdf.dart';
+import 'steam_grid.dart';
+import 'steam_profiles.dart';
+
+// Витрина и учётные записи уехали в свои файлы, но зовут их отсюда: у
+// ярлыка они обе — часть одного дела.
+export 'steam_grid.dart' show SteamArtwork;
+export 'steam_profiles.dart' show SteamProfile;
 
 /// Не вышло завести игру в Steam — с готовым объяснением для человека.
 class SteamShortcutException implements Exception {
@@ -20,48 +24,6 @@ class SteamShortcutException implements Exception {
 
   @override
   String toString() => message;
-}
-
-/// Витрина игры в библиотеке Steam — четыре картинки, каждая под своим
-/// именем в папке `grid`.
-///
-/// Одной вертикальной обложки мало: ею Steam рисует только сетку
-/// библиотеки. Полка «недавних» берёт горизонтальную плашку, а страница
-/// игры — широкий задник с названием поверх. Положив одну, получаешь игру,
-/// которая в сетке выглядит как все, а на своей странице — как пустой лист.
-class SteamArtwork {
-  const SteamArtwork({this.portrait, this.capsule, this.hero, this.logo});
-
-  /// `<appid>p.jpg` — вертикальная, 2:3, для сетки библиотеки.
-  final List<int>? portrait;
-
-  /// `<appid>.jpg` — горизонтальная плашка для полок и списков.
-  final List<int>? capsule;
-
-  /// `<appid>_hero.jpg` — широкий задник страницы игры.
-  final List<int>? hero;
-
-  /// `<appid>_logo.png` — название игры картинкой поверх задника.
-  final List<int>? logo;
-
-  bool get isEmpty =>
-      portrait == null && capsule == null && hero == null && logo == null;
-}
-
-/// Учётная запись Steam на этой машине.
-class SteamProfile {
-  const SteamProfile({required this.accountId, required this.configDir});
-
-  /// Номер папки в `userdata` — он же `steamID64` минус смещение Valve.
-  final String accountId;
-
-  /// `userdata/<accountId>/config`.
-  final String configDir;
-
-  String get shortcutsFile => p.join(configDir, 'shortcuts.vdf');
-
-  /// Сюда Steam кладёт обложки, назначенные вручную.
-  String get gridDir => p.join(configDir, 'grid');
 }
 
 /// Заводит игры в Steam как «сторонние» — то же, что его собственное
@@ -86,68 +48,21 @@ class SteamShortcuts {
     L Function()? localizations,
     Future<bool> Function()? steamRunning,
   }) : _localizations = localizations ?? _defaultLocalizations,
-       _steamRunning = steamRunning ?? _probeSteam;
+       _steamRunning = steamRunning ?? _probeSteam,
+       _profiles = SteamProfiles(roots: roots);
 
   /// Где искать Steam. Подменяется в тестах: настоящей установки на машине
   /// прогона нет, а на трёх системах она лежит в трёх разных местах.
   final List<String>? roots;
   final L Function() _localizations;
   final Future<bool> Function() _steamRunning;
+  final SteamProfiles _profiles;
+
+  /// Все учётные записи, заходившие на этой машине.
+  Future<List<SteamProfile>> profiles() => _profiles.all();
 
   L get _l => _localizations();
   static L _defaultLocalizations() => LRu();
-
-  /// `steamID64` начинается с этого числа; номер папки в `userdata` — это
-  /// остаток. Связь нужна, чтобы сопоставить папку с записью в
-  /// `loginusers.vdf` и понять, под кем человек сидел последним.
-  static const _steamIdOffset = 76561197960265728;
-
-  /// Все учётные записи, заходившие на этой машине.
-  Future<List<SteamProfile>> profiles() async {
-    final found = <SteamProfile>[];
-    for (final root in roots ?? SteamInstall.defaultRoots()) {
-      final userdata = Directory(p.join(root, 'userdata'));
-      if (!await userdata.exists()) continue;
-      for (final entity in await userdata.list(followLinks: false).toList()) {
-        if (entity is! Directory) continue;
-        final id = p.basename(entity.path);
-        // `ls` в `userdata` показывает и служебные папки вроде `ac`.
-        if (int.tryParse(id) == null) continue;
-        final config = Directory(p.join(entity.path, 'config'));
-        if (!await config.exists()) continue;
-        found.add(SteamProfile(accountId: id, configDir: config.path));
-      }
-    }
-    return found;
-  }
-
-  /// Под какой записью сидели последней — из `config/loginusers.vdf`.
-  ///
-  /// Нужно только тогда, когда записей несколько: гадать, в чью библиотеку
-  /// класть игру, нельзя, а спрашивать ради единственной — назойливо.
-  Future<String?> _mostRecentAccount() async {
-    for (final root in roots ?? SteamInstall.defaultRoots()) {
-      final file = File(p.join(root, 'config', 'loginusers.vdf'));
-      if (!await file.exists()) continue;
-      final String text;
-      try {
-        text = await file.readAsString();
-      } on FileSystemException {
-        continue;
-      }
-      final users = Vdf.map(Vdf.parse(text), ['users']);
-      if (users == null) continue;
-      for (final entry in users.entries) {
-        final value = entry.value;
-        if (value is! Map<String, Object>) continue;
-        if (value['MostRecent'] != '1') continue;
-        final id64 = int.tryParse(entry.key);
-        if (id64 == null) continue;
-        return '${id64 - _steamIdOffset}';
-      }
-    }
-    return null;
-  }
 
   /// Куда класть ярлык. Одна запись — она и есть; несколько — та, под
   /// которой сидели последней.
@@ -156,7 +71,7 @@ class SteamShortcuts {
     if (all.isEmpty) throw SteamShortcutException(_l.steamNotFound);
     if (all.length == 1) return all.single;
 
-    final recent = await _mostRecentAccount();
+    final recent = await _profiles.mostRecentAccount();
     final match = all.where((profile) => profile.accountId == recent);
     if (match.isEmpty) throw SteamShortcutException(_l.steamManyProfiles);
     return match.first;
@@ -226,12 +141,8 @@ class SteamShortcuts {
   /// если её не нарисовали, берёт горизонтальную `header`. Положить
   /// горизонтальную под именем вертикальной — значит растянуть её на
   /// 600×900, и выглядит это хуже, чем пустая рамка.
-  static String gridNameFor(int appId, List<int> cover) {
-    final size = _imageSize(cover);
-    final portrait = size == null || size.height >= size.width;
-    final id = appId.toUnsigned(32);
-    return portrait ? '${id}p.jpg' : '$id.jpg';
-  }
+  static String gridNameFor(int appId, List<int> cover) =>
+      SteamGrid.nameFor(appId, cover);
 
   /// Заводит игру в Steam. Возвращает назначенный ей `appid`.
   ///
@@ -280,7 +191,12 @@ class SteamShortcuts {
         for (var i = 0; i < entries.length; i++) '$i': entries[i],
       },
     });
-    await _putArtwork(game, profile: profile, appId: appId, artwork: artwork);
+    await const SteamGrid().write(
+      game,
+      gridDir: profile.gridDir,
+      appId: appId,
+      artwork: artwork,
+    );
     return appId;
   }
 
@@ -370,121 +286,4 @@ class SteamShortcuts {
   ///
   /// Неудача здесь ярлыка не отменяет: игра без обложки — это игра без
   /// обложки, а отказ ради неё означал бы «не добавили вовсе».
-  Future<void> _putArtwork(
-    Game game, {
-    required SteamProfile profile,
-    required int appId,
-    required SteamArtwork? artwork,
-  }) async {
-    final files = _catalogArtwork(appId, artwork);
-    try {
-      await _addOwnCover(game, appId, files);
-      if (files.isEmpty) return;
-      final dir = Directory(profile.gridDir);
-      await dir.create(recursive: true);
-      for (final file in files.entries) {
-        await File(p.join(dir.path, file.key))
-            .writeAsBytes(file.value, flush: true);
-      }
-    } on FileSystemException catch (error) {
-      // Витрина ярлыка не отменяет, но пустые обложки в Steam без следа в
-      // журнале не объяснить.
-      AppLog.instance.write('витрина ярлыка Steam не записана', error);
-    }
-  }
-
-  /// Присланное каталогом — под именами, по которым Steam узнаёт роль.
-  static Map<String, List<int>> _catalogArtwork(
-    int appId,
-    SteamArtwork? artwork,
-  ) {
-    final id = appId.toUnsigned(32);
-    return {
-      '${id}p.jpg': ?artwork?.portrait,
-      '$id.jpg': ?artwork?.capsule,
-      '${id}_hero.jpg': ?artwork?.hero,
-      '${id}_logo.png': ?artwork?.logo,
-    };
-  }
-
-  /// Своей обложкой закрываем ту створку, которая осталась пустой:
-  /// класть её поверх присланной каталогом незачем.
-  Future<void> _addOwnCover(
-    Game game,
-    int appId,
-    Map<String, List<int>> files,
-  ) async {
-    final cover = game.coverPath;
-    if (cover == null || cover.isEmpty) return;
-    final source = File(cover);
-    if (!await source.exists()) return;
-    final bytes = await source.readAsBytes();
-    files.putIfAbsent(gridNameFor(appId, bytes), () => bytes);
-  }
 }
-
-/// Размеры картинки, прочитанные из заголовка.
-class _ImageSize {
-  const _ImageSize(this.width, this.height);
-
-  final int width;
-  final int height;
-}
-
-/// Ширина и высота JPEG или PNG без полного разбора картинки.
-///
-/// Обе с CDN Steam, других нам и не приносят. `null` — «не разобрали»;
-/// вызывающий считает такую обложку вертикальной, потому что каталог
-/// сначала просит именно вертикальную.
-_ImageSize? _imageSize(List<int> bytes) => _pngSize(bytes) ?? _jpegSize(bytes);
-
-/// PNG: размеры лежат в IHDR, сразу за подписью, старшим байтом вперёд.
-_ImageSize? _pngSize(List<int> bytes) {
-  const signature = [0x89, 0x50, 0x4E, 0x47];
-  if (bytes.length <= 24) return null;
-  for (var i = 0; i < signature.length; i++) {
-    if (bytes[i] != signature[i]) return null;
-  }
-  return _ImageSize(_be32(bytes, 16), _be32(bytes, 20));
-}
-
-/// JPEG: идём по маркерам до любого из SOF — только там лежат размеры.
-_ImageSize? _jpegSize(List<int> bytes) {
-  if (bytes.length < 4 || bytes[0] != 0xFF || bytes[1] != 0xD8) return null;
-
-  var i = 2;
-  while (i + 9 < bytes.length) {
-    if (bytes[i] != 0xFF) {
-      i++;
-      continue;
-    }
-    final marker = bytes[i + 1];
-    // Заполнитель между маркерами и маркеры без полезной нагрузки.
-    if (marker == 0xFF || (marker >= 0xD0 && marker <= 0xD9)) {
-      i += 2;
-      continue;
-    }
-    if (_isStartOfFrame(marker)) {
-      return _ImageSize(_be16(bytes, i + 7), _be16(bytes, i + 5));
-    }
-    final length = _be16(bytes, i + 2);
-    if (length < 2) return null;
-    i += 2 + length;
-  }
-  return null;
-}
-
-/// Начало кадра — единственный маркер, в котором записаны размеры.
-bool _isStartOfFrame(int marker) =>
-    marker >= 0xC0 &&
-    marker <= 0xCF &&
-    marker != 0xC4 && // таблица Хаффмана
-    marker != 0xC8 && // расширение JPEG
-    marker != 0xCC; // таблица арифметического кодирования
-
-/// Число из двух байт, старший впереди.
-int _be16(List<int> bytes, int at) => bytes[at] << 8 | bytes[at + 1];
-
-/// Число из четырёх байт, старший впереди.
-int _be32(List<int> bytes, int at) =>
-    bytes[at] << 24 | bytes[at + 1] << 16 | bytes[at + 2] << 8 | bytes[at + 3];

@@ -1,16 +1,18 @@
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:typed_data';
 
-import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/format.dart';
-import '../../core/progress_throttle.dart';
 import 'app_log.dart';
-import 'proxy_http_overrides.dart';
 import 'update_check.dart';
+import 'update_exception.dart';
+import 'update_transport.dart';
+import 'update_unpack.dart';
+
+// Исключение переехало в свой файл, но зовут его отсюда уже по всему
+// приложению: пусть оно так и остаётся видимым.
+export 'update_exception.dart';
 
 /// Что сейчас происходит с обновлением.
 enum UpdatePhase { downloading, verifying, unpacking, ready, failed }
@@ -33,15 +35,6 @@ class UpdateProgress {
 
   /// Доля скачанного или `null`, пока размер неизвестен.
   double? get fraction => total > 0 ? (received / total).clamp(0.0, 1.0) : null;
-}
-
-class UpdateException implements Exception {
-  const UpdateException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
 }
 
 /// Скачивает и проверяет обновление.
@@ -69,8 +62,8 @@ class UpdateDownload {
     download,
     AppLog Function()? log,
   }) : _platform = platform ?? currentPlatformKey(),
-       _fetch = fetch ?? _httpFetch,
-       _download = download ?? _httpDownload,
+       _fetch = fetch ?? UpdateTransport.fetch,
+       _download = download ?? UpdateTransport.download,
        _log = log ?? _appLog;
 
   /// Куда складывать скачанное — папка данных приложения.
@@ -169,28 +162,9 @@ class UpdateDownload {
     }
 
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.unpacking));
-    final root = await _stage(dir, asset.name, target.path);
+    final root = await UpdateUnpack.stage(dir, asset.name, target.path);
     onProgress?.call(const UpdateProgress(phase: UpdatePhase.ready));
     return root;
-  }
-
-  /// Распаковывает проверенный архив рядом и отдаёт корень сборки.
-  ///
-  /// Разбор и распаковка — десятки мегабайт синхронной работы `archive`:
-  /// на главном потоке окно замирало бы на секунды посреди полосы хода.
-  /// Изолят сам читает файл по пути — гнать его содержимое сообщением
-  /// значило бы лишний раз скопировать всё обновление.
-  static Future<String> _stage(
-    Directory dir,
-    String name,
-    String archivePath,
-  ) async {
-    final staged = Directory(p.join(dir.path, 'staged'));
-    if (await staged.exists()) await staged.delete(recursive: true);
-    await staged.create(recursive: true);
-    final stagedPath = staged.path;
-    await Isolate.run(() => _unpackFile(name, archivePath, stagedPath));
-    return _rootOf(staged);
   }
 
   /// Размер и контрольная сумма.
@@ -241,281 +215,5 @@ class UpdateDownload {
       if (p.basename(parts.last) == name) return parts.first.toLowerCase();
     }
     return null;
-  }
-
-  static Future<void> _unpackFile(
-    String name,
-    String archivePath,
-    String target,
-  ) async {
-    final archive = _readArchive(name, await File(archivePath).readAsBytes());
-    for (final file in archive.files) {
-      final destination = _safeDestination(file.name, target);
-      // Запись про корень архива: создавать нечего, целевая папка уже есть.
-      if (destination == null) continue;
-      await _extract(file, destination);
-    }
-  }
-
-  /// Разбирает скачанное: `.tar.gz` на Linux, zip на остальных.
-  static Archive _readArchive(String name, List<int> bytes) {
-    final data = Uint8List.fromList(bytes);
-    try {
-      return name.endsWith('.tar.gz')
-          ? TarDecoder().decodeBytes(const GZipDecoder().decodeBytes(data))
-          : ZipDecoder().decodeBytes(data);
-    } on Object catch (error) {
-      throw UpdateException('Архив не читается: $error');
-    }
-  }
-
-  /// Куда положить одну запись архива. `null` — записи про корень архива:
-  /// создавать нечего, целевая папка уже есть.
-  ///
-  /// Та же мерка, что и у пакетов сохранений: архив приехал из сети, и
-  /// выход за пределы папки в нём недопустим.
-  static String? _safeDestination(String entryName, String target) {
-    final relative = entryName.replaceAll(r'\', '/');
-    // Пустые куски пути выходом наружу не являются: так записана обычная
-    // папка (`data/flutter_assets/assets/`), так же выглядит и двойной
-    // слеш. Отбрасываем их и разбираем то, что осталось, — иначе
-    // обновление спотыкалось о первую же папку в архиве.
-    final parts = [
-      for (final part in relative.split('/'))
-        if (part.isNotEmpty) part,
-    ];
-    if (parts.any((part) => part == '.' || part == '..')) {
-      throw UpdateException('Архив просит записать файл наружу: $relative');
-    }
-    if (parts.isEmpty) return null;
-
-    final destination = p.normalize(p.joinAll([target, ...parts]));
-    if (!p.isWithin(target, destination)) {
-      throw UpdateException('Архив просит записать файл наружу: $relative');
-    }
-    return destination;
-  }
-
-  /// Кладёт одну запись архива на своё место.
-  static Future<void> _extract(ArchiveFile file, String destination) async {
-    if (file.isSymbolicLink) {
-      await _link(file, destination);
-      return;
-    }
-    if (!file.isFile) {
-      await Directory(destination).create(recursive: true);
-      return;
-    }
-    final out = File(destination);
-    await out.parent.create(recursive: true);
-    final sink = OutputFileStream(destination);
-    try {
-      file.writeContent(sink);
-    } finally {
-      await sink.close();
-    }
-    // Права в zip не переживают распаковку, а запускать после обновления
-    // придётся именно эти файлы.
-    if (!Platform.isWindows && _looksExecutable(file)) {
-      await Process.run('chmod', ['+x', destination]);
-    }
-  }
-
-  /// Восстанавливает символическую ссылку.
-  ///
-  /// Бандл macOS без них не запускается: `Versions/Current` и сам бинарник
-  /// фреймворка — ссылки, и CI пакует архив `ditto` именно ради них. Ляг
-  /// ссылка обычным файлом с путём внутри, приложение не стартовало бы, а
-  /// помощник к тому времени уже убрал прежнюю копию.
-  ///
-  /// Ссылка — такой же способ записать наружу, как `..` в имени: всё, что
-  /// потом ляжет «внутрь» неё, ляжет туда, куда она указывает. Поэтому
-  /// принимаем только относительные ссылки вниз, без `..`: каждая указывает
-  /// в свою же папку или глубже, и цепочка таких ссылок наружу не выводит
-  /// ни при каком порядке записей. Проверять по буквам «внутри ли корня»
-  /// мало — через уже развёрнутую ссылку на `.` буквальный путь врёт.
-  /// Ссылок вверх в бандле нет, и им неоткуда взяться.
-  static Future<void> _link(ArchiveFile file, String destination) async {
-    final raw = file.symbolicLink!.replaceAll(r'\', '/');
-    final target = p.posix.normalize(raw);
-    if (p.posix.isAbsolute(raw) || p.posix.split(target).contains('..')) {
-      throw UpdateException(
-        'Ссылка в архиве указывает наружу: ${file.name} -> $raw',
-      );
-    }
-    await Directory(p.dirname(destination)).create(recursive: true);
-    await Link(destination).create(target);
-  }
-
-  /// Похож ли файл на тот, которому нужен бит запуска.
-  ///
-  /// В zip права хранятся в верхних битах внешних атрибутов; там, где их
-  /// нет, ориентируемся на расположение — в бандле macOS исполняемое лежит
-  /// в `Contents/MacOS`.
-  static bool _looksExecutable(ArchiveFile file) {
-    final mode = file.mode;
-    if (mode != 0 && (mode & 0x49) != 0) return true;
-    return file.name.contains('/MacOS/') || !file.name.contains('.');
-  }
-
-  /// Папка, которой предстоит заменить установку.
-  ///
-  /// Архивы собраны по-разному: у macOS внутри лежит `.app`, у остальных —
-  /// содержимое папки приложения россыпью. Разбираем по тому, что видим, а
-  /// не по системе: так же поступит и человек, распаковавший архив руками.
-  static Future<String> _rootOf(Directory staged) async {
-    final entries = await staged.list(followLinks: false).toList();
-    final bundles = entries.whereType<Directory>().where(
-      (dir) => p.extension(dir.path) == '.app',
-    );
-    if (bundles.isNotEmpty) return bundles.first.path;
-    // Единственная папка внутри — это она и есть.
-    final dirs = entries.whereType<Directory>().toList();
-    if (dirs.length == 1 && entries.length == 1) return dirs.single.path;
-    return staged.path;
-  }
-
-  /// Качает файл в [target], продолжая с байта [from].
-  ///
-  /// Докачка нужна не ради экономии трафика: полсотни мегабайт по плохому
-  /// каналу обрываются регулярно, а без продолжения каждая попытка
-  /// начинается с нуля — то есть на таком канале не заканчивается никогда.
-  static Future<void> _httpDownload(
-    Uri uri,
-    File target,
-    int from,
-    void Function(int, int) onProgress,
-  ) async {
-    final client = directHttpClient()
-      ..connectionTimeout = const Duration(seconds: 20);
-    try {
-      final response = await _open(client, uri, from);
-      // Просим больше, чем файл занимает: значит он уже весь у нас, и
-      // сказать об этом должна проверка суммы, а не отказ загрузки.
-      if (response.statusCode == HttpStatus.requestedRangeNotSatisfiable) {
-        await response.drain<void>();
-        return;
-      }
-      // Докачку сервер поддерживать не обязан: не умеет — отвечает целым
-      // файлом и кодом 200, и тогда прежний кусок надо выбросить, а не
-      // дописать к нему второй.
-      final resumed = response.statusCode == HttpStatus.partialContent;
-      if (!resumed && response.statusCode != HttpStatus.ok) {
-        throw UpdateException('Сервер ответил ${response.statusCode}');
-      }
-      await _writeBody(
-        response,
-        target,
-        alreadyHave: resumed ? from : 0,
-        append: resumed,
-        onProgress: onProgress,
-      );
-    } on SocketException catch (error) {
-      throw UpdateException('Нет связи: ${error.message}');
-    } finally {
-      client.close(force: true);
-    }
-  }
-
-  /// Как часто докладываем о ходе загрузки. Кусков приходят тысячи, и
-  /// перерисовывать окно на каждый значит тратить на показ больше, чем на
-  /// саму загрузку.
-  static const _progressInterval = Duration(milliseconds: 100);
-
-  /// Пишет тело ответа в файл, изредка сообщая о ходе.
-  static Future<void> _writeBody(
-    HttpClientResponse response,
-    File target, {
-    required int alreadyHave,
-    required bool append,
-    required void Function(int, int) onProgress,
-  }) async {
-    var received = alreadyHave;
-    final total = response.contentLength > 0
-        ? response.contentLength + received
-        : 0;
-    final sink = target.openWrite(
-      mode: append ? FileMode.append : FileMode.writeOnly,
-    );
-    final progress = ProgressThrottle(
-      () => onProgress(received, total),
-      interval: _progressInterval,
-    );
-    try {
-      await for (final chunk in response) {
-        sink.add(chunk);
-        received += chunk.length;
-        progress.tick();
-      }
-    } finally {
-      await sink.close();
-    }
-    progress.finish();
-  }
-
-  /// Запрос с продолжением и переадресациями.
-  ///
-  /// Диапазон переезжает вместе с запросом: GitHub уводит на своё
-  /// хранилище, и докачивать предстоит уже там.
-  static Future<HttpClientResponse> _open(
-    HttpClient client,
-    Uri uri,
-    int from,
-  ) async {
-    var target = uri;
-    for (var hop = 0; hop <= 5; hop++) {
-      final request = await client.getUrl(target);
-      if (from > 0) {
-        request.headers.set(HttpHeaders.rangeHeader, 'bytes=$from-');
-      }
-      final response = await request.close();
-      if (!response.isRedirect) return response;
-      final location = response.headers.value(HttpHeaders.locationHeader);
-      if (location == null) return response;
-      await response.drain<void>();
-      target = target.resolve(location);
-    }
-    throw const UpdateException('Слишком много переадресаций');
-  }
-
-  static Future<List<int>> _httpFetch(
-    Uri uri,
-    void Function(int, int) onProgress,
-  ) async {
-    final client = directHttpClient()
-      ..connectionTimeout = const Duration(seconds: 20);
-    try {
-      var request = await client.getUrl(uri);
-      var response = await request.close();
-      // GitHub отдаёт файлы релиза через переадресацию на своё хранилище.
-      var hops = 0;
-      while (response.isRedirect && hops++ < 5) {
-        final location = response.headers.value(HttpHeaders.locationHeader);
-        if (location == null) break;
-        await response.drain<void>();
-        request = await client.getUrl(uri.resolve(location));
-        response = await request.close();
-      }
-      if (response.statusCode != 200) {
-        throw UpdateException('Сервер ответил ${response.statusCode}');
-      }
-
-      final total = response.contentLength;
-      final builder = BytesBuilder(copy: false);
-      final progress = ProgressThrottle(
-        () => onProgress(builder.length, total),
-        interval: _progressInterval,
-      );
-      await for (final chunk in response) {
-        builder.add(chunk);
-        progress.tick();
-      }
-      progress.finish();
-      return builder.takeBytes();
-    } on SocketException catch (error) {
-      throw UpdateException('Нет связи: ${error.message}');
-    } finally {
-      client.close(force: true);
-    }
   }
 }

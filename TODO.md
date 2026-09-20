@@ -1071,9 +1071,18 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   обратно `engine._persist()` (`managed_download.dart:95`). Перечень
   состояний слота с методами-переходами и чистая `DownloadQueue` — это же
   и лечение «вечной ошибки» из этапа 1. **L**
-- [ ] `UpdateDownload` (466 строк): транспорт (`:326–465`), проверка и
+- [x] `UpdateDownload` (466 строк): транспорт (`:326–465`), проверка и
   распаковка (`:223–319`) — три класса. `SteamShortcuts` (460): профили,
   запись списка, витрина, заголовки картинок. **M**
+  *Разложены оба.* Обновление: `UpdateTransport` (докачка с диапазоном и
+  переадресацией), `UpdateUnpack` (изолят, zip-slip, права, ссылки) и сам
+  `UpdateDownload` — подготовка и сверка, 466 → 219 строк. Исключение
+  `UpdateException` уехало в свой файл: бросают его все трое.
+  Ярлыки Steam: `SteamProfiles` (учётные записи и `loginusers.vdf`),
+  `SteamGrid` (четыре картинки витрины) и `imageSizeOf`
+  (`image_size.dart` — разбор заголовков JPEG и PNG), 490 → 289 строк.
+  Прежние имена видны как раньше — `SteamArtwork` и `SteamProfile`
+  переэкспортированы, `gridNameFor` остался тонкой статикой.
 
 **Дублирование:**
 
