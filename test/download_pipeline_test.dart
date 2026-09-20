@@ -9,6 +9,7 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/models/speed_limits.dart';
+import 'package:evaporate/services/download/dtorrent_engine.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -130,6 +131,9 @@ void main() {
     }
 
     test('сохранённые настройки автоматически доходят до движка', () async {
+      // Настоящий движок здесь и проверяется: блок держит его контрактом,
+      // а путь, число слотов и прокси — подробности этой реализации.
+      final engine = downloads.engine as DtorrentEngine;
       final next = settings.state.copyWith(
         installDir: p.join(tmp.path, 'new-games'),
         maxConcurrent: 5,
@@ -141,18 +145,14 @@ void main() {
         limits: const SpeedLimits(download: 400, upload: 50),
       );
       settings.add(SettingsChanged(next));
-      for (
-        var i = 0;
-        i < 100 && downloads.engine.appliedLimits != next.limits;
-        i++
-      ) {
+      for (var i = 0; i < 100 && engine.appliedLimits != next.limits; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }
 
-      expect(downloads.engine.downloadDir, next.installDir);
-      expect(downloads.engine.maxConcurrent, next.maxConcurrent);
-      expect(downloads.engine.proxy, next.proxy);
-      expect(downloads.engine.appliedLimits, next.limits);
+      expect(engine.downloadDir, next.installDir);
+      expect(engine.maxConcurrent, next.maxConcurrent);
+      expect(engine.proxy, next.proxy);
+      expect(engine.appliedLimits, next.limits);
     });
 
     /// Игра, которую движок «качает»: статус и идентификатор задачи

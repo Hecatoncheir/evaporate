@@ -39,23 +39,28 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     required this.settings,
     NotificationService? notifications,
     L Function()? localizations,
+    DownloadEngine? engine,
   }) : _localizations = localizations ?? _defaultLocalizations,
        notifications = notifications ?? const NoopNotificationService(),
-       engine = DtorrentEngine(
-         downloadDir: settings.state.installDir,
-         stateFile: paths.engineStateFile,
-         torrentsDir: paths.torrentsDir,
-         proxy: settings.state.proxy,
-         maxConcurrent: settings.state.maxConcurrent,
-       ),
+       engine =
+           engine ??
+           DtorrentEngine(
+             downloadDir: settings.state.installDir,
+             stateFile: paths.engineStateFile,
+             torrentsDir: paths.torrentsDir,
+             proxy: settings.state.proxy,
+             maxConcurrent: settings.state.maxConcurrent,
+           ),
        super(const DownloadsState()) {
+    // В теле конструктора `engine` — ещё параметр, а не поле: имя
+    // одноимённого параметра его закрывает.
     on<DownloadEngineStartRequested>((event, emit) async {
       await applyLimits();
-      await engine.start();
+      await this.engine.start();
     });
     on<DownloadEngineRestartRequested>((event, emit) async {
-      await engine.stop();
-      await engine.start();
+      await this.engine.stop();
+      await this.engine.start();
     });
     on<DownloadSettingsApplied>(
       _onSettingsApplied,
@@ -77,9 +82,9 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
       emit(state.copyWith(stats: event.stats));
     });
 
-    engine.tasks.addListener(_pushTasks);
-    engine.status.addListener(_pushStatus);
-    engine.stats.addListener(_pushStats);
+    this.engine.tasks.addListener(_pushTasks);
+    this.engine.status.addListener(_pushStatus);
+    this.engine.stats.addListener(_pushStats);
     _settingsSubscription = settings.stream.listen(
       (value) => add(DownloadSettingsApplied(value)),
     );
@@ -99,7 +104,11 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
 
   L get _l => _localizations();
   final SettingsBloc settings;
-  final DtorrentEngine engine;
+
+  /// Движок держим контрактом, а не реализацией: подставленный в тесте
+  /// движок — единственный способ дойти до запроса загрузки, паузы,
+  /// отмены и перестановки, не поднимая настоящих раздач.
+  final DownloadEngine engine;
   late final StreamSubscription<AppSettings> _settingsSubscription;
   late final StreamSubscription<DroppedGames> _dropSubscription;
 

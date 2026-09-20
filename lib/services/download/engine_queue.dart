@@ -4,34 +4,15 @@ part of 'dtorrent_engine.dart';
 /// поднимается, когда слот ей достался.
 ///
 /// Карта загрузок и порядок в ней остались полями движка: расширение
-/// полей не заводит. Само расширение не приватное — `pumpQueue`,
-/// `reorder` и `positionOf` зовут снаружи, а члены приватного расширения
-/// за пределы библиотеки не видны — сколько их ни импортируй.
+/// полей не заводит. Само расширение не приватное — `positionOf` зовут
+/// снаружи, а члены приватного расширения за пределы библиотеки не видны.
+/// `pumpQueue` и `reorder` по той же причине переехали **в класс**: они
+/// часть контракта [DownloadEngine], а членами интерфейса расширения не
+/// бывают.
 extension EngineQueue on DtorrentEngine {
   void _register(_ManagedDownload managed) {
     _downloads[managed.infoHash] = managed;
     if (!_order.contains(managed.infoHash)) _order.add(managed.infoHash);
-  }
-
-  /// Запускает ожидающие задачи, пока есть свободные слоты.
-  ///
-  /// Вызывается и снаружи: при смене числа одновременных загрузок
-  /// освободившиеся слоты нужно раздать сразу.
-  void pumpQueue() {
-    for (final managed in _ordered) {
-      if (_activeCount >= maxConcurrent) return;
-      if (managed.started || managed.pausedByUser || managed.error != null) {
-        continue;
-      }
-      managed.started = true;
-      if (autoStart) {
-        if (managed.task != null) {
-          managed.task!.resume();
-        } else {
-          unawaited(_launch(managed));
-        }
-      }
-    }
   }
 
   int get _activeCount =>
@@ -42,21 +23,6 @@ extension EngineQueue on DtorrentEngine {
       final managed = _downloads[id];
       if (managed != null) yield managed;
     }
-  }
-
-  /// Переставляет задачу в очереди. Уже запущенные задачи не трогаем:
-  /// перезапуск ради порядка рвал бы соединения с пирами.
-  Future<void> reorder(String id, int newIndex) async {
-    final from = _order.indexOf(id);
-    if (from == -1) return;
-    final target = newIndex.clamp(0, _order.length - 1);
-    if (from == target) return;
-
-    _order.removeAt(from);
-    _order.insert(target, id);
-    await _persist();
-    pumpQueue();
-    await refresh();
   }
 
   /// Позиция в очереди — её показывает интерфейс.

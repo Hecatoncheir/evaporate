@@ -956,7 +956,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   `AppSection.values`, метка задач у загрузок — записью в карте, а не
   номером.
 - [x] `DownloadHistoryBloc` — см. §3.
-- [ ] **`DownloadsBloc` не проверить без торрентов.** Он создаёт
+- [x] **`DownloadsBloc` не проверить без торрентов.** Он создаёт
   `DtorrentEngine` сам и держит по конкретному типу
   (`downloads_bloc.dart:43,100`). Одним параметром конструктора это не
   лечится: блок зовёт `verify`, `torrentPathFor`, `reorder`, `setProxy`,
@@ -965,6 +965,16 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   в покрытии: из 13 событий тесты шлют два; запрос загрузки, пауза,
   возобновление, отмена и перестановка не исполняются ни разу (файл покрыт
   на 59 %). После правки — `FakeDownloadEngine` и тесты на эти пути. **M**
+  *Контракт дорос до того, чем блок пользуется* (`downloadDir`,
+  `maxConcurrent`, `pumpQueue`, `reorder`, `setProxy`, `torrentPathFor`,
+  `verify`, `dispose`), движок приходит параметром конструктора, а
+  `pumpQueue` и `reorder` переехали из расширения `EngineQueue` в класс:
+  членами интерфейса расширения не бывают. `FakeDownloadEngine`
+  записывает поручения и отвечает тем, что задал тест; отказ движка в нём
+  одноразовый — доживший до конца теста, он встретил бы `close` и уронил
+  бы прогон не там, где проверяли. 21 новый тест
+  (`downloads_bloc_test.dart`), покрытие блока 59 % → 91 %, общий порог
+  поднят с 78 % до 80 %.
 - [x] Подписки на состояние целиком: `context.watch<…>().state` в 19 местах
   (`library_page.dart:120–123` перестраивает сетку на любой чих `busy` и
   `savePathsProgress`). Заменить на `select` по нужным полям. **S**

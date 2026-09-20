@@ -64,7 +64,7 @@ void main(List<String> arguments) {
   // своя, неполная картина, и порог по ней был бы занижен.
   final scopes =
       <({String label, double minimum, bool Function(String) includes})>[
-        (label: 'Весь код (без генерации)', minimum: 78, includes: (_) => true),
+        (label: 'Весь код (без генерации)', minimum: 80, includes: (_) => true),
         (
           label: 'Ядро, модели и сервисы',
           minimum: 79,

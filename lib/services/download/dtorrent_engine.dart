@@ -50,6 +50,7 @@ class DtorrentEngine implements DownloadEngine {
 
   static L _defaultLocalizations() => LRu();
 
+  @override
   String downloadDir;
 
   /// Куда складывать `.torrent` раздач. Magnet-ссылка приносит метаданные
@@ -58,6 +59,7 @@ class DtorrentEngine implements DownloadEngine {
   final String torrentsDir;
 
   /// Сколько задач качается одновременно; остальные ждут очереди.
+  @override
   int maxConcurrent;
 
   /// В тестах выключается, чтобы движок не лез в сеть: очередь и состояние
@@ -101,6 +103,7 @@ class DtorrentEngine implements DownloadEngine {
 
   /// Смена прокси применяется к новым соединениям: уже поднятые задачи
   /// перезапускаются, иначе трафик продолжил бы идти по-старому.
+  @override
   Future<void> setProxy(ProxySettings value) async {
     if (value == _proxy) return;
     _proxy = value;
@@ -227,6 +230,7 @@ class DtorrentEngine implements DownloadEngine {
   /// Для торрента это то, что дали при добавлении, для magnet-ссылки —
   /// собранное из пришедших метаданных. Пока метаданные не пришли, отдавать
   /// нечего: раздача известна только по хешу.
+  @override
   String? torrentPathFor(String id) => _downloads[id]?.torrentPath;
 
   /// Действующие ограничения и то, идёт ли игра.
@@ -397,6 +401,45 @@ class DtorrentEngine implements DownloadEngine {
   /// Хеши кусков BitTorrent сверяет ещё при скачивании — битые данные просто
   /// не принимаются. А вот пропавший или обрезанный файл протокол уже не
   /// заметит: именно это здесь и ищем.
+  /// Запускает ожидающие задачи, пока есть свободные слоты.
+  ///
+  /// Зовут и снаружи: при смене числа одновременных загрузок
+  /// освободившиеся слоты нужно раздать сразу.
+  @override
+  void pumpQueue() {
+    for (final managed in _ordered) {
+      if (_activeCount >= maxConcurrent) return;
+      if (managed.started || managed.pausedByUser || managed.error != null) {
+        continue;
+      }
+      managed.started = true;
+      if (autoStart) {
+        if (managed.task != null) {
+          managed.task!.resume();
+        } else {
+          unawaited(_launch(managed));
+        }
+      }
+    }
+  }
+
+  /// Переставляет задачу в очереди. Уже запущенные задачи не трогаем:
+  /// перезапуск ради порядка рвал бы соединения с пирами.
+  @override
+  Future<void> reorder(String id, int newIndex) async {
+    final from = _order.indexOf(id);
+    if (from == -1) return;
+    final target = newIndex.clamp(0, _order.length - 1);
+    if (from == target) return;
+
+    _order.removeAt(from);
+    _order.insert(target, id);
+    await _persist();
+    pumpQueue();
+    await refresh();
+  }
+
+  @override
   Future<IntegrityReport> verify(String id) async {
     final managed = _downloads[id];
     final model = managed?.model;
@@ -412,6 +455,7 @@ class DtorrentEngine implements DownloadEngine {
     );
   }
 
+  @override
   void dispose() {
     _pollTimer?.cancel();
     for (final managed in _downloads.values) {
