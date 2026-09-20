@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/format.dart';
+import '../../core/progress_throttle.dart';
 import 'app_log.dart';
 import 'proxy_http_overrides.dart';
 import 'update_check.dart';
@@ -436,20 +437,20 @@ class UpdateDownload {
     final sink = target.openWrite(
       mode: append ? FileMode.append : FileMode.writeOnly,
     );
-    var reported = DateTime.now();
+    final progress = ProgressThrottle(
+      () => onProgress(received, total),
+      interval: _progressInterval,
+    );
     try {
       await for (final chunk in response) {
         sink.add(chunk);
         received += chunk.length;
-        final now = DateTime.now();
-        if (now.difference(reported) < _progressInterval) continue;
-        reported = now;
-        onProgress(received, total);
+        progress.tick();
       }
     } finally {
       await sink.close();
     }
-    onProgress(received, total);
+    progress.finish();
   }
 
   /// Запрос с продолжением и переадресациями.
@@ -501,17 +502,15 @@ class UpdateDownload {
 
       final total = response.contentLength;
       final builder = BytesBuilder(copy: false);
-      var reported = DateTime.now();
+      final progress = ProgressThrottle(
+        () => onProgress(builder.length, total),
+        interval: _progressInterval,
+      );
       await for (final chunk in response) {
         builder.add(chunk);
-        final now = DateTime.now();
-        if (now.difference(reported) < const Duration(milliseconds: 100)) {
-          continue;
-        }
-        reported = now;
-        onProgress(builder.length, total);
+        progress.tick();
       }
-      onProgress(builder.length, total);
+      progress.finish();
       return builder.takeBytes();
     } on SocketException catch (error) {
       throw UpdateException('Нет связи: ${error.message}');

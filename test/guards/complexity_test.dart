@@ -150,6 +150,6 @@ const _lines = [
   'lib/ui/widgets/window_chrome.dart: WindowChrome.resizeZones: 84',
 ];
 
-const _nesting = [
-  'lib/services/metadata/steam_catalog.dart: SteamCatalog.imageBytes: 4',
-];
+/// Пусто, и пополнять нечем: вложенность глубже трёх лечится ранним
+/// выходом или своей функцией — это всегда дешевле, чем запись здесь.
+const _nesting = <String>[];

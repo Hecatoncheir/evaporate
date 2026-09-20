@@ -6,6 +6,7 @@ import 'package:equatable/equatable.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import 'http_fetch.dart';
 import 'proxy_http_overrides.dart';
 
 /// Версия приложения.
@@ -225,24 +226,16 @@ class UpdateCheck {
     final override = _fetch;
     if (override != null) return override(uri);
 
-    final client = directHttpClient()
-      ..connectionTimeout = const Duration(seconds: 15);
-    try {
-      final request = await client.getUrl(uri);
-      // Без заголовка версии GitHub может ответить иначе, чем ожидается.
-      request.headers.set(
-        HttpHeaders.acceptHeader,
-        'application/vnd.github+json',
-      );
-      request.headers.set(HttpHeaders.userAgentHeader, 'Evaporate/$current');
-      final response = await request.close();
-      if (response.statusCode != 200) {
-        throw UpdateCheckException(_l.updateUnavailable(response.statusCode));
-      }
-      // Без await клиент закроется раньше, чем дочитается тело.
-      return await response.transform(utf8.decoder).join();
-    } finally {
-      client.close(force: true);
-    }
+    return HttpFetch(
+      openClient: () =>
+          directHttpClient()..connectionTimeout = const Duration(seconds: 15),
+      describeStatus: (status) =>
+          UpdateCheckException(_l.updateUnavailable(status)),
+      // Без заголовков GitHub может ответить иначе, чем ожидается.
+      headers: {
+        HttpHeaders.acceptHeader: 'application/vnd.github+json',
+        HttpHeaders.userAgentHeader: 'Evaporate/$current',
+      },
+    ).text(uri);
   }
 }

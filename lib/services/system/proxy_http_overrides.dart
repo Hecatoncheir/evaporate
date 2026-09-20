@@ -105,4 +105,16 @@ HttpClient directHttpClient([SecurityContext? context]) =>
       _NoOverrides(),
     );
 
+/// Клиент для того, кто решает о прокси сам, — каталога Steam и базы
+/// путей сохранений.
+///
+/// Выбор «перехваченный или прямой» стоял у обоих своей копией, а правило
+/// у него одно: [ProxySettings.forCatalogs].
+HttpClient catalogHttpClient(
+  ProxySettings proxy, {
+  required Duration timeout,
+}) =>
+    (proxy.forCatalogs ? HttpClient() : directHttpClient())
+      ..connectionTimeout = timeout;
+
 class _NoOverrides extends HttpOverrides {}

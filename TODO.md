@@ -1077,10 +1077,21 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
 **Дублирование:**
 
-- [ ] Шесть самодельных HTTP-GET (`steam_catalog.dart:204,423`,
+- [x] Шесть самодельных HTTP-GET (`steam_catalog.dart:204,423`,
   `update_check.dart:224`, `ludusavi_catalog.dart:154`,
   `update_download.dart:326,424`), выбор «прокси или напрямую» — дважды,
   прореживание хода загрузки — трижды → `HttpFetcher` и `ProgressThrottle`. **M**
+  *Сделано на четырёх из шести.* `HttpFetch`
+  (`services/system/http_fetch.dart`) взял простые GET — каталог Steam,
+  обложки, проверку обновлений и базу путей; слова об отказе остались
+  зовущему (`describeStatus`), потому что отказ каталога — про каталог, а
+  обновления — про обновление. **Два запроса обновления оставлены
+  своими намеренно**: у них диапазон с докачкой и переадресация,
+  уносящая диапазон за собой, — та самая часть, ради которой загрузка по
+  плохому каналу вообще заканчивается, и общего с «прочитать тело» у неё
+  нет. Выбор «прокси или напрямую» — `catalogHttpClient` плюс
+  `ProxySettings.forCatalogs`, прореживание — `ProgressThrottle`
+  (`lib/core/`) на все три места.
 - [x] `_match` и `_normalize` названий: `save_path_finder.dart:147,167` ≡
   `save_activity_watch.dart:227,245`, третья копия нормализации — в
   `release_name.dart:142`. Проверка манифеста — `save_manager.dart:422` ≡

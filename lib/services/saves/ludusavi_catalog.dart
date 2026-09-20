@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
@@ -10,6 +9,7 @@ import '../../l10n/app_localizations_ru.dart';
 import '../../models/catalog_progress.dart';
 import '../../models/proxy_settings.dart';
 import '../metadata/release_name.dart';
+import '../system/http_fetch.dart';
 import '../system/proxy_http_overrides.dart';
 import 'ludusavi_manifest.dart';
 
@@ -85,9 +85,6 @@ class LudusaviCatalog {
 
   static ProxySettings _noProxy() => const ProxySettings();
 
-  /// Как часто сообщать о ходе загрузки.
-  static const _progressInterval = Duration(milliseconds: 100);
-
   bool get isLoaded => _manifest != null;
 
   int get entryCount => _manifest?.entries.length ?? 0;
@@ -155,57 +152,26 @@ class LudusaviCatalog {
     final override = _fetch;
     if (override != null) return override(Uri.parse(LudusaviManifest.source));
 
-    // Прокси применяет общий перехват; здесь остаётся только выбор, брать
-    // перехваченного клиента или прямого.
-    final proxy = _proxy();
-    final client =
-        (proxy.isUsable && proxy.useForSteam
-              ? HttpClient()
-              : directHttpClient())
-          ..connectionTimeout = const Duration(seconds: 20);
-    try {
-      final request = await client.getUrl(Uri.parse(LudusaviManifest.source));
-      final response = await request.close();
-      if (response.statusCode != 200) {
-        throw HttpException(_l.pathsDatabaseUnavailable(response.statusCode));
-      }
-      // Читаем кусками, а не целиком: иначе о ходе загрузки сказать
-      // нечего, а ждать пришлось бы молча.
-      //
-      // Копим в BytesBuilder, а не в List<int>: манифест весит семнадцать
-      // мегабайт, и растущий список чисел стоил бы под полгигабайта — в нём
-      // каждый байт занимает машинное слово, да ещё удваивается при росте.
-      final total = response.contentLength;
-      final builder = BytesBuilder(copy: false);
-
-      // О ходе сообщаем не чаще десяти раз в секунду. Кусков приходит
-      // несколько сотен, каждый поднимал событие блока и перерисовку — то
-      // есть сотни кадров работы там, где глазу хватает десятка в секунду.
-      // Ровно от этого и дёргалась анимация на фоне.
-      var reported = DateTime.now();
-      void report() {
-        onProgress?.call(
-          CatalogProgress(
-            phase: CatalogPhase.downloading,
-            received: builder.length,
-            total: total > 0 ? total : 0,
+    // Читаем кусками, а не целиком: иначе о ходе загрузки сказать нечего,
+    // а ждать пришлось бы молча — манифест весит семнадцать мегабайт.
+    final bytes =
+        await HttpFetch(
+          // Прокси применяет общий перехват; здесь остаётся только выбор,
+          // брать перехваченного клиента или прямого.
+          openClient: () =>
+              catalogHttpClient(_proxy(), timeout: const Duration(seconds: 20)),
+          describeStatus: (status) =>
+              HttpException(_l.pathsDatabaseUnavailable(status)),
+        ).bytes(
+          Uri.parse(LudusaviManifest.source),
+          onProgress: (received, total) => onProgress?.call(
+            CatalogProgress(
+              phase: CatalogPhase.downloading,
+              received: received,
+              total: total,
+            ),
           ),
         );
-      }
-
-      await for (final chunk in response) {
-        builder.add(chunk);
-        final now = DateTime.now();
-        if (now.difference(reported) < _progressInterval) continue;
-        reported = now;
-        report();
-      }
-      // Последний отчёт обязателен: без него полоса замирает, не дойдя
-      // до конца, и выглядит это как оборванная загрузка.
-      report();
-      return utf8.decode(builder.takeBytes());
-    } finally {
-      client.close(force: true);
-    }
+    return utf8.decode(bytes);
   }
 }

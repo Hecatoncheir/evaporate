@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/proxy_settings.dart';
+import '../system/http_fetch.dart';
 import '../system/proxy_http_overrides.dart';
 import 'release_name.dart';
 
@@ -202,27 +202,14 @@ class SteamCatalog {
     final override = _fetchImage;
     if (override != null) return override(Uri.parse(url));
 
-    final client = _client(const Duration(seconds: 10));
     try {
-      return await (() async {
-        final response = await (await client.getUrl(Uri.parse(url))).close();
-        if (response.statusCode != 200) return null;
-        // BytesBuilder, а не List<int>: в списке чисел каждый байт занял бы
-        // машинное слово, и обложка у верхнего предела стоила бы восьмидесяти
-        // мегабайт памяти вместо десяти.
-        final builder = BytesBuilder(copy: false);
-        await for (final chunk in response) {
-          builder.add(chunk);
-          if (builder.length > 10 * 1024 * 1024) {
-            throw const FormatException('Cover is too large');
-          }
-        }
-        return builder.isEmpty ? null : builder.takeBytes();
-      })().timeout(const Duration(seconds: 20));
+      final bytes = await _fetcher(
+        const Duration(seconds: 10),
+        limitBytes: 10 * 1024 * 1024,
+      ).bytes(Uri.parse(url)).timeout(const Duration(seconds: 20));
+      return bytes.isEmpty ? null : bytes;
     } on Object {
       return null;
-    } finally {
-      client.close(force: true);
     }
   }
 
@@ -412,29 +399,23 @@ class SteamCatalog {
   /// перехваченного клиента или прямого: «качать через прокси, а в Steam
   /// ходить напрямую» — законное желание, ради него флаг и заведён.
   @visibleForTesting
-  bool usesProxy() {
-    final proxy = _proxy();
-    return proxy.isUsable && proxy.useForSteam;
-  }
+  bool usesProxy() => _proxy().forCatalogs;
 
   HttpClient _client(Duration timeout) =>
-      (usesProxy() ? HttpClient() : directHttpClient())
-        ..connectionTimeout = timeout;
+      catalogHttpClient(_proxy(), timeout: timeout);
 
   Future<String> _httpFetch(Uri uri) async {
-    final client = _client(const Duration(seconds: 10));
     try {
-      final request = await client.getUrl(uri);
-      final response = await request.close();
-      if (response.statusCode != 200) {
-        throw SteamLookupException(_l.steamStatus(response.statusCode));
-      }
-      // Без await клиент в finally закроется раньше, чем дочитается тело.
-      return await response.transform(utf8.decoder).join();
+      return await _fetcher(const Duration(seconds: 10)).text(uri);
     } on SocketException catch (error) {
       throw SteamLookupException(_l.steamNoConnection(error.message));
-    } finally {
-      client.close(force: true);
     }
   }
+
+  /// Запрос к Steam: клиент по флагу прокси, отказ — словами о Steam.
+  HttpFetch _fetcher(Duration timeout, {int? limitBytes}) => HttpFetch(
+    openClient: () => _client(timeout),
+    describeStatus: (status) => SteamLookupException(_l.steamStatus(status)),
+    limitBytes: limitBytes,
+  );
 }
