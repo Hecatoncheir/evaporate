@@ -17,6 +17,7 @@ import 'package:uuid/uuid.dart';
 
 import 'support/recording_notifications.dart';
 import 'support/temp_dir.dart';
+import 'support/wait_for_state.dart';
 
 /// Путь «докачалось — установлено»: то, что происходит между сообщением
 /// движка о готовой задаче и игрой, которую можно запустить.
@@ -123,12 +124,9 @@ void main() {
       }
     });
 
-    Future<LibraryState> waitForLibrary(bool Function(LibraryState) condition) {
-      if (condition(library.state)) return Future.value(library.state);
-      return library.stream
-          .firstWhere(condition)
-          .timeout(const Duration(seconds: 5));
-    }
+    Future<LibraryState> waitForLibrary(
+      bool Function(LibraryState) condition,
+    ) => waitForState(library, condition);
 
     test('сохранённые настройки автоматически доходят до движка', () async {
       // Настоящий движок здесь и проверяется: блок держит его контрактом,

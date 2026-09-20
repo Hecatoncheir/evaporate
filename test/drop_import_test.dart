@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/pump_until.dart';
 import 'support/temp_dir.dart';
 import 'support/test_app.dart';
 
@@ -166,26 +167,6 @@ void main() {
       await send(MethodCall('performOperation', paths));
     }
 
-    /// Ждёт, пока сброшенное дойдёт до состояния, вместо отмеренной паузы.
-    ///
-    /// Обработчик ходит на диск, и сколько это займёт — не нам решать: на
-    /// занятой машине отмеренные триста миллисекунд однажды кончаются
-    /// раньше работы, и тест падает не там, где ошибка. Предел всё равно
-    /// нужен, но он здесь только чтобы прогон не висел вечно.
-    Future<void> waitFor(
-      WidgetTester tester,
-      bool Function() done, {
-      Duration timeout = const Duration(seconds: 5),
-    }) async {
-      await tester.runAsync(() async {
-        final deadline = DateTime.now().add(timeout);
-        while (!done() && DateTime.now().isBefore(deadline)) {
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-        }
-      });
-      await tester.pumpAndSettle();
-    }
-
     testWidgets('сброшенная папка становится игрой в библиотеке', (
       tester,
     ) async {
@@ -196,7 +177,7 @@ void main() {
       // В настоящей зоне: обработчик сброса ходит на диск, а под фейковым
       // временем такие операции не завершаются.
       await tester.runAsync(() => drop(tester, [folder]));
-      await waitFor(tester, () => harness.library.state.games.isNotEmpty);
+      await pumpUntil(tester, () => harness.library.state.games.isNotEmpty);
 
       final games = harness.library.state.games;
       expect(games, hasLength(1));
@@ -216,10 +197,10 @@ void main() {
       await harness.pump(tester);
 
       await tester.runAsync(() => drop(tester, [folder]));
-      await waitFor(tester, () => harness.library.state.games.isNotEmpty);
+      await pumpUntil(tester, () => harness.library.state.games.isNotEmpty);
       // И ждём ещё немного: вторая игра, если приёмники сработали оба,
       // появилась бы следом за первой, а не через пять секунд.
-      await waitFor(
+      await pumpUntil(
         tester,
         () => harness.library.state.games.length > 1,
         timeout: const Duration(seconds: 1),
@@ -242,7 +223,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.runAsync(() => drop(tester, [folder]));
-      await waitFor(tester, () => harness.library.state.games.isNotEmpty);
+      await pumpUntil(tester, () => harness.library.state.games.isNotEmpty);
 
       final games = harness.library.state.games;
       expect(games, hasLength(1));
@@ -262,7 +243,7 @@ void main() {
       await tester.runAsync(() => drop(tester, [junk]));
       // Ждём не пустоты, а ответа: неподходящее приходит сообщением, и
       // дождавшись его, мы знаем, что обработчик отработал до конца.
-      await waitFor(tester, () => harness.library.state.notice != null);
+      await pumpUntil(tester, () => harness.library.state.notice != null);
 
       expect(harness.library.state.games, isEmpty);
       expect(harness.library.state.notice, isNotNull);

@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/library_seed.dart';
+import 'support/pump_until.dart';
 import 'support/temp_dir.dart';
 
 class _Steam extends SteamCatalog {
@@ -121,19 +122,6 @@ class _Paths extends LudusaviCatalog {
 
 /// Ждёт, пока условие исполнится, — не дольше пяти секунд.
 ///
-/// Отмеренная пауза здесь не годится. Старую обложку убирают и библиотеку
-/// пишут на диск уже после того, как состояние обновилось, а на загруженной
-/// машине сборки эта запись не укладывается ни в тридцать миллисекунд, ни в
-/// пятьдесят: те же тесты на том же коде проходили в одном прогоне Windows
-/// и падали в соседнем. Ожидание по условию от скорости диска не зависит, а
-/// не дождавшись — тест всё равно упадёт на своей проверке.
-Future<void> _settle(Future<bool> Function() done) async {
-  for (var i = 0; i < 250; i++) {
-    if (await done()) return;
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-  }
-}
-
 /// Ждёт игру, удовлетворяющую условию, и возвращает её.
 Future<Game> _waitFor(
   LibraryBloc bloc,
@@ -310,7 +298,7 @@ void main() {
     await _wait(library, (s) => s.games.length == 5);
     // Счётчик живёт в подделке, а не в состоянии, поэтому ждём опросом,
     // а не подпиской на поток: нужного состояния может уже не прийти.
-    await _settle(() async => steam.calls >= 1);
+    await waitUntil(() async => steam.calls >= 1);
 
     // Первый запрос ещё висит — значит, остальные не ушли следом.
     await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -319,7 +307,7 @@ void main() {
     // Отпускаем — очередь двигается дальше.
     steam.pending!.complete(null);
     steam.pending = null;
-    await _settle(() async => steam.calls >= 5);
+    await waitUntil(() async => steam.calls >= 5);
     expect(steam.calls, 5);
     expect(library.state.games.every((g) => g.steamLookupAttempted), isTrue);
   });
@@ -499,7 +487,7 @@ void main() {
       // в обработчике идёт ещё запрос путей сохранений, и он-то и поднимает
       // счётчик каталога. Уборку одну дождаться мало — проверка ниже успеет
       // спросить каталог до того, как его спросит приложение.
-      await _settle(
+      await waitUntil(
         () async =>
             steam.calls >= 2 &&
             catalog.loads >= 2 &&
@@ -603,7 +591,7 @@ void main() {
       final game = await complete();
       library.add(GameRemoved(stale));
       await _wait(library, (s) => s.games.isEmpty);
-      await _settle(() async => !await File(game.coverPath!).exists());
+      await waitUntil(() async => !await File(game.coverPath!).exists());
       expect(await File(game.coverPath!).exists(), isFalse);
       await add();
       await complete();
@@ -776,7 +764,7 @@ Example:
       // Отметку занятости первый запрос ставит до записи на диск, а повтор
       // отскакивает от неё сразу — значит, к моменту первого обращения к
       // каталогу повтор уже отработал и второго обращения не будет.
-      await _settle(() async => steam.calls > 0);
+      await waitUntil(() async => steam.calls > 0);
       expect(steam.calls, 1);
       steam.pending!.complete(steam.result);
       await complete();
@@ -829,7 +817,7 @@ Example:
     expect(shots, hasLength(2));
 
     library.add(GameRemoved(game));
-    await _settle(() async {
+    await waitUntil(() async {
       for (final file in shots) {
         if (await file.exists()) return false;
       }
@@ -854,7 +842,7 @@ Example:
       expect(steam.calls, 1);
 
       library.add(const MetadataRefreshRequested());
-      await _settle(() async => steam.calls > 1);
+      await waitUntil(() async => steam.calls > 1);
       expect(steam.calls, 2);
       await complete();
       // Маркеры снова проставлены — обновление не оставило библиотеку в

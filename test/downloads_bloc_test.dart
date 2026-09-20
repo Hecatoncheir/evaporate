@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 
 import 'support/fake_download_engine.dart';
 import 'support/temp_dir.dart';
+import 'support/wait_for_state.dart';
 
 /// Что блок поручает движку по нажатиям человека: поставить в очередь,
 /// приостановить, продолжить, снять, переставить, отдать файл раздачи.
@@ -60,21 +61,12 @@ void main() {
     }
   });
 
-  Future<LibraryState> waitForLibrary(bool Function(LibraryState) condition) {
-    if (condition(library.state)) return Future.value(library.state);
-    return library.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 5));
-  }
+  Future<LibraryState> waitForLibrary(bool Function(LibraryState) condition) =>
+      waitForState(library, condition);
 
   Future<DownloadsState> waitForDownloads(
     bool Function(DownloadsState) condition,
-  ) {
-    if (condition(downloads.state)) return Future.value(downloads.state);
-    return downloads.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 5));
-  }
+  ) => waitForState(downloads, condition);
 
   /// Ждёт, пока движку поручат нужное: поручения идут через очередь
   /// событий блока, и к следующей строке теста они ещё не дошли.

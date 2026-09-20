@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import 'support/temp_dir.dart';
+import 'support/wait_for_state.dart';
 
 /// Пакет `.evsave` приходит извне — с чужого устройства, из мессенджера, с
 /// флешки. Он может оказаться битым, не тем или вовсе не пакетом, и узнать
@@ -54,12 +55,8 @@ void main() {
     }
   });
 
-  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
-    if (condition(saves.state)) return Future.value(saves.state);
-    return saves.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 10));
-  }
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) =>
+      waitForState(saves, condition);
 
   /// Игра с одной папкой сохранений — есть что снимать и куда класть.
   Future<Game> gameWithSave(String title) async {

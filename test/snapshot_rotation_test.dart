@@ -14,6 +14,7 @@ import 'package:uuid/uuid.dart';
 
 import 'support/library_seed.dart';
 import 'support/temp_dir.dart';
+import 'support/wait_for_state.dart';
 
 /// Ротация снимков: `keepSnapshots` обязан держать в узде все пути, какими
 /// снимок попадает в состояние, а не только кнопку «Снять».
@@ -56,19 +57,11 @@ void main() {
     }
   });
 
-  Future<LibraryState> waitFor(bool Function(LibraryState) condition) {
-    if (condition(library.state)) return Future.value(library.state);
-    return library.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 10));
-  }
+  Future<LibraryState> waitFor(bool Function(LibraryState) condition) =>
+      waitForState(library, condition);
 
-  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
-    if (condition(saves.state)) return Future.value(saves.state);
-    return saves.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 10));
-  }
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) =>
+      waitForState(saves, condition);
 
   /// Игра с настроенной папкой сохранений и заданным пределом снимков.
   Future<String> gameWithSave(String title, {required int keep}) async {

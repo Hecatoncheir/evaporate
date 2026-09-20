@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import 'support/temp_dir.dart';
+import 'support/wait_for_state.dart';
 
 void main() {
   late Directory tmp;
@@ -61,19 +62,11 @@ void main() {
     }
   });
 
-  Future<LibraryState> waitFor(bool Function(LibraryState) condition) {
-    if (condition(library.state)) return Future.value(library.state);
-    return library.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 10));
-  }
+  Future<LibraryState> waitFor(bool Function(LibraryState) condition) =>
+      waitForState(library, condition);
 
-  Future<SavesState> waitForSaves(bool Function(SavesState) condition) {
-    if (condition(saves.state)) return Future.value(saves.state);
-    return saves.stream
-        .firstWhere(condition)
-        .timeout(const Duration(seconds: 10));
-  }
+  Future<SavesState> waitForSaves(bool Function(SavesState) condition) =>
+      waitForState(saves, condition);
 
   Future<Game> addGame(String title, {String? installDir}) async {
     final id = const Uuid().v4();
