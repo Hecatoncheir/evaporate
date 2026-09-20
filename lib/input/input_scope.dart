@@ -6,22 +6,17 @@ import 'package:flutter/services.dart';
 import 'gamepad_service.dart';
 import 'nav_action.dart';
 
-class SectionChangeIntent extends Intent {
-  const SectionChangeIntent(this.delta);
+/// Одно намерение на все клавиши: что делать, говорит сам [NavAction].
+///
+/// Прежде здесь лежало пять классов-намерений и пять `CallbackAction` к
+/// ним, и каждый повторял ветку того же `switch`, который уже есть у
+/// геймпада. Клавиатура сводилась не к `NavAction`, как обещано в
+/// `CLAUDE.md`, а к своему набору, который приходилось держать в голове
+/// рядом с ним.
+class NavActionIntent extends Intent {
+  const NavActionIntent(this.action);
 
-  final int delta;
-}
-
-class PrimaryActionIntent extends Intent {
-  const PrimaryActionIntent();
-}
-
-class SearchIntent extends Intent {
-  const SearchIntent();
-}
-
-class NavBackIntent extends Intent {
-  const NavBackIntent();
+  final NavAction action;
 }
 
 /// Предлагается только поиском по библиотеке, а не текстовыми полями вообще.
@@ -188,24 +183,7 @@ class _InputScopeState extends State<InputScope> {
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
-      shortcuts: const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.slash): SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.keyF, meta: true): SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.keyF, control: true): SearchIntent(),
-        SingleActivator(LogicalKeyboardKey.tab, control: true):
-            SectionChangeIntent(1),
-        SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true):
-            SectionChangeIntent(-1),
-        SingleActivator(LogicalKeyboardKey.bracketRight, meta: true):
-            SectionChangeIntent(1),
-        SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true):
-            SectionChangeIntent(-1),
-        SingleActivator(LogicalKeyboardKey.enter, meta: true):
-            PrimaryActionIntent(),
-        SingleActivator(LogicalKeyboardKey.enter, control: true):
-            PrimaryActionIntent(),
-        SingleActivator(LogicalKeyboardKey.escape): NavBackIntent(),
-      },
+      shortcuts: _shortcuts,
       child: Actions(
         actions: <Type, Action<Intent>>{
           // Стрелки идут через тот же код, что и крестовина геймпада:
@@ -218,27 +196,10 @@ class _InputScopeState extends State<InputScope> {
               return null;
             },
           ),
-          SectionChangeIntent: CallbackAction<SectionChangeIntent>(
+          // Всё остальное — тот же путь, которым идут нажатия геймпада.
+          NavActionIntent: CallbackAction<NavActionIntent>(
             onInvoke: (intent) {
-              widget.onSectionChange(intent.delta);
-              return null;
-            },
-          ),
-          PrimaryActionIntent: CallbackAction<PrimaryActionIntent>(
-            onInvoke: (_) {
-              widget.onPrimaryAction();
-              return null;
-            },
-          ),
-          SearchIntent: CallbackAction<SearchIntent>(
-            onInvoke: (_) {
-              widget.onSearch();
-              return null;
-            },
-          ),
-          NavBackIntent: CallbackAction<NavBackIntent>(
-            onInvoke: (_) {
-              _back();
+              _handleAction(intent.action);
               return null;
             },
           ),
@@ -251,3 +212,35 @@ class _InputScopeState extends State<InputScope> {
     );
   }
 }
+
+/// Клавиши, которых нет в наборе Flutter по умолчанию.
+///
+/// Таблицей, а не ветвлениями: добавить клавишу — значит дописать строку,
+/// а что она делает, видно по имени действия.
+const _shortcuts = <ShortcutActivator, Intent>{
+  SingleActivator(LogicalKeyboardKey.slash): NavActionIntent(NavAction.search),
+  SingleActivator(LogicalKeyboardKey.keyF, meta: true): NavActionIntent(
+    NavAction.search,
+  ),
+  SingleActivator(LogicalKeyboardKey.keyF, control: true): NavActionIntent(
+    NavAction.search,
+  ),
+  SingleActivator(LogicalKeyboardKey.tab, control: true): NavActionIntent(
+    NavAction.nextSection,
+  ),
+  SingleActivator(LogicalKeyboardKey.tab, control: true, shift: true):
+      NavActionIntent(NavAction.prevSection),
+  SingleActivator(LogicalKeyboardKey.bracketRight, meta: true): NavActionIntent(
+    NavAction.nextSection,
+  ),
+  SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true): NavActionIntent(
+    NavAction.prevSection,
+  ),
+  SingleActivator(LogicalKeyboardKey.enter, meta: true): NavActionIntent(
+    NavAction.primaryAction,
+  ),
+  SingleActivator(LogicalKeyboardKey.enter, control: true): NavActionIntent(
+    NavAction.primaryAction,
+  ),
+  SingleActivator(LogicalKeyboardKey.escape): NavActionIntent(NavAction.back),
+};

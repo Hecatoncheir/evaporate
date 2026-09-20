@@ -124,7 +124,6 @@ const _complexity = [
 
 const _lines = [
   'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
-  'lib/input/input_scope.dart: _InputScopeState.build: 64',
   'lib/main.dart: main: 103',
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
   'lib/models/game.dart: Game.copyWith: 63',
