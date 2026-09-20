@@ -28,6 +28,13 @@ class _ManagedDownload {
 
   /// Пауза именно от пользователя — такую задачу очередь не трогает.
   bool pausedByUser = false;
+
+  /// Занимает слот очереди: поднята и не остановлена человеком.
+  bool get isActive => started && !pausedByUser;
+
+  /// Ждёт слота. Остановленная человеком и сорвавшаяся не ждут: первую он
+  /// остановил сам, вторую поднимет «Возобновить».
+  bool get isWaiting => !started && !pausedByUser && error == null;
   int generation = 0;
   Completer<dt.TorrentModel?>? _metadataResult;
   dt.TorrentModel? model;

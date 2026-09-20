@@ -12,21 +12,11 @@ part of 'dtorrent_engine.dart';
 extension EngineQueue on DtorrentEngine {
   void _register(_ManagedDownload managed) {
     _downloads[managed.infoHash] = managed;
-    if (!_order.contains(managed.infoHash)) _order.add(managed.infoHash);
-  }
-
-  int get _activeCount =>
-      _downloads.values.where((d) => d.started && !d.pausedByUser).length;
-
-  Iterable<_ManagedDownload> get _ordered sync* {
-    for (final id in _order) {
-      final managed = _downloads[id];
-      if (managed != null) yield managed;
-    }
+    _queue.add(managed.infoHash);
   }
 
   /// Позиция в очереди — её показывает интерфейс.
-  int positionOf(String id) => _order.indexOf(id);
+  int positionOf(String id) => _queue.positionOf(id);
 
   /// Поднимает задачу: для magnet сначала качаются метаданные.
   Future<void> _launch(_ManagedDownload managed) async {

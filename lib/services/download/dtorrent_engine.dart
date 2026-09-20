@@ -13,6 +13,7 @@ import '../../models/proxy_settings.dart';
 import '../../models/speed_limits.dart';
 import '../system/app_log.dart';
 import 'download_engine.dart';
+import 'download_queue.dart';
 import 'integrity_check.dart';
 import 'torrent_file.dart';
 import 'torrent_source.dart';
@@ -80,8 +81,9 @@ class DtorrentEngine implements DownloadEngine {
   final Map<String, _ManagedDownload> _downloads = {};
 
   /// Порядок очереди, заданный пользователем. Именно он решает, кто займёт
-  /// освободившийся слот, поэтому хранится отдельно от карты задач.
-  final List<String> _order = [];
+  /// Порядок задач и раздача слотов: правила очереди живут отдельно от
+  /// работы с раздачами и проверяются на одних идентификаторах.
+  final _queue = DownloadQueue();
 
   /// Кто занял слоты очереди. Открыто для тестов: иначе очередь пришлось бы
   /// проверять по сетевым эффектам.
@@ -137,7 +139,7 @@ class DtorrentEngine implements DownloadEngine {
       await managed.dispose();
     }
     _downloads.clear();
-    _order.clear();
+    _queue.clear();
     _tasks.value = const [];
     _stats.value = const EngineStats();
     _status.value = const EngineStatus(EngineState.stopped);
@@ -356,7 +358,7 @@ class DtorrentEngine implements DownloadEngine {
   @override
   Future<void> remove(String id) async {
     final managed = _downloads.remove(id);
-    _order.remove(id);
+    _queue.remove(id);
     await managed?.dispose();
     await _persist();
     pumpQueue();
@@ -401,24 +403,33 @@ class DtorrentEngine implements DownloadEngine {
   /// Хеши кусков BitTorrent сверяет ещё при скачивании — битые данные просто
   /// не принимаются. А вот пропавший или обрезанный файл протокол уже не
   /// заметит: именно это здесь и ищем.
+  /// Задачи в порядке очереди — те, что ещё живы.
+  Iterable<_ManagedDownload> get _ordered sync* {
+    for (final id in _queue.ids) {
+      final managed = _downloads[id];
+      if (managed != null) yield managed;
+    }
+  }
+
   /// Запускает ожидающие задачи, пока есть свободные слоты.
   ///
   /// Зовут и снаружи: при смене числа одновременных загрузок
   /// освободившиеся слоты нужно раздать сразу.
   @override
   void pumpQueue() {
-    for (final managed in _ordered) {
-      if (_activeCount >= maxConcurrent) return;
-      if (managed.started || managed.pausedByUser || managed.error != null) {
-        continue;
-      }
+    final starting = _queue.readyToStart(
+      slots: maxConcurrent,
+      isActive: (id) => _downloads[id]?.isActive ?? false,
+      isWaiting: (id) => _downloads[id]?.isWaiting ?? false,
+    );
+    for (final id in starting.toList()) {
+      final managed = _downloads[id]!;
       managed.started = true;
-      if (autoStart) {
-        if (managed.task != null) {
-          managed.task!.resume();
-        } else {
-          unawaited(_launch(managed));
-        }
+      if (!autoStart) continue;
+      if (managed.task != null) {
+        managed.task!.resume();
+      } else {
+        unawaited(_launch(managed));
       }
     }
   }
@@ -427,13 +438,7 @@ class DtorrentEngine implements DownloadEngine {
   /// перезапуск ради порядка рвал бы соединения с пирами.
   @override
   Future<void> reorder(String id, int newIndex) async {
-    final from = _order.indexOf(id);
-    if (from == -1) return;
-    final target = newIndex.clamp(0, _order.length - 1);
-    if (from == target) return;
-
-    _order.removeAt(from);
-    _order.insert(target, id);
+    if (!_queue.moveTo(id, newIndex)) return;
     await _persist();
     pumpQueue();
     await refresh();
