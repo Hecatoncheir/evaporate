@@ -1039,9 +1039,9 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 | 21 | 94 | `bloc/library/library_metadata.dart:31` `_onSteamLookup` | сеть и файлы — в сервис (этап 4) |
 | 16 | 71 | `services/launch/game_launcher.dart:70` `launch` | `_resolveExecutable(game)` (все отказы и «бандл → бинарник») → один `Process.start` → `_track()`; сейчас развилка по системе стоит дважды (`:82,99`) |
 | 15 | 46 | `ui/widgets/game_drop_target.dart:88` `_handleDrop` | уходит в блок событием `FilesDropped` (этап 4) |
-| ~~15~~ | ~~43~~ | ~~`services/launch/vdf.dart:70` `_tokens`, `:27` `parse`~~ (`binary_vdf.dart:65` ещё нет) | `_unescape(char)` выражением `switch`; `_VdfBuilder{open, close, pair}`; запись значения — `switch (value) { Map m …, String s …, int i … }` вместо цепочки `if is` | сделано: разбор ведёт `_VdfDocument` (где мы, что кладём, чем считать строку), разэкранирование — `_unescape` выражением `switch` |
+| ~~15~~ | ~~43~~ | ~~`services/launch/vdf.dart:70` `_tokens`, `:27` `parse`~~; `binary_vdf.dart:65` ещё нет | сделано: разбор ведёт `_VdfDocument` — где мы, что кладём, чем считать строку, — а разэкранирование стало `_unescape` выражением `switch`. Запись значения в `binary_vdf` по-прежнему цепочкой `if is` |
 | 15 | 38 | `services/launch/steam_shortcuts.dart:355` `_putArtwork`, `:421`, `:127` | таблица `SteamArtwork.files(id)` и один цикл; `sync*`-итератор сегментов JPEG + `firstWhere`; разбор заголовков картинок (`:396–459`) — в свой файл |
-| 14 | 72 | `bloc/library/library_metadata.dart:497` `_onSavePathsLookup` | `_busyWhile` + `done()` в `finally` |
+| ~~14~~ | ~~72~~ | ~~`bloc/library/library_metadata.dart:497` `_onSavePathsLookup`~~ | сделано: `done()` ушёл в `finally`, запись найденного — в `_applyFoundPaths` |
 | 13 | 72 | `services/saves/save_manager.dart:415` `_restoreFrom`; `:139`, `:219` | `_validManifest()` (общий с `:570–575`), `_resolveTargets(game, rules)`, `_backupBeforeRestore()`, commit; в `_materialize` флаг `complete` → `on Object { убрать; rethrow }` |
 | 12 | 43 | `services/download/engine_queue.dart:66` `_launch`, `:20` | `_modelFor()`, предикат `_stillWanted(managed, generation)` вместо условия в четыре строки (`:79–84`), `_startTask()` |
 | 12 | 41 | `services/launch/executable_finder.dart:71`, `:143` | очки запуска — таблицей `{система: {расширение: очки}}`; `_visitDirectory` / `_evaluateFile` |

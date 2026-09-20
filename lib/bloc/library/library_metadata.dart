@@ -398,11 +398,6 @@ extension _LibraryMetadata on LibraryBloc {
       return;
     }
     emit(state.copyWith(busy: busyWith(key, value: true)));
-    // Указатель хода гасим в любом случае: оставшись висеть, он врал бы
-    // о продолжающейся работе.
-    void done() {
-      if (!_closing) add(const SavePathsProgressChanged(null));
-    }
 
     try {
       _replaceGame(game.copyWith(savePathsLookupAttempted: true), emit);
@@ -418,45 +413,57 @@ extension _LibraryMetadata on LibraryBloc {
           key,
           message: event.automatic ? null : _l.noticePathsNothingFound,
         );
-        done();
         return;
       }
-
-      final current = _stillSameGame(game);
-      if (current == null) {
-        finishBusy(emit, key);
-        done();
-        return;
-      }
-
-      // Уже заданные пути не трогаем: пользователь мог поправить их под себя.
-      final added = current.saveProfile.rulesForNewPaths(found.templates);
-      final games = [...state.games];
-      games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
-        ludusaviTemplates: found.sourceTemplates,
-        ludusaviResolvedPaths: {
-          ...current.ludusaviResolvedPaths,
-          ...found.templates,
-        }.toList(),
-        saveProfile: current.saveProfile.copyWith(
-          rules: [...current.saveProfile.rules, ...added],
-        ),
-      );
-      emit(
-        state.copyWith(
-          games: games,
-          busy: busyWith(key, value: false),
-          notice: event.automatic
-              ? state.notice
-              : notice(_foundPathsMessage(found, added.length)),
-        ),
-      );
-      await persist();
-      done();
+      await _applyFoundPaths(game, found, event, emit);
     } on Object catch (error) {
-      done();
       finishBusy(emit, key, message: error.toString(), isError: true);
+    } finally {
+      // Указатель хода гасим в любом случае и здесь: оставшись висеть, он
+      // врал бы о продолжающейся работе — на любом исходе поиска.
+      if (!_closing) add(const SavePathsProgressChanged(null));
     }
+  }
+
+  /// Дописывает найденные пути в профиль игры.
+  ///
+  /// Уже заданные не трогаем: пользователь мог поправить их под себя, и
+  /// найденное — предложение, а не указание.
+  Future<void> _applyFoundPaths(
+    Game game,
+    _FoundPaths found,
+    SavePathsLookupRequested event,
+    Emitter<LibraryState> emit,
+  ) async {
+    final key = LibraryBloc.savePathsKey(game.id);
+    final current = _stillSameGame(game);
+    if (current == null) {
+      finishBusy(emit, key);
+      return;
+    }
+
+    final added = current.saveProfile.rulesForNewPaths(found.templates);
+    final games = [...state.games];
+    games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
+      ludusaviTemplates: found.sourceTemplates,
+      ludusaviResolvedPaths: {
+        ...current.ludusaviResolvedPaths,
+        ...found.templates,
+      }.toList(),
+      saveProfile: current.saveProfile.copyWith(
+        rules: [...current.saveProfile.rules, ...added],
+      ),
+    );
+    emit(
+      state.copyWith(
+        games: games,
+        busy: busyWith(key, value: false),
+        notice: event.automatic
+            ? state.notice
+            : notice(_foundPathsMessage(found, added.length)),
+      ),
+    );
+    await persist();
   }
 
   /// Что сказать человеку о найденных путях.

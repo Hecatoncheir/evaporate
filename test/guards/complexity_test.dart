@@ -119,14 +119,12 @@ int top(int x) => x > 0 ? x : -x;
 }
 
 const _complexity = [
-  'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 18',
   'lib/services/launch/game_launcher.dart: GameLauncher._start: 17',
   'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
 ];
 
 const _lines = [
   'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
-  'lib/bloc/library/library_metadata.dart: _LibraryMetadata._onSavePathsLookup: 73',
   'lib/input/input_scope.dart: _InputScopeState.build: 64',
   'lib/main.dart: main: 103',
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
