@@ -1,0 +1,297 @@
+import 'dart:io';
+
+import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/models/app_section.dart';
+import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/library_effect.dart';
+import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
+import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
+import 'package:evaporate/ui/library/effects/portal/portal_sparks.dart';
+import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/settings/settings_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/test_app.dart';
+
+void main() {
+  test('свежие и вычитанные настройки берут выбранные значения украшений', () {
+    for (final settings in [
+      const AppSettings(installDir: '/games'),
+      AppSettings.fromJson(const {}, '/games'),
+      AppSettings.fromJson(const {'libraryEffects': true}, '/games'),
+      AppSettings.fromJson(const {'libraryEffects': false}, '/games'),
+    ]) {
+      expect(settings.isOn(LibraryEffect.particles), isFalse);
+      expect(settings.isOn(LibraryEffect.waves), isTrue);
+      expect(settings.isOn(LibraryEffect.foil), isTrue);
+      expect(settings.isOn(LibraryEffect.cardTilt), isTrue);
+      expect(settings.isOn(LibraryEffect.liquidDistortion), isFalse);
+      expect(settings.isOn(LibraryEffect.liquidSelection), isFalse);
+      expect(settings.isOn(LibraryEffect.ambient), isTrue);
+      expect(settings.isOn(LibraryEffect.heroSweep), isTrue);
+      expect(settings.isOn(LibraryEffect.shotsBackdrop), isTrue);
+      expect(settings.isOn(LibraryEffect.coverBackdrop), isTrue);
+      expect(settings.isOn(LibraryEffect.interfaceAnimations), isTrue);
+      expect(settings.isOn(LibraryEffect.drops), isFalse);
+      expect(settings.isOn(LibraryEffect.portal), isTrue);
+      expect(settings.isOn(LibraryEffect.selectionFrame), isFalse);
+      expect(
+        AppSettings.fromJson(settings.toJson(), '/games').toJson(),
+        settings.toJson(),
+      );
+    }
+    const base = AppSettings(installDir: '/games');
+    for (final changed in [
+      base.withEffect(LibraryEffect.particles, on: true),
+      base.withEffect(LibraryEffect.waves, on: false),
+      base.withEffect(LibraryEffect.foil, on: false),
+      base.withEffect(LibraryEffect.cardTilt, on: false),
+      base.withEffect(LibraryEffect.liquidDistortion, on: true),
+      base.withEffect(LibraryEffect.liquidSelection, on: true),
+      base.withEffect(LibraryEffect.ambient, on: false),
+      base.withEffect(LibraryEffect.heroSweep, on: false),
+      base.withEffect(LibraryEffect.shotsBackdrop, on: false),
+      base.withEffect(LibraryEffect.interfaceAnimations, on: false),
+      base.withEffect(LibraryEffect.drops, on: true),
+      base.withEffect(LibraryEffect.portal, on: false),
+      base.withEffect(LibraryEffect.selectionFrame, on: true),
+    ]) {
+      expect(changed, isNot(base));
+      final restored = AppSettings.fromJson(changed.toJson(), '/games');
+      expect(restored.toJson(), changed.toJson());
+      expect(
+        changed.copyWith(libraryEffects: false).copyWith(libraryEffects: true),
+        changed,
+      );
+    }
+  });
+
+  Future<void> frames(WidgetTester tester, [int count = 12]) async {
+    for (var i = 0; i < count; i++) {
+      await tester.pump(const Duration(milliseconds: 17));
+    }
+  }
+
+  testWidgets(
+    'искажение живёт само по себе, а выключенное возвращает обычную геометрию',
+    (tester) async {
+      final key = GlobalKey<FoilCardState>();
+      var distortion = true;
+      var reduced = false;
+      var visible = true;
+      var builds = 0;
+      final child = Builder(
+        builder: (_) {
+          builds++;
+          return const SizedBox(width: 180, height: 270);
+        },
+      );
+      Future<void> show() => tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(disableAnimations: reduced),
+            child: TickerMode(
+              enabled: visible,
+              child: Center(
+                child: FoilCard(
+                  key: key,
+                  active: true,
+                  enabled: true,
+                  foilEnabled: false,
+                  tiltEnabled: false,
+                  distortionEnabled: distortion,
+                  child: child,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await show();
+      await frames(tester);
+      expect(key.currentState!.perspective, isNot(Matrix4.identity()));
+      expect(builds, 1);
+      visible = false;
+      await show();
+      expect(key.currentState!.isAnimating, isFalse);
+      visible = true;
+      reduced = true;
+      await show();
+      expect(key.currentState!.perspective, Matrix4.identity());
+      expect(key.currentState!.isAnimating, isFalse);
+      reduced = false;
+      distortion = false;
+      await show();
+      expect(key.currentState!.perspective, Matrix4.identity());
+      expect(key.currentState!.isAnimating, isFalse);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  group('переключатели украшений', () {
+    late Directory tmp;
+    setUp(() async => tmp = await TestHarness.makeTempDir());
+    tearDown(() => TestHarness.removeTempDir(tmp));
+
+    /// Переключатель эффекта нажимается там, где он живёт, — в настройках,
+    /// а проверяется на библиотеке, поэтому обратно возвращаемся сразу.
+    Future<void> toggleEffect(
+      WidgetTester tester,
+      TestHarness harness,
+      String name,
+    ) async {
+      harness.nav.add(const SectionSelected(AppSection.settings));
+      await frames(tester);
+      final scrollable = find
+          .descendant(
+            of: find.byType(SettingsPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      final target = find.byKey(ValueKey('effects-$name-toggle'));
+
+      // Наверху карточки стоит выбор из трёх наборов, а отдельные
+      // украшения — под «Подробно»: сперва раскрыть, иначе их нет в дереве.
+      if (target.evaluate().isEmpty) {
+        final details = find.byKey(const ValueKey('effects-details'));
+        await tester.scrollUntilVisible(details, 350, scrollable: scrollable);
+        await tester.tap(details);
+        await frames(tester, 20);
+      }
+      await tester.scrollUntilVisible(target, 350, scrollable: scrollable);
+      await tester.ensureVisible(target);
+      await frames(tester);
+      await tester.tap(target);
+      await frames(tester);
+      harness.nav.add(const SectionSelected(AppSection.library));
+      await frames(tester);
+    }
+
+    testWidgets(
+      'переключатель срабатывает сразу, а общий выключатель выбор не стирает',
+      (tester) async {
+        final harness = TestHarness(tmp);
+        addTearDown(harness.dispose);
+        harness.addGame(title: 'Hades');
+        final secondGame = harness.addGame(title: 'Tunic');
+        await tester.pumpWidget(harness.buildApp(motion: true));
+        await frames(tester);
+        final atmosphere = tester.state<LibraryAtmosphereState>(
+          find.byType(LibraryAtmosphere),
+        );
+        expect(atmosphere.field.particles, isEmpty);
+        expect(find.byKey(const ValueKey('detail-wave-paint')), findsOneWidget);
+
+        Future<void> toggle(String name) => toggleEffect(tester, harness, name);
+
+        await toggle('particles');
+        expect(harness.settings.state.isOn(LibraryEffect.particles), isTrue);
+        expect(atmosphere.field.particles, isNotEmpty);
+        await toggle('waves');
+        expect(find.byKey(const ValueKey('detail-wave-paint')), findsNothing);
+        expect(atmosphere.field.particles, isNotEmpty);
+        await toggle('particles');
+        expect(atmosphere.field.particles, isEmpty);
+        await toggle('particles');
+        expect(atmosphere.field.particles, isNotEmpty);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+        final sparks = find.byWidgetPredicate(
+          (widget) => widget is PortalSparks && widget.enabled,
+        );
+        expect(sparks, findsOneWidget);
+        // Искры находятся внутри масштабирования фокуса, поэтому кромка
+        // остаётся снаружи обложки при её увеличении.
+        expect(
+          find.ancestor(of: sparks, matching: find.byType(AnimatedScale)),
+          findsWidgets,
+        );
+        harness.nav.add(GameSelected(secondGame));
+        await frames(tester);
+        expect(sparks, findsOneWidget);
+        expect(
+          tester
+              .widget<GameCoverTile>(
+                find.ancestor(of: sparks, matching: find.byType(GameCoverTile)),
+              )
+              .game
+              .id,
+          secondGame,
+        );
+        await toggle('portal');
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isFalse);
+        expect(sparks, findsNothing);
+        await toggle('portal');
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+        expect(sparks, findsOneWidget);
+        await toggle('master');
+        expect(atmosphere.field.particles, isEmpty);
+        expect(atmosphere.isAnimating, isFalse);
+        expect(harness.settings.state.isOn(LibraryEffect.particles), isTrue);
+        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+        expect(sparks, findsNothing);
+        await toggle('master');
+        expect(atmosphere.field.particles, isNotEmpty);
+        expect(sparks, findsOneWidget);
+        await toggle('portal');
+        expect(sparks, findsNothing);
+        expect(find.byKey(const ValueKey('detail-wave-paint')), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('рамка выбора выключена, пока её не попросят, и переживает общий выключатель'
+        'outlives the master switch', (tester) async {
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      harness.addGame(title: 'Hades');
+      await tester.pumpWidget(harness.buildApp(motion: true));
+      await frames(tester);
+
+      // Рамка обведена вокруг обложки под фокусом, поэтому фокус ставится
+      // явно: без него у всех плиток кромка прозрачная.
+      Future<void> focusCover() async {
+        Focus.of(tester.element(find.text('Hades'))).requestFocus();
+        await frames(tester);
+      }
+
+      final frame = find.descendant(
+        of: find.byType(GameCoverTile),
+        matching: find.byWidgetPredicate((widget) {
+          if (widget is! AnimatedContainer) return false;
+          final decoration = widget.decoration;
+          final border = decoration is BoxDecoration ? decoration.border : null;
+          return border is Border && border.top.color.a > 0;
+        }),
+      );
+
+      await focusCover();
+      expect(
+        harness.settings.state.isOn(LibraryEffect.selectionFrame),
+        isFalse,
+      );
+      expect(frame, findsNothing);
+
+      await toggleEffect(tester, harness, 'selectionFrame');
+      await focusCover();
+      expect(harness.settings.state.isOn(LibraryEffect.selectionFrame), isTrue);
+      expect(frame, findsOneWidget);
+
+      await toggleEffect(tester, harness, 'selectionFrame');
+      await focusCover();
+      expect(frame, findsNothing);
+
+      await toggleEffect(tester, harness, 'selectionFrame');
+      await focusCover();
+      expect(frame, findsOneWidget);
+
+      // Рамка — не украшение, а указатель места в сетке: общий выключатель
+      // эффектов её не касается.
+      await toggleEffect(tester, harness, 'master');
+      await focusCover();
+      expect(harness.settings.state.libraryEffects, isFalse);
+      expect(frame, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

@@ -1,0 +1,230 @@
+import 'dart:io';
+
+import 'package:evaporate/services/launch/game_roots.dart';
+import 'package:evaporate/services/launch/scan_session.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+
+import '../../support/temp_dir.dart';
+
+/// Обход дисков идёт секундами, а то и дольше. Пока он идёт, человеку надо
+/// показывать, на чём приложение стоит, и уметь его прервать: выбор папки в
+/// системном окне отменяет начатый заход, а не встаёт за ним в очередь.
+void main() {
+  late Directory tmp;
+
+  setUp(() async {
+    tmp = await Directory.systemTemp.createTemp('evaporate_session_');
+  });
+
+  tearDown(() async {
+    await deleteTempDir(tmp);
+  });
+
+  /// Папка с исполняемым файлом внутри — то, что сканер считает игрой.
+  Future<Directory> gameDir(String root, String name) async {
+    final dir = Directory(p.join(tmp.path, root, name));
+    await dir.create(recursive: true);
+    final file = File(
+      p.join(dir.path, Platform.isWindows ? 'game.exe' : 'game'),
+    );
+    await file.writeAsString('исполняемый');
+    if (!Platform.isWindows) await Process.run('chmod', ['+x', file.path]);
+    return dir;
+  }
+
+  ScanSession sessionOver(
+    List<String> roots, {
+    Set<String> existing = const {},
+  }) {
+    final session = ScanSession(
+      existingDirs: existing,
+      steamRoots: const [],
+      fixedRoots: [
+        for (final root in roots)
+          GameRoot(path: p.join(tmp.path, root), kind: GameRootKind.games),
+      ],
+      // Без подделки на Windows спрашивается настоящий реестр раннера, и в
+      // находки приезжает всё, что там установлено.
+      registryQuery: _noRegistry,
+    );
+    addTearDown(session.dispose);
+    return session;
+  }
+
+  test('известные места осматриваются без выбора папки', () async {
+    await gameDir('Первое место', 'Альфа');
+    await gameDir('Второе место', 'Бета');
+    final session = sessionOver(['Первое место', 'Второе место']);
+
+    await session.scanKnownRoots();
+
+    expect(session.found.map((g) => g.title), ['Альфа', 'Бета']);
+    expect(session.isRunning, isFalse);
+    expect(session.isComplete, isTrue);
+  });
+
+  test('ход сообщается по мере обхода', () async {
+    await gameDir('Место', 'Игра');
+    final session = sessionOver(['Место']);
+    final seen = <String?>[];
+    session.addListener(() => seen.add(session.directory));
+
+    await session.scanKnownRoots();
+
+    // Была хотя бы одна папка, о которой сообщили до её осмотра.
+    expect(seen.whereType<String>(), isNotEmpty);
+    // К концу указатель гаснет: висящий, он врал бы о продолжающейся работе.
+    expect(session.directory, isNull);
+  });
+
+  // Выбор папки отменяет начатое, а не встаёт за ним в очередь.
+  test('выбор папки отменяет уже идущий заход', () async {
+    await gameDir('Широкое', 'Ненужная');
+    await gameDir('Узкое', 'Нужная');
+    final session = sessionOver(['Широкое']);
+
+    final wide = session.scanKnownRoots();
+    final narrow = session.scanOnly(p.join(tmp.path, 'Узкое'));
+    await Future.wait([wide, narrow]);
+
+    expect(session.found.map((g) => g.title), ['Нужная']);
+  });
+
+  // Остановка — это «хватит искать», а не «забудь найденное».
+  test('остановка оставляет найденное', () async {
+    await gameDir('Место', 'Игра');
+    final session = sessionOver(['Место']);
+    await session.scanKnownRoots();
+
+    session.stop();
+
+    expect(session.found.map((g) => g.title), ['Игра']);
+    expect(session.isRunning, isFalse);
+  });
+
+  test('остановка на середине не роняет заход', () async {
+    for (var i = 0; i < 8; i++) {
+      await gameDir('Место', 'Игра $i');
+    }
+    final session = sessionOver(['Место']);
+
+    final running = session.scanKnownRoots();
+    session.stop();
+    await running;
+
+    expect(session.isRunning, isFalse);
+    // Прерванный заход законченным не считается — иначе интерфейс сказал бы
+    // «ничего не нашлось» там, где просто не досмотрели.
+    expect(session.isComplete, isFalse);
+  });
+
+  test('уже добавленные папки не предлагаются', () async {
+    final known = await gameDir('Место', 'Уже есть');
+    await gameDir('Место', 'Ещё нет');
+    final session = sessionOver(['Место'], existing: {known.path});
+
+    await session.scanKnownRoots();
+
+    expect(session.found.map((g) => g.title), ['Ещё нет']);
+  });
+
+  // Заход не закрывался при исключении: признак «идёт поиск» оставался
+  // навсегда, окно крутило указатель, а новый заход поверх не помогал.
+  test('сбой посреди захода не оставляет его идущим', () async {
+    await gameDir('Games', 'Найденная');
+    final session = ScanSession(
+      existingDirs: const {},
+      steamRoots: const [],
+      fixedRoots: [
+        GameRoot(path: p.join(tmp.path, 'Games'), kind: GameRootKind.games),
+      ],
+      registryQuery: (executable, args) async =>
+          throw const FileSystemException('реестр не ответил'),
+    );
+    addTearDown(session.dispose);
+
+    await session.scanKnownRoots();
+
+    expect(session.isRunning, isFalse);
+    expect(session.isComplete, isFalse, reason: 'до конца заход не дошёл');
+    expect(session.directory, isNull);
+    expect(session.found.map((g) => g.title), [
+      'Найденная',
+    ], reason: 'найденное до сбоя остаётся');
+  });
+
+  test('несуществующее место не роняет заход', () async {
+    final session = sessionOver(['нет-такого']);
+
+    await session.scanKnownRoots();
+
+    expect(session.found, isEmpty);
+    expect(session.isComplete, isTrue);
+  });
+
+  // Игры, поставленные обычным установщиком мимо лончеров, иначе не найти.
+  // Но в тех же ветках реестра лежит вообще всё установленное, поэтому
+  // найденное там предлагается неуверенным.
+  test('игры из реестра Windows находятся, но помечены неуверенными', () async {
+    final dir = await gameDir('Место', 'Из реестра');
+    final session = ScanSession(
+      existingDirs: const {},
+      steamRoots: const [],
+      fixedRoots: const [],
+      registryQuery: (executable, args) async => ProcessResult(
+        0,
+        0,
+        'HKEY_LOCAL_MACHINE\\Uninstall\\Игра\n'
+            '    DisplayName    REG_SZ    Из реестра\n'
+            '    InstallLocation    REG_SZ    ${dir.path}\n\n',
+        '',
+      ),
+    );
+    addTearDown(session.dispose);
+
+    await session.scanKnownRoots();
+
+    expect(session.found.map((g) => g.title), ['Из реестра']);
+    expect(session.found.single.confident, isFalse);
+  });
+
+  test('найденное обходом остаётся уверенным', () async {
+    await gameDir('Место', 'Из папки');
+    final session = sessionOver(['Место']);
+
+    await session.scanKnownRoots();
+
+    expect(session.found.single.confident, isTrue);
+  });
+
+  // Иначе одна и та же игра пришла бы дважды: и обходом, и из реестра.
+  test('игра, уже найденная обходом, из реестра не двоится', () async {
+    final dir = await gameDir('Место', 'Общая');
+    final session = ScanSession(
+      existingDirs: const {},
+      steamRoots: const [],
+      fixedRoots: [
+        GameRoot(path: p.join(tmp.path, 'Место'), kind: GameRootKind.games),
+      ],
+      registryQuery: (executable, args) async => ProcessResult(
+        0,
+        0,
+        'HKEY_LOCAL_MACHINE\\Uninstall\\Общая\n'
+            '    DisplayName    REG_SZ    Общая\n'
+            '    InstallLocation    REG_SZ    ${dir.path}\n\n',
+        '',
+      ),
+    );
+    addTearDown(session.dispose);
+
+    await session.scanKnownRoots();
+
+    expect(session.found, hasLength(1));
+    expect(session.found.single.confident, isTrue);
+  });
+}
+
+/// Пустой ответ реестра — на не-Windows его и так не спрашивают.
+Future<ProcessResult> _noRegistry(String executable, List<String> arguments) =>
+    Future.value(ProcessResult(0, 0, '', ''));
