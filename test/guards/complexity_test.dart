@@ -125,7 +125,6 @@ const _complexity = <String>[];
 
 const _lines = [
   'lib/bloc/downloads/downloads_bloc.dart: DownloadsBloc._finalize: 67',
-  'lib/main.dart: main: 103',
   'lib/models/game.dart: Game.copyWith: 63',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',

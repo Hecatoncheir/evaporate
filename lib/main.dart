@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'app_services.dart';
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
 import 'bloc/logging_observer.dart';
@@ -72,76 +73,41 @@ Future<void> main() async {
 
   final windowMode = await _watchWindow(window, shutdownSteps);
 
-  // Разрешение у системы не спрашиваем на старте: это делает пользователь
-  // кнопкой в настройках, чтобы диалог не выскакивал при первом запуске.
-  final notifications = SystemNotificationService(localizations: localizations);
-  await notifications.initialize();
-
-  final library = LibraryBloc(
+  final services = await AppServices.bootstrap(
     paths: paths,
     settings: settings,
     localizations: localizations,
+    shutdownSteps: shutdownSteps,
   );
-  library.add(const LibraryLoadRequested());
-
-  // После библиотеки: блок сохранений подписывается на её события и
-  // ставит ей хук «снять сейв перед запуском».
-  final saves = SavesBloc(
-    paths: paths,
-    library: library,
-    settings: settings,
-    notifications: notifications,
-    localizations: localizations,
-  );
-  saves.add(const SavesLoadRequested());
-
-  final downloads = DownloadsBloc(
-    paths: paths,
-    library: library,
-    settings: settings,
-    notifications: notifications,
-    localizations: localizations,
-  );
-  // Движок поднимается в фоне: даже если он не поднимется, приложение
-  // должно открыться — библиотекой и сейвами можно пользоваться.
-  downloads.add(const DownloadEngineStartRequested());
-
-  // Порядок важен: движок гасим раньше сохранений и библиотеки, потому что
-  // его задачи ещё правят её игры; сохранения — раньше библиотеки, они на
-  // неё подписаны;
-  // настройки — последними: на них смотрят все.
-  shutdownSteps.addAll([
-    downloads.close,
-    saves.close,
-    library.close,
-    settings.close,
-  ]);
-
-  final gamepad = GamepadService(binding: settings.state.gamepad);
-  shutdownSteps.add(() async => gamepad.dispose());
   shutdownSteps.add(tray.dispose);
-  // Отсутствие геймпада не должно мешать запуску — сервис это переживает сам.
-  unawaited(gamepad.start());
 
-  // В фоне и без ожидания: сеть может не ответить, а приложение должно
-  // открыться сразу. Молчим и при ошибке — недоступный GitHub не повод
-  // встречать пользователя сообщением.
-  if (settings.state.checkUpdates) {
-    unawaited(_announceUpdate(notifications, settings, localizations()));
-  }
+  _checkUpdatesInBackground(services.notifications, settings, localizations);
 
   runApp(
     EvaporateApp(
       settings: settings,
-      library: library,
-      saves: saves,
-      downloads: downloads,
-      gamepad: gamepad,
-      notifications: notifications,
+      library: services.library,
+      saves: services.saves,
+      downloads: services.downloads,
+      gamepad: services.gamepad,
+      notifications: services.notifications,
       windowMode: windowMode,
       tray: tray,
     ),
   );
+}
+
+/// Смотрит, нет ли новой версии, — в фоне и без ожидания.
+///
+/// Сеть может не ответить, а приложение должно открыться сразу. Молчим и
+/// при ошибке: недоступный GitHub не повод встречать человека сообщением.
+void _checkUpdatesInBackground(
+  NotificationService notifications,
+  SettingsBloc settings,
+  L Function() localizations,
+) {
+  if (!settings.state.checkUpdates) return;
+  unawaited(_announceUpdate(notifications, settings, localizations()));
 }
 
 /// Заводит журнал и сводит в него чужие жалобы.

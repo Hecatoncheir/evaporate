@@ -1157,8 +1157,10 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 `rule_tile.dart:24` (83 строки), `sync_folder_card.dart:24` (87),
 `log_card.dart:59` (84), `rule_dialog.dart:48` (78),
 `library_page.dart:118` (78), `downloads_page.dart:45` (72).
-`main()` — 105 строк при сложности 2: это список шагов, он читается;
-достаточно вынести сборку блоков в `AppServices.bootstrap(paths)`.
+~~`main()` — 105 строк при сложности 2~~: сборка блоков вынесена в
+`AppServices.bootstrap` (`lib/app_services.dart`), и обе функции стали
+короче шестидесяти строк. Списки стража по сложности и вложенности пусты,
+по длине — девять записей, из них шесть `build` у виджетов.
 
 ### Этап 6. Модели (P3)
 
