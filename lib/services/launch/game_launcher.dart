@@ -92,47 +92,54 @@ class GameLauncher {
     Game game, {
     required void Function(Game game, Duration played, int exitCode) onExit,
   }) async {
+    final executable = await _resolveExecutable(game);
+    final workingDir = game.installDir ?? p.dirname(game.executablePath!);
+
+    final Process process;
+    try {
+      process = await Process.start(
+        executable,
+        game.launchArgs,
+        workingDirectory: workingDir,
+      );
+    } on ProcessException catch (error) {
+      throw LaunchException(_l.launchFailed(error.message));
+    }
+
+    _track(game, process, onExit: onExit);
+  }
+
+  /// Что именно запускать — и все отказы разом.
+  ///
+  /// Развилка по системе стоит здесь одна: у бандла macOS запускается
+  /// бинарник внутри, потому что `open -W` отдаёт PID обёртки, и кнопка
+  /// «Стоп» закрывала её, а игра оставалась.
+  Future<String> _resolveExecutable(Game game) async {
     final exePath = game.executablePath;
     if (exePath == null || exePath.isEmpty) {
       throw LaunchException(_l.launchNoExecutable);
     }
 
-    final isMacApp = Platform.isMacOS && exePath.endsWith('.app');
-    if (isMacApp) {
+    if (Platform.isMacOS && exePath.endsWith('.app')) {
       if (!await Directory(exePath).exists()) {
         throw LaunchException(_l.launchAppMissing(exePath));
       }
-    } else {
-      final file = File(exePath);
-      if (!await file.exists()) {
-        throw LaunchException(_l.launchFileMissing(exePath));
-      }
-      if (!Platform.isWindows) await _ensureExecutable(exePath);
+      return _macAppExecutable(exePath);
     }
 
-    final workingDir = game.installDir ?? p.dirname(exePath);
-
-    late final Process process;
-    try {
-      if (isMacApp) {
-        // Запускаем бинарник бандла напрямую: `open -W` даёт PID обёртки,
-        // поэтому кнопка Stop завершала `open`, а игра оставалась.
-        process = await Process.start(
-          await _macAppExecutable(exePath),
-          game.launchArgs,
-          workingDirectory: workingDir,
-        );
-      } else {
-        process = await Process.start(
-          exePath,
-          game.launchArgs,
-          workingDirectory: workingDir,
-        );
-      }
-    } on ProcessException catch (error) {
-      throw LaunchException(_l.launchFailed(error.message));
+    if (!await File(exePath).exists()) {
+      throw LaunchException(_l.launchFileMissing(exePath));
     }
+    if (!Platform.isWindows) await _ensureExecutable(exePath);
+    return exePath;
+  }
 
+  /// Берёт запущенный процесс под присмотр.
+  void _track(
+    Game game,
+    Process process, {
+    required void Function(Game game, Duration played, int exitCode) onExit,
+  }) {
     // Необработанные pipe заполняются после нескольких десятков килобайт,
     // и тогда игра блокируется на очередной записи в stdout/stderr.
     unawaited(process.stdout.drain<void>().catchError((_) {}));

@@ -119,7 +119,6 @@ int top(int x) => x > 0 ? x : -x;
 }
 
 const _complexity = [
-  'lib/services/launch/game_launcher.dart: GameLauncher._start: 17',
   'lib/services/saves/save_activity_watch.dart: SaveActivityWatch._touchedFiles: 18',
 ];
 
@@ -129,7 +128,6 @@ const _lines = [
   'lib/main.dart: main: 103',
   'lib/models/app_settings.dart: AppSettings.copyWith: 73',
   'lib/models/game.dart: Game.copyWith: 63',
-  'lib/services/launch/game_launcher.dart: GameLauncher._start: 68',
   'lib/services/saves/save_manager.dart: SaveManager._createSnapshot: 74',
   'lib/services/saves/save_manager.dart: SaveManager._restoreFrom: 65',
   'lib/ui/downloads/download_chart.dart: _SpeedChartPainter.paint: 65',
