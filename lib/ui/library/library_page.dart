@@ -11,16 +11,10 @@ import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
-import '../widgets/game_drop_target.dart';
 import 'add_game_dialog.dart';
-import 'effects/library_atmosphere.dart';
 import 'game_page.dart';
-import 'library_empty_state.dart';
-import 'library_featured_slot.dart';
-import 'library_grid.dart';
+import 'library_body.dart';
 import 'library_grid_controller.dart';
-import 'library_heading_bar.dart';
-import 'library_shelf_bar.dart';
 import 'scan_folder_dialog.dart';
 import 'shelf.dart';
 
@@ -98,23 +92,25 @@ class _LibraryPageState extends State<LibraryPage> {
     });
   }
 
-  /// Ниже этой высоты не остаётся места и заголовку раздела.
-  static const _headingHeight = 360.0;
-
   @override
   Widget build(BuildContext context) {
-    final library = context.watch<LibraryBloc>().state;
     final nav = context.read<NavigationBloc>();
     final navState = context.watch<NavigationBloc>().state;
+    // Подписываемся на сами игры, а не на всё состояние библиотеки: в нём
+    // живут ещё и занятость с ходом поиска путей, и сетка обложек
+    // перестраивалась на каждый их чих.
+    final all = context.select<LibraryBloc, List<Game>>((b) => b.state.games);
+    final opened = context.select<LibraryBloc, Game?>(
+      (b) => b.state.gameById(navState.openedGameId),
+    );
     final effects = context.watch<SettingsBloc>().state;
     final scale = context.select<SettingsBloc, double>(
       (b) => b.state.libraryScale,
     );
-    _grid.forgetGone(library.games.map((g) => g.id).toSet());
+    _grid.forgetGone(all.map((game) => game.id).toSet());
 
-    final found = _search(library.games);
+    final found = _search(all);
     final games = gamesOnShelf(found, _shelf);
-    final opened = library.gameById(navState.openedGameId);
 
     // Открытую игру могли удалить, а выбранную — отфильтровать. И то и
     // другое чинится после кадра: менять состояние во время сборки нельзя.
@@ -123,56 +119,24 @@ class _LibraryPageState extends State<LibraryPage> {
 
     if (opened != null) return GamePage(game: opened);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final height = constraints.maxHeight;
-        return LibraryAtmosphere(
-          enabled: effects.libraryEffects,
-          particlesEnabled: effects.particlesEnabled,
-          ambientEnabled: effects.ambientEnabled,
-          targetKey: () => _grid.targetKey(navState.selectedGameId),
-          child: Column(
-            children: [
-              if (height >= _headingHeight) const LibraryHeadingBar(),
-              LibraryFeaturedSlot(
-                games: games,
-                selectedId: navState.selectedGameId,
-                effects: effects,
-                height: height,
-              ),
-              LibraryShelfBar(
-                shelf: _shelf,
-                found: found,
-                searchFocus: nav.searchFocus,
-                onShelf: (value) => setState(() => _shelf = value),
-                onQuery: (value) => setState(() => _query = value),
-                onReturnToGames: () => _returnToGames(games, nav),
-                onScan: () => _scanFolder(context),
-                onAdd: () => _addGame(context),
-              ),
-              Expanded(
-                child: GameDropTarget(
-                  enabled: !_scanning,
-                  child: games.isEmpty
-                      ? LibraryEmptyState(
-                          libraryIsEmpty: library.games.isEmpty,
-                          onAdd: () => _addGame(context),
-                        )
-                      : LibraryGrid(
-                          controller: _grid,
-                          games: games,
-                          selectedId: navState.selectedGameId,
-                          effects: effects,
-                          scale: scale,
-                          onSelect: (id) => nav.add(GameSelected(id)),
-                          onOpen: (id) => nav.add(GameOpened(id)),
-                        ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    return LibraryBody(
+      grid: _grid,
+      games: games,
+      found: found,
+      libraryIsEmpty: all.isEmpty,
+      shelf: _shelf,
+      selectedId: navState.selectedGameId,
+      effects: effects,
+      scale: scale,
+      scanning: _scanning,
+      searchFocus: nav.searchFocus,
+      onShelf: (value) => setState(() => _shelf = value),
+      onQuery: (value) => setState(() => _query = value),
+      onReturnToGames: () => _returnToGames(games, nav),
+      onScan: () => _scanFolder(context),
+      onAdd: () => _addGame(context),
+      onSelect: (id) => nav.add(GameSelected(id)),
+      onOpen: (id) => nav.add(GameOpened(id)),
     );
   }
 
