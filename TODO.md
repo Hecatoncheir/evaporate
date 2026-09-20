@@ -866,9 +866,13 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   с полем `pendingImport` (сейчас `inspectPackage` и `try/catch` в виджете,
   `:392–417`). В `LibraryBloc` — `GameExecutableDetectRequested(id)` и
   `GameFolderOpenRequested(id)`. **M**
-- [ ] **`LogBloc`** для `LogCard` (`log_card.dart:29–50`: `_lines`, свой
+- [x] **`LogBloc`** для `LogCard` (`log_card.dart:29–50`: `_lines`, свой
   `_busy`, чтение и очистка). События `LogShowRequested`,
   `LogClearRequested`; побочная выгода — тесты без `runAsync`. **S**
+  *Сделано, и побочная выгода получена:* показ, очистка и «ещё не
+  показывали» проверяются обычным тестом с подменённым `AppLog`. Строки
+  журнала уехали в `LogView`; у карточки осталось копирование — буфер
+  обмена не состояние.
 - [ ] **`ButtonCaptureBloc`** для диалога захвата кнопки
   (`gamepad_settings.dart:232–247`): поток нажатий геймпада — внешний
   источник. События `CaptureStarted(action)`, `RawButtonPressed(button)`,
