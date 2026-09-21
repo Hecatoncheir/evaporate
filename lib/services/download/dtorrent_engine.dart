@@ -17,8 +17,8 @@ import 'download_queue.dart';
 import 'integrity_check.dart';
 import 'torrent_file.dart';
 import 'torrent_source.dart';
+import 'torrent_task_options.dart';
 
-part 'engine_limits.dart';
 part 'engine_queue.dart';
 part 'engine_store.dart';
 part 'managed_download.dart';
@@ -254,6 +254,38 @@ class DtorrentEngine implements DownloadEngine {
     }
   }
 
+  /// Ставит задаче действующий предел или снимает его.
+  ///
+  /// Ограничение задаётся задаче, а не движку целиком, поэтому новую надо
+  /// догонять текущими настройками. Каким будет окно, решает
+  /// [speedLimitWindow] — здесь только поставить его или снять.
+  void _limitTask(dt.TorrentTask task) {
+    final window = speedLimitWindow(_limits, playing: _playing);
+    if (window == null) {
+      task.removeScheduleWindow(speedLimitWindowId);
+    } else {
+      task.addScheduleWindow(window);
+    }
+  }
+
+  /// Останавливает раздачу, когда заданный рейтинг достигнут.
+  ///
+  /// Проверяем при каждом опросе, а не по событию: движок о рейтинге ничего
+  /// не знает, а отданное растёт постепенно. Остановленную задачу очередь
+  /// больше не поднимает — для неё это выглядит как пауза от пользователя.
+  void _stopSeedingIfDone(_ManagedDownload managed, DownloadTask task) {
+    if (!managed.isActive || task.state != DownloadState.complete) return;
+    final done = _limits.seedingDone(
+      uploaded: task.uploadedBytes,
+      downloaded: task.completedBytes,
+    );
+    if (!done) return;
+    managed.markPaused();
+    // pause() у движка синхронный, оборачивать его не во что.
+    managed.task?.pause();
+    unawaited(_persist());
+  }
+
   /// Во что складывается состояние задачи.
   ///
   /// Порядок проверок и есть суть. **Готовность решается раньше паузы**:
@@ -293,33 +325,6 @@ class DtorrentEngine implements DownloadEngine {
       dt.TaskState.running => DownloadState.active,
       dt.TaskState.paused => DownloadState.paused,
       dt.TaskState.stopped => DownloadState.waiting,
-    };
-  }
-
-  /// Открыто для тестов: настройки прокси приложения в конфиг движка.
-  @visibleForTesting
-  dt.ProxyConfig? buildProxyConfig() {
-    if (!_proxy.isUsable) return null;
-    final host = _proxy.host.trim().replaceFirst(RegExp(r'^\w+://'), '');
-    final user = _proxy.hasCredentials ? _proxy.username : null;
-    final password = _proxy.password.isEmpty ? null : _proxy.password;
-
-    return switch (_proxy.kind) {
-      // Для SOCKS5 прокси покрывает и пиров — ради этого движок и менялся.
-      ProxyKind.socks5 => dt.ProxyConfig.socks5(
-        host: host,
-        port: _proxy.port,
-        username: user,
-        password: password,
-        useForTrackers: true,
-        useForPeers: true,
-      ),
-      ProxyKind.http => dt.ProxyConfig.http(
-        host: host,
-        port: _proxy.port,
-        username: user,
-        password: password,
-      ),
     };
   }
 
@@ -396,11 +401,6 @@ class DtorrentEngine implements DownloadEngine {
     );
   }
 
-  /// Проверяет, что скачанное действительно лежит на диске целиком.
-  ///
-  /// Хеши кусков BitTorrent сверяет ещё при скачивании — битые данные просто
-  /// не принимаются. А вот пропавший или обрезанный файл протокол уже не
-  /// заметит: именно это здесь и ищем.
   /// Задачи в порядке очереди — те, что ещё живы.
   Iterable<_ManagedDownload> get _ordered sync* {
     for (final id in _queue.ids) {
@@ -442,6 +442,11 @@ class DtorrentEngine implements DownloadEngine {
     await refresh();
   }
 
+  /// Проверяет, что скачанное действительно лежит на диске целиком.
+  ///
+  /// Хеши кусков BitTorrent сверяет ещё при скачивании — битые данные просто
+  /// не принимаются. А вот пропавший или обрезанный файл протокол уже не
+  /// заметит: именно это здесь и ищем.
   @override
   Future<IntegrityReport> verify(String id) async {
     final managed = _downloads[id];

@@ -63,7 +63,7 @@ extension EngineQueue on DtorrentEngine {
       null,
       null,
       null,
-      buildProxyConfig(),
+      torrentProxyConfig(_proxy),
     );
     managed.task = task;
     await task.start();
