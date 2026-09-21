@@ -23,6 +23,27 @@ extension _LibraryMetadata on LibraryBloc {
     }
   }
 
+  static Game _steamNotTried(Game game) => game.copyWith(
+    details: game.details.copyWith(steamLookupAttempted: false),
+  );
+
+  static Game _pathsNotTried(Game game) => game.copyWith(
+    saveDiscovery: game.saveDiscovery.copyWith(savePathsLookupAttempted: false),
+  );
+
+  /// Снимает маркер «уже пробовали», когда сходить не дали — закрыли окно.
+  ///
+  /// Пишется сразу, а не отложенной записью: идёт закрытие, и таймер до
+  /// диска уже не дотянется.
+  Future<void> _unmarkAttempt(
+    String gameId,
+    Emitter<LibraryState> emit,
+    Game Function(Game current) unmark,
+  ) async {
+    _edit(gameId, emit, unmark);
+    await persist();
+  }
+
   /// Ищет игру в Steam и дополняет карточку. Название не трогаем: имя
   /// в библиотеке пользователь мог задать сам.
   ///
@@ -37,8 +58,11 @@ extension _LibraryMetadata on LibraryBloc {
     final game = state.gameById(event.game.id);
     // Наличия идентификатора для отказа мало: он мог прийти из манифеста
     // Steam на диске, и тогда обложки у игры ещё нет. Отказывает только
-    // маркер «уже пробовали».
-    if (game == null ||
+    // маркер «уже пробовали». И закрытие — первым: `close()` сливает
+    // очередь поиска, и каждое событие успевало поставить маркер, не сходив
+    // в Steam.
+    if (_closing ||
+        game == null ||
         state.isBusy(key) ||
         (event.automatic && game.details.steamLookupAttempted)) {
       return;
@@ -60,7 +84,12 @@ extension _LibraryMetadata on LibraryBloc {
         query: event.query,
         cancelled: () => _closing,
       );
-      if (_closing) return;
+      if (_closing) {
+        // Сходить не дали — маркер «пробовали» был бы неправдой, и игра
+        // осталась бы без обложки до ручной клавиши.
+        await _unmarkAttempt(game.id, emit, _steamNotTried);
+        return;
+      }
       if (found == null) {
         finishBusy(
           emit,
@@ -76,12 +105,6 @@ extension _LibraryMetadata on LibraryBloc {
     }
   }
 
-  /// Раскладывает найденное по карточке игры.
-  ///
-  /// Проверка «та ли игра» стоит дважды, и обе нужны: сначала после сети,
-  /// потом после записи файлов — запись тоже ожидание, и за него игру
-  /// могли убрать. Свежие файлы тогда удаляем сами, иначе в кэше копились
-  /// бы обложки-сироты.
   /// Найденное в Steam поверх того, что об игре уже известно.
   ///
   /// Отдельным шагом, потому что после разбора `Game` это чистая функция
@@ -106,6 +129,12 @@ extension _LibraryMetadata on LibraryBloc {
     rating: found.rating.hasAnything ? found.rating : known.rating,
   );
 
+  /// Раскладывает найденное по карточке игры.
+  ///
+  /// Проверка «та ли игра» стоит дважды, и обе нужны: сначала после сети,
+  /// потом после записи файлов — запись тоже ожидание, и за него игру
+  /// могли убрать. Свежие файлы тогда удаляем сами, иначе в кэше копились
+  /// бы обложки-сироты.
   Future<void> _applyMetadata(
     Game game,
     GameMetadata found,
@@ -191,6 +220,9 @@ extension _LibraryMetadata on LibraryBloc {
     Emitter<LibraryState> emit,
   ) async {
     final key = LibraryBloc.steamShortcutKey(event.game.id);
+    // Повторное нажатие по той же игре, пока идёт первое, — не вторая
+    // запись, а то же самое ещё раз.
+    if (state.isBusy(key)) return;
     emit(state.copyWith(busy: busyWith(key, value: true)));
     try {
       await _steamShortcuts.addGame(
@@ -424,7 +456,10 @@ extension _LibraryMetadata on LibraryBloc {
   ) async {
     final key = LibraryBloc.savePathsKey(event.game.id);
     final game = state.gameById(event.game.id);
-    if (game == null ||
+    // Закрытие — первым, как у поиска в Steam: иначе слитая очередь метила
+    // бы «пробовали» игры, за чьими путями никто не ходил.
+    if (_closing ||
+        game == null ||
         state.isBusy(key) ||
         (event.automatic &&
             (game.details.steamAppId == null ||
@@ -446,7 +481,10 @@ extension _LibraryMetadata on LibraryBloc {
       final found = await _lookupPaths(
         SavePathsLookupRequested(game, refresh: event.refresh),
       );
-      if (_closing) return;
+      if (_closing) {
+        await _unmarkAttempt(game.id, emit, _pathsNotTried);
+        return;
+      }
 
       if (found == null) {
         finishBusy(

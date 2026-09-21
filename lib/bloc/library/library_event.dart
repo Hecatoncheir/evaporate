@@ -423,7 +423,8 @@ final class SavePathsLookupRequested extends LibraryEvent {
 ///
 /// Событие приходит не от пользователя, а от самого каталога — тот случай,
 /// ради которого события удобнее методов.
-final class SavePathsProgressChanged extends LibraryEvent {
+final class SavePathsProgressChanged extends LibraryEvent
+    implements FrequentEvent {
   const SavePathsProgressChanged(this.progress);
 
   final CatalogProgress? progress;

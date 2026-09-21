@@ -8,7 +8,8 @@ sealed class LibraryViewEvent extends Equatable {
 }
 
 /// В строке поиска набрали новое.
-final class LibraryQueryChanged extends LibraryViewEvent {
+final class LibraryQueryChanged extends LibraryViewEvent
+    implements FrequentEvent {
   const LibraryQueryChanged(this.query);
 
   final String query;

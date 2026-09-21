@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/download_task.dart';
+import '../frequent_event.dart';
 
 part 'download_history_event.dart';
 part 'download_history_state.dart';

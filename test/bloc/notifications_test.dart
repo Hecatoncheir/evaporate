@@ -144,7 +144,9 @@ void main() {
 
   test('выключённая настройка отключает системные уведомления', () async {
     settings.add(
-      SettingsChanged(settings.state.copyWith(systemNotifications: false)),
+      SettingsPatched(
+        (current) => current.copyWith(systemNotifications: false),
+      ),
     );
     await settings.stream.firstWhere((s) => !s.systemNotifications);
 

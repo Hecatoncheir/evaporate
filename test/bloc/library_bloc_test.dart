@@ -6,10 +6,14 @@ import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/launch/drop_import.dart';
 import 'package:evaporate/services/launch/game_launcher.dart';
+import 'package:evaporate/services/launch/steam_shortcuts.dart';
+import 'package:evaporate/services/metadata/game_metadata_fetcher.dart';
+import 'package:evaporate/services/metadata/steam_catalog.dart';
 import 'package:evaporate/services/system/autostart.dart';
 import 'package:evaporate/services/system/file_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -177,6 +181,114 @@ void main() {
     // Предел ловит зависшую загрузку, а не медленную: тот же, что у waitFor.
     await settings.loaded.timeout(const Duration(seconds: 5));
     expect(settings.state.installDir, paths.defaultInstallDir);
+  });
+
+  // Таймер отложенной записи выбрасывал её `Future`, и отказ записать
+  // `library.json` уходил необработанной ошибкой — мимо журнала.
+  test('отказ отложенной записи не уходит необработанным', () async {
+    final failing = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+      store: _FailingStore(paths.libraryFile),
+    );
+    addTearDown(failing.close);
+
+    failing.add(const GameAdded(id: 'g', title: 'Игра'));
+    await waitForState(failing, (s) => s.gameById('g') != null);
+    // Дольше отложенной записи: её отказ должен успеть случиться.
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+  });
+
+  // Маркер «уже пробовали» пишется до сети, а выход по закрытию его не
+  // откатывал: `close()` сливал очередь поиска, и каждое событие успевало
+  // поставить маркер. Первый запуск, сорок игр, закрыл окно — часть
+  // оставалась без обложек до ручной клавиши.
+  test('закрытие посреди поиска метаданных не метит несделанное', () async {
+    final fetcher = _HangingFetcher();
+    final closing = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+      metadata: fetcher,
+    );
+    for (final id in ['a', 'b', 'c']) {
+      closing.add(GameAdded(id: id, title: 'Игра $id'));
+    }
+    final added = await waitForState(closing, (s) => s.games.length == 3);
+    for (final game in added.games) {
+      closing.add(SteamLookupRequested(game, automatic: true));
+    }
+    await fetcher.started.future.timeout(const Duration(seconds: 5));
+
+    final closed = closing.close();
+    fetcher.release.complete();
+    await closed;
+
+    final reopened = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+    );
+    addTearDown(reopened.close);
+    reopened.add(const LibraryLoadRequested());
+    final loaded = await waitForState(reopened, (s) => s.loaded);
+    expect(
+      {for (final g in loaded.games) g.id: g.details.steamLookupAttempted},
+      {'a': false, 'b': false, 'c': false},
+    );
+  });
+
+  // Лончер закрыли, а игра работает: выхода её мы уже не увидим, и время
+  // сеанса терялось целиком.
+  test('время идущей игры засчитывается при закрытии лончера', () async {
+    final running = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+      launcher: _StillRunning({'g': const Duration(minutes: 42)}),
+    );
+    running.add(const GameAdded(id: 'g', title: 'Идёт'));
+    running.add(const GameAdded(id: 'h', title: 'Не запущена'));
+    await waitForState(running, (s) => s.games.length == 2);
+
+    await running.close();
+
+    final reopened = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+    );
+    addTearDown(reopened.close);
+    reopened.add(const LibraryLoadRequested());
+    final loaded = await waitForState(reopened, (s) => s.loaded);
+    expect(loaded.gameById('g')!.play.playtime, const Duration(minutes: 42));
+    expect(loaded.gameById('h')!.play.playtime, Duration.zero);
+  });
+
+  // Обработчик был параллельным и без проверки занятости: два нажатия —
+  // две записи чужого `shortcuts.vdf` друг поверх друга через один и тот
+  // же временный файл.
+  test('ярлыки Steam пишутся по одному, а не разом', () async {
+    final shortcuts = _CountingShortcuts();
+    final bloc = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+      steamShortcuts: shortcuts,
+    );
+    addTearDown(bloc.close);
+    bloc
+      ..add(const GameAdded(id: 'a', title: 'Первая'))
+      ..add(const GameAdded(id: 'b', title: 'Вторая'));
+    final added = await waitForState(bloc, (s) => s.games.length == 2);
+
+    for (final game in added.games) {
+      bloc.add(SteamShortcutRequested(game));
+    }
+    await waitForState(bloc, (s) => shortcuts.done == 2);
+
+    expect(shortcuts.mostAtOnce, 1, reason: 'чужой файл писали разом');
   });
 
   test('повреждённая запись не скрывает исправные игры', () async {
@@ -492,7 +604,9 @@ void main() {
   });
 
   test('настройки сохраняются и читаются обратно', () async {
-    settings.add(SettingsChanged(settings.state.copyWith(maxConcurrent: 5)));
+    settings.add(
+      SettingsPatched((current) => current.copyWith(maxConcurrent: 5)),
+    );
     await settings.stream.firstWhere((s) => s.maxConcurrent == 5);
 
     final reopened = settingsBloc();
@@ -872,4 +986,60 @@ class _CountingLauncher extends GameLauncher {
     Game game, {
     required void Function(Game game, Duration played, int exitCode) onExit,
   }) async => launches++;
+}
+
+/// Хранилище, в которое не записать: диск полон, файл заняли.
+class _FailingStore extends JsonStore {
+  _FailingStore(super.path);
+
+  @override
+  Future<void> write(Map<String, dynamic> data) async =>
+      throw const FileSystemException('диск полон');
+}
+
+/// Поиск в Steam, который не кончается до отмашки: сеть медленная, а
+/// человек тем временем закрыл окно.
+class _HangingFetcher extends GameMetadataFetcher {
+  _HangingFetcher() : super(SteamCatalog());
+
+  final started = Completer<void>();
+  final release = Completer<void>();
+
+  @override
+  Future<GameMetadata?> fetch(
+    Game game, {
+    String? query,
+    bool Function()? cancelled,
+  }) async {
+    if (!started.isCompleted) started.complete();
+    await release.future;
+    return null;
+  }
+}
+
+/// Игры, которые идут прямо сейчас, — без настоящих процессов.
+class _StillRunning extends GameLauncher {
+  _StillRunning(this._elapsed);
+
+  final Map<String, Duration> _elapsed;
+
+  @override
+  Duration? elapsedFor(String gameId) => _elapsed[gameId];
+}
+
+/// Запись ярлыков, которая считает, сколько их шло одновременно.
+class _CountingShortcuts extends SteamShortcuts {
+  var _now = 0;
+  var mostAtOnce = 0;
+  var done = 0;
+
+  @override
+  Future<int> addGame(Game game, {SteamArtwork? artwork}) async {
+    _now++;
+    if (_now > mostAtOnce) mostAtOnce = _now;
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    _now--;
+    done++;
+    return 1;
+  }
 }

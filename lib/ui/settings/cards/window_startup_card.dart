@@ -26,14 +26,16 @@ class WindowStartupCard extends StatelessWidget {
           WindowStartPicker(
             value: settings.windowStart,
             onChanged: (mode) => store.add(
-              SettingsChanged(settings.copyWith(windowStart: mode)),
+              SettingsPatched((current) => current.copyWith(windowStart: mode)),
             ),
           ),
           const SizedBox(height: 4),
           SettingSwitch(
             value: settings.launchAtStartup,
             onChanged: (value) => store.add(
-              SettingsChanged(settings.copyWith(launchAtStartup: value)),
+              SettingsPatched(
+                (current) => current.copyWith(launchAtStartup: value),
+              ),
             ),
             title: l.launchAtStartup,
             note: l.launchAtStartupNote,

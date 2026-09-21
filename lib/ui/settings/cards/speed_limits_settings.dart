@@ -24,7 +24,7 @@ class SpeedLimitsSettings extends StatelessWidget {
     final settings = store.state;
     final limits = settings.limits;
     void limit(SpeedLimits next) =>
-        store.add(SettingsChanged(settings.copyWith(limits: next)));
+        store.add(SettingsPatched((current) => current.copyWith(limits: next)));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -19,7 +19,8 @@ class DownloadSettingsCard extends StatelessWidget {
     final l = L.of(context);
     final store = context.watch<SettingsBloc>();
     final settings = store.state;
-    void update(AppSettings next) => store.add(SettingsChanged(next));
+    void update(AppSettings Function(AppSettings current) patch) =>
+        store.add(SettingsPatched(patch));
 
     return SectionCard(
       title: l.downloads,
@@ -51,7 +52,7 @@ class DownloadSettingsCard extends StatelessWidget {
                 ],
                 onChanged: (value) {
                   if (value == null) return;
-                  update(settings.copyWith(maxConcurrent: value));
+                  update((current) => current.copyWith(maxConcurrent: value));
                 },
               ),
             ],

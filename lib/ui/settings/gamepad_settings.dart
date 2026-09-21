@@ -39,8 +39,9 @@ class GamepadSettingsCard extends StatelessWidget {
     final binding = store.state.gamepad;
     final l = L.of(context);
 
-    void save(GamepadBinding next) =>
-        store.add(SettingsChanged(store.state.copyWith(gamepad: next)));
+    void save(GamepadBinding next) => store.add(
+      SettingsPatched((current) => current.copyWith(gamepad: next)),
+    );
 
     return SectionCard(
       title: l.controls,
@@ -95,8 +96,8 @@ class GamepadSettingsCard extends StatelessWidget {
     if (button == null) return;
 
     store.add(
-      SettingsChanged(
-        store.state.copyWith(
+      SettingsPatched(
+        (current) => current.copyWith(
           gamepad: store.state.gamepad.assign(button, action),
         ),
       ),

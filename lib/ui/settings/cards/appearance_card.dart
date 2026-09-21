@@ -24,7 +24,8 @@ class AppearanceCard extends StatelessWidget {
     final l = L.of(context);
     final store = context.watch<SettingsBloc>();
     final settings = store.state;
-    void update(AppSettings next) => store.add(SettingsChanged(next));
+    void update(AppSettings Function(AppSettings current) patch) =>
+        store.add(SettingsPatched(patch));
 
     return SectionCard(
       title: l.appearanceAndLanguage,
@@ -34,12 +35,14 @@ class AppearanceCard extends StatelessWidget {
         children: [
           LanguagePicker(
             value: settings.locale,
-            onChanged: (code) => update(settings.copyWith(locale: code)),
+            onChanged: (code) =>
+                update((current) => current.copyWith(locale: code)),
           ),
           const SizedBox(height: 12),
           ThemePicker(
             value: settings.themeMode,
-            onChanged: (mode) => update(settings.copyWith(themeMode: mode)),
+            onChanged: (mode) =>
+                update((current) => current.copyWith(themeMode: mode)),
           ),
           const SizedBox(height: 14),
           // Крупность обложек отсюда убрана: она стоит в самой библиотеке,
@@ -60,8 +63,9 @@ class AppearanceCard extends StatelessWidget {
                 min: AppSettings.minInterfaceScale,
                 max: AppSettings.maxInterfaceScale,
                 step: 0.05,
-                onChanged: (value) =>
-                    update(settings.copyWith(interfaceScale: value)),
+                onChanged: (value) => update(
+                  (current) => current.copyWith(interfaceScale: value),
+                ),
               ),
             ],
           ),

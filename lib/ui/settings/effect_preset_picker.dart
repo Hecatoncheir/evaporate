@@ -15,7 +15,8 @@ class EffectPresetPicker extends StatelessWidget {
     final store = context.watch<SettingsBloc>();
     final settings = store.state;
     final l = L.of(context);
-    void update(AppSettings next) => store.add(SettingsChanged(next));
+    void update(AppSettings Function(AppSettings current) patch) =>
+        store.add(SettingsPatched(patch));
 
     return SegmentedButton<EffectPreset>(
       key: const ValueKey('effects-preset'),
@@ -43,7 +44,7 @@ class EffectPresetPicker extends StatelessWidget {
       // это не новый набор, а отсутствие действия.
       onSelectionChanged: (selection) {
         if (selection.isEmpty) return;
-        update(selection.first.applyTo(settings));
+        update(selection.first.applyTo);
       },
     );
   }

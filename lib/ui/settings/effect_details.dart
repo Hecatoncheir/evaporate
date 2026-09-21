@@ -17,7 +17,8 @@ class EffectDetails extends StatelessWidget {
     final store = context.watch<SettingsBloc>();
     final settings = store.state;
     final l = L.of(context);
-    void update(AppSettings next) => store.add(SettingsChanged(next));
+    void update(AppSettings Function(AppSettings current) patch) =>
+        store.add(SettingsPatched(patch));
 
     return ExpansionTile(
       key: const ValueKey('effects-details'),
@@ -29,7 +30,7 @@ class EffectDetails extends StatelessWidget {
           key: const ValueKey('effects-master-toggle'),
           value: settings.libraryEffects,
           onChanged: (value) =>
-              update(settings.copyWith(libraryEffects: value)),
+              update((current) => current.copyWith(libraryEffects: value)),
           title: l.libraryEffectsEnable,
         ),
         // Переключатели идут прямо по перечислимой: порядок объявления —
@@ -46,7 +47,8 @@ class EffectDetails extends StatelessWidget {
             // место в сетке, а не украшает её, и зажигается по прямой
             // просьбе.
             onChanged: settings.libraryEffects || effect.independent
-                ? (value) => update(settings.withEffect(effect, on: value))
+                ? (value) =>
+                      update((current) => current.withEffect(effect, on: value))
                 : null,
           ),
       ],

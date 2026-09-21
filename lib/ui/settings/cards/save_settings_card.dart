@@ -18,7 +18,8 @@ class SaveSettingsCard extends StatelessWidget {
     final l = L.of(context);
     final store = context.watch<SettingsBloc>();
     final settings = store.state;
-    void update(AppSettings next) => store.add(SettingsChanged(next));
+    void update(AppSettings Function(AppSettings current) patch) =>
+        store.add(SettingsPatched(patch));
 
     return SectionCard(
       title: l.saves,
@@ -35,27 +36,29 @@ class SaveSettingsCard extends StatelessWidget {
             ),
             onClear: settings.syncFolder == null
                 ? null
-                : () => update(settings.copyWith(syncFolder: null)),
+                : () => update((current) => current.copyWith(syncFolder: null)),
           ),
           const SizedBox(height: 6),
           SettingSwitch(
             value: settings.autoExportToSync,
             onChanged: (value) =>
-                update(settings.copyWith(autoExportToSync: value)),
+                update((current) => current.copyWith(autoExportToSync: value)),
             title: l.copyToSyncFolder,
           ),
           const SizedBox(height: 6),
           SettingSwitch(
             value: settings.autoSnapshotOnExit,
-            onChanged: (value) =>
-                update(settings.copyWith(autoSnapshotOnExit: value)),
+            onChanged: (value) => update(
+              (current) => current.copyWith(autoSnapshotOnExit: value),
+            ),
             title: l.snapshotOnExit,
             note: l.defaultForNewGames,
           ),
           SettingSwitch(
             value: settings.autoSnapshotOnLaunch,
-            onChanged: (value) =>
-                update(settings.copyWith(autoSnapshotOnLaunch: value)),
+            onChanged: (value) => update(
+              (current) => current.copyWith(autoSnapshotOnLaunch: value),
+            ),
             title: l.snapshotOnLaunch,
             note: l.autoSnapshotOnLaunchNote,
           ),

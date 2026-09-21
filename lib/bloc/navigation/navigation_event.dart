@@ -27,7 +27,7 @@ final class SectionCycled extends NavigationEvent {
   List<Object?> get props => [delta];
 }
 
-final class GameSelected extends NavigationEvent {
+final class GameSelected extends NavigationEvent implements FrequentEvent {
   const GameSelected(this.gameId);
 
   final String? gameId;

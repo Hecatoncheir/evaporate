@@ -64,7 +64,6 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
     Emitter<AppSettings> emit,
   ) async {
     var next = switch (event) {
-      SettingsChanged(:final settings) => settings,
       SettingsPatched(:final patch) => patch(state),
     };
     if (next == state) return;

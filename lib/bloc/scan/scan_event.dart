@@ -8,7 +8,7 @@ sealed class ScanEvent extends Equatable {
 }
 
 /// Обход что-то нашёл, закончился или начался заново.
-final class ScanSessionChanged extends ScanEvent {
+final class ScanSessionChanged extends ScanEvent implements FrequentEvent {
   const ScanSessionChanged();
 }
 

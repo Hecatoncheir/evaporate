@@ -40,15 +40,21 @@ class AppShutdown {
   /// закрывается, — но в журнале отладки след остаться должен.
   final void Function(Object error)? onError;
 
-  bool _started = false;
+  /// Идущий проход завершения.
+  Future<void>? _running;
 
-  /// Завершение уже запускали. Закрытие окна и «Выход» в трее могут прийти
-  /// одно за другим, а дважды дописывать одни и те же файлы незачем.
-  bool get isStarted => _started;
+  /// Завершение уже запускали.
+  bool get isStarted => _running != null;
 
-  Future<void> run() async {
-    if (_started) return;
-    _started = true;
+  /// Проводит завершение — один раз.
+  ///
+  /// Закрытие окна и «Выход» в трее могут прийти одно за другим, и второй
+  /// вызов получает **тот же** проход, а не пустой немедленный ответ: иначе
+  /// второй `quit()` заканчивал процесс посреди первого прохода, так и не
+  /// дописав его шаги.
+  Future<void> run() => _running ??= _run();
+
+  Future<void> _run() async {
     final deadline = Stopwatch()..start();
     for (final step in steps) {
       final left = budget - deadline.elapsed;

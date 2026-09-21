@@ -45,7 +45,9 @@ class ThemeCycleAction extends StatelessWidget {
       tooltip: _label(context, nextTheme(mode)),
       icon: _icon(mode),
       onPressed: () => store.add(
-        SettingsChanged(settings.copyWith(themeMode: nextTheme(mode))),
+        SettingsPatched(
+          (current) => current.copyWith(themeMode: nextTheme(mode)),
+        ),
       ),
     );
   }

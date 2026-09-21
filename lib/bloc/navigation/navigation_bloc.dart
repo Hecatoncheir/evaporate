@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/app_section.dart';
+import '../frequent_event.dart';
 import '../library/library_bloc.dart';
 
 part 'navigation_event.dart';

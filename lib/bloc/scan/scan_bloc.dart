@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
+import '../frequent_event.dart';
 
 part 'scan_event.dart';
 part 'scan_state.dart';

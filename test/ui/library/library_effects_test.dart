@@ -361,11 +361,8 @@ void main() {
       addTearDown(harness.dispose);
       if (particles) {
         harness.settings.add(
-          SettingsChanged(
-            harness.settings.state.withEffect(
-              LibraryEffect.particles,
-              on: true,
-            ),
+          SettingsPatched(
+            (current) => current.withEffect(LibraryEffect.particles, on: true),
           ),
         );
       }
@@ -542,16 +539,12 @@ void main() {
         await frames(tester, 2);
         expect(state.isAnimating, isTrue);
         harness.settings.add(
-          SettingsChanged(
-            harness.settings.state.copyWith(libraryEffects: false),
-          ),
+          SettingsPatched((current) => current.copyWith(libraryEffects: false)),
         );
         await frames(tester, 4);
         expect(state.isAnimating, isFalse);
         harness.settings.add(
-          SettingsChanged(
-            harness.settings.state.copyWith(libraryEffects: true),
-          ),
+          SettingsPatched((current) => current.copyWith(libraryEffects: true)),
         );
         await frames(tester, 4);
         await tester.pumpWidget(

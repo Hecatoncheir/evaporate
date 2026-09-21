@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/game.dart';
 import '../../models/shelf.dart';
+import '../frequent_event.dart';
 
 part 'library_view_event.dart';
 part 'library_view_query.dart';

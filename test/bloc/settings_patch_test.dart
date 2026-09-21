@@ -31,10 +31,9 @@ void main() {
   });
 
   test('правка ложится на текущие настройки, а не на прежние', () async {
-    final before = settings.state;
     // Пока «открыт диалог», человек меняет другое.
     settings
-      ..add(SettingsChanged(before.copyWith(maxConcurrent: 5)))
+      ..add(SettingsPatched((current) => current.copyWith(maxConcurrent: 5)))
       ..add(SettingsPatched((s) => s.copyWith(syncFolder: '/sync')));
 
     final state = await settings.stream

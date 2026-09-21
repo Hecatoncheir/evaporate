@@ -30,7 +30,7 @@ class ProxyFormBody extends StatelessWidget {
   /// собирать их нечего.
   void _update(BuildContext context, ProxySettings next) {
     final store = context.read<SettingsBloc>();
-    store.add(SettingsChanged(store.state.copyWith(proxy: next)));
+    store.add(SettingsPatched((current) => current.copyWith(proxy: next)));
     context.read<ProxyFormBloc>().add(ProxySavedChanged(next));
   }
 
@@ -39,7 +39,7 @@ class ProxyFormBody extends StatelessWidget {
   void _apply(BuildContext context, ProxyForm form) {
     final store = context.read<SettingsBloc>();
     final next = form.draft;
-    store.add(SettingsChanged(store.state.copyWith(proxy: next)));
+    store.add(SettingsPatched((current) => current.copyWith(proxy: next)));
     context.read<ProxyFormBloc>().add(ProxySavedChanged(next));
   }
 

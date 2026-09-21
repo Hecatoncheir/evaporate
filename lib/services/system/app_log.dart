@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 /// Журнал приложения.
 ///
 /// Приложение бережёт чужие сохранения, и семь десятков мест в нём гасят
@@ -44,6 +46,31 @@ class AppLog {
   static final AppLog _noop = AppLog(path: '', previousPath: '');
 
   static set instance(AppLog value) => _instance = value;
+
+  /// Сводит в журнал то, что падает мимо блоков: ошибки Flutter (сборка,
+  /// раскладка, отрисовка) и необработанные асинхронные — отказ отложенной
+  /// записи, исключение в брошенном `Future`.
+  ///
+  /// Блоки пишут свои сбои сами (`LoggingBlocObserver`), а до этих у журнала
+  /// не было ни одного пути — хотя он единственный способ узнать, что
+  /// случилось у человека. Показ Flutter остаётся прежним: в отладочной
+  /// сборке красный экран никто не отменял.
+  static void captureUnhandled(AppLog Function() log) {
+    final previous = FlutterError.onError;
+    FlutterError.onError = (details) {
+      log().write(
+        'Flutter: ${details.exceptionAsString()}',
+        null,
+        details.stack,
+      );
+      previous?.call(details);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      log().write('необработанная ошибка', error, stack);
+      // Обработано: процесс не роняем — журнал и есть наш ответ.
+      return true;
+    };
+  }
 
   /// Пишет строку. Ошибку в саму запись глотает: журнал не вправе стать
   /// новым источником бед.

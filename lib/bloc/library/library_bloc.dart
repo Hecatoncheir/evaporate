@@ -26,6 +26,7 @@ import '../../services/saves/save_path_globs.dart';
 import '../../services/system/app_log.dart';
 import '../../services/system/file_manager.dart';
 import '../bloc_common.dart';
+import '../frequent_event.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
@@ -127,7 +128,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
       _onSavePathsLookup,
       transformer: (events, mapper) => events.asyncExpand(mapper),
     );
-    on<SteamShortcutRequested>(_onSteamShortcut);
+    // И ярлыки Steam — по одному: запись идёт в чужой `shortcuts.vdf` через
+    // один временный файл, и два нажатия разом писали его друг поверх друга.
+    on<SteamShortcutRequested>(
+      _onSteamShortcut,
+      transformer: (events, mapper) => events.asyncExpand(mapper),
+    );
     on<SavePathsProgressChanged>(_onSavePathsProgress);
     on<MetadataRetryRequested>(_onMetadataRetry);
     on<MetadataRefreshRequested>(_onMetadataRefresh);
@@ -193,9 +199,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
   // ignore: avoid_public_bloc_methods
   Stream<GameExit> get gameExits => _exits.stream;
 
-  /// Игра ушла из библиотеки: её снимки больше никому не нужны.
+  /// Игра ушла из библиотеки: её снимки больше никому не нужны — это дело
+  /// блока сохранений, — а её задача в движке — блока загрузок. Игра
+  /// целиком, а не id: загрузкам нужен её идентификатор задачи, а в
+  /// состоянии библиотеки её уже нет.
   // ignore: avoid_public_bloc_methods
-  Stream<String> get gameRemovals => _removals.stream;
+  Stream<Game> get gameRemovals => _removals.stream;
 
   /// Что завелось из брошенного в окно: загрузки ставят раздачи в очередь,
   /// навигация подсвечивает последнюю.
@@ -210,7 +219,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
   Future<void> Function(Game game)? beforeLaunch;
 
   final _exits = StreamController<GameExit>.broadcast();
-  final _removals = StreamController<String>.broadcast();
+  final _removals = StreamController<Game>.broadcast();
   final _drops = StreamController<DroppedGames>.broadcast();
 
   Timer? _persistTimer;
@@ -243,7 +252,22 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
 
   void _schedulePersist() {
     _persistTimer?.cancel();
-    _persistTimer = Timer(const Duration(milliseconds: 400), persist);
+    _persistTimer = Timer(
+      const Duration(milliseconds: 400),
+      () => unawaited(_persistLogged()),
+    );
+  }
+
+  /// Отложенная запись — с журналом на отказ.
+  ///
+  /// Таймер выбрасывал `Future` записи, и отказ записать `library.json`
+  /// пропадал без следа: ни сообщения, ни строки в журнале.
+  Future<void> _persistLogged() async {
+    try {
+      await persist();
+    } on Object catch (error) {
+      AppLog.instance.write('запись библиотеки', error);
+    }
   }
 
   Future<void> persist() async {
@@ -378,12 +402,22 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
       state.copyWith(games: state.games.where((g) => g.id != game.id).toList()),
     );
     await persist();
-    // Снимки этой игры уносит блок сохранений: список их держит он.
-    _removals.add(game.id);
+    // Снимки этой игры уносит блок сохранений, задачу в движке — блок
+    // загрузок: без этого качающаяся игра, убранная из библиотеки, качалась
+    // дальше, переживала перезапуск и снималась только заведением той же
+    // раздачи заново.
+    _removals.add(game);
 
     await covers.deleteCover(game.details.coverPath);
     await covers.deleteShots(game.details.shotPaths);
-    if (event.deleteFiles) await _deleteInstallDir(game);
+    if (!event.deleteFiles) return;
+    try {
+      await _deleteInstallDir(game);
+    } on Object catch (error) {
+      // Файлы держит антивирус или ещё не отпустил движок: игра из
+      // библиотеки уже убрана, а о брошенных файлах человек должен знать.
+      emit(state.copyWith(notice: notice(error.toString(), isError: true)));
+    }
   }
 
   /// Убирает саму игру с диска — но только внутри папки загрузок.
@@ -462,6 +496,34 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     _exits.add((game: updated, played: event.played));
   }
 
+  /// Игры с засчитанным временем тех, что ещё идут, — или `null`, если
+  /// засчитывать нечего.
+  ///
+  /// Лончер закрывают, а игра работает дальше: выхода её мы уже не увидим —
+  /// слежение за процессом уходит вместе с нами, — и время сеанса
+  /// терялось целиком. Засчитываем прошедшее к закрытию, по тому же правилу
+  /// «меньше минуты не в счёт», что и при выходе. Автоснимок здесь не
+  /// снимается: игра ещё пишет свои сейвы, и снимок застал бы их на
+  /// середине.
+  List<Game>? _creditRunningGames() {
+    final games = state.games.map(_withRunningTime).toList();
+    for (var i = 0; i < games.length; i++) {
+      if (!identical(games[i], state.games[i])) return games;
+    }
+    return null;
+  }
+
+  Game _withRunningTime(Game game) {
+    final played = _launcher.elapsedFor(game.id);
+    if (played == null || played.inSeconds < 60) return game;
+    return game.copyWith(
+      play: PlayStats(
+        playtime: game.play.playtime + played,
+        lastPlayed: DateTime.now(),
+      ),
+    );
+  }
+
   void _onRunningGamesChanged(
     RunningGamesChanged event,
     Emitter<LibraryState> emit,
@@ -476,7 +538,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     // успевает лечь на диск, и последнее изменение теряется при выходе.
     final pending = _persistTimer?.isActive ?? false;
     _persistTimer?.cancel();
-    if (pending) await persist();
+    final credited = _creditRunningGames();
+    if (credited != null) {
+      await _writeGames(credited);
+    } else if (pending) {
+      await persist();
+    }
     await _store.flush();
     await _exits.close();
     await _removals.close();

@@ -99,7 +99,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     library.beforeLaunch = snapshotBeforeLaunch;
     _exits = library.gameExits.listen(_afterGameExit);
     _removals = library.gameRemovals.listen(
-      (gameId) => add(GameSnapshotsDropped(gameId)),
+      (game) => add(GameSnapshotsDropped(game.id)),
     );
     // Один раз, когда игры известны: раньше проверять нечего.
     final loaded = library.state.loaded
@@ -150,7 +150,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   late final BulkTransfer _bulk;
 
   late final StreamSubscription<GameExit> _exits;
-  late final StreamSubscription<String> _removals;
+  late final StreamSubscription<Game> _removals;
   late final StreamSubscription<LibraryState> _libraryLoaded;
 
   bool _closing = false;

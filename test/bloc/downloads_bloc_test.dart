@@ -274,6 +274,18 @@ void main() {
       );
     });
 
+    // Удаление игры задачу в движке не снимало: качающаяся игра, убранная из
+    // библиотеки, продолжала своё, переживала перезапуск, а клавиш у её
+    // карточки не было — они рисуются только при игре.
+    test('удаление игры снимает её задачу в движке', () async {
+      final game = await downloadingGame();
+
+      library.add(GameRemoved(game));
+      await waitForLibrary((s) => s.gameById(game.id) == null);
+
+      await waitForCall('remove task-1');
+    });
+
     test('отмена снимает задачу и отвязывает её от игры', () async {
       final game = await downloadingGame();
 
@@ -334,6 +346,27 @@ void main() {
       // а не застают.
       final told = await waitForDownloads((s) => s.notice != null);
       expect(told.notice!.isError, isTrue);
+    });
+
+    // У проверки был `finally`, но не `catch`: сорвавшаяся сверка уходила
+    // исключением и повторялась на каждом опросе движка — раз в секунду.
+    test('сорвавшаяся проверка приходит отказом, а не повтором', () async {
+      final game = await downloadingGame();
+      engine.failure = Exception('диск отказал');
+
+      downloads.add(EngineTasksChanged([done(game.download.downloadTaskId!)]));
+      final state = await waitForLibrary(
+        (s) => s.gameById(game.id)?.status == GameStatus.error,
+      );
+
+      expect(state.gameById(game.id)!.lastError, contains('диск отказал'));
+      downloads.add(EngineTasksChanged([done(game.download.downloadTaskId!)]));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(
+        engine.calls.where((call) => call.startsWith('verify')),
+        hasLength(1),
+        reason: 'проверка пошла по второму кругу',
+      );
     });
 
     test('целая раздача доводит игру до установленной', () async {

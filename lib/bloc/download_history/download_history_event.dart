@@ -11,7 +11,7 @@ sealed class DownloadHistoryEvent extends Equatable {
 ///
 /// Прошлое состояние идёт вместе с новым: выборку добавляют, только когда
 /// что-то и правда сдвинулось, а прошлое знает тот, кто держит задачу.
-final class SpeedSampled extends DownloadHistoryEvent {
+final class SpeedSampled extends DownloadHistoryEvent implements FrequentEvent {
   const SpeedSampled({required this.task, required this.previous});
 
   final DownloadTask task;

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:evaporate/services/system/app_log.dart';
 import 'package:evaporate/ui/settings/log_card.dart';
@@ -25,6 +26,35 @@ void main() {
 
   tearDown(() async {
     await deleteTempDir(tmp);
+  });
+
+  // Блоки пишут свои сбои сами, а то, что падает мимо них — сборка
+  // виджетов, брошенный `Future`, — не доходило до журнала ни одним путём.
+  test('падающее мимо блоков доходит до журнала', () async {
+    final flutterBefore = FlutterError.onError;
+    final platformBefore = PlatformDispatcher.instance.onError;
+    addTearDown(() {
+      FlutterError.onError = flutterBefore;
+      PlatformDispatcher.instance.onError = platformBefore;
+    });
+    // Прежний обработчик Flutter вызывается и дальше — в тесте он уронил
+    // бы прогон, поэтому на время проверки его место занимает пустой.
+    FlutterError.onError = (_) {};
+
+    AppLog.captureUnhandled(() => log);
+    FlutterError.onError!(
+      FlutterErrorDetails(exception: StateError('виджет не собрался')),
+    );
+    final handled = PlatformDispatcher.instance.onError!(
+      const FileSystemException('библиотека не записалась'),
+      StackTrace.current,
+    );
+    await log.flush();
+
+    expect(handled, isTrue, reason: 'процесс не роняем');
+    final lines = (await log.tail()).join('\n');
+    expect(lines, contains('виджет не собрался'));
+    expect(lines, contains('библиотека не записалась'));
   });
 
   test('запись доходит до файла вместе со временем', () async {

@@ -107,7 +107,7 @@ final class DownloadReordered extends DownloadsEvent {
 
 /// Движок прислал новый снимок задач. Событие приходит из его потока —
 /// раз в секунду, пока идёт хотя бы одна загрузка.
-final class EngineTasksChanged extends DownloadsEvent {
+final class EngineTasksChanged extends DownloadsEvent implements FrequentEvent {
   const EngineTasksChanged(this.tasks);
 
   final List<DownloadTask> tasks;
@@ -125,7 +125,7 @@ final class EngineStatusChanged extends DownloadsEvent {
   List<Object?> get props => [status];
 }
 
-final class EngineStatsChanged extends DownloadsEvent {
+final class EngineStatsChanged extends DownloadsEvent implements FrequentEvent {
   const EngineStatsChanged(this.stats);
 
   final EngineStats stats;
@@ -146,4 +146,21 @@ final class ProxyRoutingChanged extends DownloadsEvent {
 
   @override
   List<Object?> get props => [routing];
+}
+
+/// Задача закончилась — проверить скачанное и объявить игру готовой.
+///
+/// Отдельным событием, а не шагом внутри опроса движка: проверка идёт
+/// секундами (обход папки, сверка файлов), и опрос, дожидаясь её, держал
+/// снимок списка игр, устаревший за это время. Сорвавшаяся по соседству
+/// игра получала второе уведомление о той же ошибке, а связь по infohash
+/// искалась по старому списку. Здесь игра читается заново.
+final class DownloadFinalizeRequested extends DownloadsEvent {
+  const DownloadFinalizeRequested(this.gameId, this.taskId);
+
+  final String gameId;
+  final String taskId;
+
+  @override
+  List<Object?> get props => [gameId, taskId];
 }

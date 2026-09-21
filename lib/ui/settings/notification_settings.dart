@@ -33,7 +33,9 @@ class NotificationSettingsCard extends StatelessWidget {
           SettingSwitch(
             value: enabled,
             onChanged: (value) => store.add(
-              SettingsChanged(store.state.copyWith(systemNotifications: value)),
+              SettingsPatched(
+                (current) => current.copyWith(systemNotifications: value),
+              ),
             ),
             title: l.systemNotifications,
             note: l.systemNotificationsNote,

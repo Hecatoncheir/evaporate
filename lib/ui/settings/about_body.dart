@@ -62,7 +62,9 @@ class AboutBody extends StatelessWidget {
           SettingSwitch(
             value: settings.checkUpdates,
             onChanged: (value) => context.read<SettingsBloc>().add(
-              SettingsChanged(settings.copyWith(checkUpdates: value)),
+              SettingsPatched(
+                (current) => current.copyWith(checkUpdates: value),
+              ),
             ),
             title: l.checkUpdatesOnStart,
             note: l.updateNote,

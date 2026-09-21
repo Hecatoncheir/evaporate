@@ -12,28 +12,20 @@ final class SettingsLoadRequested extends SettingsEvent {
   const SettingsLoadRequested();
 }
 
-/// Запись настроек: целиком или правкой. Обе идут одной очередью — иначе
-/// правка и замена, пришедшие разом, спорили бы, чья запись последняя.
+/// Запись настроек. Одна очередь на все: иначе две правки, пришедшие
+/// разом, спорили бы, чья запись последняя.
 sealed class SettingsWrite extends SettingsEvent {
   const SettingsWrite();
 }
 
-/// Заменить настройки целиком и записать их на диск.
-///
-/// Годится, когда новое значение собрано прямо сейчас, без ожиданий. Если
-/// между чтением настроек и отправкой было ожидание — системный диалог,
-/// сеть, — нужен [SettingsPatched]: снимок затёр бы всё, что изменили за
-/// это время.
-final class SettingsChanged extends SettingsWrite {
-  const SettingsChanged(this.settings);
-
-  final AppSettings settings;
-
-  @override
-  List<Object?> get props => [settings];
-}
-
 /// Поправить настройки функцией от их **текущего** значения и записать.
+///
+/// Другого способа записать настройки нет, и это нарочно. Прежде был ещё
+/// `SettingsChanged` — «вот все настройки целиком», — и шестнадцать мест
+/// слали снимок, собранный до ожидания: включил автозапуск и тут же сменил
+/// режим окна — второй снимок нёс старый `launchAtStartup`, и обработчик
+/// честно выключал автозапуск в системе обратно. Тот же корень, что у
+/// прежнего `GameUpdated(game)` в библиотеке.
 final class SettingsPatched extends SettingsWrite {
   const SettingsPatched(this.patch);
 

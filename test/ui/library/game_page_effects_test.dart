@@ -223,7 +223,7 @@ void main() {
     await frames(tester, 20);
     expect(motions.every((s) => s.isAnimating), isTrue);
     harness.settings.add(
-      SettingsChanged(harness.settings.state.copyWith(libraryEffects: false)),
+      SettingsPatched((current) => current.copyWith(libraryEffects: false)),
     );
     await tester.pumpAndSettle();
     expect(motions.every((s) => !s.isAnimating), isTrue);

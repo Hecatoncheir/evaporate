@@ -16,8 +16,9 @@ class LibraryHeadingBar extends StatelessWidget {
     final store = context.watch<SettingsBloc>();
     return ConceptLibraryHeading(
       scale: store.state.libraryScale,
-      onScale: (value) =>
-          store.add(SettingsChanged(store.state.copyWith(libraryScale: value))),
+      onScale: (value) => store.add(
+        SettingsPatched((current) => current.copyWith(libraryScale: value)),
+      ),
     );
   }
 }

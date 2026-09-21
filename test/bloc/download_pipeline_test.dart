@@ -142,7 +142,7 @@ void main() {
         ),
         limits: const SpeedLimits(download: 400, upload: 50),
       );
-      settings.add(SettingsChanged(next));
+      settings.add(SettingsPatched((_) => next));
       for (var i = 0; i < 100 && engine.appliedLimits != next.limits; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }

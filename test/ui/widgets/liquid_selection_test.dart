@@ -192,11 +192,9 @@ void main() {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);
       harness.settings.add(
-        SettingsChanged(
-          harness.settings.state.withEffect(
-            LibraryEffect.liquidSelection,
-            on: true,
-          ),
+        SettingsPatched(
+          (current) =>
+              current.withEffect(LibraryEffect.liquidSelection, on: true),
         ),
       );
       for (final title in [

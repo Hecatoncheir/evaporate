@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:evaporate/bloc/frequent_event.dart';
 import 'package:evaporate/bloc/logging_observer.dart';
 import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -67,9 +68,10 @@ void main() {
     expect(text, contains('обработчик не справился'));
   });
 
-  // Движок загрузок шлёт своё состояние каждую секунду на каждую задачу:
-  // рассказ о случившемся утонул бы в этой ленте.
-  test('в обычной сборке переходы в журнал не идут', () async {
+  // «Журнал причин» — главный довод за Bloc, — а в выпускной сборке его
+  // не было вовсе: события писались только в отладке. О паузе, отмене,
+  // перестановке не оставалось следа нигде.
+  test('в выпускной сборке событие называется по имени', () async {
     Bloc.observer = const LoggingBlocObserver(verbose: false);
     addTearDown(
       () => Bloc.observer = const LoggingBlocObserver(verbose: false),
@@ -77,6 +79,25 @@ void main() {
     final bloc = _CounterBloc();
 
     bloc.add('плюс');
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await bloc.close();
+
+    final text = await written();
+    expect(text, contains('_CounterBloc: String'));
+    expect(text, isNot(contains('плюс')), reason: 'только имя, не содержимое');
+    expect(text, isNot(contains('изменил')), reason: 'переходы — в отладке');
+  });
+
+  // Движок загрузок шлёт своё состояние каждую секунду на каждую задачу:
+  // рассказ о случившемся утонул бы в этой ленте.
+  test('частые события в журнал не идут', () async {
+    Bloc.observer = const LoggingBlocObserver(verbose: true);
+    addTearDown(
+      () => Bloc.observer = const LoggingBlocObserver(verbose: false),
+    );
+    final bloc = _TickBloc();
+
+    bloc.add(const _Tick());
     await Future<void>.delayed(const Duration(milliseconds: 20));
     await bloc.close();
 
@@ -94,6 +115,17 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 20));
     await bloc.close();
 
-    expect(await written(), contains('_CounterBloc: String'));
+    expect(await written(), contains('_CounterBloc: String изменил'));
   });
+}
+
+final class _Tick implements FrequentEvent {
+  const _Tick();
+}
+
+/// Блок частых событий: каждое меняет состояние.
+class _TickBloc extends Bloc<_Tick, int> {
+  _TickBloc() : super(0) {
+    on<_Tick>((event, emit) => emit(state + 1));
+  }
 }

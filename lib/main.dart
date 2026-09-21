@@ -65,11 +65,11 @@ Future<void> main() async {
   final window = await _prepareWindow(paths, settings.state);
 
   // Что должно успеть лечь на диск, прежде чем процесс закончится. Список
-  // наполняется по мере того, как появляются его владельцы, а порядок в нём
-  // обратный порядку создания: сначала останавливаем, потом отпускаем.
-  final shutdownSteps = <ShutdownStep>[stopProxyRouting, AppLog.instance.flush];
-  final closeHandler = WindowCloseHandler(AppShutdown(shutdownSteps));
-  await closeHandler.attach();
+  // наполняется по мере того, как появляются его владельцы, и шаги идут в
+  // его порядке; журнал дописывается последним — после всех, кто в него
+  // пишет, включая сбои самих шагов.
+  final shutdownSteps = <ShutdownStep>[stopProxyRouting];
+  final closeHandler = await _handleClose(shutdownSteps);
 
   final tray = await _installTray(localizations, closeHandler.quit);
 
@@ -82,10 +82,8 @@ Future<void> main() async {
     shutdownSteps: shutdownSteps,
     proxyRouting: proxyRouting.routing,
   );
-  shutdownSteps.add(tray.dispose);
-  // Последним: пока идут остальные шаги, второй экземпляр запускаться не
-  // должен — файлы ещё дописываются.
-  shutdownSteps.add(instance.release);
+  // Замок — под конец: пока идут шаги, второй экземпляр не нужен.
+  shutdownSteps.addAll([tray.dispose, instance.release, AppLog.instance.flush]);
 
   _checkUpdatesInBackground(services.notifications, settings, localizations);
 
@@ -129,6 +127,8 @@ Future<void> _startLog(AppPaths paths) async {
   // Здесь же, до первого блока: иначе первые же их сбои прошли бы мимо
   // журнала — а больше о них узнать неоткуда, консоли у человека нет.
   Bloc.observer = const LoggingBlocObserver();
+  // И то, что падает мимо блоков: сборка виджетов, брошенные `Future`.
+  AppLog.captureUnhandled(() => AppLog.instance);
   // Помощник обновления работает, когда приложения уже нет, и пишет в свой
   // файл. Забираем написанное сюда — иначе о неудавшейся замене не узнал бы
   // никто, кроме того, кто полез бы искать файл руками.
@@ -211,6 +211,21 @@ Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
     },
   );
   return window;
+}
+
+/// Перехватывает закрытие окна: сначала [steps], потом конец процесса.
+///
+/// Сорвавшийся шаг уходит в журнал: показать его уже некому — окно
+/// закрывается, — а без журнала от него не осталось бы и следа.
+Future<WindowCloseHandler> _handleClose(List<ShutdownStep> steps) async {
+  final handler = WindowCloseHandler(
+    AppShutdown(
+      steps,
+      onError: (error) => AppLog.instance.write('завершение', error),
+    ),
+  );
+  await handler.attach();
+  return handler;
 }
 
 /// Ставит значок в трее — всегда, при любом режиме запуска.

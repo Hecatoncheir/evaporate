@@ -18,12 +18,13 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../../services/download/download_engine.dart';
 import '../../services/download/dtorrent_engine.dart';
-import '../../services/download/integrity_check.dart';
 import '../../services/download/torrent_export.dart';
 import '../../services/launch/executable_finder.dart';
 import '../../services/notifications/notification_service.dart';
+import '../../services/system/app_log.dart';
 import '../../services/system/proxy_http_overrides.dart';
 import '../bloc_common.dart';
+import '../frequent_event.dart';
 import '../library/library_bloc.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
@@ -81,6 +82,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     on<TorrentExportRequested>(_onTorrentExport);
     on<DownloadReordered>(_onReordered);
     on<EngineTasksChanged>(_onTasksChanged);
+    on<DownloadFinalizeRequested>(_onFinalizeRequested);
     on<EngineStatusChanged>((event, emit) {
       emit(state.copyWith(engine: event.status));
     });
@@ -99,6 +101,23 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     // Раздача, брошенная в окно, ставится в очередь здесь: библиотека
     // заводит игру, а что делать с её источником — дело загрузок.
     _dropSubscription = library.gameDrops.listen(_onGamesDropped);
+    // Игру убрали из библиотеки — её задача в движке больше никому не
+    // нужна. Без этого качающаяся или раздающаяся игра продолжала своё,
+    // переживала перезапуск, а клавиш у её карточки не было: они
+    // рисуются только при игре.
+    _removalSubscription = library.gameRemovals.listen(_dropTaskOf);
+  }
+
+  /// Снимает задачу убранной игры. Файлы убирает библиотека — если её
+  /// об этом просили.
+  void _dropTaskOf(Game game) {
+    final taskId = game.download.downloadTaskId;
+    if (taskId == null || isClosed) return;
+    unawaited(
+      engine.remove(taskId).catchError((Object error) {
+        AppLog.instance.write('снятие задачи убранной игры $taskId', error);
+      }),
+    );
   }
 
   final AppPaths paths;
@@ -119,6 +138,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   final DownloadEngine engine;
   late final StreamSubscription<AppSettings> _settingsSubscription;
   late final StreamSubscription<DroppedGames> _dropSubscription;
+  late final StreamSubscription<Game> _removalSubscription;
 
   /// Загрузка идёт долго, и окно к её концу обычно свёрнуто — о финале
   /// сообщает система, а не SnackBar в невидимом окне.
@@ -376,10 +396,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   ///
   /// Событие приходит раз в секунду и сразу обо всех задачах, поэтому здесь
   /// только развилка: что делать с одной игрой — в методах ниже.
-  Future<void> _onTasksChanged(
-    EngineTasksChanged event,
-    Emitter<DownloadsState> emit,
-  ) async {
+  void _onTasksChanged(EngineTasksChanged event, Emitter<DownloadsState> emit) {
     emit(state.copyWith(tasks: event.tasks));
 
     for (final game in library.state.games) {
@@ -391,7 +408,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
         continue;
       }
       _syncInfoHash(game, task);
-      await _applyTaskState(game, task, emit);
+      _applyTaskState(game, task);
     }
   }
 
@@ -420,14 +437,14 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   }
 
   /// Переносит состояние задачи движка в состояние игры.
-  Future<void> _applyTaskState(
-    Game game,
-    DownloadTask task,
-    Emitter<DownloadsState> emit,
-  ) async {
+  void _applyTaskState(Game game, DownloadTask task) {
     switch (task.state) {
       case DownloadState.complete:
-        if (!task.isMetadata) await _finalize(game, task, emit);
+        // Одной заявки на игру хватит: опрос идёт раз в секунду, а
+        // проверка скачанного — секунды.
+        if (!task.isMetadata && _finalizing.add(game.id)) {
+          add(DownloadFinalizeRequested(game.id, task.id));
+        }
       case DownloadState.error:
         _markFailed(game, task);
       case DownloadState.paused:
@@ -476,6 +493,27 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     return null;
   }
 
+  /// Проверяет законченную загрузку — по игре, прочитанной заново.
+  ///
+  /// Сорвавшаяся проверка — диск отказал, папку держат — не повторяется
+  /// каждую секунду: игра уходит в «не готова» с причиной словами.
+  Future<void> _onFinalizeRequested(
+    DownloadFinalizeRequested event,
+    Emitter<DownloadsState> emit,
+  ) async {
+    final game = library.state.gameById(event.gameId);
+    final task = state.taskById(event.taskId);
+    try {
+      if (game == null || task == null || !_isBeingDownloaded(game)) return;
+      await _finalize(game, task, emit);
+    } on Object catch (error) {
+      final dir = deriveInstallDir(task!) ?? settings.state.installDir;
+      _rejectIncomplete(game!, dir, error.toString(), emit);
+    } finally {
+      _finalizing.remove(event.gameId);
+    }
+  }
+
   /// Загрузка закончилась: определяем папку игры и пытаемся угадать,
   /// что именно запускать.
   ///
@@ -487,22 +525,17 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     DownloadTask task,
     Emitter<DownloadsState> emit,
   ) async {
-    if (!_finalizing.add(game.id)) return;
-    try {
-      final installDir = deriveInstallDir(task) ?? settings.state.installDir;
-      final executable = await _guessExecutable(game, installDir);
-      // Хеши кусков сверяются при скачивании, но пропавший или обрезанный
-      // файл протокол уже не заметит — проверяем перед тем, как объявить
-      // игру готовой.
-      final report = await engine.verify(task.id);
-      if (!report.isValid) {
-        await _rejectIncomplete(game, installDir, report, emit);
-        return;
-      }
-      await _acceptFinished(game, task, installDir, executable, emit);
-    } finally {
-      _finalizing.remove(game.id);
+    final installDir = deriveInstallDir(task) ?? settings.state.installDir;
+    final executable = await _guessExecutable(game, installDir);
+    // Хеши кусков сверяются при скачивании, но пропавший или обрезанный
+    // файл протокол уже не заметит — проверяем перед тем, как объявить
+    // игру готовой.
+    final report = await engine.verify(task.id);
+    if (!report.isValid) {
+      _rejectIncomplete(game, installDir, report.describe(_l), emit);
+      return;
     }
+    _acceptFinished(game, task, installDir, executable, emit);
   }
 
   /// Что запускать, если человек ещё не выбрал сам.
@@ -514,15 +547,18 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     return candidates.isEmpty ? null : candidates.first.path;
   }
 
-  /// Скачанное не сошлось с хешами: игра не готова, и об этом говорят
-  /// трижды — записью в библиотеку, сообщением на экране и уведомлением.
-  Future<void> _rejectIncomplete(
+  /// Скачанное не сошлось с хешами — или проверить его не удалось: игра не
+  /// готова, и об этом говорят трижды — записью в библиотеку, сообщением
+  /// на экране и уведомлением.
+  ///
+  /// Библиотеку не пишем сами: `library.persist()` сразу после `add`
+  /// записывал состояние **до** события, то есть ничего нового.
+  void _rejectIncomplete(
     Game game,
     String installDir,
-    IntegrityReport report,
+    String reason,
     Emitter<DownloadsState> emit,
-  ) async {
-    final reason = report.describe(_l);
+  ) {
     library.add(
       GameDownloadRejected(
         game.id,
@@ -530,7 +566,6 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
         reason: _l.noticeDownloadIncompleteBody(reason),
       ),
     );
-    await library.persist();
     emit(
       state.copyWith(
         notice: notice(
@@ -550,13 +585,13 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
 
   /// Игра готова: размер и папку знает задача, остальное доберёт поиск
   /// метаданных по имени раздачи.
-  Future<void> _acceptFinished(
+  void _acceptFinished(
     Game game,
     DownloadTask task,
     String installDir,
     String? executable,
     Emitter<DownloadsState> emit,
-  ) async {
+  ) {
     library.add(
       GameDownloadFinished(
         game.id,
@@ -566,7 +601,6 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
         metadataQuery: task.name,
       ),
     );
-    await library.persist();
 
     emit(state.copyWith(notice: notice(_l.noticeGameDownloaded(game.title))));
     _notifySystem(
@@ -637,6 +671,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     _proxyRouting?.removeListener(_pushProxyRouting);
     await _settingsSubscription.cancel();
     await _dropSubscription.cancel();
+    await _removalSubscription.cancel();
     // Гасим задачи именно дожидаясь: `dispose` бросает их на полпути, а
     // движок ведёт свой файл состояния — оборванная задача теряет то,
     // что успела скачать сверх последней записи.

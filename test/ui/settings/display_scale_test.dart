@@ -56,7 +56,7 @@ void main() {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);
       harness.settings.add(
-        SettingsChanged(harness.settings.state.copyWith(interfaceScale: 1.25)),
+        SettingsPatched((current) => current.copyWith(interfaceScale: 1.25)),
       );
       await tester.pumpWidget(
         BlocProvider.value(
@@ -152,11 +152,9 @@ void main() {
       );
       harness.addGame(title: 'Another game');
       harness.settings.add(
-        SettingsChanged(
-          harness.settings.state.copyWith(
-            interfaceScale: 1.25,
-            libraryScale: 1.5,
-          ),
+        SettingsPatched(
+          (current) =>
+              current.copyWith(interfaceScale: 1.25, libraryScale: 1.5),
         ),
       );
       tester.view.physicalSize = const Size(900, 578);

@@ -133,5 +133,30 @@ void main() {
       expect(calls, contains('destroy'));
       expect(codes, isEmpty);
     });
+
+    // Второе «Закрыть» во время завершения: `run()` возвращался сразу, и
+    // второй `quit()` тут же заканчивал процесс — посреди первого прохода,
+    // так и не дописав его шаги. А окно до восьми секунд оставалось на
+    // экране и нажималось.
+    test('второе закрытие ждёт первое, а окно прячется сразу', () async {
+      final calls = watchWindow();
+      final step = Completer<void>();
+      final codes = <int>[];
+      final handler = WindowCloseHandler(
+        AppShutdown([() => step.future]),
+        exitProcess: codes.add,
+        platform: 'windows',
+      );
+
+      final first = handler.quit();
+      final second = handler.quit();
+      await pumpEventQueue();
+
+      expect(codes, isEmpty, reason: 'процесс кончился посреди завершения');
+      expect(calls, contains('hide'));
+      step.complete();
+      await Future.wait([first, second]);
+      expect(codes, isNotEmpty);
+    });
   });
 }
