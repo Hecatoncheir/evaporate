@@ -18,21 +18,28 @@ void main() {
   late Directory tmp;
   late String target;
   late RestoreTransaction restore;
+  late AppLog log;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_restore_');
     target = p.join(tmp.path, 'saves');
+    // Один журнал на тест, и его запись дожидаются до уборки: журнал пишет
+    // отложенно, и на macOS папка иначе удалялась посреди его записи.
+    log = AppLog(
+      path: p.join(tmp.path, 'evaporate.log'),
+      previousPath: p.join(tmp.path, 'evaporate.log.1'),
+    );
     restore = RestoreTransaction(
       localizations: LRu.new,
       maxSnapshotBytes: 1 << 30,
       rename: (entity, destination) => entity.rename(destination),
-      log: () => AppLog(
-        path: p.join(tmp.path, 'evaporate.log'),
-        previousPath: p.join(tmp.path, 'evaporate.log.1'),
-      ),
+      log: () => log,
     );
   });
-  tearDown(() => deleteTempDir(tmp));
+  tearDown(() async {
+    await log.flush();
+    await deleteTempDir(tmp);
+  });
 
   Game game() => Game(
     id: 'g',
