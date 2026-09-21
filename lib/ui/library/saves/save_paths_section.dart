@@ -79,12 +79,12 @@ class _SavePathsSectionState extends State<SavePathsSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (game.ludusaviTemplates.isNotEmpty)
+          if (game.saveDiscovery.ludusaviTemplates.isNotEmpty)
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
               title: Text(L.of(context).savedManifestPaths),
               children: [
-                for (final template in game.ludusaviTemplates)
+                for (final template in game.saveDiscovery.ludusaviTemplates)
                   ListTile(title: SelectableText(template)),
               ],
             ),
@@ -107,7 +107,8 @@ class _SavePathsSectionState extends State<SavePathsSection> {
                 onRemove: () => _removeRule(context, rule),
               ),
           ],
-          if (rules.isNotEmpty || game.ludusaviTemplates.isNotEmpty) ...[
+          if (rules.isNotEmpty ||
+              game.saveDiscovery.ludusaviTemplates.isNotEmpty) ...[
             const SizedBox(height: 10),
             AutoSnapshotToggle(game: game),
           ],

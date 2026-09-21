@@ -306,11 +306,11 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
       id: event.id,
       title: title.isEmpty ? _l.untitled : title,
       addedAt: DateTime.now(),
-      source: event.source,
       installDir: event.installDir,
       executablePath: event.executablePath,
       status: event.status,
-      steamAppId: event.steamAppId,
+      download: DownloadLink(source: event.source),
+      details: GameDetails(steamAppId: event.steamAppId),
       saveProfile: SaveProfile(
         autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
         autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
@@ -342,8 +342,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     // Снимки этой игры уносит блок сохранений: список их держит он.
     _removals.add(game.id);
 
-    await covers.deleteCover(game.coverPath);
-    await covers.deleteShots(game.shotPaths);
+    await covers.deleteCover(game.details.coverPath);
+    await covers.deleteShots(game.details.shotPaths);
     if (event.deleteFiles) await _deleteInstallDir(game);
   }
 
@@ -409,8 +409,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     final counted = event.played.inSeconds >= 60 ? event.played : Duration.zero;
     final updated = current.copyWith(
       status: GameStatus.installed,
-      playtime: current.playtime + counted,
-      lastPlayed: DateTime.now(),
+      play: PlayStats(
+        playtime: current.play.playtime + counted,
+        lastPlayed: DateTime.now(),
+      ),
     );
     final games = [...state.games];
     games[games.indexWhere((g) => g.id == event.gameId)] = updated;

@@ -62,8 +62,8 @@ class FeaturedPoster extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            game.description?.trim().isNotEmpty == true
-                ? game.description!
+            game.details.description?.trim().isNotEmpty == true
+                ? game.details.description!
                 : L.of(context).featuredFallbackDescription,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,

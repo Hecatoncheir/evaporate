@@ -37,7 +37,7 @@ bool canDoPrimaryAction(Game game) {
     case PrimaryAction.play:
       return game.canLaunch;
     case PrimaryAction.download:
-      final source = game.source;
+      final source = game.download.source;
       return source != null && source.kind != GameSourceKind.localFolder;
     case PrimaryAction.stop:
     case PrimaryAction.pause:
@@ -82,6 +82,8 @@ void dispatchPrimaryAction(BuildContext context, Game game) {
     case PrimaryAction.play:
       library.add(GameLaunchRequested(game));
     case PrimaryAction.download:
-      downloads.add(DownloadRequested(game: game, source: game.source!));
+      downloads.add(
+        DownloadRequested(game: game, source: game.download.source!),
+      );
   }
 }

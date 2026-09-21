@@ -16,7 +16,7 @@ void main() {
     title: title,
     addedAt: DateTime(2026),
     status: status,
-    lastPlayed: lastPlayed,
+    play: PlayStats(lastPlayed: lastPlayed),
   );
 
   final now = DateTime(2026, 9, 20);

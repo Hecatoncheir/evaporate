@@ -109,7 +109,9 @@ void main() {
   test('сорвавшаяся загрузка даёт системное уведомление', () async {
     final game = await downloadingGame();
 
-    downloads.add(EngineTasksChanged([failedTask(game.downloadTaskId!)]));
+    downloads.add(
+      EngineTasksChanged([failedTask(game.download.downloadTaskId!)]),
+    );
     await waitForLibrary(
       (s) => s.gameById(game.id)?.status == GameStatus.error,
     );
@@ -121,7 +123,7 @@ void main() {
 
   test('повторные опросы движка не плодят уведомлений', () async {
     final game = await downloadingGame();
-    final task = failedTask(game.downloadTaskId!);
+    final task = failedTask(game.download.downloadTaskId!);
 
     // Движок опрашивается раз в секунду и присылает одно и то же состояние.
     downloads.add(EngineTasksChanged([task]));
@@ -146,7 +148,9 @@ void main() {
     await settings.stream.firstWhere((s) => !s.systemNotifications);
 
     final game = await downloadingGame();
-    downloads.add(EngineTasksChanged([failedTask(game.downloadTaskId!)]));
+    downloads.add(
+      EngineTasksChanged([failedTask(game.download.downloadTaskId!)]),
+    );
     await waitForLibrary(
       (s) => s.gameById(game.id)?.status == GameStatus.error,
     );

@@ -61,7 +61,7 @@ class CoverFace extends StatelessWidget {
             // под дождём читалась бы хуже, чем одна плитка.
             child: CoverDrops(
               enabled: selected && dropsEnabled,
-              coverPath: game.coverPath,
+              coverPath: game.details.coverPath,
               child: CoverArt(game: game, underStrip: _running),
             ),
           ),

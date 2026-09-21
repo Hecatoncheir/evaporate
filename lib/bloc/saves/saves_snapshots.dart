@@ -6,7 +6,7 @@ extension _SavesSnapshots on SavesBloc {
   /// после первого запуска. Сохранённый манифест повторно не запрашиваем.
   Future<Game?> _resolveStoredPaths(Game game, Emitter<SavesState> emit) async {
     final expanded = <String>{};
-    for (final template in game.ludusaviTemplates) {
+    for (final template in game.saveDiscovery.ludusaviTemplates) {
       expanded.addAll(
         await SavePathGlobs.expand(template, gameDir: game.installDir),
       );
@@ -20,7 +20,7 @@ extension _SavesSnapshots on SavesBloc {
         .where(
           (path) =>
               !existing.contains(path) &&
-              !current.ludusaviResolvedPaths.contains(path),
+              !current.saveDiscovery.ludusaviResolvedPaths.contains(path),
         )
         .toList();
     if (added.isEmpty) return current;

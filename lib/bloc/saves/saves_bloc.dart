@@ -194,10 +194,12 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   }) {
     library.add(SaveRulesAdded(game.id, rules, resolvedPaths: resolvedPaths));
     return game.copyWith(
-      ludusaviResolvedPaths: {
-        ...game.ludusaviResolvedPaths,
-        ...resolvedPaths,
-      }.toList(),
+      saveDiscovery: game.saveDiscovery.copyWith(
+        ludusaviResolvedPaths: {
+          ...game.saveDiscovery.ludusaviResolvedPaths,
+          ...resolvedPaths,
+        }.toList(),
+      ),
       saveProfile: game.saveProfile.copyWith(
         rules: [...game.saveProfile.rules, ...rules],
       ),
@@ -340,7 +342,8 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   Future<void> snapshotBeforeLaunch(Game game) async {
     final profile = game.saveProfile;
     if (!profile.autoSnapshotOnLaunch) return;
-    if (!profile.isConfigured && game.ludusaviTemplates.isEmpty) return;
+    final discovered = game.saveDiscovery.ludusaviTemplates;
+    if (!profile.isConfigured && discovered.isEmpty) return;
 
     try {
       final snapshot = await _saves.createSnapshot(
@@ -383,7 +386,8 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     final game = exit.game;
 
     if (game.saveProfile.autoSnapshotOnExit &&
-        (game.saveProfile.isConfigured || game.ludusaviTemplates.isNotEmpty)) {
+        (game.saveProfile.isConfigured ||
+            game.saveDiscovery.ludusaviTemplates.isNotEmpty)) {
       add(SnapshotRequested(game, origin: SnapshotOrigin.autoOnExit));
     }
 

@@ -102,7 +102,7 @@ class SteamGrid {
     int appId,
     Map<String, List<int>> files,
   ) async {
-    final cover = game.coverPath;
+    final cover = game.details.coverPath;
     if (cover == null || cover.isEmpty) return;
     final source = File(cover);
     if (!await source.exists()) return;

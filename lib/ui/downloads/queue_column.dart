@@ -30,7 +30,7 @@ class QueueColumn extends StatelessWidget {
     return DragTarget<Game>(
       onAcceptWithDetails: (details) {
         final game = details.data;
-        final source = game.source;
+        final source = game.download.source;
         if (source == null) return;
         // Новая задача встаёт в конец очереди — как в любом менеджере загрузок.
         context.read<DownloadsBloc>().add(

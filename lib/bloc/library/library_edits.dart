@@ -42,10 +42,12 @@ extension _LibraryEdits on LibraryBloc {
       event.gameId,
       emit,
       (game) => game.copyWith(
-        source: event.source,
         status: GameStatus.downloading,
-        downloadTaskId: event.taskId,
         lastError: null,
+        download: game.download.copyWith(
+          source: event.source,
+          downloadTaskId: event.taskId,
+        ),
       ),
     );
   }
@@ -55,8 +57,10 @@ extension _LibraryEdits on LibraryBloc {
       event.gameId,
       emit,
       (game) => game.copyWith(
-        downloadTaskId: event.taskId ?? game.downloadTaskId,
-        infoHash: event.infoHash ?? game.infoHash,
+        download: game.download.copyWith(
+          downloadTaskId: event.taskId ?? game.download.downloadTaskId,
+          infoHash: event.infoHash ?? game.download.infoHash,
+        ),
       ),
     );
   }
@@ -68,8 +72,10 @@ extension _LibraryEdits on LibraryBloc {
     _edit(
       event.gameId,
       emit,
-      (game) =>
-          game.copyWith(status: GameStatus.notInstalled, downloadTaskId: null),
+      (game) => game.copyWith(
+        status: GameStatus.notInstalled,
+        download: game.download.copyWith(downloadTaskId: null),
+      ),
     );
   }
 
@@ -83,7 +89,7 @@ extension _LibraryEdits on LibraryBloc {
       (game) => game.copyWith(
         status: GameStatus.installed,
         installDir: event.installDir,
-        downloadTaskId: null,
+        download: game.download.copyWith(downloadTaskId: null),
         sizeBytes: event.sizeBytes,
         lastError: null,
         executablePath: game.executablePath ?? event.executablePath,
@@ -102,7 +108,7 @@ extension _LibraryEdits on LibraryBloc {
       (game) => game.copyWith(
         status: GameStatus.error,
         installDir: event.installDir,
-        downloadTaskId: null,
+        download: game.download.copyWith(downloadTaskId: null),
         lastError: event.reason,
       ),
     );
@@ -193,10 +199,12 @@ extension _LibraryEdits on LibraryBloc {
     _edit(event.gameId, emit, (game) {
       final known = {for (final rule in game.saveProfile.rules) rule.template};
       return game.copyWith(
-        ludusaviResolvedPaths: {
-          ...game.ludusaviResolvedPaths,
-          ...event.resolvedPaths,
-        }.toList(),
+        saveDiscovery: game.saveDiscovery.copyWith(
+          ludusaviResolvedPaths: {
+            ...game.saveDiscovery.ludusaviResolvedPaths,
+            ...event.resolvedPaths,
+          }.toList(),
+        ),
         saveProfile: game.saveProfile.copyWith(
           rules: [
             ...game.saveProfile.rules,

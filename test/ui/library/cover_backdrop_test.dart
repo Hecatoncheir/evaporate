@@ -40,8 +40,12 @@ void main() {
     await deleteTempDir(tmp);
   });
 
-  Game gameWith({String? path}) =>
-      Game(id: 'g1', title: 'Игра', addedAt: DateTime.now(), coverPath: path);
+  Game gameWith({String? path}) => Game(
+    id: 'g1',
+    title: 'Игра',
+    addedAt: DateTime.now(),
+    details: GameDetails(coverPath: path),
+  );
 
   /// Средняя яркость строки пикселей на заданной доле высоты.
   Future<List<double>> brightness(

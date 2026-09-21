@@ -58,7 +58,7 @@ class SnapshotsSection extends StatelessWidget {
               onPressed:
                   busy ||
                       (!game.saveProfile.isConfigured &&
-                          game.ludusaviTemplates.isEmpty)
+                          game.saveDiscovery.ludusaviTemplates.isEmpty)
                   ? null
                   : () =>
                         context.read<SavesBloc>().add(SnapshotRequested(game)),

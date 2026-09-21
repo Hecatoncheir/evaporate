@@ -34,29 +34,29 @@ void main() {
     id: 'g1',
     title: 'Игра',
     addedAt: DateTime(2026, 3, 4, 5, 6, 7),
-    source: const GameSource(
-      kind: GameSourceKind.torrentFile,
-      value: 'раздача.torrent',
-    ),
     installDir: 'D:/games/Игра',
     executablePath: 'D:/games/Игра/game.exe',
     launchArgs: const ['-windowed'],
-    coverPath: 'covers/g1.jpg',
-    coverUrl: 'https://example.invalid/header.jpg',
-    shotPaths: const ['shots/g1-0.jpg'],
-    description: 'описание',
-    rating: const GameRating(
-      score: 8,
-      summary: 'Очень положительные',
-      positive: 90,
-      negative: 10,
-      metacritic: 86,
+    details: const GameDetails(
+      coverPath: 'covers/g1.jpg',
+      coverUrl: 'https://example.invalid/header.jpg',
+      shotPaths: ['shots/g1-0.jpg'],
+      description: 'описание',
+      rating: GameRating(
+        score: 8,
+        summary: 'Очень положительные',
+        positive: 90,
+        negative: 10,
+        metacritic: 86,
+      ),
+      steamAppId: 42,
+      steamLookupAttempted: true,
     ),
-    steamAppId: 42,
-    steamLookupAttempted: true,
-    savePathsLookupAttempted: true,
-    ludusaviTemplates: const ['{HOME}/база'],
-    ludusaviResolvedPaths: const ['{HOME}/найдено'],
+    saveDiscovery: const SaveDiscovery(
+      savePathsLookupAttempted: true,
+      ludusaviTemplates: ['{HOME}/база'],
+      ludusaviResolvedPaths: ['{HOME}/найдено'],
+    ),
     notes: 'заметка',
     saveProfile: const SaveProfile(
       rules: [rule],
@@ -64,11 +64,19 @@ void main() {
       autoSnapshotOnLaunch: true,
       keepSnapshots: 7,
     ),
-    playtime: const Duration(hours: 3),
-    lastPlayed: DateTime(2026, 4, 5),
+    play: PlayStats(
+      playtime: const Duration(hours: 3),
+      lastPlayed: DateTime(2026, 4, 5),
+    ),
     status: GameStatus.paused,
-    downloadTaskId: 'task-1',
-    infoHash: 'abcdef',
+    download: const DownloadLink(
+      source: GameSource(
+        kind: GameSourceKind.torrentFile,
+        value: 'раздача.torrent',
+      ),
+      downloadTaskId: 'task-1',
+      infoHash: 'abcdef',
+    ),
     sizeBytes: 1234,
     lastError: 'что-то пошло не так',
   );
@@ -156,6 +164,54 @@ void main() {
     expect(snapshot.copyWith(), snapshot);
     expect(settings.copyWith(), settings);
     expect(game.saveProfile.copyWith(), game.saveProfile);
+    expect(game.details.copyWith(), game.details);
+    expect(game.saveDiscovery.copyWith(), game.saveDiscovery);
+    expect(game.download.copyWith(), game.download);
+    expect(game.play.copyWith(), game.play);
+  });
+
+  // Части игры — значения, а на диске запись осталась плоской: ключи
+  // прежние, вложенных объектов нет. `library.json` лежит у людей на
+  // дисках, и разбор модели на части обязан читать то, что записано до
+  // него, и писать то, что прочтут сборки, записанные до него.
+  test('запись игры осталась плоской, с прежними ключами', () {
+    final json = game.toJson();
+
+    expect(json.keys, isNot(contains('details')));
+    expect(json.keys, isNot(contains('download')));
+    expect(
+      json.keys,
+      containsAll([
+        'coverPath',
+        'shotPaths',
+        'rating',
+        'steamAppId',
+        'steamLookupAttempted',
+        'savePathsLookupAttempted',
+        'ludusaviTemplates',
+        'ludusaviResolvedPaths',
+        'source',
+        'downloadTaskId',
+        'infoHash',
+        'playtimeSeconds',
+        'lastPlayed',
+      ]),
+    );
+  });
+
+  // Без этих двух веток библиотека, записанная давно, читалась бы с
+  // потерями: загрузка теряла бы связь с игрой, а поиск в Steam
+  // повторялся бы для игр, у которых `appid` давно есть.
+  test('старые записи читаются, как читались', () {
+    final old = Game.fromJson(const {
+      'id': 'g1',
+      'title': 'Игра',
+      'downloadGid': 'gid-1',
+      'steamAppId': 42,
+    });
+
+    expect(old.download.downloadTaskId, 'gid-1');
+    expect(old.details.steamLookupAttempted, isTrue);
   });
 
   // Заметку ставят перед восстановлением и снимают, когда снимок

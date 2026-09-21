@@ -24,7 +24,7 @@ class FeaturedArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final coverPath = game.coverPath;
+    final coverPath = game.details.coverPath;
     final fallback = Image.asset(
       'assets/branding/orbit_fall_hero.png',
       key: const ValueKey('featured-game-background-fallback'),
@@ -42,7 +42,7 @@ class FeaturedArt extends StatelessWidget {
           // наш собственный задник. Порядок здесь и есть вся логика:
           // подложка не обязана быть у каждой игры.
           ShotsBackdrop(
-            shots: game.shotPaths,
+            shots: game.details.shotPaths,
             enabled: shots,
             fallback: coverPath == null
                 ? fallback

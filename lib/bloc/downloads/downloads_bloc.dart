@@ -227,7 +227,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   /// [DownloadRequested], и молчания, как прежде, не будет.
   void _onGamesDropped(DroppedGames dropped) {
     for (final game in dropped.games) {
-      final source = game.source;
+      final source = game.download.source;
       if (source == null || source.kind == GameSourceKind.localFolder) {
         continue;
       }
@@ -323,7 +323,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     DownloadPauseRequested event,
     Emitter<DownloadsState> emit,
   ) async {
-    final taskId = event.game.downloadTaskId;
+    final taskId = event.game.download.downloadTaskId;
     if (taskId == null) return;
     try {
       await engine.pause(taskId);
@@ -337,7 +337,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     DownloadResumeRequested event,
     Emitter<DownloadsState> emit,
   ) async {
-    final taskId = event.game.downloadTaskId;
+    final taskId = event.game.download.downloadTaskId;
     if (taskId == null) return;
     try {
       await engine.resume(taskId);
@@ -351,7 +351,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     DownloadCancelRequested event,
     Emitter<DownloadsState> emit,
   ) async {
-    final taskId = event.game.downloadTaskId;
+    final taskId = event.game.download.downloadTaskId;
     // Задачу надо запомнить до снятия: после `remove` движок о ней забудет,
     // а именно она знает, где лежит скачанное.
     final task = taskId == null ? null : engine.taskById(taskId);
@@ -385,7 +385,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     for (final game in library.state.games) {
       if (!_isBeingDownloaded(game)) continue;
 
-      final task = state.taskById(game.downloadTaskId!);
+      final task = state.taskById(game.download.downloadTaskId!);
       if (task == null) {
         _relinkByInfoHash(game, event.tasks);
         continue;
@@ -397,7 +397,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
 
   /// Игра, за загрузкой которой мы следим.
   static bool _isBeingDownloaded(Game game) =>
-      game.downloadTaskId != null &&
+      game.download.downloadTaskId != null &&
       (game.status == GameStatus.downloading ||
           game.status == GameStatus.paused);
 
@@ -406,7 +406,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   /// После перезапуска движок поднимает задачи с новыми идентификаторами,
   /// и единственное, чем игру можно узнать, — её infohash.
   void _relinkByInfoHash(Game game, List<DownloadTask> tasks) {
-    final task = _taskByInfoHash(tasks, game.infoHash);
+    final task = _taskByInfoHash(tasks, game.download.infoHash);
     if (task == null) return;
     library.add(GameDownloadLinked(game.id, taskId: task.id));
   }
@@ -414,7 +414,8 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   /// Запоминает infohash, который движок узнал уже в работе: по
   /// magnet-ссылке он приходит вместе с метаданными, а не сразу.
   void _syncInfoHash(Game game, DownloadTask task) {
-    if (task.infoHash == null || game.infoHash == task.infoHash) return;
+    final known = game.download.infoHash;
+    if (task.infoHash == null || known == task.infoHash) return;
     library.add(GameDownloadLinked(game.id, infoHash: task.infoHash));
   }
 

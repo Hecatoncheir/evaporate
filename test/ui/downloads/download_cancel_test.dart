@@ -190,7 +190,7 @@ void main() {
       title: 'Ждёт своего часа',
       addedAt: DateTime.now(),
       status: GameStatus.downloading,
-      downloadTaskId: 't1',
+      download: const DownloadLink(downloadTaskId: 't1'),
     );
 
     await tester.pumpWidget(

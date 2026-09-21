@@ -15,9 +15,10 @@ extension _LibraryMetadata on LibraryBloc {
     }
     // Через Steam проходят и те игры, чей идентификатор уже известен: по
     // названию их искать не нужно, а обложка и описание нужны так же.
-    if (!game.steamLookupAttempted) {
+    if (!game.details.steamLookupAttempted) {
       add(SteamLookupRequested(game, query: query, automatic: true));
-    } else if (game.steamAppId != null && !game.savePathsLookupAttempted) {
+    } else if (game.details.steamAppId != null &&
+        !game.saveDiscovery.savePathsLookupAttempted) {
       add(SavePathsLookupRequested(game, automatic: true));
     }
   }
@@ -39,13 +40,18 @@ extension _LibraryMetadata on LibraryBloc {
     // маркер «уже пробовали».
     if (game == null ||
         state.isBusy(key) ||
-        (event.automatic && game.steamLookupAttempted)) {
+        (event.automatic && game.details.steamLookupAttempted)) {
       return;
     }
 
     emit(state.copyWith(busy: busyWith(key, value: true)));
     try {
-      _replaceGame(game.copyWith(steamLookupAttempted: true), emit);
+      _replaceGame(
+        game.copyWith(
+          details: game.details.copyWith(steamLookupAttempted: true),
+        ),
+        emit,
+      );
       // Маркер записан до сети: даже аварийный выход не вызывает повтор.
       await persist();
 
@@ -76,6 +82,30 @@ extension _LibraryMetadata on LibraryBloc {
   /// потом после записи файлов — запись тоже ожидание, и за него игру
   /// могли убрать. Свежие файлы тогда удаляем сами, иначе в кэше копились
   /// бы обложки-сироты.
+  /// Найденное в Steam поверх того, что об игре уже известно.
+  ///
+  /// Отдельным шагом, потому что после разбора `Game` это чистая функция
+  /// над одной её частью: ни файлов, ни состояния, ни ожиданий — только
+  /// правило «что из найденного брать».
+  GameDetails _foundDetails(
+    GameDetails known,
+    GameMetadata found, {
+    required String? coverPath,
+    required List<String> shotPaths,
+  }) => known.copyWith(
+    steamAppId: found.match.appId,
+    coverUrl: found.match.headerImage,
+    description: found.match.description,
+    coverPath: coverPath,
+    // Пустую подборку не записываем по той же причине, что и пустую
+    // оценку: сорвавшаяся загрузка кадров стёрла бы подложку, которая
+    // уже показана.
+    shotPaths: shotPaths.isEmpty ? known.shotPaths : shotPaths,
+    // Пустую оценку не записываем: сорвавшийся запрос стёр бы то, что
+    // уже показано, и страница обеднела бы от неудачного обновления.
+    rating: found.rating.hasAnything ? found.rating : known.rating,
+  );
+
   Future<void> _applyMetadata(
     Game game,
     GameMetadata found,
@@ -89,8 +119,8 @@ extension _LibraryMetadata on LibraryBloc {
       return;
     }
 
-    final previousCover = current.coverPath;
-    final previousShots = current.shotPaths;
+    final previousCover = current.details.coverPath;
+    final previousShots = current.details.shotPaths;
     final written = await covers.writeCover(
       game.id,
       found.coverBytes,
@@ -109,17 +139,12 @@ extension _LibraryMetadata on LibraryBloc {
     final coverPath = written ?? previousCover;
     final games = [...state.games];
     games[games.indexWhere((g) => g.id == game.id)] = current.copyWith(
-      steamAppId: found.match.appId,
-      coverUrl: found.match.headerImage,
-      description: found.match.description,
-      coverPath: coverPath,
-      // Пустую подборку не записываем по той же причине, что и пустую
-      // оценку: сорвавшаяся загрузка кадров стёрла бы подложку, которая
-      // уже показана.
-      shotPaths: shotPaths.isEmpty ? current.shotPaths : shotPaths,
-      // Пустую оценку не записываем: сорвавшийся запрос стёр бы то, что
-      // уже показано, и страница обеднела бы от неудачного обновления.
-      rating: found.rating.hasAnything ? found.rating : current.rating,
+      details: _foundDetails(
+        current.details,
+        found,
+        coverPath: coverPath,
+        shotPaths: shotPaths,
+      ),
     );
     emit(
       state.copyWith(
@@ -152,7 +177,7 @@ extension _LibraryMetadata on LibraryBloc {
   void _continueWithSavePaths(String gameId, {required bool automatic}) {
     final updated = state.gameById(gameId);
     if (_closing || updated == null) return;
-    if (automatic && updated.savePathsLookupAttempted) return;
+    if (automatic && updated.saveDiscovery.savePathsLookupAttempted) return;
     add(SavePathsLookupRequested(updated, automatic: automatic));
   }
 
@@ -212,7 +237,7 @@ extension _LibraryMetadata on LibraryBloc {
   /// Последовательно эти четыре ожидания сложились бы в минуту на одну
   /// зависшую.
   Future<SteamArtwork?> _steamArtwork(Game game) async {
-    final appId = game.steamAppId;
+    final appId = game.details.steamAppId;
     if (appId == null) return null;
     try {
       final images = await Future.wait([
@@ -257,13 +282,13 @@ extension _LibraryMetadata on LibraryBloc {
     // Сводить в Steam или только искать пути: у похода в Steam своё событие,
     // и промахнись отбор — игра снимет не тот маркер и уйдёт не туда.
     bool needsSteam(Game game) =>
-        game.steamAppId == null || game.rating == null;
+        game.details.steamAppId == null || game.details.rating == null;
 
     final pending = [
       for (final game in state.games)
         if (game.isInstalled &&
             game.installDir != null &&
-            (needsSteam(game) || !game.savePathsLookupAttempted))
+            (needsSteam(game) || !game.saveDiscovery.savePathsLookupAttempted))
           game,
     ];
     if (pending.isEmpty) {
@@ -274,8 +299,14 @@ extension _LibraryMetadata on LibraryBloc {
     for (final game in pending) {
       _replaceGame(
         needsSteam(game)
-            ? game.copyWith(steamLookupAttempted: false)
-            : game.copyWith(savePathsLookupAttempted: false),
+            ? game.copyWith(
+                details: game.details.copyWith(steamLookupAttempted: false),
+              )
+            : game.copyWith(
+                saveDiscovery: game.saveDiscovery.copyWith(
+                  savePathsLookupAttempted: false,
+                ),
+              ),
         emit,
       );
     }
@@ -326,8 +357,10 @@ extension _LibraryMetadata on LibraryBloc {
     for (final game in pending) {
       _replaceGame(
         game.copyWith(
-          steamLookupAttempted: false,
-          savePathsLookupAttempted: false,
+          details: game.details.copyWith(steamLookupAttempted: false),
+          saveDiscovery: game.saveDiscovery.copyWith(
+            savePathsLookupAttempted: false,
+          ),
         ),
         emit,
       );
@@ -360,7 +393,7 @@ extension _LibraryMetadata on LibraryBloc {
     await savePaths.ensureLoaded(refresh: event.refresh);
     final entry = savePaths.find(
       title: event.game.title,
-      steamAppId: event.game.steamAppId,
+      steamAppId: event.game.details.steamAppId,
     );
     if (entry == null) return null;
 
@@ -394,13 +427,21 @@ extension _LibraryMetadata on LibraryBloc {
     if (game == null ||
         state.isBusy(key) ||
         (event.automatic &&
-            (game.steamAppId == null || game.savePathsLookupAttempted))) {
+            (game.details.steamAppId == null ||
+                game.saveDiscovery.savePathsLookupAttempted))) {
       return;
     }
     emit(state.copyWith(busy: busyWith(key, value: true)));
 
     try {
-      _replaceGame(game.copyWith(savePathsLookupAttempted: true), emit);
+      _replaceGame(
+        game.copyWith(
+          saveDiscovery: game.saveDiscovery.copyWith(
+            savePathsLookupAttempted: true,
+          ),
+        ),
+        emit,
+      );
       await persist();
       final found = await _lookupPaths(
         SavePathsLookupRequested(game, refresh: event.refresh),
@@ -445,11 +486,13 @@ extension _LibraryMetadata on LibraryBloc {
     final added = current.saveProfile.rulesForNewPaths(found.templates);
     final games = [...state.games];
     games[games.indexWhere((g) => g.id == current.id)] = current.copyWith(
-      ludusaviTemplates: found.sourceTemplates,
-      ludusaviResolvedPaths: {
-        ...current.ludusaviResolvedPaths,
-        ...found.templates,
-      }.toList(),
+      saveDiscovery: current.saveDiscovery.copyWith(
+        ludusaviTemplates: found.sourceTemplates,
+        ludusaviResolvedPaths: {
+          ...current.saveDiscovery.ludusaviResolvedPaths,
+          ...found.templates,
+        }.toList(),
+      ),
       saveProfile: current.saveProfile.copyWith(
         rules: [...current.saveProfile.rules, ...added],
       ),

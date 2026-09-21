@@ -56,7 +56,7 @@ void main() {
     final games = harness.library.state.games;
     expect(games, hasLength(1));
     expect(games.single.title, 'Тихая гавань');
-    expect(games.single.source?.kind, GameSourceKind.magnet);
+    expect(games.single.download.source?.kind, GameSourceKind.magnet);
     expect(games.single.status, GameStatus.notInstalled);
   });
 

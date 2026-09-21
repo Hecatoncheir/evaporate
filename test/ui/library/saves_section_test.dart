@@ -58,7 +58,9 @@ void main() {
       final game = harness.library.state.gameById(id)!;
       harness.seedGame(
         game.copyWith(
-          ludusaviTemplates: ludusaviTemplates,
+          saveDiscovery: game.saveDiscovery.copyWith(
+            ludusaviTemplates: ludusaviTemplates,
+          ),
           saveProfile: game.saveProfile.copyWith(rules: rules),
         ),
       );

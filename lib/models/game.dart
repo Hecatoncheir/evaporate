@@ -1,77 +1,58 @@
 import 'package:equatable/equatable.dart';
 
-import 'game_rating.dart';
+import 'download_link.dart';
+import 'game_details.dart';
+import 'play_stats.dart';
+import 'save_discovery.dart';
 import 'save_profile.dart';
 
-enum GameSourceKind { magnet, torrentFile, localFolder }
-
-/// Откуда игра берётся. Приложение не содержит каталога контента —
-/// источник всегда задаёт пользователь.
-class GameSource extends Equatable {
-  const GameSource({required this.kind, required this.value});
-
-  final GameSourceKind kind;
-
-  /// magnet-ссылка, путь к .torrent, либо путь к уже готовой папке.
-  final String value;
-
-  /// Для журналов. В интерфейсе источник называют переводимыми ключами.
-  String get label => switch (kind) {
-    GameSourceKind.magnet => 'Magnet-ссылка',
-    GameSourceKind.torrentFile => 'Torrent-файл',
-    GameSourceKind.localFolder => 'Локальная папка',
-  };
-
-  Map<String, dynamic> toJson() => {'kind': kind.name, 'value': value};
-
-  factory GameSource.fromJson(Map<String, dynamic> json) => GameSource(
-    kind: GameSourceKind.values.firstWhere(
-      (k) => k.name == json['kind'],
-      orElse: () => GameSourceKind.magnet,
-    ),
-    value: json['value'] as String,
-  );
-
-  @override
-  List<Object?> get props => [kind, value];
-}
+// Части игры лежат своими файлами, а зовут их отсюда по всему приложению:
+// с разбором модели не должен был поменяться ни один импорт.
+export 'download_link.dart';
+export 'game_details.dart';
+export 'game_source.dart';
+export 'play_stats.dart';
+export 'save_discovery.dart';
 
 enum GameStatus { notInstalled, downloading, paused, installed, running, error }
 
+/// Игра в библиотеке.
+///
+/// Прежде это были двадцать семь полей подряд, и `copyWith` на шестьдесят
+/// строк правил их все одним вызовом: событие о загрузке могло задеть
+/// обложку, а находка Steam — наигранное время, и держалось это только на
+/// том, что никто так не писал. Теперь то, что приходит и правится вместе,
+/// лежит одним значением — [details], [saveDiscovery], [download], [play], —
+/// и правка одного не может задеть другое уже по устройству.
+///
+/// Здесь осталось то, что и есть сама игра: как называется, где лежит,
+/// что запускать, что с ней сейчас и какие у неё правила сохранений.
+///
+/// На диске запись прежняя, плоская: части читают свои ключи из общей
+/// карты и туда же пишут. `library.json` лежит у людей на дисках, и
+/// разбор модели его касаться не должен.
 class Game extends Equatable {
   const Game({
     required this.id,
     required this.title,
     required this.addedAt,
-    this.source,
     this.installDir,
     this.executablePath,
     this.launchArgs = const [],
-    this.coverPath,
-    this.coverUrl,
-    this.shotPaths = const [],
-    this.description,
-    this.rating,
-    this.steamAppId,
-    this.steamLookupAttempted = false,
-    this.savePathsLookupAttempted = false,
-    this.ludusaviTemplates = const [],
-    this.ludusaviResolvedPaths = const [],
     this.notes,
     this.saveProfile = const SaveProfile(),
-    this.playtime = Duration.zero,
-    this.lastPlayed,
     this.status = GameStatus.notInstalled,
-    this.downloadTaskId,
-    this.infoHash,
     this.sizeBytes = 0,
     this.lastError,
+    this.details = const GameDetails(),
+    this.saveDiscovery = const SaveDiscovery(),
+    this.download = const DownloadLink(),
+    this.play = const PlayStats(),
   });
 
   final String id;
   final String title;
   final DateTime addedAt;
-  final GameSource? source;
 
   /// Куда установлена (папка загрузки торрента либо выбранная пользователем).
   final String? installDir;
@@ -79,52 +60,29 @@ class Game extends Equatable {
   /// Абсолютный путь к исполняемому файлу или .app-бандлу.
   final String? executablePath;
   final List<String> launchArgs;
-  final String? coverPath;
-
-  /// Исходная ссылка Steam. UI использует сохранённый файл [coverPath].
-  final String? coverUrl;
-
-  /// Кадры из игры, сохранённые из Steam, — подложка под крупным кадром
-  /// библиотеки. Пусто у всего, что со Steam не сошлось, и это обычное
-  /// дело: у торрент-релиза без `appid` брать их неоткуда.
-  ///
-  /// Миниатюры, а не полные кадры: подложка размыта и затемнена, разницы
-  /// не видно, а 1920×1080 разворачивается в памяти в восемь мегабайт
-  /// против восьмисот килобайт у 600×338.
-  final List<String> shotPaths;
-  final String? description;
-
-  /// Как игру оценили в Steam. `null` — не спрашивали либо не нашли.
-  final GameRating? rating;
-
-  /// Идентификатор в Steam — чтобы не искать игру повторно.
-  final int? steamAppId;
-
-  /// Попытки, а не только успехи: автоматический запрос не повторяется
-  /// после ошибки сети, отсутствия результата или перезапуска приложения.
-  final bool steamLookupAttempted;
-  final bool savePathsLookupAttempted;
-
-  /// Исходные шаблоны базы, в том числе ещё не существующие профили с `*`.
-  /// Раскрывать их локально можно многократно без обращения к каталогу.
-  final List<String> ludusaviTemplates;
-
-  /// Уже добавленные пути: удалённое вручную правило не создаём заново.
-  final List<String> ludusaviResolvedPaths;
   final String? notes;
   final SaveProfile saveProfile;
-  final Duration playtime;
-  final DateTime? lastPlayed;
   final GameStatus status;
 
-  /// Идентификатор задачи в движке загрузок, пока она жива.
-  final String? downloadTaskId;
-
-  /// Infohash торрента — устойчивая связь с задачей движка: её
-  /// идентификатор живёт только до перезапуска, infohash не меняется никогда.
-  final String? infoHash;
+  /// Сколько занимает установленная игра.
   final int sizeBytes;
+
+  /// Почему игра в [GameStatus.error]. Пишется только вместе с этим
+  /// статусом, потому и лежит рядом с ним, а не в части загрузки: ошибкой
+  /// кончается не одна только загрузка.
   final String? lastError;
+
+  /// Обложка, кадры, описание, оценка и откуда они.
+  final GameDetails details;
+
+  /// Что предложила база путей сохранений.
+  final SaveDiscovery saveDiscovery;
+
+  /// Откуда игра качается и как её найти в движке.
+  final DownloadLink download;
+
+  /// Сколько и когда в неё играли.
+  final PlayStats play;
 
   bool get isInstalled =>
       status == GameStatus.installed || status == GameStatus.running;
@@ -133,95 +91,54 @@ class Game extends Equatable {
 
   Game copyWith({
     String? title,
-    Object? source = _u,
     Object? installDir = _u,
     Object? executablePath = _u,
     List<String>? launchArgs,
-    Object? coverPath = _u,
-    Object? coverUrl = _u,
-    List<String>? shotPaths,
-    Object? description = _u,
-    Object? rating = _u,
-    Object? steamAppId = _u,
-    bool? steamLookupAttempted,
-    bool? savePathsLookupAttempted,
-    List<String>? ludusaviTemplates,
-    List<String>? ludusaviResolvedPaths,
     Object? notes = _u,
     SaveProfile? saveProfile,
-    Duration? playtime,
-    Object? lastPlayed = _u,
     GameStatus? status,
-    Object? downloadTaskId = _u,
-    Object? infoHash = _u,
     int? sizeBytes,
     Object? lastError = _u,
-  }) {
-    return Game(
-      id: id,
-      title: title ?? this.title,
-      addedAt: addedAt,
-      source: source == _u ? this.source : source as GameSource?,
-      installDir: installDir == _u ? this.installDir : installDir as String?,
-      executablePath: executablePath == _u
-          ? this.executablePath
-          : executablePath as String?,
-      launchArgs: launchArgs ?? this.launchArgs,
-      coverPath: coverPath == _u ? this.coverPath : coverPath as String?,
-      coverUrl: coverUrl == _u ? this.coverUrl : coverUrl as String?,
-      shotPaths: shotPaths ?? this.shotPaths,
-      description: description == _u
-          ? this.description
-          : description as String?,
-      rating: rating == _u ? this.rating : rating as GameRating?,
-      steamAppId: steamAppId == _u ? this.steamAppId : steamAppId as int?,
-      steamLookupAttempted: steamLookupAttempted ?? this.steamLookupAttempted,
-      savePathsLookupAttempted:
-          savePathsLookupAttempted ?? this.savePathsLookupAttempted,
-      ludusaviTemplates: ludusaviTemplates ?? this.ludusaviTemplates,
-      ludusaviResolvedPaths:
-          ludusaviResolvedPaths ?? this.ludusaviResolvedPaths,
-      notes: notes == _u ? this.notes : notes as String?,
-      saveProfile: saveProfile ?? this.saveProfile,
-      playtime: playtime ?? this.playtime,
-      lastPlayed: lastPlayed == _u ? this.lastPlayed : lastPlayed as DateTime?,
-      status: status ?? this.status,
-      downloadTaskId: downloadTaskId == _u
-          ? this.downloadTaskId
-          : downloadTaskId as String?,
-      infoHash: infoHash == _u ? this.infoHash : infoHash as String?,
-      sizeBytes: sizeBytes ?? this.sizeBytes,
-      lastError: lastError == _u ? this.lastError : lastError as String?,
-    );
-  }
+    GameDetails? details,
+    SaveDiscovery? saveDiscovery,
+    DownloadLink? download,
+    PlayStats? play,
+  }) => Game(
+    id: id,
+    title: title ?? this.title,
+    addedAt: addedAt,
+    installDir: installDir == _u ? this.installDir : installDir as String?,
+    executablePath: executablePath == _u
+        ? this.executablePath
+        : executablePath as String?,
+    launchArgs: launchArgs ?? this.launchArgs,
+    notes: notes == _u ? this.notes : notes as String?,
+    saveProfile: saveProfile ?? this.saveProfile,
+    status: status ?? this.status,
+    sizeBytes: sizeBytes ?? this.sizeBytes,
+    lastError: lastError == _u ? this.lastError : lastError as String?,
+    details: details ?? this.details,
+    saveDiscovery: saveDiscovery ?? this.saveDiscovery,
+    download: download ?? this.download,
+    play: play ?? this.play,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
     'addedAt': addedAt.toIso8601String(),
-    if (source != null) 'source': source!.toJson(),
     if (installDir != null) 'installDir': installDir,
     if (executablePath != null) 'executablePath': executablePath,
     'launchArgs': launchArgs,
-    if (coverPath != null) 'coverPath': coverPath,
-    if (coverUrl != null) 'coverUrl': coverUrl,
-    if (shotPaths.isNotEmpty) 'shotPaths': shotPaths,
-    if (description != null) 'description': description,
-    if (rating != null) 'rating': rating!.toJson(),
-    if (steamAppId != null) 'steamAppId': steamAppId,
-    'steamLookupAttempted': steamLookupAttempted,
-    'savePathsLookupAttempted': savePathsLookupAttempted,
-    'ludusaviTemplates': ludusaviTemplates,
-    'ludusaviResolvedPaths': ludusaviResolvedPaths,
     if (notes != null) 'notes': notes,
     'saveProfile': saveProfile.toJson(),
-    'playtimeSeconds': playtime.inSeconds,
-    if (lastPlayed != null) 'lastPlayed': lastPlayed!.toIso8601String(),
     'status': status.name,
-    if (downloadTaskId != null) 'downloadTaskId': downloadTaskId,
-    if (infoHash != null) 'infoHash': infoHash,
     'sizeBytes': sizeBytes,
     if (lastError != null) 'lastError': lastError,
+    ...details.toJson(),
+    ...saveDiscovery.toJson(),
+    ...download.toJson(),
+    ...play.toJson(),
   };
 
   factory Game.fromJson(Map<String, dynamic> json) {
@@ -238,51 +155,22 @@ class Game extends Equatable {
       title: json['title'] as String,
       addedAt:
           DateTime.tryParse(json['addedAt'] as String? ?? '') ?? DateTime.now(),
-      source: json['source'] == null
-          ? null
-          : GameSource.fromJson(json['source'] as Map<String, dynamic>),
       installDir: json['installDir'] as String?,
       executablePath: json['executablePath'] as String?,
       launchArgs: (json['launchArgs'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
           .toList(),
-      coverPath: json['coverPath'] as String?,
-      coverUrl: json['coverUrl'] as String?,
-      shotPaths: (json['shotPaths'] as List<dynamic>? ?? const [])
-          .map((e) => e.toString())
-          .toList(),
-      description: json['description'] as String?,
-      rating: json['rating'] == null
-          ? null
-          : GameRating.fromJson(json['rating'] as Map<String, dynamic>),
-      steamAppId: json['steamAppId'] as int?,
-      steamLookupAttempted:
-          json['steamLookupAttempted'] as bool? ?? json['steamAppId'] != null,
-      savePathsLookupAttempted:
-          json['savePathsLookupAttempted'] as bool? ?? false,
-      // `List.from`, а не `.cast`: `.cast` ленив, и не-строка ронялась бы не
-      // здесь, в `try` загрузки, а при первом чтении поля.
-      ludusaviTemplates: List<String>.from(
-        json['ludusaviTemplates'] as List<dynamic>? ?? const [],
-      ),
-      ludusaviResolvedPaths: List<String>.from(
-        json['ludusaviResolvedPaths'] as List<dynamic>? ?? const [],
-      ),
       notes: json['notes'] as String?,
       saveProfile: json['saveProfile'] == null
           ? const SaveProfile()
           : SaveProfile.fromJson(json['saveProfile'] as Map<String, dynamic>),
-      playtime: Duration(seconds: json['playtimeSeconds'] as int? ?? 0),
-      lastPlayed: DateTime.tryParse(json['lastPlayed'] as String? ?? ''),
       status: status,
-      // downloadGid — имя времён aria2, у которого идентификатор задачи
-      // назывался gid. Библиотеки, записанные до переименования, несут его,
-      // и без этой ветки загрузка потеряла бы связь со своей игрой.
-      downloadTaskId:
-          (json['downloadTaskId'] ?? json['downloadGid']) as String?,
-      infoHash: json['infoHash'] as String?,
       sizeBytes: json['sizeBytes'] as int? ?? 0,
       lastError: json['lastError'] as String?,
+      details: GameDetails.fromJson(json),
+      saveDiscovery: SaveDiscovery.fromJson(json),
+      download: DownloadLink.fromJson(json),
+      play: PlayStats.fromJson(json),
     );
   }
 
@@ -293,28 +181,17 @@ class Game extends Equatable {
     id,
     title,
     addedAt,
-    source,
     installDir,
     executablePath,
     launchArgs,
-    coverPath,
-    coverUrl,
-    shotPaths,
-    description,
-    rating,
-    steamAppId,
-    steamLookupAttempted,
-    savePathsLookupAttempted,
-    ludusaviTemplates,
-    ludusaviResolvedPaths,
     notes,
     saveProfile,
-    playtime,
-    lastPlayed,
     status,
-    downloadTaskId,
-    infoHash,
     sizeBytes,
     lastError,
+    details,
+    saveDiscovery,
+    download,
+    play,
   ];
 }

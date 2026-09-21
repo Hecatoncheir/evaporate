@@ -138,14 +138,16 @@ void main() {
     library.add(const LibraryLoadRequested());
     await waitFor((s) => s.loaded);
 
-    expect(library.state.gameById('game-1')?.downloadTaskId, 'task-7');
+    expect(library.state.gameById('game-1')?.download.downloadTaskId, 'task-7');
   });
 
   test('идентификатор задачи записывается под новым именем', () async {
     final id = addGame('Игра');
     final game = (await waitFor((s) => s.gameById(id) != null)).gameById(id)!;
 
-    final json = game.copyWith(downloadTaskId: 'task-7').toJson();
+    final json = game
+        .copyWith(download: game.download.copyWith(downloadTaskId: 'task-7'))
+        .toJson();
 
     expect(json['downloadTaskId'], 'task-7');
     expect(json.containsKey('downloadGid'), isFalse);
@@ -156,16 +158,18 @@ void main() {
       id: 'steam-game',
       title: 'Игра',
       addedAt: DateTime.now(),
-      coverUrl: 'https://cdn.example/cover.jpg',
-      description: 'Описание из Steam',
-      steamAppId: 620,
+      details: const GameDetails(
+        coverUrl: 'https://cdn.example/cover.jpg',
+        description: 'Описание из Steam',
+        steamAppId: 620,
+      ),
     );
 
     final restored = Game.fromJson(game.toJson());
 
-    expect(restored.coverUrl, game.coverUrl);
-    expect(restored.description, game.description);
-    expect(restored.steamAppId, game.steamAppId);
+    expect(restored.details.coverUrl, game.details.coverUrl);
+    expect(restored.details.description, game.details.description);
+    expect(restored.details.steamAppId, game.details.steamAppId);
   });
 
   test('загрузка настроек завершается и без изменения значений', () async {
@@ -260,7 +264,10 @@ void main() {
 
     expect(library.state.games.map((game) => game.id), ['valid']);
     for (final game in library.state.games) {
-      expect(() => game.ludusaviTemplates.toList(), returnsNormally);
+      expect(
+        () => game.saveDiscovery.ludusaviTemplates.toList(),
+        returnsNormally,
+      );
     }
   });
 
@@ -369,11 +376,11 @@ void main() {
       GameExited(gameId: id, played: const Duration(minutes: 42), exitCode: 0),
     );
     final state = await waitFor(
-      (s) => s.gameById(id)!.playtime > Duration.zero,
+      (s) => s.gameById(id)!.play.playtime > Duration.zero,
     );
 
-    expect(state.gameById(id)?.playtime, const Duration(minutes: 42));
-    expect(state.gameById(id)?.lastPlayed, isNotNull);
+    expect(state.gameById(id)?.play.playtime, const Duration(minutes: 42));
+    expect(state.gameById(id)?.play.lastPlayed, isNotNull);
   });
 
   test('слишком короткая сессия не засчитывается', () async {
@@ -383,9 +390,9 @@ void main() {
     library.add(
       GameExited(gameId: id, played: const Duration(seconds: 5), exitCode: 1),
     );
-    await waitFor((s) => s.gameById(id)!.lastPlayed != null);
+    await waitFor((s) => s.gameById(id)!.play.lastPlayed != null);
 
-    expect(library.state.gameById(id)?.playtime, Duration.zero);
+    expect(library.state.gameById(id)?.play.playtime, Duration.zero);
   });
 
   test('удаление игры уносит её снимки', () async {
@@ -679,7 +686,7 @@ void main() {
       expect(dropped, hasLength(1));
       expect(dropped.single.select, isTrue);
       expect(
-        dropped.single.games.single.source!.kind,
+        dropped.single.games.single.download.source!.kind,
         GameSourceKind.torrentFile,
       );
     });

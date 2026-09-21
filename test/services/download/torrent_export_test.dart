@@ -40,9 +40,11 @@ void main() {
     id: id,
     title: 'Игра',
     addedAt: DateTime(2026),
-    source: source,
-    downloadTaskId: downloadTaskId,
-    infoHash: infoHash,
+    download: DownloadLink(
+      source: source,
+      downloadTaskId: downloadTaskId,
+      infoHash: infoHash,
+    ),
   );
 
   TorrentExport search({String? Function(String id)? engine}) => TorrentExport(

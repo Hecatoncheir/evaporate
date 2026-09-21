@@ -15,7 +15,7 @@ class InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final source = game.source;
+    final source = game.download.source;
     return SectionCard(
       title: L.of(context).details,
       icon: Icons.info_outline,
@@ -23,15 +23,15 @@ class InfoSection extends StatelessWidget {
         children: [
           InfoRow(
             label: L.of(context).playtimeLabel,
-            value: game.playtime.inMinutes > 0
-                ? formatDurationLabel(L.of(context), game.playtime)
+            value: game.play.playtime.inMinutes > 0
+                ? formatDurationLabel(L.of(context), game.play.playtime)
                 : L.of(context).neverPlayed,
           ),
           InfoRow(
             label: L.of(context).lastLaunch,
-            value: game.lastPlayed == null
+            value: game.play.lastPlayed == null
                 ? '—'
-                : formatDateTime(game.lastPlayed!),
+                : formatDateTime(game.play.lastPlayed!),
           ),
           InfoRow(
             label: L.of(context).added,
@@ -42,8 +42,8 @@ class InfoSection extends StatelessWidget {
               label: L.of(context).sizeLabel,
               value: formatBytes(game.sizeBytes),
             ),
-          if (game.steamAppId != null)
-            InfoRow(label: 'Steam', value: 'appid ${game.steamAppId}'),
+          if (game.details.steamAppId != null)
+            InfoRow(label: 'Steam', value: 'appid ${game.details.steamAppId}'),
           const SizedBox(height: 10),
           GameFileActions(game: game),
           if (source != null)

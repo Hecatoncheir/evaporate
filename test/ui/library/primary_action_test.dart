@@ -19,7 +19,7 @@ void main() {
     title: 'Игра',
     addedAt: DateTime(2026),
     status: status,
-    source: source,
+    download: DownloadLink(source: source),
     executablePath: executablePath,
   );
 

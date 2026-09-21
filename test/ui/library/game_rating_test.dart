@@ -128,7 +128,9 @@ void main() {
       await harness.pump(tester);
       if (value != null) {
         harness.seedGame(
-          harness.library.state.gameById(id)!.copyWith(rating: value),
+          harness.library.state
+              .gameById(id)!
+              .copyWith(details: GameDetails(rating: value)),
         );
         // Правку библиотеки блок кладёт на диск через 400 мс после события,
         // и это время тесту надо отмотать: иначе таймер переживёт дерево
@@ -185,11 +187,11 @@ void main() {
           id: 'g1',
           title: 'Игра',
           addedAt: DateTime.now(),
-          rating: rating,
+          details: const GameDetails(rating: rating),
         ).toJson(),
       );
 
-      expect(restored.rating, rating);
+      expect(restored.details.rating, rating);
     });
 
     // Библиотеки, записанные до появления оценки, лежат у людей на дисках.
@@ -198,7 +200,7 @@ void main() {
         Game(id: 'g1', title: 'Игра', addedAt: DateTime.now()).toJson(),
       );
 
-      expect(restored.rating, isNull);
+      expect(restored.details.rating, isNull);
     });
   });
 }

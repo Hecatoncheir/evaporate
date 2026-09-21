@@ -17,7 +17,7 @@ class CoverArt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final path = game.coverPath;
+    final path = game.details.coverPath;
 
     final fallback = CoverTitlePlate(game: game, underStrip: underStrip);
     if (path == null) return fallback;

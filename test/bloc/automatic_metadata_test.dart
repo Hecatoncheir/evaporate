@@ -207,7 +207,7 @@ void main() {
     await _wait(
       library,
       (s) =>
-          s.gameById('game')?.savePathsLookupAttempted == true &&
+          s.gameById('game')?.saveDiscovery.savePathsLookupAttempted == true &&
           !s.isBusy(LibraryBloc.savePathsKey('game')) &&
           !s.isBusy(LibraryBloc.steamKey('game')),
     );
@@ -232,11 +232,11 @@ void main() {
     () async {
       await add();
       final game = await complete();
-      expect(game.steamAppId, 42);
-      expect(game.description, 'An example game');
-      expect(game.coverUrl, steam.result!.headerImage);
-      expect(await File(game.coverPath!).readAsBytes(), [1, 2, 3]);
-      expect(game.ludusaviTemplates, ['{GAME}/profiles/*/saves']);
+      expect(game.details.steamAppId, 42);
+      expect(game.details.description, 'An example game');
+      expect(game.details.coverUrl, steam.result!.headerImage);
+      expect(await File(game.details.coverPath!).readAsBytes(), [1, 2, 3]);
+      expect(game.saveDiscovery.ludusaviTemplates, ['{GAME}/profiles/*/saves']);
       expect(game.saveProfile.rules, isEmpty);
       expect(catalog.lastId, 42);
       library.add(const GameExecutableSet('game', '/games/example.exe'));
@@ -246,11 +246,14 @@ void main() {
       );
       await reopen();
       final loaded = library.state.gameById('game')!;
-      expect(loaded.steamLookupAttempted, isTrue);
-      expect(loaded.savePathsLookupAttempted, isTrue);
-      expect(loaded.steamAppId, 42);
-      expect(loaded.ludusaviTemplates, game.ludusaviTemplates);
-      expect(await File(loaded.coverPath!).exists(), isTrue);
+      expect(loaded.details.steamLookupAttempted, isTrue);
+      expect(loaded.saveDiscovery.savePathsLookupAttempted, isTrue);
+      expect(loaded.details.steamAppId, 42);
+      expect(
+        loaded.saveDiscovery.ludusaviTemplates,
+        game.saveDiscovery.ludusaviTemplates,
+      );
+      expect(await File(loaded.details.coverPath!).exists(), isTrue);
       expect(steam.calls, 1);
       expect(steam.covers, 1);
       expect(catalog.loads, 1);
@@ -309,7 +312,10 @@ void main() {
     steam.pending = null;
     await waitUntil(() async => steam.calls >= 5);
     expect(steam.calls, 5);
-    expect(library.state.games.every((g) => g.steamLookupAttempted), isTrue);
+    expect(
+      library.state.games.every((g) => g.details.steamLookupAttempted),
+      isTrue,
+    );
   });
 
   // Автоматически маркер «уже пробовали» не снимается никогда — иначе
@@ -325,14 +331,17 @@ void main() {
           s.notice?.isError == true && !s.isBusy(LibraryBloc.steamKey('game')),
     );
     expect(steam.calls, 1);
-    expect(library.state.gameById('game')!.steamLookupAttempted, isTrue);
+    expect(
+      library.state.gameById('game')!.details.steamLookupAttempted,
+      isTrue,
+    );
 
     steam.fail = false;
     library.add(const MetadataRetryRequested());
     await complete();
 
     expect(steam.calls, 2);
-    expect(library.state.gameById('game')!.steamAppId, 42);
+    expect(library.state.gameById('game')!.details.steamAppId, 42);
   });
 
   test('«поискать для всех» молчит, когда искать нечего', () async {
@@ -366,12 +375,12 @@ void main() {
 
     final game = await _waitFor(
       library,
-      (s) => s.gameById('game')?.coverPath != null,
+      (s) => s.gameById('game')?.details.coverPath != null,
     );
 
-    expect(game.steamAppId, 42);
+    expect(game.details.steamAppId, 42);
     expect(steam.covers, 1);
-    expect(await File(game.coverPath!).exists(), isTrue);
+    expect(await File(game.details.coverPath!).exists(), isTrue);
     // Название из библиотеки не трогаем: его задавал человек или манифест.
     expect(game.title, 'Из манифеста');
   });
@@ -381,7 +390,7 @@ void main() {
       await add();
       final game = await complete();
 
-      final rating = game.rating!;
+      final rating = game.details.rating!;
       expect(rating.summary, 'Очень положительные');
       expect(rating.positive, 90);
       expect(rating.negative, 10);
@@ -397,10 +406,10 @@ void main() {
       await add();
       final game = await complete();
 
-      expect(game.description, 'An example game');
-      expect(game.coverPath, isNotNull);
-      expect(game.rating!.total, 0);
-      expect(game.rating!.metacritic, 86);
+      expect(game.details.description, 'An example game');
+      expect(game.details.coverPath, isNotNull);
+      expect(game.details.rating!.total, 0);
+      expect(game.details.rating!.metacritic, 86);
     });
 
     // Библиотека складывалась до того, как появились обзоры: у её игр
@@ -412,16 +421,20 @@ void main() {
       () async {
         await add();
         final ready = await complete();
-        expect(ready.steamAppId, isNotNull);
-        expect(ready.savePathsLookupAttempted, isTrue);
+        expect(ready.details.steamAppId, isNotNull);
+        expect(ready.saveDiscovery.savePathsLookupAttempted, isTrue);
 
         // Такой игра пришла бы из библиотеки, записанной прежней версией.
-        await seedGame(library, paths, ready.copyWith(rating: null));
+        await seedGame(
+          library,
+          paths,
+          ready.copyWith(details: ready.details.copyWith(rating: null)),
+        );
 
         library.add(const MetadataRetryRequested());
-        await _wait(library, (s) => s.gameById('game')?.rating != null);
+        await _wait(library, (s) => s.gameById('game')?.details.rating != null);
 
-        expect(library.state.gameById('game')!.rating!.positive, 90);
+        expect(library.state.gameById('game')!.details.rating!.positive, 90);
       },
     );
 
@@ -430,7 +443,7 @@ void main() {
     test('пустой ответ не стирает уже показанную оценку', () async {
       await add();
       final first = await complete();
-      expect(first.rating!.positive, 90);
+      expect(first.details.rating!.positive, 90);
 
       steam.reviewsResult = null;
       steam.result = const SteamGame(
@@ -441,12 +454,12 @@ void main() {
       library.add(SteamLookupRequested(first));
       await _wait(
         library,
-        (s) => s.gameById('game')?.description == 'Updated description',
+        (s) => s.gameById('game')?.details.description == 'Updated description',
       );
 
       final second = library.state.gameById('game')!;
-      expect(second.rating!.positive, 90);
-      expect(second.rating!.metacritic, 86);
+      expect(second.details.rating!.positive, 90);
+      expect(second.details.rating!.metacritic, 86);
     });
   });
 
@@ -485,7 +498,7 @@ void main() {
       library.add(SteamLookupRequested(original));
       await _wait(
         library,
-        (s) => s.gameById('game')?.description == 'Updated description',
+        (s) => s.gameById('game')?.details.description == 'Updated description',
       );
       // Ждать надо последнего звена, а не первого: за уборкой старой обложки
       // в обработчике идёт ещё запрос путей сохранений, и он-то и поднимает
@@ -495,12 +508,12 @@ void main() {
         () async =>
             steam.calls >= 2 &&
             catalog.loads >= 2 &&
-            !await File(original.coverPath!).exists(),
+            !await File(original.details.coverPath!).exists(),
       );
       final updated = library.state.gameById('game')!;
-      expect(updated.coverPath, isNot(original.coverPath));
-      expect(await File(updated.coverPath!).exists(), isTrue);
-      expect(await File(original.coverPath!).exists(), isFalse);
+      expect(updated.details.coverPath, isNot(original.details.coverPath));
+      expect(await File(updated.details.coverPath!).exists(), isTrue);
+      expect(await File(original.details.coverPath!).exists(), isFalse);
       expect(steam.calls, 2);
       expect(catalog.loads, 2);
       await reopen();
@@ -515,7 +528,7 @@ void main() {
     await _wait(
       library,
       (s) =>
-          s.gameById('game')!.steamLookupAttempted &&
+          s.gameById('game')!.details.steamLookupAttempted &&
           !s.isBusy(LibraryBloc.steamKey('game')),
     );
     await reopen();
@@ -537,7 +550,7 @@ void main() {
     await _wait(
       library,
       (s) =>
-          s.gameById('game')!.ludusaviTemplates.isNotEmpty &&
+          s.gameById('game')!.saveDiscovery.ludusaviTemplates.isNotEmpty &&
           !s.isBusy(LibraryBloc.savePathsKey('game')),
     );
     expect(catalog.loads, 2);
@@ -589,8 +602,10 @@ void main() {
       final game = await complete();
       library.add(GameRemoved(stale));
       await _wait(library, (s) => s.games.isEmpty);
-      await waitUntil(() async => !await File(game.coverPath!).exists());
-      expect(await File(game.coverPath!).exists(), isFalse);
+      await waitUntil(
+        () async => !await File(game.details.coverPath!).exists(),
+      );
+      expect(await File(game.details.coverPath!).exists(), isFalse);
       await add();
       await complete();
       expect(steam.calls, 2);
@@ -618,9 +633,9 @@ void main() {
       await File(paths.coversDir).writeAsString('not a directory');
       await add();
       final game = await complete();
-      expect(game.steamAppId, 42);
-      expect(game.description, 'An example game');
-      expect(game.coverPath, isNull);
+      expect(game.details.steamAppId, 42);
+      expect(game.details.description, 'An example game');
+      expect(game.details.coverPath, isNull);
       expect(catalog.lastId, 42);
     },
   );
@@ -712,11 +727,11 @@ Example:
         library,
         (s) => s.gameById('game')!.saveProfile.autoSnapshotOnLaunch,
       );
-      expect(library.state.gameById('game')!.rating, isNotNull);
+      expect(library.state.gameById('game')!.details.rating, isNotNull);
       await reopen();
       final game = library.state.gameById('game')!;
       expect(game.saveProfile.rules.single.template, '{GAME}/saves');
-      expect(game.ludusaviResolvedPaths, ['{GAME}/saves']);
+      expect(game.saveDiscovery.ludusaviResolvedPaths, ['{GAME}/saves']);
       expect(steam.calls, 1);
       expect(catalog.loads, 1);
     },
@@ -768,8 +783,8 @@ Example:
     final game = await complete();
 
     expect(steam.shots, 2);
-    expect(game.shotPaths, hasLength(2));
-    for (final shot in game.shotPaths) {
+    expect(game.details.shotPaths, hasLength(2));
+    for (final shot in game.details.shotPaths) {
       expect(p.isWithin(paths.shotsDir, shot), isTrue, reason: shot);
       expect(await File(shot).readAsBytes(), [4, 5, 6]);
     }
@@ -777,7 +792,10 @@ Example:
     // Пути переживают перезапуск: подложка не должна пропадать оттого, что
     // приложение закрыли.
     await reopen();
-    expect(library.state.gameById('game')!.shotPaths, game.shotPaths);
+    expect(
+      library.state.gameById('game')!.details.shotPaths,
+      game.details.shotPaths,
+    );
   });
 
   test(
@@ -791,17 +809,17 @@ Example:
       await add();
       final game = await complete();
 
-      expect(game.shotPaths, isEmpty);
+      expect(game.details.shotPaths, isEmpty);
       expect(steam.shots, 0);
-      expect(game.steamAppId, 42);
-      expect(game.description, 'An example game');
+      expect(game.details.steamAppId, 42);
+      expect(game.details.description, 'An example game');
     },
   );
 
   test('удаление игры уносит её кадры с диска', () async {
     await add();
     final game = await complete();
-    final shots = [for (final path in game.shotPaths) File(path)];
+    final shots = [for (final path in game.details.shotPaths) File(path)];
     expect(shots, hasLength(2));
 
     library.add(GameRemoved(game));
@@ -836,8 +854,8 @@ Example:
       // Маркеры снова проставлены — обновление не оставило библиотеку в
       // состоянии «сходим ещё раз при следующем запуске».
       final game = library.state.gameById('game')!;
-      expect(game.steamLookupAttempted, isTrue);
-      expect(game.savePathsLookupAttempted, isTrue);
+      expect(game.details.steamLookupAttempted, isTrue);
+      expect(game.saveDiscovery.savePathsLookupAttempted, isTrue);
     },
   );
 }

@@ -70,8 +70,7 @@ void main() {
     addedAt: DateTime.now(),
     installDir: p.join(tmp.path, 'games', 'игра'),
     executablePath: p.join(tmp.path, 'games', 'игра', 'game.exe'),
-    coverPath: cover,
-    steamAppId: steamAppId,
+    details: GameDetails(coverPath: cover, steamAppId: steamAppId),
   );
 
   /// Имена файлов витрины для игры с этим id.

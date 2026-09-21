@@ -81,14 +81,16 @@ extension _LibraryDrops on LibraryBloc {
     id: const Uuid().v4(),
     title: scanned.title,
     addedAt: DateTime.now(),
-    source: GameSource(
-      kind: GameSourceKind.localFolder,
-      value: scanned.installDir,
-    ),
     installDir: scanned.installDir,
     executablePath: scanned.executablePath,
     status: GameStatus.installed,
-    steamAppId: scanned.steamAppId,
+    download: DownloadLink(
+      source: GameSource(
+        kind: GameSourceKind.localFolder,
+        value: scanned.installDir,
+      ),
+    ),
+    details: GameDetails(steamAppId: scanned.steamAppId),
     saveProfile: SaveProfile(
       autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
       autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
@@ -102,7 +104,7 @@ extension _LibraryDrops on LibraryBloc {
       id: const Uuid().v4(),
       title: candidate.title,
       addedAt: DateTime.now(),
-      source: candidate.source,
+      download: DownloadLink(source: candidate.source),
       installDir: installed ? candidate.path : null,
       executablePath: candidate.executablePath,
       status: installed ? GameStatus.installed : GameStatus.notInstalled,

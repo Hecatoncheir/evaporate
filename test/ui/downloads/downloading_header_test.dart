@@ -63,7 +63,7 @@ void main() {
                     id: 'g1',
                     title: 'Принц Персии',
                     addedAt: DateTime.now(),
-                    description: description,
+                    details: GameDetails(description: description),
                     status: GameStatus.downloading,
                   ),
                   task: task,

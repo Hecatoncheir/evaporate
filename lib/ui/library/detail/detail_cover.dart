@@ -20,7 +20,7 @@ class DetailCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final path = game.coverPath;
+    final path = game.details.coverPath;
     final task = context.select<DownloadsBloc, DownloadTask?>(
       (bloc) => bloc.state.taskForGame(game),
     );

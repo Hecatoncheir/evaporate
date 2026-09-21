@@ -216,7 +216,9 @@ void main() {
       final game = await downloadingGame();
       final dir = await downloadedDir('Игра');
 
-      downloads.add(EngineTasksChanged([completed(game.downloadTaskId!, dir)]));
+      downloads.add(
+        EngineTasksChanged([completed(game.download.downloadTaskId!, dir)]),
+      );
       final state = await waitForLibrary(
         (s) => s.gameById(game.id)?.status == GameStatus.installed,
       );
@@ -224,7 +226,7 @@ void main() {
       final installed = state.gameById(game.id)!;
       expect(installed.installDir, dir);
       // Задача отжила своё: держать её идентификатор дальше незачем.
-      expect(installed.downloadTaskId, isNull);
+      expect(installed.download.downloadTaskId, isNull);
       expect(installed.sizeBytes, 2);
     });
 
@@ -232,7 +234,9 @@ void main() {
       final game = await downloadingGame();
       final dir = await downloadedDir('Игра');
 
-      downloads.add(EngineTasksChanged([completed(game.downloadTaskId!, dir)]));
+      downloads.add(
+        EngineTasksChanged([completed(game.download.downloadTaskId!, dir)]),
+      );
       final state = await waitForLibrary(
         (s) => s.gameById(game.id)?.executablePath != null,
       );
@@ -249,7 +253,9 @@ void main() {
       final game = await downloadingGame();
       final dir = await downloadedDir('Игра');
 
-      downloads.add(EngineTasksChanged([completed(game.downloadTaskId!, dir)]));
+      downloads.add(
+        EngineTasksChanged([completed(game.download.downloadTaskId!, dir)]),
+      );
       await waitForLibrary(
         (s) => s.gameById(game.id)?.status == GameStatus.installed,
       );
@@ -268,7 +274,7 @@ void main() {
       () async {
         final game = await downloadingGame();
         final dir = await downloadedDir('Игра');
-        final task = completed(game.downloadTaskId!, dir);
+        final task = completed(game.download.downloadTaskId!, dir);
 
         downloads.add(EngineTasksChanged([task]));
         await waitForLibrary(

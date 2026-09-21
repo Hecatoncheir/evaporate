@@ -42,7 +42,8 @@ class DownloadsState extends Equatable {
     return null;
   }
 
-  DownloadTask? taskForGame(Game game) => taskById(game.downloadTaskId);
+  DownloadTask? taskForGame(Game game) =>
+      taskById(game.download.downloadTaskId);
 
   /// Место в общем порядке задач, куда встать перед [beforeId].
   ///

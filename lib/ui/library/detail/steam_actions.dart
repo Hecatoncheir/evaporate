@@ -45,7 +45,9 @@ class SteamActions extends StatelessWidget {
           busy: lookingUp,
           onPressed: () => library.add(SteamLookupRequested(game)),
           icon: Icons.travel_explore,
-          label: game.steamAppId == null ? l.findInSteam : l.refreshFromSteam,
+          label: game.details.steamAppId == null
+              ? l.findInSteam
+              : l.refreshFromSteam,
         ),
       ],
     );

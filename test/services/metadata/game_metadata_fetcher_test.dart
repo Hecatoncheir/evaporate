@@ -73,7 +73,7 @@ void main() {
     id: 'g1',
     title: 'Example',
     addedAt: DateTime(2026),
-    steamAppId: appId,
+    details: GameDetails(steamAppId: appId),
   );
 
   test('без известного appid спрашивают по названию', () async {

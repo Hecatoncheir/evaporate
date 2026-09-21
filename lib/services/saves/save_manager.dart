@@ -207,7 +207,7 @@ class SaveManager {
       sizeBytes: found.totalBytes,
       archivePath: '',
       rules: found.rules,
-      playtime: game.playtime,
+      playtime: game.play.playtime,
       note: note,
       fileCount: found.entries.length,
       origin: origin,

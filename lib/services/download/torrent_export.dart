@@ -26,13 +26,13 @@ class TorrentExport {
     final stored = p.join(torrentsDir, '${game.id}.torrent');
     if (await File(stored).exists()) return stored;
 
-    for (final id in [game.downloadTaskId, game.infoHash]) {
+    for (final id in [game.download.downloadTaskId, game.download.infoHash]) {
       if (id == null || id.isEmpty) continue;
       final path = enginePath(id);
       if (path != null && await File(path).exists()) return path;
     }
 
-    final source = game.source;
+    final source = game.download.source;
     if (source != null &&
         source.kind == GameSourceKind.torrentFile &&
         await File(source.value).exists()) {
@@ -44,7 +44,7 @@ class TorrentExport {
   /// Раздача ли это. Для локальной папки экспортировать нечего и предлагать
   /// нечего — кнопки в карточке такой игры быть не должно.
   static bool isTorrent(Game game) {
-    final kind = game.source?.kind;
+    final kind = game.download.source?.kind;
     return kind == GameSourceKind.magnet || kind == GameSourceKind.torrentFile;
   }
 }

@@ -11,7 +11,7 @@ void main() {
         id: 'a',
         title: 'A',
         addedAt: added,
-        downloadTaskId: 'task',
+        download: const DownloadLink(downloadTaskId: 'task'),
       );
       final state = LibraryState(games: [game]);
 
@@ -25,8 +25,10 @@ void main() {
         id: 'a',
         title: 'A',
         addedAt: added,
-        downloadTaskId: 'old-gid',
-        infoHash: 'abc',
+        download: const DownloadLink(
+          downloadTaskId: 'old-gid',
+          infoHash: 'abc',
+        ),
       );
       final state = LibraryState(games: [game]);
 
@@ -35,7 +37,14 @@ void main() {
 
     test('чужая задача игры не находит', () {
       final state = LibraryState(
-        games: [Game(id: 'a', title: 'A', addedAt: added, infoHash: 'abc')],
+        games: [
+          Game(
+            id: 'a',
+            title: 'A',
+            addedAt: added,
+            download: const DownloadLink(infoHash: 'abc'),
+          ),
+        ],
       );
 
       expect(state.gameForTask('other'), isNull);

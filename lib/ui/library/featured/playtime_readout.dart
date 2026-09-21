@@ -32,7 +32,7 @@ class PlaytimeReadout extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          formatDurationLabel(L.of(context), game.playtime),
+          formatDurationLabel(L.of(context), game.play.playtime),
           style: context.text.readout.copyWith(color: AppColors.coverText),
         ),
       ],

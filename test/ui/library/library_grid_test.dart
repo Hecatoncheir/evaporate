@@ -196,7 +196,9 @@ void main() {
     final beta = harness.library.state.games.firstWhere(
       (game) => game.title == 'Бета',
     );
-    harness.seedGame(beta.copyWith(coverPath: cover.path));
+    harness.seedGame(
+      beta.copyWith(details: beta.details.copyWith(coverPath: cover.path)),
+    );
     harness.nav.add(GameSelected(beta.id));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 500));

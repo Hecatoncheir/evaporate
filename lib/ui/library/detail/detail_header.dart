@@ -25,30 +25,33 @@ class DetailHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SelectableText(game.title, style: context.text.pageTitle),
-              if (game.description != null) ...[
+              if (game.details.description != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  game.description!,
+                  game.details.description!,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: context.text.paragraph,
                 ),
               ],
-              if (game.rating?.hasAnything ?? false) ...[
+              if (game.details.rating?.hasAnything ?? false) ...[
                 const SizedBox(height: 8),
-                RatingRow(rating: game.rating!),
+                RatingRow(rating: game.details.rating!),
               ],
               const SizedBox(height: 8),
               Row(
                 children: [
                   StatusChip(status: game.status),
                   const SizedBox(width: 10),
-                  if (game.playtime.inMinutes > 0)
+                  if (game.play.playtime.inMinutes > 0)
                     Text(
                       L
                           .of(context)
                           .playtime(
-                            formatDurationLabel(L.of(context), game.playtime),
+                            formatDurationLabel(
+                              L.of(context),
+                              game.play.playtime,
+                            ),
                           ),
                       style: context.text.note,
                     ),

@@ -80,8 +80,8 @@ class GameMetadataFetcher {
   /// названию тут не только лишний, но и вреден: он способен ответить
   /// другой игрой.
   Future<SteamGame?> _askAbout(Game game, String? query) =>
-      game.steamAppId != null
-      ? steam.details(game.steamAppId!)
+      game.details.steamAppId != null
+      ? steam.details(game.details.steamAppId!)
       : steam.bestMatch(query ?? game.title);
 
   /// Обзоры — отдельным запросом: в `appdetails` их нет вовсе.

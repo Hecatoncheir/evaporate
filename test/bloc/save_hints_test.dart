@@ -143,7 +143,7 @@ void main() {
 
     await play(game, played: const Duration(seconds: 5));
     // Дожидаемся, пока выход отработает: подсказок появиться не должно.
-    await waitFor((s) => s.gameById(game.id)!.lastPlayed != null);
+    await waitFor((s) => s.gameById(game.id)!.play.lastPlayed != null);
 
     expect(saves.state.hintsFor(game.id), isEmpty);
   });
@@ -167,7 +167,7 @@ void main() {
     );
 
     await play(state.gameById(game.id)!);
-    await waitFor((s) => s.gameById(game.id)!.lastPlayed != null);
+    await waitFor((s) => s.gameById(game.id)!.play.lastPlayed != null);
     // Даём обходу отработать: подсказка не должна вернуться.
     await Future<void>.delayed(const Duration(milliseconds: 300));
 

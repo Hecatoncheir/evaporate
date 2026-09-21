@@ -38,7 +38,7 @@ class CoverBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final path = game.coverPath;
+    final path = game.details.coverPath;
     if (!enabled || path == null || path.isEmpty) {
       return const SizedBox.shrink();
     }

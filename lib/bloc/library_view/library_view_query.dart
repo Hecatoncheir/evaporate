@@ -19,8 +19,8 @@ List<Game> searchGames(List<Game> games, String query) {
 int _byActivityThenTitle(Game a, Game b) {
   final byActivity = _activityRank(a).compareTo(_activityRank(b));
   if (byActivity != 0) return byActivity;
-  final aPlayed = a.lastPlayed;
-  final bPlayed = b.lastPlayed;
+  final aPlayed = a.play.lastPlayed;
+  final bPlayed = b.play.lastPlayed;
   if (aPlayed != null && bPlayed != null) return bPlayed.compareTo(aPlayed);
   if (aPlayed != null) return -1;
   if (bPlayed != null) return 1;

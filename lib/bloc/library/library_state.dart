@@ -68,7 +68,8 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
   /// infohash.
   Game? gameForTask(String taskId) {
     for (final game in games) {
-      if (game.downloadTaskId == taskId || game.infoHash == taskId) {
+      if (game.download.downloadTaskId == taskId ||
+          game.download.infoHash == taskId) {
         return game;
       }
     }
@@ -117,12 +118,12 @@ class LibraryState extends Equatable implements BusyState<LibraryState> {
   }
 
   static bool _canQueue(Game game, Set<String> busy) {
-    final source = game.source;
+    final source = game.download.source;
     if (source == null || source.kind == GameSourceKind.localFolder) {
       return false;
     }
     if (game.isInstalled) return false;
-    final hash = game.infoHash;
+    final hash = game.download.infoHash;
     return hash == null || !busy.contains(hash);
   }
 

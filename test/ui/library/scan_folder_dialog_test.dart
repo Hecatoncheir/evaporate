@@ -173,7 +173,7 @@ void main() {
     expect(game.title, 'Тихая гавань');
     expect(game.status, GameStatus.installed);
     expect(game.installDir, dir.path);
-    expect(game.source?.kind, GameSourceKind.localFolder);
+    expect(game.download.source?.kind, GameSourceKind.localFolder);
     expect(game.executablePath, isNotNull);
   });
 

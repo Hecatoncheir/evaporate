@@ -147,10 +147,10 @@ void main() {
         ),
       );
       final state = await waitForLibrary(
-        (s) => s.gameById(game.id)?.downloadTaskId != null,
+        (s) => s.gameById(game.id)?.download.downloadTaskId != null,
       );
 
-      expect(state.gameById(game.id)!.downloadTaskId, 'task-7');
+      expect(state.gameById(game.id)!.download.downloadTaskId, 'task-7');
       expect(state.gameById(game.id)!.status, GameStatus.downloading);
       expect(
         engine.calls.first,
@@ -172,7 +172,9 @@ void main() {
           source: GameSource(kind: GameSourceKind.torrentFile, value: source),
         ),
       );
-      await waitForLibrary((s) => s.gameById(game.id)?.downloadTaskId != null);
+      await waitForLibrary(
+        (s) => s.gameById(game.id)?.download.downloadTaskId != null,
+      );
 
       final stored = p.join(paths.torrentsDir, '${game.id}.torrent');
       expect(File(stored).existsSync(), isTrue);
@@ -214,7 +216,7 @@ void main() {
 
       expect(state.notice!.isError, isTrue);
       expect(state.notice!.message, contains('порт занят'));
-      expect(library.state.gameById(game.id)!.downloadTaskId, isNull);
+      expect(library.state.gameById(game.id)!.download.downloadTaskId, isNull);
     });
   });
 
@@ -277,7 +279,7 @@ void main() {
 
       downloads.add(DownloadCancelRequested(game));
       final state = await waitForLibrary(
-        (s) => s.gameById(game.id)?.downloadTaskId == null,
+        (s) => s.gameById(game.id)?.download.downloadTaskId == null,
       );
 
       expect(engine.calls, contains('remove task-1'));
@@ -292,11 +294,11 @@ void main() {
 
       downloads.add(DownloadCancelRequested(game));
       final state = await waitForLibrary(
-        (s) => s.gameById(game.id)?.downloadTaskId == null,
+        (s) => s.gameById(game.id)?.download.downloadTaskId == null,
       );
 
       expect(engine.calls, contains('remove task-1'));
-      expect(state.gameById(game.id)!.downloadTaskId, isNull);
+      expect(state.gameById(game.id)!.download.downloadTaskId, isNull);
     });
   });
 
@@ -321,7 +323,7 @@ void main() {
         missing: ['game.exe'],
       );
 
-      downloads.add(EngineTasksChanged([done(game.downloadTaskId!)]));
+      downloads.add(EngineTasksChanged([done(game.download.downloadTaskId!)]));
       final state = await waitForLibrary(
         (s) => s.gameById(game.id)?.status == GameStatus.error,
       );
@@ -337,13 +339,13 @@ void main() {
     test('целая раздача доводит игру до установленной', () async {
       final game = await downloadingGame();
 
-      downloads.add(EngineTasksChanged([done(game.downloadTaskId!)]));
+      downloads.add(EngineTasksChanged([done(game.download.downloadTaskId!)]));
       final state = await waitForLibrary(
         (s) => s.gameById(game.id)?.status == GameStatus.installed,
       );
 
       expect(engine.calls, contains('verify task-1'));
-      expect(state.gameById(game.id)!.downloadTaskId, isNull);
+      expect(state.gameById(game.id)!.download.downloadTaskId, isNull);
     });
   });
 

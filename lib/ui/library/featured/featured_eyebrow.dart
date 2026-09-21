@@ -20,10 +20,10 @@ class FeaturedEyebrow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     var text = l.conceptFeaturedContinue(
-      game.lastPlayed == null ? l.featuredReady : l.featuredRecent,
+      game.play.lastPlayed == null ? l.featuredReady : l.featuredRecent,
     );
-    if (withPlaytime && game.playtime > Duration.zero) {
-      text = '$text · ${formatDurationLabel(l, game.playtime)}';
+    if (withPlaytime && game.play.playtime > Duration.zero) {
+      text = '$text · ${formatDurationLabel(l, game.play.playtime)}';
     }
     return Row(
       children: [
