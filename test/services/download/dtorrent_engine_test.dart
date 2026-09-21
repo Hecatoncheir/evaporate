@@ -183,6 +183,7 @@ void main() {
     DtorrentEngine launching(
       Future<dt.TorrentModel?> Function(String infoHash) fetch, {
       int maxConcurrent = 1,
+      ProxySettings proxy = const ProxySettings(),
     }) {
       final engine = DtorrentEngine(
         downloadDir: p.join(tmp.path, 'games'),
@@ -190,6 +191,7 @@ void main() {
         torrentsDir: p.join(tmp.path, 'torrents'),
         maxConcurrent: maxConcurrent,
         fetchMetadata: fetch,
+        proxy: proxy,
       );
       addTearDown(engine.dispose);
       return engine;
@@ -220,6 +222,36 @@ void main() {
       expect(failed.state, DownloadState.error);
       expect(failed.errorMessage, LRu().metadataNotFound);
       expect(failed.isQueued, isFalse, reason: 'очередь её обходит');
+    });
+
+    // Поиск метаданных в библиотеке о прокси не знает: сам поднимает DHT и
+    // сам идёт к пирам. При SOCKS5 это отказ словами, а не тихий обход.
+    test('magnet при SOCKS5 в сеть не идёт и говорит почему', () async {
+      var asked = 0;
+      final engine = launching(
+        (hash) async {
+          asked++;
+          return null;
+        },
+        proxy: const ProxySettings(
+          enabled: true,
+          host: '127.0.0.1',
+          port: 1080,
+        ),
+      );
+
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      for (var i = 0; i < 200; i++) {
+        await engine.refresh();
+        if (engine.taskById(hashA)?.state == DownloadState.error) break;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+
+      expect(asked, 0, reason: 'метаданные искали мимо прокси');
+      expect(
+        engine.taskById(hashA)!.errorMessage,
+        LRu().magnetNeedsTorrentBehindProxy,
+      );
     });
 
     test('исключение при запуске тоже освобождает слот', () async {
@@ -596,5 +628,26 @@ void main() {
 
     expect(engine.status.value.isReady, isTrue);
     engine.dispose();
+  });
+
+  // Предел скорости библиотека принимает только окном расписания, а
+  // скорость из окна не читает нигде. Постановка окна при этом зовёт
+  // `resumeTask`: запустил игру при пределе на время игры — и задачи на
+  // паузе качали на полную, пока интерфейс показывал «Пауза». Живую задачу
+  // тесту подставить нечем, поэтому сторожим сам вызов: вернуть его можно
+  // только вместе с правкой форка, которая научит окно ограничивать.
+  test('движок не ставит задачам окно расписания', () {
+    final sources = Directory(p.join('lib', 'services', 'download'))
+        .listSync()
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    for (final file in sources) {
+      expect(
+        file.readAsStringSync(),
+        isNot(contains('addScheduleWindow(')),
+        reason: '${file.path}: окно расписания снимает паузу с задачи',
+      );
+    }
   });
 }

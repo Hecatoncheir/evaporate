@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'save_path_template.dart';
+import 'system_folders.dart';
+
 /// Все директории, которыми пользуется приложение.
 ///
 /// Данные приложения (библиотека, снапшоты сейвов) лежат в системной папке
@@ -43,6 +46,14 @@ class AppPaths {
     await Directory(paths.coversDir).create(recursive: true);
     await Directory(paths.shotsDir).create(recursive: true);
     await Directory(paths.torrentsDir).create(recursive: true);
+    // «Документы» и Saved Games — у системы, а не по догадке: унесённые в
+    // OneDrive или названные `~/Документы`, они иначе искались бы там,
+    // где их нет, и перенос сохранений молчал бы.
+    final folders = await SystemFolders.detect();
+    SavePathTemplate.useSystemFolders(
+      documents: folders.documents,
+      savedGames: folders.savedGames,
+    );
     _instance = paths;
     return paths;
   }

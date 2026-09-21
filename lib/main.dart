@@ -27,6 +27,7 @@ import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/proxy_http_overrides.dart';
+import 'services/system/single_instance.dart';
 import 'services/system/update_check.dart';
 import 'services/system/update_installer.dart';
 import 'services/system/window_mode_watch.dart';
@@ -45,6 +46,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final paths = await AppPaths.init();
+  final instance = await _claimInstance(paths);
   await _startLog(paths);
 
   final settings = SettingsBloc(paths);
@@ -81,6 +83,9 @@ Future<void> main() async {
     proxyRouting: proxyRouting.routing,
   );
   shutdownSteps.add(tray.dispose);
+  // Последним: пока идут остальные шаги, второй экземпляр запускаться не
+  // должен — файлы ещё дописываются.
+  shutdownSteps.add(instance.release);
 
   _checkUpdatesInBackground(services.notifications, settings, localizations);
 
@@ -351,4 +356,31 @@ Locale _systemLocale() {
   return supported.contains(system.languageCode)
       ? Locale(system.languageCode)
       : L.supportedLocales.first;
+}
+
+/// Берёт замок экземпляра, а если приложение уже работает — просит его
+/// показать окно и завершает этот процесс.
+///
+/// Раньше журнала: второй экземпляр не должен писать ни в него, ни
+/// куда-либо ещё (`SingleInstance`).
+Future<SingleInstance> _claimInstance(AppPaths paths) async {
+  final instance = await SingleInstance.acquire(
+    paths.dataDir,
+    onShowRequested: _showWindow,
+  );
+  return instance ?? exit(0);
+}
+
+/// Второй экземпляр просит показать окно: человек щёлкнул ярлык, а окно
+/// свёрнуто в трей или спрятано за другими.
+///
+/// Просьба может прийти раньше, чем окно готово, — тогда оно покажется
+/// само, как задумано режимом запуска, а ошибку глотаем.
+void _showWindow() {
+  unawaited(
+    windowManager
+        .show()
+        .then((_) => windowManager.focus())
+        .catchError((Object _) {}),
+  );
 }

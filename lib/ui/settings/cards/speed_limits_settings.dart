@@ -4,9 +4,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/speed_limits.dart';
+import '../../widgets/inline_warning.dart';
 import '../speed_field.dart';
 
 /// Ограничения скорости: приём, отдача, доля раздачи и приём во время игры.
+///
+/// Пределы скорости торрент-библиотека пока не соблюдает (см.
+/// `DtorrentEngine.applyLimits`), и об этом сказано прямо над полями: поле,
+/// которое молча ничего не делает, хуже отсутствующего. Сами значения
+/// хранятся — заработают без перенастройки, когда библиотеку починят.
+/// Рейтинг раздачи считаем сами, он действует.
 class SpeedLimitsSettings extends StatelessWidget {
   const SpeedLimitsSettings({super.key});
 
@@ -22,6 +29,8 @@ class SpeedLimitsSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        InlineWarning(l.speedLimitsInactive),
+        const SizedBox(height: 10),
         SpeedField(
           label: l.limitDownload,
           value: limits.download,

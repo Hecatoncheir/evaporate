@@ -1,47 +1,16 @@
 import 'package:dtorrent_task_v2/dtorrent_task_v2.dart' as dt;
 
 import '../../models/proxy_settings.dart';
-import '../../models/speed_limits.dart';
 
 // Наши настройки на языке `dtorrent_task_v2`.
 //
 // Отдельно от движка, потому что это перевод, а не работа с раздачами: на
 // входе настройки, на выходе объекты библиотеки — ни задач, ни сети.
 // Внутри движка он проверялся только живой задачей, то есть не проверялся
-// вовсе: какие именно пределы доезжали до библиотеки, не видел ни один тест.
-
-/// Под каким именем предел скорости лежит среди окон расписания задачи.
-///
-/// Одно имя на все задачи: снять или заменить предел — значит найти своё
-/// окно, а не перебирать чужие.
-const speedLimitWindowId = 'evaporate-speed-limit';
-
-/// Окно расписания, которым задаче задаётся предел скорости.
-///
-/// Публичного способа задать предел разом у библиотеки нет — есть окна
-/// расписания у задачи. Ставим одно окно на все дни и все сутки:
-/// расписанием мы не пользуемся, нужен только предел.
-///
-/// `null` — ограничивать нечего, и окно надо не ставить, а снять.
-dt.ScheduleWindow? speedLimitWindow(
-  SpeedLimits limits, {
-  required bool playing,
-}) {
-  final download = limits.downloadBytes(playing: playing);
-  final upload = limits.uploadBytes;
-  if (download == null && upload == null) return null;
-  return dt.ScheduleWindow(
-    id: speedLimitWindowId,
-    weekdays: const {1, 2, 3, 4, 5, 6, 7},
-    start: Duration.zero,
-    end: const Duration(hours: 23, minutes: 59),
-    maxDownloadRate: download,
-    maxUploadRate: upload,
-    // Иначе вне окна задача встала бы на паузу — а окно у нас
-    // круглосуточное только по недосмотру расписания.
-    pauseOutsideWindow: false,
-  );
-}
+// вовсе: что именно доезжало до библиотеки, не видел ни один тест.
+//
+// Пределов скорости здесь больше нет: библиотека принимает их окном
+// расписания и не соблюдает (см. `DtorrentEngine.applyLimits`).
 
 /// Настройки прокси приложения в конфиг библиотеки. `null` — без прокси.
 dt.ProxyConfig? torrentProxyConfig(ProxySettings proxy) {
@@ -68,3 +37,30 @@ dt.ProxyConfig? torrentProxyConfig(ProxySettings proxy) {
     ),
   };
 }
+
+/// Трекеры, которым можно объявлять раздачу при этих настройках прокси.
+///
+/// Прокси перехватывает только `HttpClient` (`ProxyHttpOverrides`), а
+/// `udp://` библиотека шлёт своим сокетом, `ws(s)://` — статическим
+/// `WebSocket`, и оба идут мимо прокси с настоящим адресом человека. В духе
+/// уже принятого решения — прокси, который не держит, отказывает, а не
+/// пропускает мимо себя, — такие трекеры при включённом прокси выбрасываем.
+/// Раздача без HTTP-трекеров при этом ищет пиров только через DHT, и об
+/// этом говорит подпись в настройках.
+List<Uri> announcesFor(List<Uri> announces, ProxySettings proxy) {
+  if (!proxy.isUsable) return announces;
+  return [
+    for (final uri in announces)
+      if (uri.scheme == 'http' || uri.scheme == 'https') uri,
+  ];
+}
+
+/// Можно ли искать метаданные magnet-ссылки по сети при этих настройках.
+///
+/// Поиск ведёт `MetadataDownloader` библиотеки, а тот о прокси не знает
+/// вовсе: сам поднимает DHT и сам соединяется с пирами. При SOCKS5, который
+/// включают ради того, чтобы пиры не видели адреса, это отказ, а не тихий
+/// обход. HTTP-прокси пиров и так не покрывает — это написано в подписи к
+/// нему, — и там поиск идёт как шёл.
+bool canFetchMetadata(ProxySettings proxy) =>
+    !(proxy.isUsable && proxy.kind == ProxyKind.socks5);

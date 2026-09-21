@@ -43,10 +43,34 @@ class SavePathTemplate {
     home,
   ];
 
+  /// Папки, которые назвала сама система (`SystemFolders`), поверх
+  /// догадки по домашней папке.
+  static Map<String, String> _system = const {};
+
+  /// Подставляет «Документы» и Saved Games, названные системой.
+  ///
+  /// Зовётся один раз на старте (`AppPaths.init`). Параметром, а не
+  /// вызовом плагина отсюда: ядро плагинов не зовёт, и в тестах корни
+  /// подменяются так же. Saved Games берётся только на Windows: на
+  /// остальных системах это та же папка поддержки приложений.
+  static void useSystemFolders({String? documents, String? savedGames}) {
+    _system = {
+      if (documents != null && documents.isNotEmpty)
+        SavePathTemplate.documents: documents,
+      if (Platform.isWindows && savedGames != null && savedGames.isNotEmpty)
+        SavePathTemplate.savedGames: savedGames,
+    };
+    _roots = null;
+  }
+
   /// Порядок важен: при сворачивании пути в шаблон выигрывает самый
   /// длинный (самый специфичный) префикс, поэтому список отсортирован
   /// по убыванию длины значения на этапе [collapse].
-  static Map<String, String> get placeholders {
+  static Map<String, String> get placeholders => {..._guessed, ..._system};
+
+  /// Корни по переменным окружения и домашней папке — то, что было до
+  /// [useSystemFolders], и то, что остаётся, когда система не ответила.
+  static Map<String, String> get _guessed {
     final h = _home;
     if (Platform.isWindows) {
       final env = Platform.environment;
@@ -141,13 +165,17 @@ class SavePathTemplate {
   /// Считается один раз: [collapse] зовут в обходах папок, на каждый
   /// найденный путь, — а пересборка карты корней с сортировкой стоила там
   /// больше, чем сам разбор пути. Значения берутся из окружения, которое
-  /// в Dart читается снимком при старте и на ходу не меняется.
-  static final List<MapEntry<String, String>> _rootsBySpecificity =
+  /// в Dart читается снимком при старте, и из [useSystemFolders], который
+  /// зовётся на старте же и кэш сбрасывает.
+  static List<MapEntry<String, String>> get _rootsBySpecificity => _roots ??=
       placeholders.entries.toList()..sort((a, b) {
         final byLength = b.value.length.compareTo(a.value.length);
         if (byLength != 0) return byLength;
         return _preference.indexOf(a.key).compareTo(_preference.indexOf(b.key));
       });
+
+  /// Сбрасывается в [useSystemFolders]: корни сменились.
+  static List<MapEntry<String, String>>? _roots;
 
   /// Слишком ли широк путь, чтобы быть папкой сохранений.
   ///

@@ -300,4 +300,52 @@ void main() {
       expect(labels.toSet(), hasLength(3));
     });
   });
+
+  // «Документы», унесённые в OneDrive, — обычное дело на Windows 11, на
+  // Linux бывают `~/Документы`. Правило базы путей `{DOCUMENTS}/My Games/X`,
+  // развёрнутое догадкой по домашней папке, указывало туда, где их нет.
+  group('папки, названные системой', () {
+    tearDown(SavePathTemplate.useSystemFolders);
+
+    final moved = p.join(p.rootPrefix(p.current), 'OneDrive', 'Документы');
+
+    test('«Документы» берутся у системы, а не по домашней папке', () {
+      SavePathTemplate.useSystemFolders(documents: moved);
+
+      expect(
+        SavePathTemplate.expand('{DOCUMENTS}/My Games/X'),
+        p.join(moved, 'My Games', 'X'),
+      );
+    });
+
+    // Снимок, снятый здесь, должен лечь в «Документы» и на другой машине,
+    // а не в `{HOME}/OneDrive/...`, которого там нет.
+    test('путь в перенесённых «Документах» сворачивается в них', () {
+      SavePathTemplate.useSystemFolders(documents: moved);
+
+      expect(
+        SavePathTemplate.collapse(p.join(moved, 'My Games', 'X')),
+        '{DOCUMENTS}/My Games/X',
+      );
+    });
+
+    test('не ответила система — остаётся прежняя догадка', () {
+      final guessed = SavePathTemplate.expand('{DOCUMENTS}');
+      SavePathTemplate.useSystemFolders(documents: moved);
+      SavePathTemplate.useSystemFolders();
+
+      expect(SavePathTemplate.expand('{DOCUMENTS}'), guessed);
+    });
+
+    test('Saved Games берётся у системы только на Windows', () {
+      final guessed = SavePathTemplate.expand('{SAVEDGAMES}');
+      final saved = p.join(p.rootPrefix(p.current), 'Games', 'Saved Games');
+      SavePathTemplate.useSystemFolders(savedGames: saved);
+
+      expect(
+        SavePathTemplate.expand('{SAVEDGAMES}'),
+        Platform.isWindows ? saved : guessed,
+      );
+    });
+  });
 }

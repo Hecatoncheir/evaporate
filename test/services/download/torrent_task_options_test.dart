@@ -1,72 +1,13 @@
 import 'package:dtorrent_task_v2/dtorrent_task_v2.dart' as dt;
 import 'package:evaporate/models/proxy_settings.dart';
-import 'package:evaporate/models/speed_limits.dart';
 import 'package:evaporate/services/download/torrent_task_options.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Во что наши настройки превращаются для торрент-библиотеки.
 ///
-/// Прежде перевод жил внутри движка, и какие пределы доезжали до задачи,
-/// можно было узнать только живой раздачей — то есть не узнать вовсе.
+/// Прежде перевод жил внутри движка, и что доезжало до задачи, можно было
+/// узнать только живой раздачей — то есть не узнать вовсе.
 void main() {
-  group('предел скорости', () {
-    test('без пределов окна нет — его снимают, а не ставят', () {
-      expect(speedLimitWindow(SpeedLimits.unlimited, playing: false), isNull);
-      expect(speedLimitWindow(SpeedLimits.unlimited, playing: true), isNull);
-    });
-
-    test('килобайты настроек доезжают до задачи байтами', () {
-      final window = speedLimitWindow(
-        const SpeedLimits(download: 500, upload: 50),
-        playing: false,
-      )!;
-
-      expect(window.maxDownloadRate, 500 * 1024);
-      expect(window.maxUploadRate, 50 * 1024);
-    });
-
-    // Предел на время игры — то, ради чего лончер и держит скорость сам:
-    // обычный клиент не знает, что вы сейчас играете.
-    test('во время игры действует свой предел приёма', () {
-      const limits = SpeedLimits(download: 500, whilePlaying: 100);
-
-      expect(
-        speedLimitWindow(limits, playing: false)!.maxDownloadRate,
-        500 * 1024,
-      );
-      expect(
-        speedLimitWindow(limits, playing: true)!.maxDownloadRate,
-        100 * 1024,
-      );
-    });
-
-    test('один предел раздачи — тоже окно, а приём остаётся свободным', () {
-      final window = speedLimitWindow(
-        const SpeedLimits(upload: 20),
-        playing: false,
-      )!;
-
-      expect(window.maxDownloadRate, isNull);
-      expect(window.maxUploadRate, 20 * 1024);
-    });
-
-    // Окно круглосуточное только потому, что расписанием мы не пользуемся;
-    // вне окна библиотека по умолчанию ставит задачу на паузу, и узкое окно
-    // останавливало бы загрузку по ночам без единого слова.
-    test('окно на все дни и сутки и паузы вне себя не ставит', () {
-      final window = speedLimitWindow(
-        const SpeedLimits(download: 1),
-        playing: false,
-      )!;
-
-      expect(window.id, speedLimitWindowId);
-      expect(window.weekdays, {1, 2, 3, 4, 5, 6, 7});
-      expect(window.start, Duration.zero);
-      expect(window.end, const Duration(hours: 23, minutes: 59));
-      expect(window.pauseOutsideWindow, isFalse);
-    });
-  });
-
   group('прокси', () {
     test('выключенный прокси не даёт конфигурации', () {
       expect(torrentProxyConfig(const ProxySettings()), isNull);
@@ -144,6 +85,43 @@ void main() {
       expect(withAuth.password, 'secret');
       expect(withoutAuth.username, isNull);
       expect(withoutAuth.password, isNull);
+    });
+  });
+
+  // Прокси перехватывает только `HttpClient`: `udp://` библиотека шлёт
+  // своим сокетом, а `ws(s)://` — статическим `WebSocket`. При включённом
+  // прокси объявление туда уходило с настоящим адресом.
+  group('трекеры при прокси', () {
+    final announces = [
+      Uri.parse('udp://tracker.example:1337/announce'),
+      Uri.parse('http://tracker.example/announce'),
+      Uri.parse('https://tracker.example/announce'),
+      Uri.parse('wss://tracker.example/announce'),
+    ];
+    const socks = ProxySettings(enabled: true, host: '127.0.0.1', port: 1080);
+
+    test('без прокси трекеры остаются все', () {
+      expect(announcesFor(announces, const ProxySettings()), announces);
+    });
+
+    test('при прокси остаются только HTTP-трекеры', () {
+      expect(announcesFor(announces, socks).map((uri) => uri.scheme), [
+        'http',
+        'https',
+      ]);
+      expect(
+        announcesFor(announces, socks.copyWith(kind: ProxyKind.http)),
+        hasLength(2),
+      );
+    });
+
+    // HTTP-прокси пиров не покрывает и честно об этом говорит — там поиск
+    // метаданных идёт как шёл. SOCKS5 включают ради того, чтобы пиры не
+    // видели адреса.
+    test('метаданные magnet по сети не ищут только при SOCKS5', () {
+      expect(canFetchMetadata(const ProxySettings()), isTrue);
+      expect(canFetchMetadata(socks), isFalse);
+      expect(canFetchMetadata(socks.copyWith(kind: ProxyKind.http)), isTrue);
     });
   });
 }

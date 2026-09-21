@@ -236,36 +236,26 @@ class DtorrentEngine implements DownloadEngine {
   @override
   String? torrentPathFor(String id) => _downloads[id]?.torrentPath;
 
-  /// Действующие ограничения и то, идёт ли игра.
+  /// Действующие ограничения: из них работает рейтинг раздачи.
   SpeedLimits _limits = SpeedLimits.unlimited;
-  bool _playing = false;
 
   @visibleForTesting
   SpeedLimits get appliedLimits => _limits;
 
+  /// Запоминает пределы, но задачам их не ставит.
+  ///
+  /// Предел скорости `dtorrent_task_v2` принимает только окном расписания,
+  /// а скорость из окна кладёт в поле, которое сама не читает нигде: предел
+  /// не действует вовсе. Зато постановка окна зовёт `resumeTask` — и
+  /// поставленные на паузу задачи начинали качать на полную, пока
+  /// интерфейс показывал «Пауза»: достаточно было запустить игру при
+  /// заданном пределе на время игры. Вернуть сюда окно можно только вместе
+  /// с правкой форка, которая научит его ограничивать; до тех пор подпись
+  /// в настройках говорит, что предел не действует. Рейтинг раздачи
+  /// считаем сами (`_stopSeedingIfDone`), и он работает.
   @override
   Future<void> applyLimits(SpeedLimits limits, {required bool playing}) async {
-    if (limits == _limits && playing == _playing) return;
     _limits = limits;
-    _playing = playing;
-    for (final managed in _downloads.values) {
-      final task = managed.task;
-      if (task != null) _limitTask(task);
-    }
-  }
-
-  /// Ставит задаче действующий предел или снимает его.
-  ///
-  /// Ограничение задаётся задаче, а не движку целиком, поэтому новую надо
-  /// догонять текущими настройками. Каким будет окно, решает
-  /// [speedLimitWindow] — здесь только поставить его или снять.
-  void _limitTask(dt.TorrentTask task) {
-    final window = speedLimitWindow(_limits, playing: _playing);
-    if (window == null) {
-      task.removeScheduleWindow(speedLimitWindowId);
-    } else {
-      task.addScheduleWindow(window);
-    }
   }
 
   /// Останавливает раздачу, когда заданный рейтинг достигнут.

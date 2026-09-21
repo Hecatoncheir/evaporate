@@ -57,7 +57,7 @@ extension EngineQueue on DtorrentEngine {
     managed.name = model.name;
 
     final task = dt.TorrentTask.newTask(
-      model,
+      _announcingThroughProxy(model),
       managed.savePath,
       false,
       null,
@@ -67,9 +67,31 @@ extension EngineQueue on DtorrentEngine {
     );
     managed.task = task;
     await task.start();
-    // Ограничение задаётся задаче, а не движку целиком, поэтому новую
-    // нужно догнать текущими настройками.
-    _limitTask(task);
+  }
+
+  /// Модель для задачи — без трекеров, до которых прокси не дотянется
+  /// (`announcesFor`). У задачи остаётся исходная модель: файл раздачи на
+  /// выгрузку уходит целым, со всеми трекерами.
+  dt.TorrentModel _announcingThroughProxy(dt.TorrentModel model) {
+    final announces = announcesFor(model.announces, _proxy);
+    if (announces.length == model.announces.length) return model;
+    return dt.TorrentModel(
+      name: model.name,
+      files: model.files,
+      infoHashBuffer: model.infoHashBuffer,
+      pieceLength: model.pieceLength,
+      pieces: model.pieces,
+      announces: announces,
+      nodes: model.nodes,
+      length: model.length,
+      version: model.version,
+      metaVersion: model.metaVersion,
+      fileTree: model.fileTree,
+      pieceLayers: model.pieceLayers,
+      rootHash: model.rootHash,
+      infoDictBytes: model.infoDictBytes,
+      rawData: model.rawData,
+    );
   }
 
   /// Файл раздачи, если он есть, иначе метаданные из сети.
@@ -80,6 +102,11 @@ extension EngineQueue on DtorrentEngine {
     final path = managed.torrentPath;
     if (path != null && await File(path).exists()) {
       return TorrentSource.fromFile(path);
+    }
+    // Искать по сети при SOCKS5 значит пойти к пирам мимо него:
+    // поиск метаданных в библиотеке прокси не знает.
+    if (!canFetchMetadata(_proxy)) {
+      throw DownloadEngineException(_l.magnetNeedsTorrentBehindProxy);
     }
     final fetch = _fetchMetadata;
     return fetch != null ? fetch(managed.infoHash) : managed.fetchMetadata();
