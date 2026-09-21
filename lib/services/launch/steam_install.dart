@@ -68,14 +68,28 @@ class SteamInstall {
     ];
   }
 
+  /// Путь без ссылок; не разрешился — как есть.
+  static Future<String> _realPath(String path) async {
+    try {
+      return await Directory(path).resolveSymbolicLinks();
+    } on FileSystemException {
+      return path;
+    }
+  }
+
   /// Все папки библиотек Steam, включая заведённые на других дисках.
   static Future<List<String>> libraries({List<String>? roots}) async {
     final found = <String>{};
     for (final root in roots ?? defaultRoots()) {
       final steamapps = Directory(p.join(root, 'steamapps'));
       if (!await steamapps.exists()) continue;
-      found.add(steamapps.path);
-      found.addAll(await _otherDisks(steamapps.path));
+      // По настоящему пути: `~/.steam/steam` на Linux — обычно ссылка на
+      // `~/.local/share/Steam`, и по буквам это два разных корня — каждая
+      // игра Steam находилась дважды.
+      found.add(await steamapps.resolveSymbolicLinks());
+      for (final other in await _otherDisks(steamapps.path)) {
+        found.add(await _realPath(other));
+      }
     }
     return found.toList();
   }

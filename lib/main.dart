@@ -164,7 +164,12 @@ Future<(ProxyHttpOverrides, ShutdownStep)> _routeThroughProxy(
       .map((state) => state.proxy)
       .distinct()
       .listen((proxy) => unawaited(routing.apply(proxy)));
-  return (routing, changes.cancel);
+  Future<void> stop() async {
+    routing.stopRetrying();
+    await changes.cancel();
+  }
+
+  return (routing, stop);
 }
 
 /// Готовит окно до того, как оно появится на экране: иначе пользователь

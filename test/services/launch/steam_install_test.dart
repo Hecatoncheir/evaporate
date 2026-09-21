@@ -135,6 +135,23 @@ void main() {
       return root.path;
     }
 
+    // `~/.steam/steam` на Linux — обычно ссылка на `~/.local/share/Steam`,
+    // и по буквам это два разных корня: каждая игра Steam находилась
+    // дважды.
+    test(
+      'корень, заведённый ссылкой, не удваивает библиотеку',
+      () async {
+        final real = await makeSteam('Steam');
+        final link = p.join(tmp.path, 'steam-link');
+        await Link(link).create(real);
+
+        final libraries = await SteamInstall.libraries(roots: [real, link]);
+
+        expect(libraries, hasLength(1));
+      },
+      skip: Platform.isWindows ? 'ссылки на папки там — не у всех прав' : null,
+    );
+
     test('манифест даёт точные id, название и папку', () async {
       final root = await makeSteam(
         'Steam',

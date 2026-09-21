@@ -163,6 +163,58 @@ void main() {
 
       expect(overrides.routing.value, ProxyRouting.direct);
     });
+
+    // Автозапуск раньше сети: имя не разрешилось, и прокси оставался
+    // «заблокированным» до правки настроек — загрузки стояли, хотя сеть
+    // давно появилась.
+    test('заблокированный прокси поднимается, когда имя разрешится', () async {
+      var online = false;
+      final overrides = ProxyHttpOverrides(
+        lookup: (host) async => online
+            ? [InternetAddress.loopbackIPv4]
+            : throw const SocketException('сети ещё нет'),
+        retryDelay: const Duration(milliseconds: 20),
+      );
+      addTearDown(overrides.stopRetrying);
+
+      await overrides.apply(named());
+      expect(overrides.routing.value, ProxyRouting.blocked);
+
+      online = true;
+      for (var i = 0; i < 100; i++) {
+        if (overrides.routing.value == ProxyRouting.through) break;
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+
+      expect(overrides.routing.value, ProxyRouting.through);
+    });
+  });
+
+  // Смена A→B: пока разрешалось имя B, запросы уходили на адрес A с портом и
+  // учётными данными B, а два `apply` кончались в порядке ответов DNS —
+  // поздний ответ про A возвращал прокси, от которого уже отказались.
+  group('смена прокси', () {
+    test('поздний ответ DNS прежних настроек их не возвращает', () async {
+      final slowA = Completer<List<InternetAddress>>();
+      final overrides = ProxyHttpOverrides(
+        lookup: (host) => host == 'a.example'
+            ? slowA.future
+            : Future.value([InternetAddress('10.0.0.2')]),
+      );
+      addTearDown(overrides.stopRetrying);
+
+      final first = overrides.apply(
+        const ProxySettings(enabled: true, host: 'a.example', port: 1080),
+      );
+      await overrides.apply(
+        const ProxySettings(enabled: true, host: 'b.example', port: 2080),
+      );
+      slowA.complete([InternetAddress('10.0.0.1')]);
+      await first;
+
+      expect(overrides.settings.host, 'b.example');
+      expect(overrides.address, InternetAddress('10.0.0.2'));
+    });
   });
 
   // Объявления самого движка здесь нет намеренно. Прогнать его вживую можно

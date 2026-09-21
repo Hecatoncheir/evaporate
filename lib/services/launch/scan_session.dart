@@ -168,6 +168,9 @@ class ScanSession extends ChangeNotifier {
         steamApps: steam,
         confident: false,
       );
+      // Осмотр — ожидание, и за него заход могли отменить: без проверки
+      // отменённый дописывал игру в список следующего.
+      if (generation != _generation) return;
       if (game == null) continue;
       _found.add(game);
       known.add(game.installDir);

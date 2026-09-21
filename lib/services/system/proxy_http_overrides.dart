@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -52,8 +53,23 @@ class ProxyHttpOverrides extends HttpOverrides {
   ProxyHttpOverrides({
     AppLog Function()? log,
     Future<List<InternetAddress>> Function(String host)? lookup,
+    this.retryDelay = const Duration(seconds: 30),
   }) : _log = log ?? _appLog,
        _lookup = lookup ?? InternetAddress.lookup;
+
+  /// Через сколько снова разрешать имя заблокированного прокси.
+  ///
+  /// Автозапуск бывает раньше сети: имя не разрешилось, и без повтора прокси
+  /// оставался заблокированным до правки настроек, а загрузки стояли, хотя
+  /// сеть давно появилась.
+  final Duration retryDelay;
+
+  Timer? _retry;
+
+  /// Номер последнего `apply`. Имя разрешается не мгновенно, и два `apply`
+  /// кончались в порядке ответов DNS: поздний ответ про прежний прокси
+  /// возвращал его.
+  var _generation = 0;
 
   /// Куда писать о неразобранном адресе. Функцией — как `L Function()` у
   /// блоков: журнал заводится в `main`, а в тестах подменяется без правки
@@ -84,14 +100,32 @@ class ProxyHttpOverrides extends HttpOverrides {
   /// Меняет прокси. Имя разрешается здесь, а не при каждом запросе: клиент
   /// создаётся синхронно, а подключаться к прокси нужно по адресу — имя
   /// SOCKS-клиент принимает только для того, к кому идут через прокси.
+  ///
+  /// Настройки и адрес ставятся **одной парой**, когда имя уже разрешилось:
+  /// прежде настройки менялись сразу, а адрес — после DNS, и запрос в этом
+  /// окне уходил на адрес прежнего прокси с портом и учётными данными
+  /// нового. До тех пор действует прежняя пара целиком.
   Future<void> apply(ProxySettings settings) async {
+    final generation = ++_generation;
+    _retry?.cancel();
+    final address = settings.isUsable ? await _resolve(settings.host) : null;
+    if (generation != _generation) return;
     _settings = settings;
-    _address = settings.isUsable ? await _resolve(settings.host) : null;
-    routing.value = switch ((settings.isUsable, _address)) {
+    _address = address;
+    routing.value = switch ((settings.isUsable, address)) {
       (false, _) => ProxyRouting.direct,
       (true, null) => ProxyRouting.blocked,
       _ => ProxyRouting.through,
     };
+    if (routing.value == ProxyRouting.blocked) {
+      _retry = Timer(retryDelay, () => unawaited(apply(settings)));
+    }
+  }
+
+  /// Больше не пробовать разрешить имя — шаг завершения.
+  void stopRetrying() {
+    _generation++;
+    _retry?.cancel();
   }
 
   Future<InternetAddress?> _resolve(String host) async {
@@ -161,8 +195,8 @@ class ProxyHttpOverrides extends HttpOverrides {
 
 /// Клиент, которого перехват не касается.
 ///
-/// Нужен там, где о прокси решают отдельно: каталог Steam, база путей
-/// сохранений и обновление спрашивают свои флаги и настраивают клиента сами.
+/// Нужен там, где о прокси решают отдельно: каталог Steam и база путей
+/// сохранений спрашивают свой флаг ([ProxySettings.forCatalogs]).
 /// Глобальный перехват отнял бы у человека выбор «качать через прокси, а в
 /// Steam ходить напрямую», ради которого отдельный флаг и заведён.
 HttpClient directHttpClient([SecurityContext? context]) =>
@@ -182,5 +216,19 @@ HttpClient catalogHttpClient(
 }) =>
     (proxy.forCatalogs ? HttpClient() : directHttpClient())
       ..connectionTimeout = timeout;
+
+/// Клиент для проверки и загрузки обновлений — **через прокси**, как весь
+/// остальной HTTP.
+///
+/// Решение записано, потому что прежде оно было ничьим: обновление брало
+/// прямой клиент, а комментарий уверял, что оно «спрашивает свои флаги» —
+/// флагов у него не было. Запрос к GitHub выдаёт, что человек пользуется
+/// Evaporate, и кто включил прокси ради скрытности, вправе ждать, что и
+/// этот запрос уйдёт через него. Отдельного выключателя, как у каталогов, у
+/// обновления нет: там это выбор между «видно ли Steam мой адрес» и
+/// «работает ли поиск обложек», здесь такого выбора нет. Недоступный прокси
+/// отказывает и здесь — проверка обновлений молча не удастся, а не уйдёт
+/// напрямую.
+HttpClient updateHttpClient() => HttpClient();
 
 class _NoOverrides extends HttpOverrides {}

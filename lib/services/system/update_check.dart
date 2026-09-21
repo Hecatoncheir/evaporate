@@ -236,7 +236,7 @@ class UpdateCheck {
 
     return HttpFetch(
       openClient: () =>
-          directHttpClient()..connectionTimeout = const Duration(seconds: 15),
+          updateHttpClient()..connectionTimeout = const Duration(seconds: 15),
       describeStatus: (status) =>
           UpdateCheckException(_l.updateUnavailable(status)),
       // Без заголовков GitHub может ответить иначе, чем ожидается.

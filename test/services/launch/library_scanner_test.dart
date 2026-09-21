@@ -220,4 +220,19 @@ void main() {
 
     expect((await LibraryScanner.scan(root.path)).single.steamAppId, isNull);
   });
+
+  // `.app` разбирался как обычная папка: его `Contents` с `Info.plist`
+  // рядом с `MacOS/` выглядел игрой, и предлагалась игра «Contents» с
+  // поставленной галочкой.
+  test('бандл macOS — одна игра, а не его «Contents»', () async {
+    final bundle = Directory(p.join(root.path, 'Hades.app'));
+    await gameDir(p.join('Hades.app', 'Contents', 'MacOS'), exe: 'Hades');
+    await File(p.join(bundle.path, 'Contents', 'Info.plist'))
+        .writeAsString('<plist/>');
+
+    final found = await LibraryScanner.scan(root.path);
+
+    expect(found.map((g) => g.title), ['Hades']);
+    expect(found.single.executablePath, bundle.path);
+  });
 }

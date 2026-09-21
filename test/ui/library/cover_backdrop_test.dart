@@ -85,7 +85,15 @@ void main() {
           ),
         ),
       );
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      // Дожидаемся самой картинки, а не отведённого на неё времени:
+      // 120 мс под нагрузкой полного прогона не хватало, снимок ловил фон
+      // без обложки, и тест мигал. Тот же `FileImage`, что у `Image.file`,
+      // — значит, тот же ключ в кэше.
+      final path = game.details.coverPath;
+      if (path != null) {
+        final context = key.currentContext!;
+        await precacheImage(FileImage(File(path)), context);
+      }
       await tester.pump();
     });
     await tester.pump();

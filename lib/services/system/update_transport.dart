@@ -26,7 +26,7 @@ class UpdateTransport {
     int from,
     void Function(int, int) onProgress,
   ) async {
-    final client = directHttpClient()
+    final client = updateHttpClient()
       ..connectionTimeout = const Duration(seconds: 20);
     try {
       final response = await _open(client, uri, from);
@@ -133,7 +133,7 @@ class UpdateTransport {
     Uri uri,
     void Function(int, int) onProgress,
   ) async {
-    final client = directHttpClient()
+    final client = updateHttpClient()
       ..connectionTimeout = const Duration(seconds: 20);
     try {
       final response = await _open(client, uri, 0);

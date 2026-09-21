@@ -145,6 +145,14 @@ class LibraryScanner {
   /// отсутствие файлов рядом: у игры в корне всегда что-нибудь лежит, у
   /// собрания — только папки.
   static Future<_Verdict> _classify(Directory dir) async {
+    // Бандл macOS — сам единица запуска, внутрь него не спускаемся. Прежде
+    // `.app` разбирался как обычная папка, его `Contents` — с `Info.plist`
+    // рядом с `MacOS/` — выглядел игрой, и предлагалась игра «Contents» с
+    // поставленной галочкой. Расширение смотрим на любой системе: вне macOS
+    // таких папок не бывает, а проверка остаётся проверяемой везде.
+    if (p.extension(dir.path) == '.app') {
+      return (kind: _Kind.game, executable: dir.path);
+    }
     // Предел выше, чем нужно для ответа: подпапки считаются по уже
     // найденному, и второй обход ради этого был бы лишним.
     final candidates = await ExecutableFinder.scan(
@@ -287,7 +295,11 @@ class _Walk {
     found.add(
       LibraryScanner._describe(
         directory: dir.path,
-        name: p.basename(dir.path),
+        // У бандла имя — без `.app`: очистка названия превратила бы точку в
+        // пробел, и игра звалась бы «Hades app».
+        name: p.extension(dir.path) == '.app'
+            ? p.basenameWithoutExtension(dir.path)
+            : p.basename(dir.path),
         executable: executable,
         steamApps: steamApps,
       ),

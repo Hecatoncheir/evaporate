@@ -237,18 +237,34 @@ class _ManagedDownload {
     return managed;
   }
 
+  /// Сколько ждать один шаг остановки. Трекер, не ответивший на прощальное
+  /// объявление, не должен держать выход приложения.
+  static const _stepTimeout = Duration(seconds: 2);
+
+  /// Один шаг остановки: сбой и зависание — в журнал, остальные шаги идут.
+  Future<void> _step(String what, Future<void>? Function() body) async {
+    try {
+      await body()?.timeout(_stepTimeout);
+    } on Object catch (error) {
+      // Задача могла и не запуститься; но молча не гасим — неостановленная
+      // задача держит файлы и сокеты.
+      AppLog.instance.write('загрузка $infoHash: $what', error);
+    }
+  }
+
   Future<void> dispose() async {
     generation++;
     final result = _metadataResult;
     if (result != null && !result.isCompleted) result.complete(null);
     _metadataResult = null;
-    try {
-      await metadata?.stop();
-      await task?.stop();
-      await task?.dispose();
-    } on Object {
-      // Задача могла не запуститься — гасим тихо.
-    }
+    // Каждый шаг — отдельно и со своим пределом: прежде один `try` на три
+    // шага, и сбой остановки поиска метаданных отменял остановку самой
+    // задачи, а `task.stop()` ждёт объявление трекеру без всякого предела —
+    // на выходе до второй задачи дело могло не дойти.
+    final current = task;
+    await _step('поиск метаданных', () => metadata?.stop());
+    await _step('остановка', () => current?.stop());
+    await _step('освобождение', () => current?.dispose());
     task = null;
     metadata = null;
     // Остановленную и сорвавшуюся не трогаем: слот они и так не

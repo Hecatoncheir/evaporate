@@ -143,9 +143,11 @@ class DtorrentEngine implements DownloadEngine {
   Future<void> stop() async {
     _pollTimer?.cancel();
     _pollTimer = null;
-    for (final managed in _downloads.values) {
-      await managed.dispose();
-    }
+    // Все разом, а не по одной: у каждой свой предел, и по одной они
+    // складывались бы в бюджет завершения, которого на всех не хватит.
+    await Future.wait([
+      for (final managed in _downloads.values) managed.dispose(),
+    ]);
     _downloads.clear();
     _queue.clear();
     _tasks.value = const [];
@@ -155,9 +157,7 @@ class DtorrentEngine implements DownloadEngine {
 
   Future<void> _restartAll() async {
     final snapshot = _downloads.values.toList();
-    for (final managed in snapshot) {
-      await managed.dispose();
-    }
+    await Future.wait([for (final managed in snapshot) managed.dispose()]);
     pumpQueue();
     await refresh();
   }
