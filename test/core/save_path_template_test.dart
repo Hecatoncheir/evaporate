@@ -215,6 +215,55 @@ void main() {
     });
   });
 
+  // Выбрал в диалоге правила «Документы» — и восстановление с очисткой
+  // отодвигало их целиком, клало на их место файлы снимка и удаляло
+  // отодвинутое. Правило, развёрнутое в корень, не разворачивается никуда.
+  group('правило шире папки сохранений', () {
+    SavePathRule rule(String template) =>
+        SavePathRule(id: 'r', label: 'Сохранения', template: template);
+
+    for (final placeholder in SavePathTemplate.placeholders.keys) {
+      test('$placeholder целиком — не папка сохранений', () {
+        expect(rule(placeholder).resolve(), isNull);
+        expect(rule('$placeholder/').resolve(), isNull);
+        // Предок корня опаснее самого корня.
+        expect(rule('$placeholder/..').resolve(), isNull);
+      });
+    }
+
+    test('корень диска — не папка сохранений', () {
+      final root = p.rootPrefix(p.current);
+      expect(rule(root).resolve(), isNull);
+      expect(SavePathTemplate.isTooBroad(root, roots: const []), isTrue);
+    });
+
+    test('папка игры целиком и её предок — не папка сохранений', () {
+      final game = p.join(p.rootPrefix(p.current), 'Games', 'Hollow');
+      expect(rule('{GAME}').resolve(gameDir: game), isNull);
+      expect(rule('{GAME}/..').resolve(gameDir: game), isNull);
+      expect(
+        rule('{GAME}/saves').resolve(gameDir: game),
+        p.join(game, 'saves'),
+      );
+    });
+
+    test('папка внутри корня — обычная папка сохранений', () {
+      for (final placeholder in SavePathTemplate.placeholders.keys) {
+        expect(rule('$placeholder/Игра/Saves').resolve(), isNotNull);
+      }
+    });
+
+    test('шире — сам корень и любой его предок, но не то, что внутри', () {
+      final home = p.join(p.rootPrefix(p.current), 'Users', 'me');
+      bool broad(String path) =>
+          SavePathTemplate.isTooBroad(path, roots: [home]);
+
+      expect(broad(home), isTrue);
+      expect(broad(p.dirname(home)), isTrue);
+      expect(broad(p.join(home, 'Игра')), isFalse);
+    });
+  });
+
   group('метки для набора путей', () {
     test('единственному пути — метка по умолчанию', () {
       expect(SavePathRule.labelsFor(['{HOME}/saves']), [

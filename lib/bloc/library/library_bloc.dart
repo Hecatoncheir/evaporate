@@ -248,11 +248,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
 
   Future<void> persist() async {
     _persistTimer?.cancel();
-    await _store.write({
-      'version': 1,
-      'games': state.games.map((g) => g.toJson()).toList(),
-    });
+    await _writeGames(state.games);
   }
+
+  Future<void> _writeGames(List<Game> games) => _store.write({
+    'version': 1,
+    'games': games.map((g) => g.toJson()).toList(),
+  });
 
   // ---------------------------------------------------------------- игры
 
@@ -280,7 +282,19 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
         damaged = true;
       }
     }
-    if (damaged) await _store.quarantine();
+    if (damaged) {
+      await _store.quarantine();
+      // Карантин переименовывает файл, и уцелевшие игры остались бы только
+      // в памяти: у сложившейся библиотеки правок на старте нет, писать их
+      // некому, и второй запуск находил пустоту. Пишем до того, как
+      // объявить библиотеку загруженной. Не записалось — загрузку это не
+      // отменяет: игры в памяти есть, и следующая правка попробует снова.
+      try {
+        await _writeGames(games);
+      } on Object catch (error) {
+        AppLog.instance.write('запись библиотеки после карантина', error);
+      }
+    }
     emit(
       state.copyWith(
         games: games,

@@ -92,7 +92,33 @@ fi
 # Заменяем папку целиком, а не докладываем поверх: файлы прошлой версии,
 # которых в новой нет, иначе остались бы лежать. Прежняя не удаляется, а
 # отодвигается — если замена сорвётся, откатиться есть куда.
+#
+# Двигаем и удаляем только папку, в которой нет ничего, кроме сборки:
+# `--prefix ~/apps` при существующей папке иначе отодвинул бы и стёр чужое.
+# Маркер здесь не обязателен — установки прежних версий его не несут, а
+# переставить их этим же файлом человек вправе.
+ours() {
+  [ -d "$1" ] && [ ! -L "$1" ] && [ -f "$1/evaporate" ] || return 1
+  for entry in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    case "${entry##*/}" in
+      evaporate|lib|data|.evaporate-install) ;;
+      *) return 1 ;;
+    esac
+  done
+  return 0
+}
 mkdir -p "$(dirname "$target")"
+if [ -e "$target.old" ] && ! ours "$target.old"; then
+  echo "$target.old уже есть, и это не прежняя установка Evaporate." >&2
+  echo "Уберите её сами или выберите другую папку через --prefix." >&2
+  exit 1
+fi
+if [ -e "$target" ] && ! ours "$target"; then
+  echo "$target уже есть, и в ней лежит не только Evaporate." >&2
+  echo "Выберите пустую папку через --prefix." >&2
+  exit 1
+fi
 if [ -e "$target" ]; then
   rm -rf "$target.old"
   mv "$target" "$target.old"
@@ -159,6 +185,11 @@ TAIL
 mkdir -p "$out"
 package="$out/evaporate-$version-linux-x86_64.run"
 cat "$work/installer" > "$package"
-tar -czf - -C "$bundle" . >> "$package"
+# Маркер своей папки — тот же, что в архиве (`tool/package_tarball.sh`):
+# по нему обновление по нажатию узнаёт, что папку положила сборка.
+cp -a "$bundle" "$work/payload"
+printf 'Эту папку положила сборка Evaporate: обновление заменяет её целиком.\n' \
+  > "$work/payload/.evaporate-install"
+tar -czf - -C "$work/payload" . >> "$package"
 chmod +x "$package"
 echo "$package"

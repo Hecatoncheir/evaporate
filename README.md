@@ -99,7 +99,7 @@
 | macOS | `evaporate-<версия>-macos.dmg` | открыть и перетащить Evaporate в «Программы» |
 | Debian, Ubuntu | `evaporate-<версия>-linux-amd64.deb` | двойной щелчок или `sudo apt install ./файл.deb` |
 | Прочие Linux | `evaporate-<версия>-linux-x86_64.run` | `chmod +x файл.run && ./файл.run` |
-| Linux вручную | `evaporate-<версия>-linux.tar.gz` | распаковать куда угодно и запустить `evaporate` |
+| Linux вручную | `evaporate-<версия>-linux-x64.tar.gz` | распаковать куда угодно — внутри папка `evaporate`, — и запустить `evaporate/evaporate` |
 
 Архив `-macos.zip` нужен для обновления macOS из самого приложения.
 На Windows оно скачивает и запускает `-windows-setup.exe`; `-windows.zip`
@@ -372,7 +372,7 @@ python3 tool/make_icon.py
 | Сборка Windows | windows | Release-каталог: `.zip` и установщик Inno Setup |
 | Приложить к релизу | ubuntu | выкладывает файлы и `SHA256SUMS` в релиз для тега `v*` |
 
-Обновление по нажатию ищет в релизе `-macos.zip`, `-linux.tar.gz` или
+Обновление по нажатию ищет в релизе `-macos.zip`, `-linux-x64.tar.gz` или
 `-windows-setup.exe`. На macOS и Linux папку установки заменяет отдельный
 помощник. На Windows приложение запускает сам Inno Setup отсоединённым
 процессом; после тихой установки установщик заново открывает Evaporate.

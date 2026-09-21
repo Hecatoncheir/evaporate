@@ -200,6 +200,100 @@ void main() {
       });
     }
 
+    // Раскладку v2- и hybrid-раздачи движок строит не по `files`, а по
+    // дереву `file tree`, склеивая его ключи как есть. Безобидные `files`
+    // рядом с деревом `{"..": {"..": {"x.bat": …}}}` писали вне папки игр.
+    group('дерево v2', () {
+      Map<String, Object> leaf({List<String>? symlink}) => {
+        '': {
+          'length': 16,
+          'pieces root': Uint8List(32),
+          'symlink path': ?symlink,
+        },
+      };
+
+      /// Раздача с деревом. Hybrid движок признаёт только при `piece layers`
+      /// в корне файла — без них это v2, и дерево он разворачивает в `files`
+      /// сам, где его и ловила прежняя проверка.
+      Uint8List torrentWithTree(
+        Map<String, Object> tree, {
+        bool hybrid = true,
+      }) {
+        final info = Uint8List.fromList(
+          bencode.encode({
+            if (hybrid)
+              'files': [
+                {
+                  'length': 16,
+                  'path': ['data', 'safe.dat'],
+                },
+              ],
+            'file tree': tree,
+            'meta version': 2,
+            'name': 'Раздача',
+            'piece length': 262144,
+            if (hybrid) 'pieces': pieces(),
+          }, 'utf-8'),
+        );
+        final torrent = bencode.decode(TorrentFile.assemble(info)) as Map;
+        if (hybrid) torrent['piece layers'] = <String, Object>{};
+        return Uint8List.fromList(bencode.encode(torrent));
+      }
+
+      for (final (title, tree) in [
+        (
+          'hybrid с «..» в дереве',
+          {
+            '..': {
+              '..': {'x.bat': leaf()},
+            },
+          },
+        ),
+        (
+          'hybrid с буквой диска в дереве',
+          {
+            'C:': {'x.bat': leaf()},
+          },
+        ),
+        (
+          'hybrid со ссылкой наружу в дереве',
+          {
+            'data': {
+              'link': leaf(symlink: ['..', '..', 'secret']),
+            },
+          },
+        ),
+      ]) {
+        test('$title отклоняется', () {
+          expect(
+            () => TorrentSource.fromBytes(torrentWithTree(tree)),
+            throwsA(isA<UnsafeTorrentException>()),
+          );
+        });
+      }
+
+      test('чистый v2 с «..» в дереве отклоняется', () {
+        expect(
+          () => TorrentSource.fromBytes(
+            torrentWithTree({
+              '..': {'x.bat': leaf()},
+            }, hybrid: false),
+          ),
+          throwsA(isA<UnsafeTorrentException>()),
+        );
+      });
+
+      test('обычное дерево принимается', () {
+        final model = TorrentSource.fromBytes(
+          torrentWithTree({
+            'data': {'safe.dat': leaf()},
+          }),
+        );
+
+        expect(model.fileTree, isNotNull);
+      });
+    });
+
     test('обычный вложенный путь принимается', () {
       final model = TorrentSource.fromBytes(
         TorrentFile.assemble(withPath(['data', 'levels', 'pak01.dat'])),

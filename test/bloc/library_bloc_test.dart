@@ -206,6 +206,20 @@ void main() {
           .where((file) => file.path.contains('.corrupt-')),
       hasLength(1),
     );
+
+    // Карантин переименовывает файл, и уцелевшие игры жили только в
+    // памяти: у сложившейся библиотеки правок на старте нет, и записать их
+    // было некому. Второй запуск находил пустоту — и молчал.
+    final reopened = LibraryBloc(
+      automaticMetadata: false,
+      paths: paths,
+      settings: settings,
+    );
+    addTearDown(reopened.close);
+    reopened.add(const LibraryLoadRequested());
+    await waitForState(reopened, (state) => state.loaded);
+
+    expect(reopened.state.games.map((game) => game.id), ['valid']);
   });
 
   // Негодная кодировка приходила не `FormatException`, а

@@ -32,6 +32,7 @@ class RuleForm extends Equatable {
     this.expanded = '',
     this.portable = true,
     this.labelTaken = false,
+    this.tooBroad = false,
   });
 
   final String label;
@@ -48,6 +49,11 @@ class RuleForm extends Equatable {
   /// Такая метка у игры уже есть.
   final bool labelTaken;
 
+  /// Путь слишком широк для сохранений: «Документы», домашняя папка,
+  /// корень диска (`SavePathTemplate.isTooBroad`). Снимок унёс бы его
+  /// целиком, а восстановление с очисткой — заменило бы.
+  final bool tooBroad;
+
   /// Правило, каким его запишут: метка без пробелов по краям, пустая —
   /// значит «Сохранения».
   RuleDraft get draft {
@@ -59,14 +65,16 @@ class RuleForm extends Equatable {
     );
   }
 
-  /// Пустой шаблон развернулся бы в рабочую папку процесса, а занятая
-  /// метка сделала бы оба правила непереносимыми.
-  bool get canSave => draft.template.isNotEmpty && !labelTaken;
+  /// Пустой шаблон развернулся бы в рабочую папку процесса, занятая
+  /// метка сделала бы оба правила непереносимыми, а слишком широкий путь
+  /// не развернётся вовсе — `SavePathRule.resolve` ему откажет.
+  bool get canSave => draft.template.isNotEmpty && !labelTaken && !tooBroad;
 
   RuleForm resolved({
     required String expanded,
     required bool portable,
     required bool labelTaken,
+    required bool tooBroad,
   }) => RuleForm(
     label: label,
     template: template,
@@ -74,6 +82,7 @@ class RuleForm extends Equatable {
     expanded: expanded,
     portable: portable,
     labelTaken: labelTaken,
+    tooBroad: tooBroad,
   );
 
   @override
@@ -84,5 +93,6 @@ class RuleForm extends Equatable {
     expanded,
     portable,
     labelTaken,
+    tooBroad,
   ];
 }

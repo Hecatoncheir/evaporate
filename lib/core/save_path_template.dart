@@ -149,6 +149,32 @@ class SavePathTemplate {
         return _preference.indexOf(a.key).compareTo(_preference.indexOf(b.key));
       });
 
+  /// Слишком ли широк путь, чтобы быть папкой сохранений.
+  ///
+  /// Широк — это корень плейсхолдера («Документы», `AppData`, домашняя
+  /// папка), сама папка игры, корень диска или предок любого из них. Такое
+  /// правило снимок унёс бы целиком, а восстановление с очисткой цели
+  /// отодвинуло бы и удалило, скажем, все «Документы», положив на их место
+  /// файлы снимка. Выбрать «Документы» в диалоге правила — одно нажатие.
+  ///
+  /// [roots] подменяются в тестах: настоящие корни зависят от системы, на
+  /// которой идёт прогон.
+  static bool isTooBroad(
+    String absolutePath, {
+    String? gameDir,
+    Iterable<String>? roots,
+  }) {
+    final path = p.normalize(absolutePath);
+    if (p.dirname(path) == path) return true;
+    final guarded = [
+      ...roots ?? placeholders.values,
+      if (gameDir != null && gameDir.isNotEmpty) gameDir,
+    ];
+    return guarded.any(
+      (root) => p.equals(path, root) || p.isWithin(path, p.normalize(root)),
+    );
+  }
+
   static bool isPortable(String template) =>
       template.contains(game) || placeholders.keys.any(template.contains);
 

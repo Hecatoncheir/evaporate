@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/format.dart';
 import '../../core/save_path_template.dart';
@@ -60,21 +61,28 @@ class RuleFormBloc extends Bloc<RuleFormEvent, RuleForm> {
     gameDir,
   );
 
-  /// Что следует из набранного: куда развернётся, переживёт ли переезд и
-  /// не занята ли метка.
+  /// Что следует из набранного: куда развернётся, переживёт ли переезд,
+  /// не занята ли метка и не слишком ли широк путь для сохранений.
   static RuleForm _resolve(
     RuleForm form,
     SaveProfile profile,
     String? gameDir,
   ) {
     final draft = form.draft;
+    final expanded = SavePathTemplate.expand(draft.template, gameDir: gameDir);
     return form.resolved(
-      expanded: SavePathTemplate.expand(draft.template, gameDir: gameDir),
+      expanded: expanded,
       portable: SavePathTemplate.isPortable(draft.template),
       labelTaken: profile.labelTaken(
         draft.label,
         platform: draft.currentPlatformOnly ? currentPlatformKey() : null,
       ),
+      // Только о развёрнутом до конца: `{GAME}` без папки игры — ещё не путь.
+      tooBroad:
+          draft.template.isNotEmpty &&
+          !expanded.contains('{') &&
+          p.isAbsolute(expanded) &&
+          SavePathTemplate.isTooBroad(expanded, gameDir: gameDir),
     );
   }
 }

@@ -274,7 +274,7 @@ class SaveManager {
       // обычный файл — распаковываем по одному, а не всё разом: снимок
       // может весить гигабайты, и держать их в памяти нечем.
       for (final blob in snapshot.blobs) {
-        if (!await store.fileFor(blob.hash).exists()) {
+        if (!await store.contains(blob.hash)) {
           throw SaveException(_l.saveArchiveMissing(blob.name));
         }
         final staged = File('$destination.${blob.hash}.part');
@@ -387,7 +387,7 @@ class SaveManager {
   Future<List<RestoreSource>> _storedSources(SaveSnapshot snapshot) async {
     final sources = <RestoreSource>[];
     for (final blob in snapshot.blobs) {
-      if (!await store.fileFor(blob.hash).exists()) {
+      if (!await store.contains(blob.hash)) {
         throw SaveException(_l.saveArchiveMissing(blob.name));
       }
       sources.add(
@@ -646,10 +646,11 @@ class SaveManager {
   ///
   /// Список живых ссылок собирает библиотека: только она видит все снимки
   /// всех игр разом, а хранилище — общее для них.
-  Future<int> collectGarbage(Iterable<SaveSnapshot> alive) => store.collect({
-    for (final snapshot in alive)
-      for (final blob in snapshot.blobs) blob.hash,
-  });
+  Future<StoreCleanup> collectGarbage(Iterable<SaveSnapshot> alive) =>
+      store.collect({
+        for (final snapshot in alive)
+          for (final blob in snapshot.blobs) blob.hash,
+      });
 
   /// Сканирует папку синхронизации (Dropbox, Syncthing, iCloud) на пакеты
   /// с других устройств.

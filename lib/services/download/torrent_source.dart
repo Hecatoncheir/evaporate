@@ -81,15 +81,28 @@ class TorrentSource {
   /// Место выбрано одно на всё: и `.torrent` с диска, и метаданные
   /// magnet-ссылки проходят через [fromBytes], и мимо этой проверки в
   /// движок не попадает ничего.
+  ///
+  /// Смотреть приходится и в `files`, и в дерево v2 (`file tree`): у
+  /// hybrid-раздачи они независимы, а раскладку движок строит по дереву,
+  /// склеивая его ключи как есть. Безобидные `files` рядом с деревом
+  /// `{"..": {"..": {"x.bat": …}}}` писали мимо папки игр.
   static void _rejectUnsafePaths(dt.TorrentModel model) {
     for (final file in model.files) {
-      final unsafe = TorrentFile.unsafePath(file.path);
-      if (unsafe != null) throw UnsafeTorrentException(unsafe);
-
-      final link = file.symlinkPath;
-      if (link == null || link.isEmpty) continue;
-      final target = TorrentFile.unsafePath(link.join('/'));
-      if (target != null) throw UnsafeTorrentException(target);
+      _rejectUnsafe(file.path, file.symlinkPath);
     }
+    final tree = model.fileTree;
+    if (tree == null) return;
+    for (final file in dt.FileTreeHelper.extractFiles(tree, '')) {
+      _rejectUnsafe(file.path, file.symlinkPath);
+    }
+  }
+
+  static void _rejectUnsafe(String path, List<String>? link) {
+    final unsafe = TorrentFile.unsafePath(path);
+    if (unsafe != null) throw UnsafeTorrentException(unsafe);
+
+    if (link == null || link.isEmpty) return;
+    final target = TorrentFile.unsafePath(link.join('/'));
+    if (target != null) throw UnsafeTorrentException(target);
   }
 }

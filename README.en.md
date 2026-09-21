@@ -102,7 +102,7 @@ building; each system has its own file:
 | macOS | `evaporate-<version>-macos.dmg` | open it and drag Evaporate into Applications |
 | Debian, Ubuntu | `evaporate-<version>-linux-amd64.deb` | double-click, or `sudo apt install ./file.deb` |
 | Other Linux | `evaporate-<version>-linux-x86_64.run` | `chmod +x file.run && ./file.run` |
-| Linux, by hand | `evaporate-<version>-linux.tar.gz` | unpack anywhere and run `evaporate` |
+| Linux, by hand | `evaporate-<version>-linux-x64.tar.gz` | unpack anywhere (it holds an `evaporate` folder) and run `evaporate/evaporate` |
 
 The app uses the `-macos.zip` archive for an in-place macOS update. On Windows
 it downloads and runs `-windows-setup.exe` instead; `-windows.zip` remains for
@@ -362,7 +362,7 @@ python3 tool/make_icon.py
 | Build Windows | windows | the Release directory: a `.zip` and an Inno Setup installer |
 | Attach to release | ubuntu | uploads the files and `SHA256SUMS` for a `v*` tag |
 
-An update started by the user looks for `-macos.zip`, `-linux.tar.gz`, or
+An update started by the user looks for `-macos.zip`, `-linux-x64.tar.gz`, or
 `-windows-setup.exe` in the release. On macOS and Linux, a detached helper
 swaps the installation directory. On Windows, the app starts Inno Setup itself
 as a detached process; after the silent installation, the installer relaunches

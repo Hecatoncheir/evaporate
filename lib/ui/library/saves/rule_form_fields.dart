@@ -49,7 +49,11 @@ class RuleFormFields extends StatelessWidget {
             style: context.text.path.copyWith(
               color: context.colors.textPrimary,
             ),
-            decoration: InputDecoration(labelText: l.pathTemplate),
+            decoration: InputDecoration(
+              labelText: l.pathTemplate,
+              errorText: form.tooBroad ? l.pathTooBroad : null,
+              errorMaxLines: 3,
+            ),
           ),
           const SizedBox(height: 8),
           Text(l.expandsTo(form.expanded), style: context.text.captionMuted),

@@ -47,6 +47,15 @@
       }
     }
   },
+  "noticeSnapshotsRecovered": "The list of save snapshots could not be read. Snapshot files were left untouched; the original list was preserved at: {path}",
+  "@noticeSnapshotsRecovered": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "noticeSnapshotsPartlyRead": "Some save snapshots could not be read. They were kept in the list as they were, and their files were left untouched.",
   "@noticeSaveHints": {
     "placeholders": {
       "count": {
@@ -229,6 +238,7 @@
   "label": "Label",
   "labelNote": "Paths are matched between machines by label",
   "labelTaken": "Another path already has this label — another machine could not tell them apart",
+  "pathTooBroad": "This is a whole system folder, not a save folder: a snapshot would take all of it, and a restore would replace it. Pick the game's own folder inside it.",
   "language": "Language",
   "languageEnglish": "English",
   "languageRussian": "Русский",

@@ -32,6 +32,17 @@ void main() {
       ? Process.start('cmd', const ['/c', 'exit', '0'])
       : Process.start('true', const []);
 
+  /// Папка Linux в том виде, в каком её кладёт сборка: исполняемый файл,
+  /// библиотеки, данные и маркер — ничего больше.
+  Future<InstallLayout> ownInstall(String name) async {
+    final root = p.join(tmp.path, name);
+    await Directory(p.join(root, 'lib')).create(recursive: true);
+    await Directory(p.join(root, 'data')).create(recursive: true);
+    await File(p.join(root, 'evaporate')).writeAsString('#!/bin/sh\n');
+    await File(p.join(root, InstallLayout.marker)).writeAsString('');
+    return InstallLayout(root: root, executable: p.join(root, 'evaporate'));
+  }
+
   /// Архив в том виде, в каком его кладёт сборка.
   ///
   /// Папки в нём — отдельные записи с косой чертой на конце: так их пишут и
@@ -144,7 +155,7 @@ void main() {
   // Имя архива для своей системы приходит из релиза, а какое оно — знает
   // сборка. Тест берёт то же, что и приложение.
   String archiveName() => archivePlatform() == 'linux'
-      ? 'evaporate-9.9.9-linux.tar.gz'
+      ? 'evaporate-9.9.9${Release.updateSuffix('linux')}'
       : 'evaporate-9.9.9-macos.zip';
 
   group('подготовка обновления', () {
@@ -211,9 +222,7 @@ void main() {
 
     test('архив скачивается, проверяется и распаковывается', () async {
       // tar.gz на Linux собирать сложнее, а проверяем мы не упаковщик.
-      final name = Platform.isLinux
-          ? 'evaporate-9.9.9-linux.tar.gz'
-          : archiveName();
+      final name = archiveName();
       final bytes = Platform.isLinux
           ? const GZipEncoder().encodeBytes(
               TarEncoder().encodeBytes(
@@ -594,10 +603,7 @@ void main() {
     Future<File> written() async {
       final installer = UpdateInstaller(
         workDir: tmp.path,
-        layout: InstallLayout(
-          root: tmp.path,
-          executable: p.join(tmp.path, 'evaporate'),
-        ),
+        layout: await ownInstall('app'),
         processId: 1,
         platform: 'linux',
         start: (executable, arguments) async => dummyProcess(),
@@ -649,10 +655,7 @@ void main() {
         final started = <List<String>>[];
         final installer = UpdateInstaller(
           workDir: tmp.path,
-          layout: InstallLayout(
-            root: tmp.path,
-            executable: p.join(tmp.path, 'evaporate'),
-          ),
+          layout: await ownInstall('app'),
           processId: 4242,
           platform: 'linux',
           start: (executable, arguments) async {
@@ -848,4 +851,147 @@ void main() {
       );
     });
   });
+
+  // Папкой приложения считается та, где лежит исполняемый файл, а замена
+  // удаляет её целиком. Архив, распакованный прямо в «Загрузки», делал
+  // папкой приложения сами «Загрузки» — и обновление уносило их со всем
+  // содержимым.
+  group('чужая папка', () {
+    Future<UpdateInstaller> installerFor(InstallLayout layout) async =>
+        UpdateInstaller(
+          workDir: p.join(tmp.path, 'work'),
+          layout: layout,
+          processId: 1,
+          platform: 'linux',
+          start: (executable, arguments) async =>
+              throw StateError('запускать не должны'),
+        );
+
+    test('сборка, распакованная в «Загрузки», себя не обновляет', () async {
+      final layout = await ownInstall('Downloads');
+      await File(p.join(layout.root, InstallLayout.marker)).delete();
+      await File(p.join(layout.root, 'отпуск.jpg')).writeAsString('фото');
+      final installer = await installerFor(layout);
+
+      expect(await installer.canInstall, isFalse);
+      await expectLater(
+        installer.apply(p.join(tmp.path, 'staged')),
+        throwsA(isA<UpdateException>()),
+      );
+      expect(File(p.join(layout.root, 'отпуск.jpg')).existsSync(), isTrue);
+    });
+
+    // `.run --extract` и распаковка руками поверх чужой папки приносят
+    // маркер вместе со сборкой — а чужое остаётся лежать рядом.
+    test('маркер рядом с чужим не делает папку своей', () async {
+      final layout = await ownInstall('apps');
+      await Directory(p.join(layout.root, 'другая-игра')).create();
+
+      expect(await (await installerFor(layout)).canInstall, isFalse);
+    });
+
+    // Прежние сборки маркера не клали; обновлять их папку по нажатию нельзя
+    // хотя бы потому, что помощник у них старый.
+    test('папка без маркера своей не считается', () async {
+      final layout = await ownInstall('old');
+      await File(p.join(layout.root, InstallLayout.marker)).delete();
+
+      expect(await (await installerFor(layout)).canInstall, isFalse);
+    });
+
+    test('папка сборки с маркером обновляется', () async {
+      final layout = await ownInstall('app');
+
+      expect(await (await installerFor(layout)).canInstall, isTrue);
+    });
+  });
+
+  // Помощник — последний рубеж перед `rm -rf`, и проверять его стоит
+  // настоящим `sh`, а не поиском строк в тексте скрипта.
+  group(
+    'помощник на деле',
+    () {
+      Future<String> runHelper(InstallLayout layout, String staged) async {
+        final gone = await Process.start('true', const []);
+        await gone.exitCode;
+        final log = p.join(tmp.path, 'helper.log');
+        final script = File(p.join(tmp.path, UpdateScript.fileName));
+        await script.writeAsString(
+          UpdateScript.build(
+            layout: layout,
+            stagedRoot: staged,
+            pid: gone.pid,
+            logPath: log,
+          ),
+        );
+        final result = await Process.run('sh', [script.path]);
+        expect(result.stderr, isEmpty);
+        return File(log).readAsString();
+      }
+
+      Future<String> newBuild() async {
+        final staged = await ownInstall(p.join('staged', 'evaporate'));
+        await File(staged.executable).writeAsString('#!/bin/sh\n# новая\n');
+        return staged.root;
+      }
+
+      test('сборка в своей папке заменяется, прежняя убирается', () async {
+        final layout = await ownInstall('app');
+        final staged = await newBuild();
+
+        final log = await runHelper(layout, staged);
+
+        expect(log, contains('установлено'));
+        expect(File(layout.executable).readAsStringSync(), contains('новая'));
+        expect(
+          Directory('${layout.root}${UpdateScript.backupSuffix}').existsSync(),
+          isFalse,
+        );
+      });
+
+      test('чужой файл в папке приложения переживает обновление', () async {
+        final layout = await ownInstall('Downloads');
+        await File(p.join(layout.root, InstallLayout.marker)).delete();
+        final photo = File(p.join(layout.root, 'отпуск.jpg'));
+        await photo.writeAsString('фото');
+        final staged = await newBuild();
+
+        final log = await runHelper(layout, staged);
+
+        expect(log, contains('не похожа на папку сборки'));
+        expect(photo.readAsStringSync(), 'фото');
+        expect(
+          File(layout.executable).readAsStringSync(),
+          isNot(contains('новая')),
+        );
+        expect(Directory(staged).existsSync(), isTrue);
+      });
+
+      // `mv` в существующую папку кладёт установку внутрь неё, а `rm -rf`
+      // перед ним снёс бы то, что там лежит. Чужое на месте отодвинутого не
+      // трогаем вовсе.
+      test('чужое на месте отодвинутой копии не удаляется', () async {
+        final layout = await ownInstall('app');
+        final occupied = Directory(
+          '${layout.root}${UpdateScript.backupSuffix}',
+        );
+        await occupied.create();
+        final note = File(p.join(occupied.path, 'заметки.txt'));
+        await note.writeAsString('моё');
+        final staged = await newBuild();
+
+        final log = await runHelper(layout, staged);
+
+        expect(log, contains('лежит чужое'));
+        expect(note.readAsStringSync(), 'моё');
+        expect(
+          File(layout.executable).readAsStringSync(),
+          isNot(contains('новая')),
+        );
+      });
+    },
+    skip: Platform.isWindows
+        ? 'POSIX-помощник не запускается на Windows'
+        : null,
+  );
 }

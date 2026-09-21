@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:evaporate/services/system/update_check.dart';
+import 'package:evaporate/services/system/update_install.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/temp_dir.dart';
 
 /// Что уезжает в релиз, знает не приложение, а `.github/workflows/ci.yml` —
 /// и разойтись они могут молча. Приложение ищет в релизе файл по хвосту
@@ -24,21 +27,91 @@ void main() {
       .join('\n');
 
   group('сборка кладёт в релиз то, что ищет приложение', () {
-    for (final platform in ['macos', 'linux']) {
-      test('обновление для $platform собирается под ожидаемым именем', () {
-        final suffix = Release.updateSuffix(platform);
+    test('обновление для macos собирается под ожидаемым именем', () {
+      final suffix = Release.updateSuffix('macos');
 
-        expect(suffix, isNotNull);
+      expect(suffix, isNotNull);
+      expect(
+        commands,
+        contains(suffix!),
+        reason:
+            'Приложение ищет в релизе файл с хвостом «$suffix». Сборка '
+            'такого не делает — обновление по нажатию на macos не найдёт, '
+            'что скачивать.',
+      );
+    });
+
+    // Архив Linux пакует отдельный скрипт: у него корневая папка и маркер,
+    // и одной строкой `tar` в ci.yml это уже не записать.
+    test('обновление для linux собирается под ожидаемым именем', () {
+      final suffix = Release.updateSuffix('linux');
+
+      expect(commands, contains('tool/package_tarball.sh'));
+      expect(
+        File('tool/package_tarball.sh').readAsStringSync(),
+        contains('evaporate-\$version$suffix'),
+        reason:
+            'Приложение ищет в релизе файл с хвостом «$suffix». Сборка '
+            'такого не делает — обновление по нажатию на linux не найдёт, '
+            'что скачивать.',
+      );
+      // Прежний хвост в релиз класть нельзя: его найдут сборки, чей
+      // помощник удаляет папку приложения, не проверяя, чья она.
+      expect(commands, isNot(contains('-linux.tar.gz')));
+    });
+
+    // По маркеру приложение узнаёт папку, которую положила сборка, и только
+    // такую заменяет целиком. Архив и `.run` его несут; пакет — нет: его
+    // файлы принадлежат dpkg.
+    test('маркер своей папки несут архив и .run, но не пакет', () {
+      for (final packager in [
+        'tool/package_tarball.sh',
+        'tool/package_run.sh',
+      ]) {
+        final text = File(packager).readAsStringSync();
         expect(
-          commands,
-          contains(suffix!),
-          reason:
-              'Приложение ищет в релизе файл с хвостом «$suffix». Сборка '
-              'такого не делает — обновление по нажатию на $platform не '
-              'найдёт, что скачивать.',
+          text,
+          contains('/${InstallLayout.marker}"'),
+          reason: '$packager не кладёт маркер',
         );
+      }
+      expect(
+        File('tool/package_linux.sh').readAsStringSync(),
+        contains('rm -f "\$stage/opt/evaporate/${InstallLayout.marker}"'),
+      );
+    });
+
+    // Россыпью архив распаковывали прямо в «Загрузки», и они становились
+    // папкой приложения. Проверяется настоящей упаковкой, а не текстом.
+    test('в архиве Linux одна корневая папка с маркером', () async {
+      final tmp = await Directory.systemTemp.createTemp('evaporate_tar_');
+      addTearDown(() => deleteTempDir(tmp));
+      final bundle = Directory('${tmp.path}/bundle');
+      await Directory('${bundle.path}/lib').create(recursive: true);
+      await Directory('${bundle.path}/data').create(recursive: true);
+      await File('${bundle.path}/evaporate').writeAsString('бинарь');
+
+      final packed = await Process.run('bash', [
+        'tool/package_tarball.sh',
+        '9.9.9',
+        bundle.path,
+        '${tmp.path}/dist',
+      ]);
+      expect(packed.exitCode, 0, reason: '${packed.stderr}');
+
+      final listed = await Process.run('tar', [
+        '-tzf',
+        '${tmp.path}/dist/evaporate-9.9.9${Release.updateSuffix('linux')}',
+      ]);
+      final entries = LineSplitter.split(listed.stdout as String)
+          .map((entry) => entry.replaceFirst(RegExp('^\\./'), ''))
+          .where((entry) => entry.isNotEmpty)
+          .toList();
+      expect(entries.map((entry) => entry.split('/').first).toSet(), {
+        'evaporate',
       });
-    }
+      expect(entries, contains('evaporate/${InstallLayout.marker}'));
+    }, skip: Platform.isWindows ? 'упаковка Linux идёт в bash' : null);
 
     test('windows обновляется файлом Inno Setup', () {
       expect(Release.updateSuffix('windows'), '-windows-setup.exe');

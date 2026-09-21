@@ -6,6 +6,7 @@ import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/save_snapshot.dart';
+import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -155,5 +156,104 @@ void main() {
         .timeout(const Duration(seconds: 10));
 
     expect(reopened.state.snapshotsFor('game-1').map((s) => s.id), ['snap-2']);
+  });
+
+  // Список снимков — единственное, что говорит уборке хранилища, какое
+  // содержимое живо. Прочитанный не целиком, он называет мёртвым всё, что
+  // было в непрочитанном, и следующая же уборка уносила содержимое всех
+  // таких снимков — молча, а карантинная копия списка оставалась
+  // бесполезной: ссылаться ей стало не на что.
+  group('список снимков прочитан не целиком', () {
+    Future<SnapshotBlob> blobOf(String text) =>
+        SnapshotStore(root: paths.blobsDir)
+            .putBytes('slot.sav', utf8.encode(text));
+
+    SaveSnapshot withBlob(String id, SnapshotBlob blob) => SaveSnapshot(
+      id: id,
+      gameId: 'game-1',
+      gameTitle: 'Тихая гавань',
+      createdAt: DateTime.now(),
+      sizeBytes: blob.size,
+      fileCount: 1,
+      rules: const [],
+      archivePath: '',
+      deviceName: 'test',
+      platform: 'test',
+      blobs: [blob],
+    );
+
+    Future<void> writeList(Object list) async {
+      await Directory(paths.dataDir).create(recursive: true);
+      await File(paths.snapshotsFile).writeAsString(
+        jsonEncode({
+          'version': 1,
+          'snapshots': {'game-1': list},
+        }),
+      );
+    }
+
+    /// Удаление снимка — ровно тот путь, за которым идёт уборка, а
+    /// список ложится на диск после неё: появился в файле без снимка —
+    /// значит, уборка уже прошла.
+    Future<void> deleteAndWait(SaveSnapshot snapshot) async {
+      saves.add(SnapshotDeleted(snapshot));
+      final file = File(paths.snapshotsFile);
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      while (!file.existsSync() ||
+          file.readAsStringSync().contains('"${snapshot.id}"')) {
+        if (DateTime.now().isAfter(deadline)) fail('список не записан');
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      await saves.persist();
+    }
+
+    test('нечитаемый файл не отдаёт содержимое снимков уборке', () async {
+      final orphan = await blobOf('прогресс, о котором список забыл');
+      await Directory(paths.dataDir).create(recursive: true);
+      await File(paths.snapshotsFile).writeAsString('{"snapshots": {обрыв');
+
+      await load();
+      expect(saves.state.notice?.isError, isTrue, reason: 'порча молчит');
+
+      final fresh = withBlob('snap-fresh', await blobOf('свежий'));
+      saves.add(SnapshotTaken(fresh));
+      await saves.stream.firstWhere((s) => s.snapshotsFor('game-1').isNotEmpty);
+      await deleteAndWait(fresh);
+
+      expect(
+        SnapshotStore(root: paths.blobsDir).fileFor(orphan.hash).existsSync(),
+        isTrue,
+        reason: 'уборка унесла содержимое снимка из испорченного списка',
+      );
+    });
+
+    test('нечитаемая запись переживает перезапись списка', () async {
+      final lost = await blobOf('прогресс нечитаемого снимка');
+      final unreadable = {
+        'id': 'snap-future',
+        'blobs': [lost.toJson()],
+        'createdAt': 'формат новой сборки',
+      };
+      final readable = withBlob('snap-2', await blobOf('читаемый'));
+      await writeList([unreadable, readable.toJson()]);
+
+      await load();
+      expect(saves.state.snapshotsFor('game-1').map((s) => s.id), ['snap-2']);
+      expect(saves.state.notice?.isError, isTrue, reason: 'порча молчит');
+
+      await deleteAndWait(readable);
+
+      final written = jsonDecode(
+        File(paths.snapshotsFile).readAsStringSync(),
+      ) as Map<String, dynamic>;
+      expect((written['snapshots'] as Map<String, dynamic>)['game-1'], [
+        unreadable,
+      ]);
+      expect(
+        SnapshotStore(root: paths.blobsDir).fileFor(lost.hash).existsSync(),
+        isTrue,
+        reason: 'уборка унесла содержимое нечитаемого снимка',
+      );
+    });
   });
 }

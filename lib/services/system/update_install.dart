@@ -51,6 +51,38 @@ class InstallLayout {
     return null;
   }
 
+  /// Файл, которым сборка метит папку, положенную ею целиком.
+  ///
+  /// Замена удаляет папку приложения, а папкой приложения считается та, где
+  /// лежит исполняемый файл. Архив Linux когда-то паковался россыпью, без
+  /// корневой папки, и распакованный прямо в «Загрузки» делал «Загрузки»
+  /// папкой приложения — обновление уносило их вместе со всем, что там
+  /// лежало. Маркер говорит «эту папку положила сборка», а не «сюда можно
+  /// писать»: второе верно и для домашней папки.
+  static const marker = '.evaporate-install';
+
+  /// Что лежит в папке сборки Linux на верхнем уровне — и ничего больше.
+  ///
+  /// Маркер один не спасает: `.run --extract` или распаковка руками поверх
+  /// чужой папки приносят его вместе со сборкой, и рядом остаётся чужое.
+  /// Такую папку тоже не трогаем.
+  static const linuxEntries = {'evaporate', 'lib', 'data', marker};
+
+  /// Своя ли это папка: положена сборкой целиком, и чужого в ней нет.
+  ///
+  /// Не прочиталась — не своя: чего не поняли, то не удаляем.
+  Future<bool> get isOwnFolder async {
+    try {
+      if (!await File(p.join(root, marker)).exists()) return false;
+      await for (final entry in Directory(root).list(followLinks: false)) {
+        if (!linuxEntries.contains(p.basename(entry.path))) return false;
+      }
+      return true;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
   /// Можно ли вообще ставить обновление сюда.
   ///
   /// На Linux приложение нередко лежит в системной папке, куда его положил
@@ -85,6 +117,12 @@ class InstallLayout {
 /// Шаг второй и пятый — это возможность откатиться. Если замена сорвётся
 /// на середине, прежняя установка ещё лежит рядом и её возвращают на место;
 /// если всё прошло, она уже никому не нужна.
+///
+/// Каждую папку, которую предстоит двигать или удалять, помощник проверяет
+/// сам, хотя приложение проверило её до него (`UpdateInstaller.canInstall`):
+/// он последний рубеж перед `rm -rf` и верить тому, кто его собрал, не
+/// должен. Бандл macOS узнаётся по `Contents/MacOS`, папка Linux — по
+/// маркеру и по тому, что ничего сверх сборки в ней нет.
 class UpdateScript {
   const UpdateScript._();
 
@@ -110,6 +148,8 @@ class UpdateScript {
         .replaceAll('@BACKUP@', quoted(backup))
         .replaceAll('@LAUNCH@', quoted(layout.executable))
         .replaceAll('@LOG@', quoted(logPath))
+        .replaceAll('@MARKER@', InstallLayout.marker)
+        .replaceAll('@ENTRIES@', InstallLayout.linuxEntries.join('|'))
         .replaceAll('@PID@', '$pid');
   }
 
@@ -135,6 +175,41 @@ note() {
 }
 
 note "обновление: начинаю, папка $root"
+
+# Своя ли папка. Бандл macOS — по устройству бандла; папка Linux — по
+# маркеру сборки и по тому, что ничего чужого рядом нет. Чего не узнали,
+# то не двигаем и не удаляем: однажды папкой приложения оказались
+# «Загрузки».
+case "$root" in
+  *.app) kind=bundle ;;
+  *) kind=folder ;;
+esac
+
+ours() {
+  [ -d "$1" ] || return 1
+  [ -L "$1" ] && return 1
+  if [ "$kind" = bundle ]; then
+    [ -d "$1/Contents/MacOS" ]
+    return
+  fi
+  [ -f "$1/@MARKER@" ] || return 1
+  for entry in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    case "${entry##*/}" in
+      @ENTRIES@) ;;
+      *) return 1 ;;
+    esac
+  done
+  return 0
+}
+
+# Отказ — тоже с запуском: остаться без приложения хуже, чем на прежней
+# версии.
+refuse() {
+  note "обновление: $1"
+  "$launch" >/dev/null 2>&1 &
+  exit 1
+}
 
 # Ждём, пока процесс исчезнет. Тридцать секунд: у приложения свой бюджет на
 # дописывание несделанного.
@@ -168,7 +243,19 @@ swap() {
   return 1
 }
 
-rm -rf "$backup" 2>/dev/null || true
+ours "$root" || refuse "$root не похожа на папку сборки, не трогаю"
+ours "$staged" || refuse "$staged не похожа на сборку, не ставлю"
+
+# Отодвинутое прошлым разом. Чужое на этом месте не удаляем, а отказываемся:
+# `mv` в существующую папку положил бы установку внутрь неё.
+if [ -e "$backup" ] || [ -L "$backup" ]; then
+  if ours "$backup"; then
+    rm -rf "$backup" 2>/dev/null || true
+  fi
+  if [ -e "$backup" ] || [ -L "$backup" ]; then
+    refuse "на месте $backup лежит чужое, не трогаю"
+  fi
+fi
 
 replaced=0
 if swap "$root" "$backup"; then
@@ -186,7 +273,9 @@ fi
 
 if [ "$replaced" -eq 1 ]; then
   note 'обновление: установлено'
-  rm -rf "$backup" 2>/dev/null || true
+  if ours "$backup"; then
+    rm -rf "$backup" 2>/dev/null || true
+  fi
 else
   note 'обновление: не установлено, версия прежняя'
 fi

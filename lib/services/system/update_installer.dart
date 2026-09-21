@@ -78,13 +78,18 @@ class UpdateInstaller {
   /// На Windows обновляем только копию, поставленную Inno Setup:
   /// portable-zip лучше не превращать в установленную копию без спроса.
   /// На Linux приложение нередко лежит там, куда его положил пакетный
-  /// менеджер: писать туда нельзя, да и обновлять должен он же.
+  /// менеджер: писать туда нельзя, да и обновлять должен он же. А
+  /// записываемость не говорит, чья папка: распакованная прямо в
+  /// «Загрузки» сборка делает папкой приложения сами «Загрузки», и замена
+  /// унесла бы их целиком. Поэтому на Linux нужна ещё и метка сборки
+  /// (`InstallLayout.isOwnFolder`); бандл macOS свой по устройству.
   Future<bool> get canInstall async {
     final target = _layout;
     if (target == null) return false;
     if (_os == 'windows') {
       return File(p.join(target.root, 'unins000.exe')).exists();
     }
+    if (_os == 'linux' && !await target.isOwnFolder) return false;
     return target.isWritable;
   }
 

@@ -99,11 +99,19 @@ class SavePathRule extends Equatable {
   /// Так же `null` и для пустого шаблона и для относительного пути: они
   /// разворачиваются относительно рабочей папки процесса (пустой — в `.`),
   /// и снимок унёс бы её, а восстановление с очисткой цели — очистило бы.
+  ///
+  /// И для пути, слишком широкого для сохранений
+  /// ([SavePathTemplate.isTooBroad]): «Документы», домашняя папка, корень
+  /// диска. Проверка здесь, а не только в диалоге правила: правила приходят
+  /// и из базы путей, и из профилей, записанных до неё, а `resolve` —
+  /// единственная дверь, через которую правило становится путём на диске.
   String? resolve({String? gameDir}) {
     if (template.trim().isEmpty) return null;
     if (needsGameDir && (gameDir == null || gameDir.isEmpty)) return null;
     final resolved = SavePathTemplate.expand(template, gameDir: gameDir);
-    return p.isAbsolute(resolved) ? resolved : null;
+    if (!p.isAbsolute(resolved)) return null;
+    if (SavePathTemplate.isTooBroad(resolved, gameDir: gameDir)) return null;
+    return resolved;
   }
 
   SavePathRule copyWith({

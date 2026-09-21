@@ -120,4 +120,23 @@ void main() {
     expect(bloc.state.draft.currentPlatformOnly, isTrue);
     expect(currentPlatformKey(), isNotEmpty);
   });
+
+  // Выбрать «Документы» в диалоге — одно нажатие, а восстановление с
+  // очисткой заменило бы их целиком файлами снимка.
+  test('системная папка целиком сохранения не получает', () async {
+    final bloc = form(template: '{DOCUMENTS}/Игра');
+    expect(bloc.state.tooBroad, isFalse);
+
+    bloc.add(const RuleTemplateChanged(SavePathTemplate.documents));
+    await settle();
+
+    expect(bloc.state.tooBroad, isTrue);
+    expect(bloc.state.canSave, isFalse);
+  });
+
+  // `{GAME}` без известной папки игры — ещё не путь, и судить о нём рано.
+  test('недоразвёрнутый шаблон широким не считается', () {
+    expect(form(template: '{GAME}').state.tooBroad, isFalse);
+    expect(form(template: '{GAME}', gameDir: '/opt/hk').state.tooBroad, isTrue);
+  });
 }

@@ -51,11 +51,60 @@ void main() {
     final kept = await store.putBytes('a', utf8.encode('нужное'));
     final dropped = await store.putBytes('b', utf8.encode('ненужное'));
 
-    final freed = await store.collect({kept.hash});
+    final (:moved, purged: _) = await store.collect({kept.hash});
 
-    expect(freed, greaterThan(0));
+    expect(moved, greaterThan(0));
     expect(store.fileFor(kept.hash).existsSync(), isTrue);
     expect(store.fileFor(dropped.hash).existsSync(), isFalse);
+  });
+
+  // Уборка верит списку живых снимков, а список бывал неполным так, как
+  // никто не предусмотрел. Вынесенное должно вернуться, стоит снимку на
+  // него сослаться.
+  group('вынесенное уборкой', () {
+    test('возвращается, когда снимок на него сошлётся', () async {
+      final store = SnapshotStore(root: root());
+      final blob = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      await store.collect(const {});
+      expect(store.fileFor(blob.hash).existsSync(), isFalse);
+
+      final target = p.join(tmp.path, 'назад', 'slot.sav');
+      expect(await store.contains(blob.hash), isTrue);
+      await store.extractTo(blob.hash, target);
+
+      expect(File(target).readAsStringSync(), 'прогресс');
+      expect(store.fileFor(blob.hash).existsSync(), isTrue);
+    });
+
+    test('то же содержимое заново не пишется, а возвращается', () async {
+      final store = SnapshotStore(root: root());
+      final first = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      await store.collect(const {});
+
+      final again = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+
+      expect(again.hash, first.hash);
+      expect(store.fileFor(first.hash).existsSync(), isTrue);
+      expect(Directory(store.trash).listSync(), isEmpty);
+    });
+
+    test('удаляется насовсем только по сроку', () async {
+      var now = DateTime(2026, 9, 21);
+      final store = SnapshotStore(root: root(), clock: () => now);
+      final blob = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      await store.collect(const {});
+
+      now = now.add(store.trashKeep - const Duration(hours: 1));
+      expect((await store.collect(const {})).purged, 0);
+      expect(await store.contains(blob.hash), isTrue);
+      await store.collect(const {});
+
+      now = now.add(store.trashKeep + const Duration(hours: 1));
+      final (moved: _, :purged) = await store.collect(const {});
+
+      expect(purged, greaterThan(0));
+      expect(await store.contains(blob.hash), isFalse);
+    });
   });
 
   // Хеш считался по одному чтению, а на диск ложилось другое: игра успела

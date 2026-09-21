@@ -48,7 +48,12 @@ void main() {
   }
 
   /// Прокручивает отложенную работу с диском, чередуя зоны.
-  Future<void> drain(WidgetTester tester, {int cycles = 15}) async {
+  ///
+  /// Каждый шаг настоящего ввода-вывода требует своего цикла. Пятнадцати
+  /// хватало, пока уборка хранилища удаляла файл одним вызовом; с корзиной
+  /// у неё вынос, отметка времени и проход по корзине, и обработчик не
+  /// успевал закончиться — тест вис на закрытии библиотеки.
+  Future<void> drain(WidgetTester tester, {int cycles = 40}) async {
     for (var i = 0; i < cycles; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 20)),

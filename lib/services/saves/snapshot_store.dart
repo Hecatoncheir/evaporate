@@ -28,11 +28,33 @@ export '../../models/snapshot_blob.dart';
 class SnapshotStore {
   SnapshotStore({
     required this.root,
+    String? trash,
+    this.trashKeep = defaultTrashKeep,
+    DateTime Function()? clock,
     Stream<FileSystemEntity> Function(Directory dir)? listFiles,
-  }) : _listFiles = listFiles ?? _listRecursive;
+  }) : trash = trash ?? p.join(p.dirname(root), '${p.basename(root)}-trash'),
+       _clock = clock ?? DateTime.now,
+       _listFiles = listFiles ?? _listRecursive;
 
   /// Куда складывать содержимое — `AppPaths.blobsDir`.
   final String root;
+
+  /// Куда уборка выносит бесхозное содержимое, прежде чем удалить.
+  ///
+  /// Второй рубеж, а не корзина для человека. Уборка верит списку живых
+  /// снимков, а список бывал неполным так, как никто не предусмотрел: однажды
+  /// испорченный файл списка отдал ей содержимое всех снимков разом. Лежащее
+  /// здесь возвращается само, стоит снимку на него сослаться, — при
+  /// раскладке или при следующем снимке того же содержимого. Рядом с
+  /// хранилищем, а не внутри: обход хранилища сюда не заходит.
+  final String trash;
+
+  /// Сколько вынесенное лежит, прежде чем удалиться насовсем.
+  final Duration trashKeep;
+
+  static const defaultTrashKeep = Duration(days: 14);
+
+  final DateTime Function() _clock;
 
   /// Обход хранилища при уборке. Подменяется в тестах: гонку уборки с
   /// работой иначе не поставить точно — порядок обхода папки не задан.
@@ -98,6 +120,13 @@ class SnapshotStore {
 
   File fileFor(String hash) => File(pathFor(hash));
 
+  /// Есть ли такое содержимое — на месте или вынесенным уборкой.
+  ///
+  /// Вынесенное при этом возвращается на место: раз на него сослались, оно
+  /// живое, и список, отдавший его уборке, ошибся.
+  Future<bool> contains(String hash) async =>
+      await fileFor(hash).exists() || await _revive(hash);
+
   /// Кладёт файл в хранилище и возвращает ссылку на него.
   ///
   /// Хеш считается по исходному содержимому, а лежит оно сжатым: адресация
@@ -152,7 +181,24 @@ class SnapshotStore {
       for (final deletion in _deletions)
         deletion.then((_) {}, onError: (Object _) {}),
     ]);
-    return fileFor(hash).exists();
+    if (await fileFor(hash).exists()) return true;
+    return _revive(hash);
+  }
+
+  File _trashed(String hash) => File(p.join(trash, hash));
+
+  /// Возвращает вынесенное уборкой, если оно ещё лежит.
+  Future<bool> _revive(String hash) async {
+    final trashed = _trashed(hash);
+    if (!await trashed.exists()) return false;
+    final target = fileFor(hash);
+    await target.parent.create(recursive: true);
+    try {
+      await trashed.rename(target.path);
+    } on FileSystemException {
+      // Вернул кто-то другой — или вернуть нельзя; смотрим, что вышло.
+    }
+    return target.exists();
   }
 
   /// Пишет поток сжатым во временный файл, считая хеш по тем же байтам, и
@@ -213,7 +259,7 @@ class SnapshotStore {
   /// настоящий файл, а не наше сжатое представление.
   Future<void> extractTo(String hash, String destination) async {
     final source = fileFor(hash);
-    if (!await source.exists()) {
+    if (!await source.exists() && !await _revive(hash)) {
       throw FileSystemException('Содержимое снимка не найдено', source.path);
     }
     final target = File(destination);
@@ -225,57 +271,120 @@ class SnapshotStore {
   ///
   /// Разметка и обход, а не счётчик ссылок: счётчик врёт после любого сбоя
   /// посреди операции, а живой список снимков и так известен библиотеке
-  /// целиком. Возвращает, сколько байт освободилось: наружу это не
-  /// показывают — место и так видно на экране сохранений, — но библиотека
-  /// кладёт непустой итог в журнал. «Куда делись гигабайты» спрашивают
-  /// через неделю, и ответ к тому времени должен где-то лежать.
-  Future<int> collect(Set<String> alive) async {
+  /// целиком.
+  ///
+  /// Бесхозное не удаляется, а выносится в [trash] и удаляется оттуда
+  /// через [trashKeep]. Сколько вынесено и сколько удалено насовсем,
+  /// возвращается: наружу это не показывают — место и так видно на экране
+  /// сохранений, — но библиотека кладёт непустой итог в журнал. «Куда
+  /// делись гигабайты» спрашивают через неделю, и ответ к тому времени
+  /// должен где-то лежать.
+  Future<StoreCleanup> collect(Set<String> alive) async {
     // Пока идёт работа со снимками, уборка не начинается вовсе. Список
     // живых ссылок ей собрали до того, как работа закончится, и он заведомо
     // неполон: обход идёт не мгновенно, работа может закончиться на его
     // середине, и дальше мы шагали бы по файлам уже с устаревшим списком.
     // Отказаться дешевле, чем угадывать: уборок будет ещё много, а
     // унесённое содержимое снимка не вернуть.
-    if (_busy > 0) return 0;
+    if (_busy > 0) return (moved: 0, purged: 0);
     // По той же причине уборка обрывается, едва начнётся новая работа, — и
     // тогда, когда та успела закончиться, пока мы шли по диску: список
     // живых собран до неё и её содержимого не знает.
     final epoch = _epoch;
+    final moved = await _sweep(alive, epoch);
+    final purged = await _purgeTrash(epoch);
+    return (moved: moved, purged: purged);
+  }
 
+  /// Выносит из хранилища всё, чего нет в [alive].
+  Future<int> _sweep(Set<String> alive, int epoch) async {
     final dir = Directory(root);
     if (!await dir.exists()) return 0;
 
-    var freed = 0;
+    var moved = 0;
     await for (final entity in _listFiles(dir)) {
       if (_epoch != epoch) break;
       if (entity is! File) continue;
       final name = p.basename(entity.path);
-      // Временные файлы чужой оборвавшейся записи убираем заодно: начнись
-      // запись посреди обхода, эпоха бы сменилась.
-      if (!name.endsWith('.tmp') && alive.contains(name)) continue;
-      try {
-        // Размер засчитываем после удаления, а не до: занятый файл удалить
-        // не выйдет, и отчёт о сотнях освобождённых мегабайт, которых на
-        // диске не прибавилось, — это ложь в единственном числе, которое
-        // человек отсюда и увидит.
-        final size = await entity.length();
-        // Проверка — вплотную к удалению: ожидание выше тоже промежуток.
-        if (_epoch != epoch) break;
-        final deleting = entity.delete();
-        _deletions.add(deleting);
-        try {
-          await deleting;
-        } finally {
-          _deletions.remove(deleting);
-        }
-        freed += size;
-      } on FileSystemException {
-        // Файл мог исчезнуть сам — уборка не повод падать.
-      }
+      // Временные файлы чужой оборвавшейся записи убираем заодно и сразу
+      // насовсем: начнись запись посреди обхода, эпоха бы сменилась.
+      final temporary = name.endsWith('.tmp');
+      if (!temporary && alive.contains(name)) continue;
+      final size = await _discard(entity, epoch, toTrash: !temporary);
+      if (size == null) break;
+      moved += size;
     }
-    return freed;
+    return moved;
+  }
+
+  /// Удаляет насовсем то, что пролежало вынесенным дольше [trashKeep].
+  Future<int> _purgeTrash(int epoch) async {
+    final dir = Directory(trash);
+    if (!await dir.exists()) return 0;
+
+    final cutoff = _clock().subtract(trashKeep);
+    var purged = 0;
+    await for (final entity in dir.list(followLinks: false)) {
+      if (_epoch != epoch) break;
+      if (entity is! File || !await _olderThan(entity, cutoff)) continue;
+      final size = await _discard(entity, epoch, toTrash: false);
+      if (size == null) break;
+      purged += size;
+    }
+    return purged;
+  }
+
+  static Future<bool> _olderThan(File file, DateTime cutoff) async {
+    try {
+      return (await file.lastModified()).isBefore(cutoff);
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  /// Выносит или удаляет один файл; `null` — уборку пора обрывать.
+  Future<int?> _discard(File file, int epoch, {required bool toTrash}) async {
+    try {
+      // Размер засчитываем после удаления, а не до: занятый файл удалить
+      // не выйдет, и отчёт о сотнях освобождённых мегабайт, которых на
+      // диске не прибавилось, — это ложь в единственном числе, которое
+      // человек отсюда и увидит.
+      final size = await file.length();
+      // Проверка — вплотную к удалению: ожидание выше тоже промежуток.
+      if (_epoch != epoch) return null;
+      final Future<void> removing = toTrash
+          ? _moveToTrash(file)
+          : file.delete();
+      _deletions.add(removing);
+      try {
+        await removing;
+      } finally {
+        _deletions.remove(removing);
+      }
+      return size;
+    } on FileSystemException {
+      // Файл мог исчезнуть сам — уборка не повод падать.
+      return 0;
+    }
+  }
+
+  Future<void> _moveToTrash(File file) async {
+    await Directory(trash).create(recursive: true);
+    final moved = await file.rename(p.join(trash, p.basename(file.path)));
+    // Срок считается от выноса, а не от записи: переименование времени не
+    // меняет, и содержимое, лежавшее год, ушло бы насовсем в тот же миг.
+    try {
+      await moved.setLastModified(_clock());
+    } on FileSystemException {
+      // Не вышло — уйдёт раньше срока; снимку, который на него сошлётся,
+      // от этого не хуже, чем было до корзины.
+    }
   }
 }
+
+/// Итог уборки: сколько байт вынесено из хранилища и сколько удалено
+/// насовсем из вынесенного раньше.
+typedef StoreCleanup = ({int moved, int purged});
 
 /// Приёмник единственного хеша от потокового `sha256`.
 class _DigestSink implements Sink<Digest> {

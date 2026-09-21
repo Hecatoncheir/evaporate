@@ -164,7 +164,9 @@ void main() {
       await takeSnapshot(id);
       await log.flush();
       expect(
-        (await log.tail()).where((line) => line.contains('освободила')),
+        (await log.tail()).where(
+          (line) => line.contains('уборка хранилища снимков'),
+        ),
         isEmpty,
         reason: 'убирать ещё нечего — и писать не о чем',
       );
@@ -176,12 +178,23 @@ void main() {
       await takeSnapshot(id);
       await waitForStore();
 
-      await log.flush();
-      expect(
-        (await log.tail()).where((line) => line.contains('освободила')),
-        isNotEmpty,
-        reason: 'уборка должна оставить след, когда и правда что-то унесла',
-      );
+      // Строка пишется, когда уборка закончила целиком, — после выноса
+      // файла, который `waitForStore` уже увидел, и после прохода по
+      // корзине. Ждём её по условию, как и всё остальное здесь.
+      final deadline = DateTime.now().add(const Duration(seconds: 10));
+      Future<bool> noted() async {
+        await log.flush();
+        return (await log.tail()).any(
+          (line) => line.contains('уборка хранилища снимков'),
+        );
+      }
+
+      while (!await noted()) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('уборка должна оставить след, когда и правда что-то унесла');
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
     },
   );
 

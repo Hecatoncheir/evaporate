@@ -888,10 +888,10 @@ void main() {
       expect(blobsOnDisk(), 3);
 
       await manager.deleteSnapshot(first);
-      final freed = await manager.collectGarbage([second]);
+      final (:moved, purged: _) = await manager.collectGarbage([second]);
 
       expect(blobsOnDisk(), 2);
-      expect(freed, greaterThan(0));
+      expect(moved, greaterThan(0));
       for (final blob in second.blobs) {
         expect(manager.store.fileFor(blob.hash).existsSync(), isTrue);
       }
@@ -919,9 +919,9 @@ void main() {
       });
 
       final snapshot = await taken.future;
-      final freed = await manager.collectGarbage(const []);
+      final (:moved, purged: _) = await manager.collectGarbage(const []);
 
-      expect(freed, 0);
+      expect(moved, 0);
       for (final blob in snapshot.blobs) {
         expect(
           manager.store.fileFor(blob.hash).existsSync(),

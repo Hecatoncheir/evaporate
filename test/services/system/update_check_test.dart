@@ -162,8 +162,8 @@ void main() {
             'size': 250,
           },
           {
-            'name': 'evaporate-9.9.9-linux.tar.gz',
-            'browser_download_url': 'https://example.invalid/linux.tar.gz',
+            'name': 'evaporate-9.9.9-linux-x64.tar.gz',
+            'browser_download_url': 'https://example.invalid/linux-x64.tar.gz',
             'size': 300,
           },
           {
@@ -185,6 +185,31 @@ void main() {
       expect(
         release.updateFor('windows')!.name,
         'evaporate-9.9.9-windows-setup.exe',
+      );
+    });
+
+    // Архив россыпью, без корневой папки, распаковывали прямо в «Загрузки»,
+    // и обновление уносило их целиком. Сборка, которую так поставили,
+    // своего файла в новом релизе найти не должна.
+    test('архив Linux прежнего образца обновлением не считается', () {
+      const release = Release(
+        version: '9.9.9',
+        url: 'https://example.invalid/release',
+        assets: [
+          ReleaseAsset(
+            name: 'evaporate-9.9.9-linux.tar.gz',
+            url: 'https://example.invalid/linux.tar.gz',
+            sizeBytes: 1,
+          ),
+        ],
+      );
+
+      expect(release.updateFor('linux'), isNull);
+      // И обратно: сборки до 0.38 ищут хвост `-linux.tar.gz`, и их помощник
+      // не проверяет, чью папку удаляет. Новый файл им находить нельзя.
+      expect(
+        'evaporate-9.9.9${Release.updateSuffix('linux')}',
+        isNot(endsWith('-linux.tar.gz')),
       );
     });
 

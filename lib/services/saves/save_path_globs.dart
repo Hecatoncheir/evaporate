@@ -77,6 +77,9 @@ class SavePathGlobs {
   ) async {
     final templates = <String>[];
     for (final path in paths) {
+      // `{HOME}/*` совпадает и с «Документами»: в правило такое не годится
+      // (`SavePathTemplate.isTooBroad`), и предлагать его незачем.
+      if (SavePathTemplate.isTooBroad(path, gameDir: gameDir)) continue;
       if (!await _exists(path)) continue;
       final collapsed = SavePathTemplate.collapse(path, gameDir: gameDir);
       if (!templates.contains(collapsed)) templates.add(collapsed);

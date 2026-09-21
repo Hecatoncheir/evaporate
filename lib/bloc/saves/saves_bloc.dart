@@ -149,6 +149,24 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   Timer? _persistTimer;
   bool _closing = false;
 
+  /// Записи списка снимков, которые эта сборка не прочла, — как лежали.
+  ///
+  /// По игре: список нечитаемых записей или само значение, если и списком
+  /// оно не было. Пишутся обратно нетронутыми: непонятое — не значит
+  /// испорченное, его могла оставить сборка новее, и выбросить его значило
+  /// бы потерять снимок, который она прочтёт.
+  final Map<String, Object?> _unread = {};
+
+  /// Список снимков прочитан не целиком — уборке хранилища до конца сеанса
+  /// хода нет.
+  ///
+  /// Список — единственное, что говорит уборке, какое содержимое живо, и
+  /// прочитанный не целиком он называет мёртвым всё, на что ссылалось
+  /// непрочитанное. Уборка следом за первым же снимком уносила содержимое
+  /// всех таких снимков, а карантинная копия списка оставалась ссылаться в
+  /// пустоту. Чего не поняли — не удаляем.
+  bool _listDamaged = false;
+
   /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
   /// подтверждения обращается к менеджеру напрямую.
   // ignore: avoid_public_bloc_methods
@@ -208,13 +226,21 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
 
   Future<void> persist() async {
     _persistTimer?.cancel();
-    await _store.write({
-      'version': 1,
-      'snapshots': state.snapshots.map(
-        (key, value) => MapEntry(key, value.map((s) => s.toJson()).toList()),
-      ),
-    });
+    await _store.write({'version': 1, 'snapshots': _snapshotsJson()});
   }
+
+  /// Снимки для записи — вместе с тем, что прочитать не удалось.
+  ///
+  /// Нечитаемое значение игры, не бывшее списком, уступает место только
+  /// свежим снимкам той же игры: дописать к нему нечего.
+  Map<String, Object?> _snapshotsJson() => {
+    ..._unread,
+    for (final MapEntry(key: gameId, value: list) in state.snapshots.entries)
+      gameId: [
+        ...list.map((s) => s.toJson()),
+        if (_unread[gameId] case final List<Object?> raw) ...raw,
+      ],
+  };
 
   /// Читает список снимков, а на первом запуске после обновления —
   /// забирает его из библиотечного файла.
@@ -230,11 +256,13 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     final own = await _readSnapshots(_store);
     if (own != null) {
       emit(state.copyWith(snapshots: own, loaded: true));
+      _reportDamage(emit);
       return;
     }
 
     final inherited = await _readSnapshots(_legacyStore) ?? const {};
     emit(state.copyWith(snapshots: inherited, loaded: true));
+    _reportDamage(emit);
     // Записываем сразу, даже пустое: иначе на каждом запуске мы бы снова
     // читали библиотечный файл в поисках того, чего там уже нет.
     await persist();
@@ -243,27 +271,63 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// Снимки из документа; null — документа нет или ключа в нём нет.
   ///
   /// Испорченные записи пропускаются поштучно: снимок, который не читается,
-  /// не повод потерять остальные.
+  /// не повод потерять остальные. Но и сами они не выбрасываются — ложатся
+  /// в [_unread] и пишутся обратно как были.
   Future<Map<String, List<SaveSnapshot>>?> _readSnapshots(
     JsonStore store,
   ) async {
     final raw = await store.readAs((json) => json['snapshots']);
-    if (raw is! Map<String, dynamic>) return null;
+    if (raw == null) return null;
+    if (raw is! Map<String, dynamic>) {
+      // Ключ есть, но не тот, что ждали: файл целиком откладываем в
+      // сторону, как любой непрочитанный.
+      await store.quarantine();
+      return null;
+    }
 
     final snapshots = <String, List<SaveSnapshot>>{};
     raw.forEach((gameId, value) {
-      if (value is! List) return;
+      if (value is! List) {
+        _unread[gameId] = value;
+        return;
+      }
       final recovered = <SaveSnapshot>[];
+      final unread = <Object?>[];
       for (final entry in value) {
-        try {
-          recovered.add(SaveSnapshot.fromJson(entry as Map<String, dynamic>));
-        } on Object {
-          // Пропускаем: испорченная запись не должна унести остальные.
-        }
+        final snapshot = _snapshotOrNull(entry);
+        snapshot == null ? unread.add(entry) : recovered.add(snapshot);
       }
       snapshots[gameId] = recovered;
+      if (unread.isNotEmpty) _unread[gameId] = unread;
     });
     return snapshots;
+  }
+
+  static SaveSnapshot? _snapshotOrNull(Object? entry) {
+    try {
+      return SaveSnapshot.fromJson(entry as Map<String, dynamic>);
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Прочитано не всё — уборку запрещаем и говорим об этом человеку.
+  ///
+  /// Сообщением, как у библиотеки: молча это кончалось потерей содержимого
+  /// снимков, о которой узнавали в день восстановления.
+  void _reportDamage(Emitter<SavesState> emit) {
+    final quarantined = _store.recoveryPath ?? _legacyStore.recoveryPath;
+    if (quarantined == null && _unread.isEmpty) return;
+    _listDamaged = true;
+    _log().write(
+      'список снимков прочитан не целиком '
+      '(нечитаемых записей у игр: ${_unread.length}, '
+      'копия: ${quarantined ?? 'нет'}); уборка хранилища — до перезапуска нет',
+    );
+    final text = quarantined == null
+        ? _l.noticeSnapshotsPartlyRead
+        : _l.noticeSnapshotsRecovered(quarantined);
+    emit(state.copyWith(notice: notice(text, isError: true)));
   }
 
   /// Игру удалили из библиотеки — её снимки больше никому не нужны.
@@ -271,8 +335,14 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     GameSnapshotsDropped event,
     Emitter<SavesState> emit,
   ) async {
+    // Нечитаемые записи уходят вместе с игрой: хранить их больше незачем, а
+    // уборка до перезапуска всё равно стоит.
+    final hadUnread = _unread.remove(event.gameId) != null;
     final removed = state.snapshots[event.gameId];
-    if (removed == null) return;
+    if (removed == null) {
+      if (hadUnread) await persist();
+      return;
+    }
 
     final snapshots = Map<String, List<SaveSnapshot>>.from(state.snapshots);
     snapshots.remove(event.gameId);
@@ -305,17 +375,23 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// только отсюда: снимок можно выкинуть у одной игры, а его файлы —
   /// оставаться нужными другой, если обе привезли один и тот же пакет.
   Future<void> _collectGarbage() async {
+    if (_listDamaged) return;
     try {
-      final freed = await _saves.collectGarbage(
+      final (:moved, :purged) = await _saves.collectGarbage(
         state.snapshots.values.expand((list) => list),
       );
       // Только когда и правда убрали: уборка идёт следом за каждым снимком
       // и чаще всего не находит ничего, а журнал, полный нулей, никто
       // читать не станет. Зато «куда делись гигабайты» — вопрос, который
       // задают через неделю, и ответ на него должен где-то лежать.
-      if (freed > 0) {
+      if (moved > 0) {
         _log().write(
-          'уборка хранилища снимков освободила ${formatBytes(freed)}',
+          'уборка хранилища снимков вынесла в корзину ${formatBytes(moved)}',
+        );
+      }
+      if (purged > 0) {
+        _log().write(
+          'уборка хранилища снимков освободила ${formatBytes(purged)}',
         );
       }
     } on Object catch (error) {

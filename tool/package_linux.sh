@@ -20,6 +20,9 @@ trap 'rm -rf "$stage"' EXIT
 # ресурсы, и раскладывать это по /usr значило бы мешать своё с системным.
 install -d "$stage/opt/evaporate"
 cp -a "$bundle/." "$stage/opt/evaporate/"
+# Маркер своей папки разрешает приложению заменять себя целиком. Пакету он
+# не положен: его файлы принадлежат dpkg, и обновлять их должен он же.
+rm -f "$stage/opt/evaporate/.evaporate-install"
 
 # Запуск из терминала и из скриптов — тем же именем, что и пакет.
 install -d "$stage/usr/bin"
