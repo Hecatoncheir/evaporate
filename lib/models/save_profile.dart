@@ -229,6 +229,68 @@ class SaveProfile extends Equatable {
     ];
   }
 
+  /// Профиль с добавленными правилами — единственное место, где правила,
+  /// пришедшие со стороны, ложатся в профиль.
+  ///
+  /// Метки разводятся **при применении**, а не только при создании: окно
+  /// правила держит профиль на момент открытия, и пока оно открыто, поиск
+  /// по базе успевал завести «Сохранения», а человек сохранял
+  /// предзаполненные «Сохранения» — две одинаковые метки, и перенос
+  /// отказывался от обеих. Путь, лежащий внутри уже заданного или
+  /// содержащий его, не добавляется вовсе: снимок вышел бы с дублями, а
+  /// любое восстановление падало бы на вложенных целях. Его место — в
+  /// диалоге, где человеку это объяснят ([overlapping]).
+  SaveProfile withRules(Iterable<SavePathRule> incoming, {String? gameDir}) {
+    final next = [...rules];
+    for (final rule in incoming) {
+      if (next.any((r) => r.template == rule.template)) continue;
+      if (SaveProfile(rules: next).overlapping(rule, gameDir: gameDir) !=
+          null) {
+        continue;
+      }
+      next.add(_withFreeLabel(rule, next));
+    }
+    return copyWith(rules: next);
+  }
+
+  static SavePathRule _withFreeLabel(
+    SavePathRule rule,
+    List<SavePathRule> existing,
+  ) {
+    final profile = SaveProfile(rules: existing);
+    if (!profile.labelTaken(rule.label, platform: rule.platform)) return rule;
+    final taken = {
+      for (final other in existing)
+        if (other.platform == null ||
+            rule.platform == null ||
+            other.platform == rule.platform)
+          _labelKey(other.label),
+    };
+    return rule.copyWith(label: _freeLabel(rule.label, taken));
+  }
+
+  /// Правило, с чьим путём пересекается [rule], — лежит внутри него или
+  /// содержит его; `null` — не пересекается ни с одним.
+  ///
+  /// Сравниваются развёрнутые пути, а не шаблоны: `{DOCUMENTS}/X` и
+  /// `{HOME}/Documents/X/Saves` пересекаются, хотя по буквам не похожи.
+  /// Правила других систем не в счёт — они здесь не разворачиваются.
+  SavePathRule? overlapping(SavePathRule rule, {String? gameDir}) {
+    final path = rule.resolve(gameDir: gameDir);
+    if (path == null) return null;
+    for (final other in rulesForCurrentPlatform) {
+      if (other.id == rule.id) continue;
+      final otherPath = other.resolve(gameDir: gameDir);
+      if (otherPath == null) continue;
+      if (p.equals(path, otherPath) ||
+          p.isWithin(path, otherPath) ||
+          p.isWithin(otherPath, path)) {
+        return other;
+      }
+    }
+    return null;
+  }
+
   /// Метка, не совпадающая ни с одной из [taken]; найденная сразу
   /// заносится туда же, чтобы следующая новая не взяла её повторно.
   static String _freeLabel(String label, Set<String> taken) {

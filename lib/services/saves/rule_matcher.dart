@@ -21,13 +21,33 @@ class RuleMatcher {
   /// никогда.
   Map<String, String> preview(Game game, SaveSnapshot snapshot) {
     final targets = <String, String>{};
-    for (final rule in snapshot.rules) {
-      final local = localFor(game, rule);
-      if (local == null) continue;
+    for (final local in assign(game, snapshot.rules).values) {
       final resolved = local.resolve(gameDir: game.installDir);
       if (resolved != null) targets[local.label] = resolved;
     }
     return targets;
+  }
+
+  /// Какое здешнее правило достаётся каждому правилу пакета: id правила
+  /// пакета → здешнее правило. Не нашедших пары здесь нет.
+  ///
+  /// Два правила пакета, пришедшие к одному здешнему, пары не получают оба:
+  /// сопоставленные по одной метке, они молча сливались в одну цель, и
+  /// файлы второго ложились поверх первого. Какое из них «то», не знает
+  /// никто, — пусть человек увидит оба в списке несопоставленных.
+  Map<String, SavePathRule> assign(Game game, List<SavePathRule> incoming) {
+    final claims = <String, List<String>>{};
+    final locals = <String, SavePathRule>{};
+    for (final rule in incoming) {
+      final local = localFor(game, rule);
+      if (local == null) continue;
+      locals[rule.id] = local;
+      (claims[local.id] ??= []).add(rule.id);
+    }
+    return {
+      for (final entry in locals.entries)
+        if (claims[entry.value.id]!.length == 1) entry.key: entry.value,
+    };
   }
 
   /// Путь из внешнего манифеста никогда не становится локальной целью.

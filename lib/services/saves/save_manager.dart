@@ -32,7 +32,6 @@ class RestoreReport {
     required this.bytesWritten,
     required this.targets,
     required this.unresolved,
-    this.backup,
   });
 
   final int filesWritten;
@@ -43,7 +42,6 @@ class RestoreReport {
 
   /// Правила из пакета, которым не нашлось соответствия на этой платформе.
   final List<String> unresolved;
-  final SaveSnapshot? backup;
 
   bool get isComplete => unresolved.isEmpty;
 }
@@ -61,6 +59,13 @@ class SavePackageInfo {
 
   /// Хотя бы одно правило можно разложить на текущей платформе.
   final bool isCompatible;
+
+  SavePackageInfo withCompatibility({required bool isCompatible}) =>
+      SavePackageInfo(
+        path: path,
+        snapshot: snapshot,
+        isCompatible: isCompatible,
+      );
 }
 
 /// Упаковка, распаковка и перенос сохранений между устройствами.
@@ -150,6 +155,16 @@ class SaveManager {
   /// гигабайта там не собрать.
   final int maxSnapshotBytes;
 
+  /// Возвращает на место сейвы, застрявшие после прерванной раскладки, и
+  /// отдаёт копии, оставшиеся рядом с живой целью.
+  ///
+  /// Снимок и восстановление зовут это сами, но их может и не быть: при
+  /// выключенном автоснимке перед запуском игра стартовала без сейвов,
+  /// заводила новые — и прогресс навсегда оставался в `.evaporate-old-*`.
+  /// Поэтому это зовут ещё перед каждым запуском и один раз на старте.
+  Future<List<String>> recoverInterrupted(Game game) =>
+      _restore.recoverInterrupted(game);
+
   /// Снимает сейвы игры.
   ///
   /// Под [SnapshotStore.guard], как и всё, что кладёт содержимое в
@@ -178,6 +193,8 @@ class SaveManager {
         ),
       );
     }
+
+    _rejectOverlapping(game);
 
     // Сначала обходим файлы, чтобы манифест содержал честные размеры.
     final found = await _collectByRules(game, rules);
@@ -251,17 +268,46 @@ class SaveManager {
     return (entries: entries, rules: usedRules, totalBytes: totalBytes);
   }
 
+  /// Отказывает, если пути двух правил пересекаются.
+  ///
+  /// Вложенность прежде ловилась только при восстановлении: снимок
+  /// выходил с дублями, а разложить его не удавалось никогда. Лучше
+  /// отказать сразу — и словами, которые называют оба правила.
+  void _rejectOverlapping(Game game) {
+    final profile = game.saveProfile;
+    for (final rule in profile.rulesForCurrentPlatform) {
+      final other = profile.overlapping(rule, gameDir: game.installDir);
+      if (other != null) {
+        throw SaveException(_l.saveRulesOverlap(rule.label, other.label));
+      }
+    }
+  }
+
   /// Собирает настоящий `.evsave` из ссылок на содержимое.
   ///
   /// Пакет обязан оставаться самодостаточным zip: его уносят на другую
   /// машину и читают чужие сборки, которые про здешнее хранилище ничего не
   /// знают и знать не должны.
+  ///
+  /// Пишется под временным именем рядом и встаёт на место переименованием:
+  /// автовыгрузка кладёт пакет под одно и то же имя, и запись прямо в него
+  /// при первом же пропавшем блобе стирала вчерашний рабочий пакет, а
+  /// клиент синхронизации успевал унести половину нового. Распакованные
+  /// блобы лежат у нас, а не в чужой папке, — их клиент унёс бы тоже.
   Future<File> _materialize(SaveSnapshot snapshot, String destination) async {
     final target = File(destination);
     await target.parent.create(recursive: true);
+    final partial = File(
+      p.join(
+        target.parent.path,
+        '.${p.basename(destination)}.${_uuid.v4()}.part',
+      ),
+    );
+    final staging = Directory(p.join(_paths.dataDir, 'export-staging'));
+    await staging.create(recursive: true);
 
     final encoder = ZipFileEncoder();
-    encoder.create(destination);
+    encoder.create(partial.path);
     var complete = false;
     try {
       encoder.addArchiveFile(
@@ -277,7 +323,7 @@ class SaveManager {
         if (!await store.contains(blob.hash)) {
           throw SaveException(_l.saveArchiveMissing(blob.name));
         }
-        final staged = File('$destination.${blob.hash}.part');
+        final staged = File(p.join(staging.path, '${_uuid.v4()}.part'));
         try {
           await store.extractTo(blob.hash, staged.path);
           await _addToArchive(encoder, staged, blob.name);
@@ -290,13 +336,13 @@ class SaveManager {
       await encoder.close();
       if (!complete) {
         try {
-          if (await target.exists()) await target.delete();
+          if (await partial.exists()) await partial.delete();
         } on FileSystemException {
           // Уборка не удалась — исходную ошибку подменять этим не станем.
         }
       }
     }
-    return target;
+    return partial.rename(destination);
   }
 
   /// Когда сохранения игры в последний раз менялись на этом устройстве.
@@ -327,11 +373,16 @@ class SaveManager {
   /// Отметка [SnapshotStore.guard] накрывает не только снятие резервной
   /// копии, но и заливку файлов: копия готова раньше, чем о ней узнает
   /// библиотека, и всё это время она — единственный путь назад.
+  ///
+  /// Копия уходит в [onBackup] **до** замены, а не в отчёте об успехе:
+  /// сорвись замена — отчёта нет, копия не заведена нигде, и её содержимое
+  /// уносит следующая уборка ровно тогда, когда она нужнее всего.
   Future<RestoreReport> restoreSnapshot({
     required Game game,
     required SaveSnapshot snapshot,
     bool backupCurrent = true,
     bool wipeTarget = false,
+    Future<void> Function(SaveSnapshot backup)? onBackup,
   }) => store.guard(() async {
     await _restore.recoverInterrupted(game);
     return _restoreSnapshot(
@@ -339,6 +390,7 @@ class SaveManager {
       snapshot: snapshot,
       backupCurrent: backupCurrent,
       wipeTarget: wipeTarget,
+      onBackup: onBackup,
     );
   });
 
@@ -347,6 +399,7 @@ class SaveManager {
     required SaveSnapshot snapshot,
     required bool backupCurrent,
     required bool wipeTarget,
+    required Future<void> Function(SaveSnapshot backup)? onBackup,
   }) async {
     // Снимок из хранилища раскладывают прямо оттуда. Прежде из него
     // собирался временный `.evsave`, и гигабайты сейвов сжимались, чтобы
@@ -361,6 +414,7 @@ class SaveManager {
         sources: await _storedSources(snapshot),
         backupCurrent: backupCurrent,
         wipeTarget: wipeTarget,
+        onBackup: onBackup,
       );
     }
 
@@ -376,6 +430,7 @@ class SaveManager {
         sources: _package.entriesOf(archive).toList(),
         backupCurrent: backupCurrent,
         wipeTarget: wipeTarget,
+        onBackup: onBackup,
       ),
     );
   }
@@ -404,6 +459,7 @@ class SaveManager {
     required List<RestoreSource> sources,
     required bool backupCurrent,
     required bool wipeTarget,
+    required Future<void> Function(SaveSnapshot backup)? onBackup,
   }) async {
     final resolved = await _resolveTargets(game, rules);
     if (resolved.byRuleId.isEmpty) {
@@ -414,6 +470,7 @@ class SaveManager {
     final backup = backupCurrent
         ? await _backupBeforeRestore(game, snapshot)
         : null;
+    if (backup != null) await onBackup?.call(backup);
     await _restore.commit(plan, wipeTarget: wipeTarget);
 
     return RestoreReport(
@@ -421,7 +478,6 @@ class SaveManager {
       bytesWritten: plan.bytes,
       targets: resolved.byLabel,
       unresolved: resolved.unresolved,
-      backup: backup,
     );
   }
 
@@ -438,8 +494,9 @@ class SaveManager {
     final byRuleId = <String, RestoreTarget>{};
     final unresolved = <String>[];
 
+    final assigned = _rules.assign(game, manifestRules);
     for (final rule in manifestRules) {
-      final local = _rules.localFor(game, rule);
+      final local = assigned[rule.id];
       final resolved = local?.resolve(gameDir: game.installDir);
       if (local == null || resolved == null) {
         unresolved.add(rule.label);
@@ -554,6 +611,14 @@ class SaveManager {
     );
   }
 
+  /// Ляжет ли снимок хоть одним правилом в пути этой игры.
+  ///
+  /// Тем же сопоставлением, что раскладка: по id, затем по метке. По одной
+  /// платформе правил пакета судить нельзя — снятый на Windows ложится в
+  /// macOS-путь той же игры по метке, а значок «нет путей» говорил обратное.
+  bool fits(Game game, SaveSnapshot snapshot) =>
+      _rules.assign(game, snapshot.rules).isNotEmpty;
+
   /// Забирает пакет в хранилище приложения и привязывает к игре.
   Future<SaveSnapshot> importPackage(String path, {required Game game}) =>
       store.guard(() => _importPackage(path, game: game));
@@ -614,17 +679,21 @@ class SaveManager {
   }
 
   /// Переливает одну запись пакета в хранилище через временный файл.
+  ///
+  /// Через [ArchiveEntrySource], а не своей записью: «записать запись пакета
+  /// в файл» было в двух копиях, и CRC с размером сверяла только одна —
+  /// на пути старых архивов. Чужие пакеты ходят этим путём, и дальше, в
+  /// раскладке, у них сверяется одна длина: недоехавший из папки
+  /// синхронизации файл ложился бы в хранилище как целый.
   Future<SnapshotBlob> _importEntry(ArchiveFile file, Directory dir) async {
     final tmp = File(
       p.join(dir.path, '.import-${DateTime.now().microsecondsSinceEpoch}'),
     );
-    final output = OutputFileStream(tmp.path);
     try {
-      file.writeContent(output);
-    } finally {
-      await output.close();
-    }
-    try {
+      await ArchiveEntrySource(
+        file,
+        localizations: _localizations,
+      ).writeTo(tmp.path);
       return await store.put(file.name, tmp);
     } finally {
       if (await tmp.exists()) await tmp.delete();
@@ -654,7 +723,14 @@ class SaveManager {
 
   /// Сканирует папку синхронизации (Dropbox, Syncthing, iCloud) на пакеты
   /// с других устройств.
-  Future<List<SavePackageInfo>> scanSyncFolder(String folder) async {
+  ///
+  /// Нечитаемое уходит в журнал и в [onSkipped]: массовая загрузка кладёт
+  /// его в отчёт провалом. Прежде оно уходило только в журнал, и пакет от
+  /// сборки новее давал отчёт «применено: 0» без единой ошибки.
+  Future<List<SavePackageInfo>> scanSyncFolder(
+    String folder, {
+    void Function(String path, Object error)? onSkipped,
+  }) async {
     final dir = Directory(folder);
     if (!await dir.exists()) return const [];
     final result = <SavePackageInfo>[];
@@ -667,6 +743,7 @@ class SaveManager {
         // Битый или чужой файл пропускаем, но не молча: иначе человек не
         // узнал бы, почему пакет с другого устройства не виден в списке.
         _log().write('папка синхронизации: пропущен ${entity.path}', error);
+        onSkipped?.call(entity.path, error);
       }
     }
     result.sort((a, b) => b.snapshot.createdAt.compareTo(a.snapshot.createdAt));

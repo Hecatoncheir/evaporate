@@ -66,32 +66,72 @@ class RestoreTransaction {
 
   static const _uuid = Uuid();
 
+  /// Заготовки и отодвинутые копии, которые прямо сейчас ведёт раскладка.
+  ///
+  /// Возврат застрявших сейвов ([recoverInterrupted]) их не трогает. Без
+  /// этого он удалял **любую** заготовку `evaporate-new` — и ту, что в этот
+  /// миг наполняла параллельная раскладка, — а между двумя переименованиями
+  /// видел пропавшую цель и возвращал на её место живую копию. Очередь по
+  /// игре здесь не годится: снимок перед восстановлением сам идёт через
+  /// тот же менеджер и ждал бы сам себя.
+  final _live = <String>{};
+
+  void _own(String path, List<String> owned) {
+    final normalized = p.normalize(path);
+    _live.add(normalized);
+    owned.add(normalized);
+  }
+
+  /// Имя, под которое отодвигается прежняя цель.
+  ///
+  /// Время — в имени, а не в дате файла: переименование её не меняет, и
+  /// «последняя отодвинутая» по `modified` оказывалась той, что дольше всех
+  /// не трогали. Микросекунды с нулями слева, чтобы имена сравнивались как
+  /// числа; `uuid` — чтобы две раскладки в одну микросекунду не столкнулись.
+  static String backupPathFor(String target, DateTime at) {
+    final stamp = at.microsecondsSinceEpoch.toString().padLeft(20, '0');
+    return '$target.evaporate-old-$stamp-${_uuid.v4()}';
+  }
+
+  /// Когда отодвинута копия; у копий прежних сборок времени в имени нет, и
+  /// они считаются старше любой новой.
+  static int _movedAt(String path) {
+    final match = RegExp(r'\.evaporate-old-(\d{20})-').firstMatch(path);
+    return match == null ? -1 : int.parse(match.group(1)!);
+  }
+
   /// Приводит в порядок следы прерванной раскладки у целей игры.
   ///
   /// Раскладка отодвигает цель в `<цель>.evaporate-old-*` и ставит на её
   /// место подготовленное `.<цель>.evaporate-new-*`. Упади приложение между
   /// двумя переименованиями — сейвы остаются только под резервным именем:
   /// игра их не видит, а снимок, снятый следом, вышел бы пустым. Поэтому
-  /// перед любой работой с сейвами игры:
+  /// перед любой работой с сейвами игры — и перед каждым её запуском:
   ///
   /// - цели нет, а резервная копия есть — копия возвращается на место;
   /// - заготовки `evaporate-new` убираются: сейвом они не бывают никогда;
   /// - при целой цели резервная копия остаётся: замена могла дойти до
   ///   конца, а могла и нет, и копия бывает единственной прежней версией.
-  ///   Её судьбу решает человек, а в журнал уходит, где она лежит.
-  Future<void> recoverInterrupted(Game game) async {
+  ///   Её судьбу решает человек — поэтому такие копии возвращаются, чтобы
+  ///   сказать о них словами, а не только строкой в журнале.
+  ///
+  /// Всё, что ведёт идущая сейчас раскладка ([_live]), не трогается.
+  Future<List<String>> recoverInterrupted(Game game) async {
+    final left = <String>[];
     for (final rule in game.saveProfile.rulesForCurrentPlatform) {
       final target = rule.resolve(gameDir: game.installDir);
-      if (target != null) await _recoverTarget(target);
+      if (target != null) left.addAll(await _recoverTarget(target));
     }
+    return left;
   }
 
-  Future<void> _recoverTarget(String target) async {
+  Future<List<String>> _recoverTarget(String target) async {
     final parent = Directory(p.dirname(target));
-    if (!await parent.exists()) return;
+    if (!await parent.exists()) return const [];
     final name = p.basename(target);
     final stranded = <FileSystemEntity>[];
     await for (final entity in parent.list(followLinks: false)) {
+      if (_live.contains(p.normalize(entity.path))) continue;
       final entry = p.basename(entity.path);
       if (entry.startsWith('.$name.evaporate-new-')) {
         await _dropQuietly(entity);
@@ -99,22 +139,21 @@ class RestoreTransaction {
         stranded.add(entity);
       }
     }
-    if (stranded.isEmpty) return;
+    if (stranded.isEmpty) return const [];
 
     final missing =
         await FileSystemEntity.type(target, followLinks: false) ==
         FileSystemEntityType.notFound;
     if (missing) {
       // Самая свежая копия — та, что отодвинули последней.
-      stranded.sort(
-        (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
-      );
+      stranded.sort((a, b) => _movedAt(b.path).compareTo(_movedAt(a.path)));
       await stranded.removeAt(0).rename(target);
       _log().write('сейвы возвращены в $target после сбоя');
     }
-    for (final left in stranded) {
-      _log().write('рядом с сейвами осталась копия: ${left.path}');
+    for (final copy in stranded) {
+      _log().write('рядом с сейвами осталась копия: ${copy.path}');
     }
+    return [for (final copy in stranded) copy.path];
   }
 
   Future<void> _dropQuietly(FileSystemEntity entity) async {
@@ -223,14 +262,35 @@ class RestoreTransaction {
     // только дописывают в них.
     final prepared = <_PreparedTarget>[];
     final committed = <_CommittedTarget>[];
+    final owned = <String>[];
     try {
-      await _prepareTargets(plan, prepared, wipeTarget: wipeTarget);
-      await _swapPreparedIn(prepared, committed);
+      await _commit(plan, prepared, committed, owned, wipeTarget: wipeTarget);
+    } finally {
+      _live.removeAll(owned);
+    }
+  }
+
+  Future<void> _commit(
+    RestorePlan plan,
+    List<_PreparedTarget> prepared,
+    List<_CommittedTarget> committed,
+    List<String> owned, {
+    required bool wipeTarget,
+  }) async {
+    try {
+      await _prepareTargets(plan, prepared, owned, wipeTarget: wipeTarget);
+      await _swapPreparedIn(prepared, committed, owned);
     } on Object catch (error) {
-      await _rollback(committed);
-      throw error is SaveException
-          ? error
-          : SaveException(_l.saveArchiveReadFailed('$error'));
+      final stranded = await _rollback(committed);
+      final cause = error is SaveException
+          ? error.message
+          : _l.saveArchiveReadFailed('$error');
+      if (stranded.isEmpty) {
+        throw error is SaveException ? error : SaveException(cause);
+      }
+      throw SaveException(
+        '$cause ${_l.saveRollbackStranded(stranded.join(', '))}',
+      );
     } finally {
       await _dropPrepared(prepared);
     }
@@ -240,7 +300,8 @@ class RestoreTransaction {
   /// Собирает замену рядом с каждой целью, не трогая саму цель.
   Future<void> _prepareTargets(
     RestorePlan plan,
-    List<_PreparedTarget> prepared, {
+    List<_PreparedTarget> prepared,
+    List<String> owned, {
     required bool wipeTarget,
   }) async {
     for (final group in plan.byTarget.entries) {
@@ -251,6 +312,7 @@ class RestoreTransaction {
         '.${p.basename(target.path)}.evaporate-new-$token',
       );
       prepared.add(_PreparedTarget(target: target, path: candidatePath));
+      _own(candidatePath, owned);
 
       // По ссылке мы писали бы неизвестно куда — мимо цели.
       if ((await FileSystemEntity.type(target.path, followLinks: false)) ==
@@ -311,9 +373,11 @@ class RestoreTransaction {
   Future<void> _swapPreparedIn(
     List<_PreparedTarget> prepared,
     List<_CommittedTarget> committed,
+    List<String> owned,
   ) async {
     for (final item in prepared) {
-      final backupPath = '${item.target.path}.evaporate-old-${_uuid.v4()}';
+      final backupPath = backupPathFor(item.target.path, DateTime.now());
+      _own(backupPath, owned);
       final existed = await _entityExists(item.target);
       if (existed) {
         await _renameEntity(item.target, item.target.path, backupPath);
@@ -337,15 +401,29 @@ class RestoreTransaction {
 
   /// Возвращает уже заменённые цели к прежнему виду — в обратном порядке,
   /// чтобы каждая следующая находила своё место свободным.
-  Future<void> _rollback(List<_CommittedTarget> committed) async {
+  ///
+  /// Каждая цель — в своём `try`: на Windows свежезаписанное держит
+  /// антивирус, и одно исключение, вылетев отсюда, оставляло остальные
+  /// цели неоткаченными, а исходную причину сбоя — потерянной. Возвращает
+  /// резервные копии, которые на место не встали: прежние сейвы лежат там,
+  /// и человек должен узнать где.
+  Future<List<String>> _rollback(List<_CommittedTarget> committed) async {
+    final stranded = <String>[];
     for (final item in committed.reversed) {
-      if (await _entityExists(item.target)) {
-        await _deleteEntity(item.target, item.target.path);
-      }
-      if (item.backupPath != null) {
-        await _renameEntity(item.target, item.backupPath!, item.target.path);
+      final backup = item.backupPath;
+      try {
+        if (await _entityExists(item.target)) {
+          await _deleteEntity(item.target, item.target.path);
+        }
+        if (backup != null) {
+          await _renameEntity(item.target, backup, item.target.path);
+        }
+      } on Object catch (error) {
+        _log().write('откат раскладки: ${item.target.path}', error);
+        if (backup != null) stranded.add(backup);
       }
     }
+    return stranded;
   }
 
   /// Убирает подготовленное, чем бы дело ни кончилось: при удаче оно уже
@@ -369,8 +447,10 @@ class RestoreTransaction {
       if (item.backupPath == null) continue;
       try {
         await _deleteEntity(item.target, item.backupPath!);
-      } on FileSystemException {
+      } on FileSystemException catch (error) {
         // Оставляем старую копию рядом с целью: это безопаснее её потери.
+        // Но не молча — иначе копия лежала бы там годами без объяснений.
+        _log().write('не убрана прежняя копия ${item.backupPath}', error);
       }
     }
   }

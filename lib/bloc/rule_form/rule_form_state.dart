@@ -33,6 +33,7 @@ class RuleForm extends Equatable {
     this.portable = true,
     this.labelTaken = false,
     this.tooBroad = false,
+    this.overlaps,
   });
 
   final String label;
@@ -54,6 +55,11 @@ class RuleForm extends Equatable {
   /// целиком, а восстановление с очисткой — заменило бы.
   final bool tooBroad;
 
+  /// Метка правила, с чьим путём пересекается набранный: лежит внутри него
+  /// или содержит его. Такое правило снимок удвоил бы, а восстановление на
+  /// вложенных целях отказывает целиком.
+  final String? overlaps;
+
   /// Правило, каким его запишут: метка без пробелов по краям, пустая —
   /// значит «Сохранения».
   RuleDraft get draft {
@@ -68,13 +74,15 @@ class RuleForm extends Equatable {
   /// Пустой шаблон развернулся бы в рабочую папку процесса, занятая
   /// метка сделала бы оба правила непереносимыми, а слишком широкий путь
   /// не развернётся вовсе — `SavePathRule.resolve` ему откажет.
-  bool get canSave => draft.template.isNotEmpty && !labelTaken && !tooBroad;
+  bool get canSave =>
+      draft.template.isNotEmpty && !labelTaken && !tooBroad && overlaps == null;
 
   RuleForm resolved({
     required String expanded,
     required bool portable,
     required bool labelTaken,
     required bool tooBroad,
+    String? overlaps,
   }) => RuleForm(
     label: label,
     template: template,
@@ -83,6 +91,7 @@ class RuleForm extends Equatable {
     portable: portable,
     labelTaken: labelTaken,
     tooBroad: tooBroad,
+    overlaps: overlaps,
   );
 
   @override
@@ -94,5 +103,6 @@ class RuleForm extends Equatable {
     portable,
     labelTaken,
     tooBroad,
+    overlaps,
   ];
 }

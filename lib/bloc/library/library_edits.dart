@@ -197,7 +197,6 @@ extension _LibraryEdits on LibraryBloc {
 
   void _onSaveRulesAdded(SaveRulesAdded event, Emitter<LibraryState> emit) {
     _edit(event.gameId, emit, (game) {
-      final known = {for (final rule in game.saveProfile.rules) rule.template};
       return game.copyWith(
         saveDiscovery: game.saveDiscovery.copyWith(
           ludusaviResolvedPaths: {
@@ -205,12 +204,11 @@ extension _LibraryEdits on LibraryBloc {
             ...event.resolvedPaths,
           }.toList(),
         ),
-        saveProfile: game.saveProfile.copyWith(
-          rules: [
-            ...game.saveProfile.rules,
-            for (final rule in event.rules)
-              if (known.add(rule.template)) rule,
-          ],
+        // Метки и пересечения — при применении, к игре, какая она сейчас:
+        // окно правила держит профиль на момент открытия.
+        saveProfile: game.saveProfile.withRules(
+          event.rules,
+          gameDir: game.installDir,
         ),
       );
     });

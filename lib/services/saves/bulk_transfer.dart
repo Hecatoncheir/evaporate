@@ -151,7 +151,17 @@ class BulkTransfer {
     // применяется только самый свежий: следующий откатил бы его.
     final seen = <String>{};
 
-    for (final package in await saves.scanSyncFolder(sourceDir)) {
+    final packages = await saves.scanSyncFolder(
+      sourceDir,
+      onSkipped: (path, error) => entries.add(
+        BulkEntry(
+          title: p.basename(path),
+          outcome: BulkOutcome.failed,
+          detail: error is SaveException ? error.message : '$error',
+        ),
+      ),
+    );
+    for (final package in packages) {
       entries.add(
         await _importOne(
           package,
@@ -237,8 +247,8 @@ class BulkTransfer {
       final restored = await saves.restoreSnapshot(
         game: game,
         snapshot: snapshot,
+        onBackup: (backup) async => onSnapshot(backup),
       );
-      if (restored.backup != null) onSnapshot(restored.backup!);
       if (restored.isComplete) {
         return BulkEntry(title: game.title, outcome: BulkOutcome.applied);
       }

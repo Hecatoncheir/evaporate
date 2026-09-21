@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/rule_form/rule_form_bloc.dart';
 import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 import '../../widgets/inline_warning.dart';
 
@@ -20,6 +21,15 @@ class RuleFormFields extends StatelessWidget {
   final RuleForm form;
   final TextEditingController labelController;
   final TextEditingController templateController;
+
+  /// Почему путь не годится, — или `null`, если годится.
+  String? _templateError(L l) {
+    if (form.tooBroad) return l.pathTooBroad;
+    final overlaps = form.overlaps;
+    return overlaps == null
+        ? null
+        : l.pathOverlapsRule(ruleLabelText(l, overlaps));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +61,7 @@ class RuleFormFields extends StatelessWidget {
             ),
             decoration: InputDecoration(
               labelText: l.pathTemplate,
-              errorText: form.tooBroad ? l.pathTooBroad : null,
+              errorText: _templateError(l),
               errorMaxLines: 3,
             ),
           ),

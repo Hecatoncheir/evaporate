@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/snapshot_blob.dart';
@@ -125,7 +126,34 @@ class SnapshotStore {
   /// Вынесенное при этом возвращается на место: раз на него сослались, оно
   /// живое, и список, отдавший его уборке, ошибся.
   Future<bool> contains(String hash) async =>
-      await fileFor(hash).exists() || await _revive(hash);
+      await _isWhole(fileFor(hash)) || await _revive(hash);
+
+  /// Лежит ли под именем хоть что-то.
+  ///
+  /// Пустой файл под хешем — след оборванной записи, а не содержимое:
+  /// сжатое пустое и то весит два десятка байт. Считать его лежащим
+  /// значило бы на каждом следующем снимке отвечать «уже лежит» и так и
+  /// не записать настоящее.
+  static Future<bool> _isWhole(File file) async {
+    try {
+      return await file.length() > 0;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  /// Убирает содержимое, которое не развернулось.
+  ///
+  /// Обрезанный gzip по имени и длине от целого не отличить — ловит его
+  /// только раскладка. Тогда он уходит, чтобы следующий снимок того же
+  /// содержимого его переписал, а не ответил «уже лежит».
+  Future<void> discard(String hash) async {
+    try {
+      await fileFor(hash).delete();
+    } on FileSystemException {
+      // Уже нет — и хорошо.
+    }
+  }
 
   /// Кладёт файл в хранилище и возвращает ссылку на него.
   ///
@@ -181,7 +209,7 @@ class SnapshotStore {
       for (final deletion in _deletions)
         deletion.then((_) {}, onError: (Object _) {}),
     ]);
-    if (await fileFor(hash).exists()) return true;
+    if (await _isWhole(fileFor(hash))) return true;
     return _revive(hash);
   }
 
@@ -207,9 +235,9 @@ class SnapshotStore {
     Stream<List<int>> content,
   ) async {
     await Directory(root).create(recursive: true);
-    final tmp = File(
-      p.join(root, '${DateTime.now().microsecondsSinceEpoch}.tmp'),
-    );
+    // `uuid`, а не часы: у двух одновременных записей на Windows время
+    // совпадает, и вторая писала бы в чужой временный файл.
+    final tmp = File(p.join(root, '${_uuid.v4()}.tmp'));
     try {
       final digest = _DigestSink();
       final hasher = sha256.startChunkedConversion(digest);
@@ -222,6 +250,7 @@ class SnapshotStore {
           })
           .transform(gzip.encoder)
           .pipe(tmp.openWrite());
+      await _syncToDisk(tmp);
       hasher.close();
       final hash = digest.value.toString();
 
@@ -230,12 +259,30 @@ class SnapshotStore {
       } else {
         final target = fileFor(hash);
         await target.parent.create(recursive: true);
+        // Под именем мог остаться пустой след оборванной записи.
+        if (await target.exists()) await target.delete();
         await tmp.rename(target.path);
       }
       return (hash: hash, size: size);
     } on Object {
       if (await tmp.exists()) await tmp.delete();
       rethrow;
+    }
+  }
+
+  static const _uuid = Uuid();
+
+  /// Сбрасывает записанное на диск до переименования.
+  ///
+  /// Закрытый поток отдаёт байты системе, но не диску: после обрыва питания
+  /// под верным хешем лежал бы пустой или обрезанный файл — индекс-то,
+  /// список снимков, на диск сбрасывается (`JsonStore`).
+  static Future<void> _syncToDisk(File file) async {
+    final handle = await file.open(mode: FileMode.append);
+    try {
+      await handle.flush();
+    } finally {
+      await handle.close();
     }
   }
 
@@ -259,7 +306,7 @@ class SnapshotStore {
   /// настоящий файл, а не наше сжатое представление.
   Future<void> extractTo(String hash, String destination) async {
     final source = fileFor(hash);
-    if (!await source.exists() && !await _revive(hash)) {
+    if (!await _isWhole(source) && !await _revive(hash)) {
       throw FileSystemException('Содержимое снимка не найдено', source.path);
     }
     final target = File(destination);
@@ -421,12 +468,21 @@ class StoredBlobSource implements RestoreSource {
   @override
   int get size => _blob.size;
 
+  /// Не развернулось — содержимое убирается из хранилища ([SnapshotStore.discard]):
+  /// следующий снимок того же сейва его перепишет, а не ответит «уже
+  /// лежит». Отказ при этом приходит словами, а не сырым исключением
+  /// разборщика gzip.
   @override
   Future<void> writeTo(String path) async {
-    await _store.extractTo(_blob.hash, path);
-    final written = await File(path).length();
-    if (written != _blob.size) {
-      throw SaveException(_l.saveArchiveReadFailed(_blob.name));
+    try {
+      await _store.extractTo(_blob.hash, path);
+      if (await File(path).length() == _blob.size) return;
+    } on SaveException {
+      rethrow;
+    } on Object {
+      // Обрезанный gzip — `FormatException` или ошибка ввода-вывода.
     }
+    await _store.discard(_blob.hash);
+    throw SaveException(_l.saveArchiveReadFailed(_blob.name));
   }
 }

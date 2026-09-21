@@ -231,3 +231,19 @@ final class SnapshotTaken extends SavesEvent {
   @override
   List<Object?> get props => [snapshot];
 }
+
+/// Проверка на старте нашла копии, оставшиеся рядом с живыми сейвами после
+/// прерванной раскладки.
+///
+/// Внутреннее. Застрявшие сейвы возвращаются и перед каждым снимком,
+/// восстановлением и запуском, но игру могут не трогать неделями, а копию
+/// рядом с живой целью никто, кроме человека, не уберёт — ему и надо
+/// сказать.
+final class InterruptedRestoresFound extends SavesEvent {
+  const InterruptedRestoresFound(this.paths);
+
+  final List<String> paths;
+
+  @override
+  List<Object?> get props => [paths];
+}

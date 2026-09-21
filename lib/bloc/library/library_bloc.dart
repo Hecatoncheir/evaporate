@@ -248,11 +248,24 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
 
   Future<void> persist() async {
     _persistTimer?.cancel();
+    if (_frozen) return;
     await _writeGames(state.games);
   }
 
+  /// Версия схемы `library.json`, которую эта сборка пишет и понимает.
+  static const _libraryVersion = 1;
+
+  /// Библиотеку записала сборка новее: её не перезаписываем вовсе.
+  ///
+  /// Непонятое — не испорченное. Прежде такой файл уходил в карантин, и
+  /// первый же откат на прошлую сборку после смены схемы — а откат у
+  /// обновления по нажатию предусмотрен — давал пустую библиотеку, а
+  /// следующая запись затирала будущую. Правки этого сеанса при этом не
+  /// сохранятся, и об этом сказано сообщением.
+  bool _frozen = false;
+
   Future<void> _writeGames(List<Game> games) => _store.write({
-    'version': 1,
+    'version': _libraryVersion,
     'games': games.map((g) => g.toJson()).toList(),
   });
 
@@ -263,12 +276,24 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     Emitter<LibraryState> emit,
   ) async {
     final json = await _store.readAs((json) {
-      if ((json['version'] ?? 1) != 1 ||
+      final version = json['version'] ?? 1;
+      if (version is! int ||
+          version < 1 ||
           (json['games'] != null && json['games'] is! List)) {
         throw const FormatException('Invalid library schema');
       }
       return json;
     });
+    if (json != null && (json['version'] ?? 1) as int > _libraryVersion) {
+      _frozen = true;
+      emit(
+        state.copyWith(
+          loaded: true,
+          notice: notice(_l.noticeLibraryNewer, isError: true),
+        ),
+      );
+      return;
+    }
     if (json == null) {
       emit(state.copyWith(loaded: true, notice: _storageRecoveryNotice()));
       return;

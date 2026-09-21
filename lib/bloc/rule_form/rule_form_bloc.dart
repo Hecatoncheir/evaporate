@@ -83,6 +83,12 @@ class RuleFormBloc extends Bloc<RuleFormEvent, RuleForm> {
           !expanded.contains('{') &&
           p.isAbsolute(expanded) &&
           SavePathTemplate.isTooBroad(expanded, gameDir: gameDir),
+      overlaps: profile
+          .overlapping(
+            SavePathRule(id: '', label: draft.label, template: draft.template),
+            gameDir: gameDir,
+          )
+          ?.label,
     );
   }
 }

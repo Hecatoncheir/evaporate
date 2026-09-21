@@ -5,7 +5,10 @@ import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
+import 'package:evaporate/models/game.dart';
+import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
+import 'package:evaporate/services/saves/restore_transaction.dart';
 import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -192,19 +195,16 @@ void main() {
       );
     }
 
-    /// Удаление снимка — ровно тот путь, за которым идёт уборка, а
-    /// список ложится на диск после неё: появился в файле без снимка —
-    /// значит, уборка уже прошла.
+    /// Удаление снимка — ровно тот путь, за которым идёт уборка. Закрытие
+    /// блока дожидается его обработчиков, а значит, и уборки: без этого
+    /// проверка «содержимое на месте» прошла бы, не дождавшись её.
     Future<void> deleteAndWait(SaveSnapshot snapshot) async {
       saves.add(SnapshotDeleted(snapshot));
-      final file = File(paths.snapshotsFile);
-      final deadline = DateTime.now().add(const Duration(seconds: 10));
-      while (!file.existsSync() ||
-          file.readAsStringSync().contains('"${snapshot.id}"')) {
-        if (DateTime.now().isAfter(deadline)) fail('список не записан');
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
-      await saves.persist();
+      await saves.stream.firstWhere(
+        (s) =>
+            s.snapshotsFor(snapshot.gameId).every((x) => x.id != snapshot.id),
+      );
+      await saves.close();
     }
 
     test('нечитаемый файл не отдаёт содержимое снимков уборке', () async {
@@ -255,5 +255,98 @@ void main() {
         reason: 'уборка унесла содержимое нечитаемого снимка',
       );
     });
+  });
+
+  // Автоснимок перед запуском по умолчанию выключен, а возврат застрявших
+  // сейвов жил только внутри снимка и восстановления. Игра стартовала без
+  // сейвов, заводила новые — и прогресс навсегда оставался в копии.
+  test(
+    'застрявшие сейвы возвращаются перед запуском и без автоснимка',
+    () async {
+      final target = p.join(tmp.path, 'saves');
+      final copy = RestoreTransaction.backupPathFor(target, DateTime(2026));
+      await Directory(copy).create(recursive: true);
+      await File(p.join(copy, 'slot.sav')).writeAsString('прогресс');
+      final game = Game(
+        id: 'g',
+        title: 'Игра',
+        addedAt: DateTime(2026),
+        saveProfile: SaveProfile(
+          rules: [SavePathRule(id: 'r', label: 'Сохранения', template: target)],
+        ),
+      );
+      expect(game.saveProfile.autoSnapshotOnLaunch, isFalse);
+
+      await saves.snapshotBeforeLaunch(game);
+
+      expect(File(p.join(target, 'slot.sav')).readAsStringSync(), 'прогресс');
+    },
+  );
+
+  // Копия рядом с целой целью бывает единственной прежней версией, и её
+  // судьбу решает человек. Строка в журнале на каждом снимке ему этого не
+  // скажет — говорим сообщением, один раз, когда игры известны.
+  test('о копии рядом с живыми сейвами говорят при старте', () async {
+    final target = p.join(tmp.path, 'saves');
+    await Directory(target).create(recursive: true);
+    final copy = RestoreTransaction.backupPathFor(target, DateTime(2026));
+    await Directory(copy).create();
+    final game = Game(
+      id: 'g',
+      title: 'Игра',
+      addedAt: DateTime(2026),
+      saveProfile: SaveProfile(
+        rules: [SavePathRule(id: 'r', label: 'Сохранения', template: target)],
+      ),
+    );
+    await Directory(paths.dataDir).create(recursive: true);
+    await File(paths.libraryFile).writeAsString(
+      jsonEncode({
+        'version': 1,
+        'games': [game.toJson()],
+      }),
+    );
+
+    library.add(const LibraryLoadRequested());
+    final noticed = await saves.stream
+        .firstWhere((s) => s.notice != null)
+        .timeout(const Duration(seconds: 10));
+
+    expect(noticed.notice!.message, contains(copy));
+    expect(Directory(copy).existsSync(), isTrue, reason: 'копию не трогают');
+  });
+
+  // Список от сборки новее не испорчен — он просто не наш. Ни перезаписать
+  // его, ни отдать уборке содержимое его снимков нельзя: откат на прошлую
+  // версию после смены схемы — сценарий, который обновление предусматривает.
+  test('список снимков от сборки новее не затирается', () async {
+    final blob = await SnapshotStore(root: paths.blobsDir)
+        .putBytes('slot.sav', utf8.encode('прогресс из будущего'));
+    await Directory(paths.dataDir).create(recursive: true);
+    final written = jsonEncode({
+      'version': 2,
+      'snapshots': {
+        'game-1': [
+          {
+            'id': 'future',
+            'blobs': [blob.toJson()],
+          },
+        ],
+      },
+    });
+    await File(paths.snapshotsFile).writeAsString(written);
+
+    await load();
+    expect(saves.state.notice?.isError, isTrue, reason: 'промолчали');
+    saves.add(SnapshotTaken(snapshotOf('snap-new', 'Тихая гавань')));
+    await saves.stream.firstWhere((s) => s.snapshotsFor('game-1').isNotEmpty);
+    saves.add(SnapshotDeleted(snapshotOf('snap-new', 'Тихая гавань')));
+    await saves.close();
+
+    expect(File(paths.snapshotsFile).readAsStringSync(), written);
+    expect(
+      SnapshotStore(root: paths.blobsDir).fileFor(blob.hash).existsSync(),
+      isTrue,
+    );
   });
 }

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/services/saves/save_exception.dart';
 import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -104,6 +106,49 @@ void main() {
 
       expect(purged, greaterThan(0));
       expect(await store.contains(blob.hash), isFalse);
+    });
+  });
+
+  // После обрыва питания под верным хешем лежит пустой или обрезанный файл,
+  // и каждый следующий снимок неизменившегося сейва отвечал «уже лежит».
+  // Выяснялось это в день восстановления.
+  group('испорченное содержимое', () {
+    test('пустой файл под хешем считается отсутствующим', () async {
+      final store = SnapshotStore(root: root());
+      final blob = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      await store.fileFor(blob.hash).writeAsBytes(const []);
+
+      await store.putBytes('slot.sav', utf8.encode('прогресс'));
+
+      final target = p.join(tmp.path, 'назад.sav');
+      await store.extractTo(blob.hash, target);
+      expect(File(target).readAsStringSync(), 'прогресс');
+    });
+
+    // Обрезанный на середине gzip по имени и длине не отличить. Раскладка
+    // его ловит — и тогда он уходит, чтобы следующий снимок того же
+    // содержимого его переписал, а не ответил «уже лежит».
+    test('обрезанный блоб, сорвавший раскладку, переписывается', () async {
+      final store = SnapshotStore(root: root());
+      final content = utf8.encode('прогресс ' * 200);
+      final blob = await store.putBytes('slot.sav', content);
+      final stored = store.fileFor(blob.hash);
+      final whole = await stored.readAsBytes();
+      await stored.writeAsBytes(whole.sublist(0, whole.length ~/ 2));
+
+      final source = StoredBlobSource(
+        blob,
+        store: store,
+        localizations: LRu.new,
+      );
+      await expectLater(
+        source.writeTo(p.join(tmp.path, 'первый.sav')),
+        throwsA(isA<SaveException>()),
+      );
+
+      await store.putBytes('slot.sav', content);
+      await source.writeTo(p.join(tmp.path, 'второй.sav'));
+      expect(File(p.join(tmp.path, 'второй.sav')).readAsBytesSync(), content);
     });
   });
 

@@ -321,6 +321,65 @@ void main() {
       expect(result.isError, isFalse);
     });
 
+    // Нечитаемое уходило только в журнал: пакет от сборки новее давал
+    // отчёт «применено: 0» без единой ошибки.
+    test('нечитаемый пакет попадает в отчёт провалом', () async {
+      final folder = Directory(p.join(tmp.path, 'sync'));
+      await folder.create();
+      await File(p.join(folder.path, 'будущее${SaveSnapshot.fileExtension}'))
+          .writeAsString('не zip');
+
+      final result = await bulk.importAll(
+        games: const [],
+        sourceDir: folder.path,
+        overwriteNewer: false,
+        onSnapshot: (_) {},
+      );
+
+      final failed = result.report.withOutcome(BulkOutcome.failed).single;
+      expect(failed.title, 'будущее${SaveSnapshot.fileExtension}');
+      expect(result.isError, isTrue);
+    });
+
+    // Снятый на Windows пакет ложится в macOS-путь той же игры по метке, а
+    // значок «нет путей» судил по одной платформе правил пакета.
+    test('пакет с правилом чужой системы ложится по метке', () {
+      final snapshot = SaveSnapshot(
+        id: 's',
+        gameId: 'там',
+        gameTitle: 'Игра',
+        createdAt: DateTime(2026),
+        deviceName: 'другое',
+        platform: 'other',
+        sizeBytes: 1,
+        archivePath: '',
+        rules: const [
+          SavePathRule(
+            id: 'чужое',
+            label: 'Сохранения',
+            template: '{APPDATA}/Игра',
+            platform: 'other',
+          ),
+        ],
+      );
+      final game = Game(
+        id: 'здесь',
+        title: 'Игра',
+        addedAt: DateTime(2026),
+        saveProfile: const SaveProfile(
+          rules: [
+            SavePathRule(
+              id: 'своё',
+              label: 'Сохранения',
+              template: '{APPSUPPORT}/Игра',
+            ),
+          ],
+        ),
+      );
+
+      expect(SaveManager(paths: paths).fits(game, snapshot), isTrue);
+    });
+
     test(
       'пакет сопоставляется с игрой по названию, а не по идентификатору',
       () {

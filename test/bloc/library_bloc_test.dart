@@ -222,6 +222,35 @@ void main() {
     expect(reopened.state.games.map((game) => game.id), ['valid']);
   });
 
+  // Файл от сборки новее — не испорченный. Прежде он уходил в карантин, и
+  // первый же откат на прошлую версию после смены схемы — а откат у
+  // обновления по нажатию предусмотрен — давал «всё пропало».
+  test('библиотека от сборки новее не трогается и не затирается', () async {
+    await Directory(paths.dataDir).create(recursive: true);
+    final written = jsonEncode({
+      'version': 2,
+      'games': [
+        {'формат': 'будущий'},
+      ],
+    });
+    await File(paths.libraryFile).writeAsString(written);
+
+    library.add(const LibraryLoadRequested());
+    await waitFor((state) => state.loaded);
+    library.add(const GameAdded(id: 'new', title: 'Новая'));
+    await waitFor((state) => state.gameById('new') != null);
+    await library.persist();
+
+    expect(library.state.notice?.isError, isTrue, reason: 'промолчали');
+    expect(File(paths.libraryFile).readAsStringSync(), written);
+    expect(
+      Directory(paths.dataDir)
+          .listSync()
+          .where((file) => file.path.contains('.corrupt-')),
+      isEmpty,
+    );
+  });
+
   // Негодная кодировка приходила не `FormatException`, а
   // `FileSystemException`, которое чтение не ловило: библиотека так и не
   // загружалась, и окно оставалось пустым без единого слова.

@@ -3,6 +3,7 @@ import 'package:evaporate/core/format.dart';
 import 'package:evaporate/core/save_path_template.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 /// Правило пути сохранений принимают по трём правилам, и каждое оплачено:
 /// пустой шаблон разворачивался в рабочую папку приложения, занятая метка
@@ -138,5 +139,31 @@ void main() {
   test('недоразвёрнутый шаблон широким не считается', () {
     expect(form(template: '{GAME}').state.tooBroad, isFalse);
     expect(form(template: '{GAME}', gameDir: '/opt/hk').state.tooBroad, isTrue);
+  });
+
+  // Пересекающееся правило снимок удвоил бы, а восстановление на вложенных
+  // целях отказывает целиком. Молча не добавлять его нельзя: человек
+  // нажал «Сохранить» и ждёт правила.
+  test('путь внутри заданного правила сохранить нельзя', () async {
+    final root = p.join(p.rootPrefix(p.current), 'Games', 'X');
+    final bloc = form(
+      template: p.join(root, 'Config'),
+      profile: SaveProfile(
+        rules: [
+          SavePathRule(
+            id: 'r1',
+            label: 'Сейвы',
+            template: p.join(root, 'Saves'),
+          ),
+        ],
+      ),
+    );
+    expect(bloc.state.overlaps, isNull);
+
+    bloc.add(RuleTemplateChanged(p.join(root, 'Saves', 'slot1')));
+    await settle();
+
+    expect(bloc.state.overlaps, 'Сейвы');
+    expect(bloc.state.canSave, isFalse);
   });
 }

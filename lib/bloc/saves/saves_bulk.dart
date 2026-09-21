@@ -2,6 +2,18 @@ part of 'saves_bloc.dart';
 
 /// Перенос сохранений всей библиотеки разом и папка синхронизации.
 extension _SavesBulk on SavesBloc {
+  /// Пакет с отметкой, ляжет ли он в игру с тем же названием.
+  ///
+  /// Той игры может и не быть — тогда остаётся суждение по платформе
+  /// правил: лучшего без игры не сказать.
+  SavePackageInfo _withFit(SavePackageInfo package, List<Game> games) {
+    final game = BulkTransfer.matchGame(games, package.snapshot.gameTitle);
+    if (game == null) return package;
+    return package.withCompatibility(
+      isCompatible: _saves.fits(game, package.snapshot),
+    );
+  }
+
   Future<void> _onBulkExport(
     BulkExportRequested event,
     Emitter<SavesState> emit,
@@ -93,7 +105,11 @@ extension _SavesBulk on SavesBloc {
     }
     emit(state.copyWith(scanningSync: true));
     try {
-      final packages = await _saves.scanSyncFolder(folder);
+      final games = library.state.games;
+      final packages = [
+        for (final package in await _saves.scanSyncFolder(folder))
+          _withFit(package, games),
+      ];
       emit(
         state.copyWith(
           syncPackages: packages,
@@ -125,12 +141,10 @@ extension _SavesBulk on SavesBloc {
       final report = await _saves.restoreSnapshot(
         game: event.game,
         snapshot: snapshot,
+        onBackup: (backup) => _keepBackup(backup, emit),
       );
       emit(
         state.copyWith(
-          snapshots: report.backup == null
-              ? state.snapshots
-              : _withSnapshot(report.backup!),
           busy: busyWith(key, value: false),
           notice: report.isComplete
               ? notice(_l.noticeRestoreDone(report.filesWritten))
@@ -149,6 +163,8 @@ extension _SavesBulk on SavesBloc {
           notice: notice(error.toString(), isError: true),
         ),
       );
+      // Пакет и копия могли лечь в состояние до сбоя — на диск их тоже.
+      await persist();
     }
   }
 }

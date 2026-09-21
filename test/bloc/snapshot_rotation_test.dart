@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:evaporate/bloc/library/library_bloc.dart';
@@ -6,6 +7,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
+import 'package:evaporate/services/saves/save_manager.dart';
 import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -319,4 +321,63 @@ void main() {
     expect(saves.state.snapshotsFor(id), hasLength(3));
     await waitForStore();
   });
+
+  // Снимок уходил в состояние, дальше шла выгрузка в папку синхронизации
+  // (секунды; включена по умолчанию), и только потом — запись списка. А
+  // `close()` дописывал отложенное по таймеру, которого не заводил никто.
+  // «Вышел из игры и закрыл лончер» — самый обычный порядок действий.
+  test('снимок переживает закрытие посреди выгрузки', () async {
+    final id = await gameWithSave('Выгрузка', keep: 5);
+    settings.add(
+      SettingsPatched(
+        (s) => s.copyWith(
+          syncFolder: p.join(tmp.path, 'sync'),
+          autoExportToSync: true,
+        ),
+      ),
+    );
+    await settings.stream.firstWhere((s) => s.syncFolder != null);
+    final hanging = _HangingExport(paths);
+    final closing = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
+      saveManager: hanging,
+      saveRoots: () => const [],
+      log: () => log,
+    );
+    closing.add(const SavesLoadRequested());
+    await closing.stream.firstWhere((s) => s.loaded);
+
+    closing.add(SnapshotRequested(library.state.gameById(id)!));
+    await hanging.exporting.future.timeout(const Duration(seconds: 10));
+    await closing.close();
+
+    final reopened = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
+      saveRoots: () => const [],
+      log: () => log,
+    );
+    addTearDown(reopened.close);
+    reopened.add(const SavesLoadRequested());
+    await reopened.stream.firstWhere((s) => s.loaded);
+
+    expect(reopened.state.snapshotsFor(id), hasLength(1));
+  });
+}
+
+/// Выгрузка в папку синхронизации, которая не кончается: папка на
+/// отвалившемся сетевом диске.
+class _HangingExport extends SaveManager {
+  _HangingExport(AppPaths paths) : super(paths: paths);
+
+  final exporting = Completer<void>();
+
+  @override
+  Future<File> exportSnapshot(SaveSnapshot snapshot, String destination) {
+    if (!exporting.isCompleted) exporting.complete();
+    return Completer<File>().future;
+  }
 }

@@ -94,12 +94,18 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     on<BulkImportRequested>(_onBulkImport);
     on<SyncFolderScanRequested>(_onSyncScanRequested);
     on<SyncPackageApplied>(_onSyncPackageApplied);
+    on<InterruptedRestoresFound>(_onInterruptedRestoresFound);
 
     library.beforeLaunch = snapshotBeforeLaunch;
     _exits = library.gameExits.listen(_afterGameExit);
     _removals = library.gameRemovals.listen(
       (gameId) => add(GameSnapshotsDropped(gameId)),
     );
+    // Один раз, когда игры известны: раньше проверять нечего.
+    final loaded = library.state.loaded
+        ? Stream.value(library.state)
+        : library.stream.where((state) => state.loaded).take(1);
+    _libraryLoaded = loaded.listen((_) => unawaited(_checkInterrupted()));
   }
 
   /// Откуда брать игры и куда сообщать об их правке.
@@ -145,9 +151,23 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
 
   late final StreamSubscription<GameExit> _exits;
   late final StreamSubscription<String> _removals;
+  late final StreamSubscription<LibraryState> _libraryLoaded;
 
-  Timer? _persistTimer;
   bool _closing = false;
+
+  /// Список снимков менялся с последней записи на диск.
+  ///
+  /// Закрытие дописывает список только тогда: незачем писать неизменное, а
+  /// запись в закрытии — лишний ввод-вывод на пути, где окно уже ушло.
+  bool _unsaved = false;
+
+  @override
+  void onChange(Change<SavesState> change) {
+    super.onChange(change);
+    if (!identical(change.currentState.snapshots, change.nextState.snapshots)) {
+      _unsaved = true;
+    }
+  }
 
   /// Записи списка снимков, которые эта сборка не прочла, — как лежали.
   ///
@@ -166,6 +186,21 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// всех таких снимков, а карантинная копия списка оставалась ссылаться в
   /// пустоту. Чего не поняли — не удаляем.
   bool _listDamaged = false;
+
+  /// Список записала сборка новее: не перезаписываем и уборку не пускаем.
+  ///
+  /// Непонятое — не испорченное. Карантин и пустой список при откате на
+  /// прошлую сборку (а откат обновление предусматривает) отдали бы уборке
+  /// содержимое всех снимков, а следующая запись затёрла бы будущий
+  /// список нашим. Снимки этого сеанса при этом не запишутся — об этом
+  /// сказано сообщением.
+  bool _frozen = false;
+
+  /// Версия схемы списка, которую эта сборка пишет и понимает.
+  static const _snapshotsVersion = 1;
+
+  static bool _isNewer(Object? version) =>
+      version is int && version > _snapshotsVersion;
 
   /// Чтение манифеста чужого `.evsave` состояния не меняет, поэтому диалог
   /// подтверждения обращается к менеджеру напрямую.
@@ -218,15 +253,21 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
           ...resolvedPaths,
         }.toList(),
       ),
-      saveProfile: game.saveProfile.copyWith(
-        rules: [...game.saveProfile.rules, ...rules],
-      ),
+      // Тем же способом, каким их применит библиотека: разойдись они, здесь
+      // снимали бы по правилу, которого у игры не окажется.
+      saveProfile: game.saveProfile.withRules(rules, gameDir: game.installDir),
     );
   }
 
   Future<void> persist() async {
-    _persistTimer?.cancel();
-    await _store.write({'version': 1, 'snapshots': _snapshotsJson()});
+    if (_frozen) return;
+    // До записи, а не после: изменение, пришедшее посреди неё, взведёт
+    // флаг снова, и закрытие его допишет.
+    _unsaved = false;
+    await _store.write({
+      'version': _snapshotsVersion,
+      'snapshots': _snapshotsJson(),
+    });
   }
 
   /// Снимки для записи — вместе с тем, что прочитать не удалось.
@@ -256,6 +297,8 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     final own = await _readSnapshots(_store);
     if (own != null) {
       emit(state.copyWith(snapshots: own, loaded: true));
+      // Прочитанное с диска там и лежит.
+      _unsaved = false;
       _reportDamage(emit);
       return;
     }
@@ -276,7 +319,13 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   Future<Map<String, List<SaveSnapshot>>?> _readSnapshots(
     JsonStore store,
   ) async {
-    final raw = await store.readAs((json) => json['snapshots']);
+    final json = await store.readAs((json) => json);
+    if (json == null) return null;
+    if (identical(store, _store) && _isNewer(json['version'])) {
+      _frozen = true;
+      return const {};
+    }
+    final raw = json['snapshots'];
     if (raw == null) return null;
     if (raw is! Map<String, dynamic>) {
       // Ключ есть, но не тот, что ждали: файл целиком откладываем в
@@ -316,6 +365,13 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// Сообщением, как у библиотеки: молча это кончалось потерей содержимого
   /// снимков, о которой узнавали в день восстановления.
   void _reportDamage(Emitter<SavesState> emit) {
+    if (_frozen) {
+      _log().write('список снимков записан сборкой новее; не трогаем');
+      emit(
+        state.copyWith(notice: notice(_l.noticeSnapshotsNewer, isError: true)),
+      );
+      return;
+    }
     final quarantined = _store.recoveryPath ?? _legacyStore.recoveryPath;
     if (quarantined == null && _unread.isEmpty) return;
     _listDamaged = true;
@@ -329,6 +385,37 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
         : _l.noticeSnapshotsRecovered(quarantined);
     emit(state.copyWith(notice: notice(text, isError: true)));
   }
+
+  /// Возвращает застрявшие сейвы у всех игр, а о копиях, оставшихся рядом
+  /// с живыми сохранениями, сообщает событием.
+  ///
+  /// Копия рядом с целой целью бывает единственной прежней версией —
+  /// замена могла дойти до конца, а могла и нет, — и решает её судьбу
+  /// человек. Строка в журнале на каждом снимке ему этого не скажет.
+  ///
+  /// Не обработчиком: обход папок всех игр — секунды, а закрытие блока
+  /// дожидается обработчиков, и окно висело бы на этой проверке.
+  Future<void> _checkInterrupted() async {
+    final left = <String>[];
+    for (final game in library.state.games) {
+      if (_closing) return;
+      try {
+        left.addAll(await _saves.recoverInterrupted(game));
+      } on Object catch (error) {
+        _log().write('возврат сейвов ${game.title}', error);
+      }
+    }
+    if (left.isNotEmpty && !_closing) add(InterruptedRestoresFound(left));
+  }
+
+  void _onInterruptedRestoresFound(
+    InterruptedRestoresFound event,
+    Emitter<SavesState> emit,
+  ) => emit(
+    state.copyWith(
+      notice: notice(_l.noticeRestoreLeftovers(event.paths.join(', '))),
+    ),
+  );
 
   /// Игру удалили из библиотеки — её снимки больше никому не нужны.
   Future<void> _onGameSnapshotsDropped(
@@ -375,7 +462,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// только отсюда: снимок можно выкинуть у одной игры, а его файлы —
   /// оставаться нужными другой, если обе привезли один и тот же пакет.
   Future<void> _collectGarbage() async {
-    if (_listDamaged) return;
+    if (_listDamaged || _frozen) return;
     try {
       final (:moved, :purged) = await _saves.collectGarbage(
         state.snapshots.values.expand((list) => list),
@@ -416,6 +503,14 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// Не событием, а методом: библиотека обязана его дождаться, а события
   /// не дожидаются. Записать снятое в состояние — уже дело события.
   Future<void> snapshotBeforeLaunch(Game game) async {
+    // Прежде всего — без условий — вернуть застрявшие сейвы: автоснимок
+    // по умолчанию выключен, и без этого игра стартовала бы без них,
+    // заводила новые, а прогресс оставался в `.evaporate-old-*` навсегда.
+    try {
+      await _saves.recoverInterrupted(game);
+    } on Object catch (error) {
+      _log().write('возврат сейвов перед запуском ${game.title}', error);
+    }
     final profile = game.saveProfile;
     if (!profile.autoSnapshotOnLaunch) return;
     final discovered = game.saveDiscovery.ludusaviTemplates;
@@ -485,11 +580,11 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     library.beforeLaunch = null;
     await _exits.cancel();
     await _removals.cancel();
-    // Отложенную запись именно дожидаемся: запущенная и брошенная, она не
-    // успевает лечь на диск, и последний снимок теряется при выходе.
-    final pending = _persistTimer?.isActive ?? false;
-    _persistTimer?.cancel();
-    if (pending) await persist();
+    await _libraryLoaded.cancel();
+    // Изменённый список дописываем всегда, а не «если висит отложенная
+    // запись»: обещание держалось на таймере, которого не заводил никто, —
+    // и снимок, снятый перед закрытием, терялся.
+    if (_unsaved && state.loaded) await persist();
     await _store.flush();
     return super.close();
   }

@@ -56,6 +56,8 @@
     }
   },
   "noticeSnapshotsPartlyRead": "Some save snapshots could not be read. They were kept in the list as they were, and their files were left untouched.",
+  "noticeSnapshotsNewer": "The list of save snapshots was written by a newer version of Evaporate. This version leaves it untouched: snapshots taken now will not be kept in it. Please update the app.",
+  "noticeLibraryNewer": "The library was written by a newer version of Evaporate. This version leaves it untouched: changes made now will not be saved. Please update the app.",
   "@noticeSaveHints": {
     "placeholders": {
       "count": {
@@ -239,6 +241,7 @@
   "labelNote": "Paths are matched between machines by label",
   "labelTaken": "Another path already has this label — another machine could not tell them apart",
   "pathTooBroad": "This is a whole system folder, not a save folder: a snapshot would take all of it, and a restore would replace it. Pick the game's own folder inside it.",
+  "pathOverlapsRule": "This path overlaps the rule “{label}”: one lies inside the other. A snapshot would take the files twice, and a restore would refuse. Remove one of the rules or pick another folder.",
   "language": "Language",
   "languageEnglish": "English",
   "languageRussian": "Русский",
@@ -437,6 +440,9 @@
   "save": "Save",
   "saveArchiveMissing": "The snapshot archive is missing: {path}",
   "saveArchiveReadFailed": "Could not read the archive: {error}",
+  "saveRollbackStranded": "The previous saves could not be put back — they are here: {paths}",
+  "saveRulesOverlap": "The paths of rules “{first}” and “{second}” overlap: one lies inside the other. Remove one of them on the game page — otherwise a snapshot would take the files twice.",
+  "noticeRestoreLeftovers": "An interrupted restore left previous copies next to the saves. If the saves are fine, the copies can be deleted: {paths}",
   "saveAutoBackupNote": "Automatic backup before rolling back to {when}",
   "saveNoPathsForPlatform": "No save folders are set for “{title}” on {platform}.",
   "saveNoTargets": "Not a single save path matched this machine. Set the save folder in the game card and try again.",

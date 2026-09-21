@@ -79,16 +79,25 @@ extension _SavesSnapshots on SavesBloc {
       await _prune(game.id, emit);
       await persist();
     } on SaveException catch (error) {
-      if (silent) _notifySnapshotFailed(game, error.message);
-      finishBusy(
-        emit,
-        key,
-        message: silent ? null : error.message,
-        isError: true,
-      );
+      _snapshotFailed(emit, game, key, error.message, silent: silent);
     } on Object catch (error) {
-      finishBusy(emit, key, message: error.toString(), isError: true);
+      // Сырое исключение ввода-вывода — файл ещё держит игра — такой же
+      // провал, и молчаливому автоснимку сказать о нём больше нечем.
+      _snapshotFailed(emit, game, key, '$error', silent: silent);
     }
+  }
+
+  /// Снимок не вышел: ручному — сообщением в окне, автоснимку после выхода
+  /// — системным уведомлением: окна человек в этот миг уже не видит.
+  void _snapshotFailed(
+    Emitter<SavesState> emit,
+    Game game,
+    String key,
+    String message, {
+    required bool silent,
+  }) {
+    if (silent) _notifySnapshotFailed(game, message);
+    finishBusy(emit, key, message: silent ? null : message, isError: true);
   }
 
   /// Просили ли класть копию снимка в папку синхронизации.
@@ -101,7 +110,14 @@ extension _SavesSnapshots on SavesBloc {
 
   /// Кладёт копию снимка в папку синхронизации. Отказ снимка не отменяет:
   /// локально он уже сохранён.
+  ///
+  /// Список снимков пишется **до** выгрузки: «вышел из игры и закрыл
+  /// лончер» — самый обычный порядок, а выгрузка идёт секундами, и список,
+  /// записанный после неё, при закрытии терялся. Без выгрузки запись идёт
+  /// следом за сообщением об удаче, а не перед ним: лишний `await` его
+  /// отложил бы, а читают его сразу за появлением снимка.
   Future<void> _exportToSync(SaveSnapshot snapshot) async {
+    await persist();
     try {
       await _exportToSyncFolder(snapshot);
     } on Object catch (error) {
@@ -120,6 +136,21 @@ extension _SavesSnapshots on SavesBloc {
         kind: NotificationKind.saveFailed,
       ),
     );
+  }
+
+  /// Резервная копия перед восстановлением — в состояние и на диск, пока
+  /// замена ещё не началась.
+  ///
+  /// Прежде копия попадала в библиотеку из отчёта об успехе: сорвись замена,
+  /// её не было нигде, и следующая уборка уносила её содержимое — ровно
+  /// тогда, когда она нужна. Список пишется сразу: упади приложение
+  /// посреди замены, копия в одной памяти пропала бы так же.
+  Future<void> _keepBackup(
+    SaveSnapshot backup,
+    Emitter<SavesState> emit,
+  ) async {
+    emit(state.copyWith(snapshots: _withSnapshot(backup)));
+    await persist();
   }
 
   Map<String, List<SaveSnapshot>> _withSnapshot(SaveSnapshot snapshot) {
@@ -147,6 +178,10 @@ extension _SavesSnapshots on SavesBloc {
     final snapshots = Map<String, List<SaveSnapshot>>.from(state.snapshots);
     snapshots[gameId] = list.sublist(0, keep);
     emit(state.copyWith(snapshots: snapshots));
+    // Список — раньше удаления: оборвись работа между ними, в списке
+    // остался бы снимок без содержимого. Наоборот — лишь лишние файлы,
+    // которые унесёт следующая уборка.
+    await persist();
 
     for (final snapshot in excess) {
       try {
@@ -174,12 +209,10 @@ extension _SavesSnapshots on SavesBloc {
         snapshot: event.snapshot,
         backupCurrent: event.backupCurrent,
         wipeTarget: event.wipeTarget,
+        onBackup: (backup) => _keepBackup(backup, emit),
       );
       emit(
         state.copyWith(
-          snapshots: report.backup == null
-              ? state.snapshots
-              : _withSnapshot(report.backup!),
           busy: busyWith(key, value: false),
           notice: report.isComplete
               ? notice(
@@ -268,13 +301,15 @@ extension _SavesSnapshots on SavesBloc {
           .toList();
       emit(state.copyWith(snapshots: snapshots));
     }
+    // Список — раньше удаления и уборки, по той же причине, что в
+    // `_prune`.
+    await persist();
     try {
       await _saves.deleteSnapshot(event.snapshot);
     } on Object catch (error) {
       emit(state.copyWith(notice: notice(error.toString(), isError: true)));
     }
     await _collectGarbage();
-    await persist();
   }
 
   Future<File> _exportToSyncFolder(SaveSnapshot snapshot) async {

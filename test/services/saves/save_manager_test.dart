@@ -561,6 +561,173 @@ void main() {
     );
   });
 
+  // Копия снимается до замены, а в библиотеку попадала только из отчёта об
+  // успехе. Сорвалась замена — копия не заведена нигде, и её содержимое
+  // уносит следующая уборка: ровно тогда, когда она и нужна.
+  test(
+    'резервная копия доходит до вызывающего и при сорванной замене',
+    () async {
+      final first = await writeSaves('backup-first', {'slot': 'old-a'});
+      final second = await writeSaves('backup-second', {'slot': 'old-b'});
+      final game = gameWith(
+        id: 'backup-kept',
+        title: 'Backup kept',
+        rules: [
+          SavePathRule(id: 'a', label: 'A', template: first.path),
+          SavePathRule(id: 'b', label: 'B', template: second.path),
+        ],
+      );
+      final snapshot = await manager.createSnapshot(game);
+      await File(p.join(first.path, 'slot')).writeAsString('current-a');
+      final failing = SaveManager(
+        paths: paths,
+        renameForRestore: (source, destination) async {
+          if (source.path.contains('.evaporate-new-') &&
+              destination == second.path) {
+            throw FileSystemException('Simulated rename failure', destination);
+          }
+          return source.rename(destination);
+        },
+      );
+      final backups = <SaveSnapshot>[];
+
+      await expectLater(
+        failing.restoreSnapshot(
+          game: game,
+          snapshot: snapshot,
+          wipeTarget: true,
+          onBackup: (backup) async => backups.add(backup),
+        ),
+        throwsA(isA<SaveException>()),
+      );
+
+      expect(backups, hasLength(1), reason: 'копия не дошла до библиотеки');
+      expect(backups.single.origin, SnapshotOrigin.preRestore);
+    },
+  );
+
+  // Откат без единого `try`: на Windows свежезаписанное держит антивирус,
+  // исключение вылетало из `catch`, остальные цели не откатывались, а
+  // причина сбоя терялась. Человеку нужен путь, где лежат прежние сейвы.
+  test('сорвавшийся откат называет, где лежат прежние сейвы', () async {
+    final first = await writeSaves('stuck-first', {'slot': 'old-a'});
+    final second = await writeSaves('stuck-second', {'slot': 'old-b'});
+    final game = gameWith(
+      id: 'stuck',
+      title: 'Stuck',
+      rules: [
+        SavePathRule(id: 'a', label: 'A', template: first.path),
+        SavePathRule(id: 'b', label: 'B', template: second.path),
+      ],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    await File(p.join(first.path, 'slot')).writeAsString('current-a');
+    final failing = SaveManager(
+      paths: paths,
+      renameForRestore: (source, destination) async {
+        // Замена второй цели срывается, а возврат первой из резервного
+        // имени — тоже: файл держат.
+        if (source.path.contains('.evaporate-new-') &&
+            destination == second.path) {
+          throw FileSystemException('Simulated rename failure', destination);
+        }
+        if (source.path.contains('.evaporate-old-') &&
+            destination == first.path) {
+          throw FileSystemException('Simulated busy file', destination);
+        }
+        return source.rename(destination);
+      },
+    );
+
+    Object? failure;
+    try {
+      await failing.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+        backupCurrent: false,
+        wipeTarget: true,
+      );
+    } on Object catch (error) {
+      failure = error;
+    }
+
+    expect(failure, isA<SaveException>());
+    final stranded = tmp
+        .listSync()
+        .where((entity) => entity.path.contains('.evaporate-old-'))
+        .toList();
+    expect(stranded, hasLength(1), reason: 'прежние сейвы потерялись');
+    expect('$failure', contains(stranded.single.path));
+    expect(
+      File(p.join(stranded.single.path, 'slot')).readAsStringSync(),
+      'current-a',
+    );
+  });
+
+  // Два правила пакета с одной меткой сопоставлялись с одним здешним и
+  // молча сливались в одну цель: файлы второго ложились поверх первого.
+  test('два правила пакета на одно здешнее не сопоставляются оба', () async {
+    final a = await writeSaves('twin-a', {'slot': 'из первого'});
+    final b = await writeSaves('twin-b', {'slot': 'из второго'});
+    final source = gameWith(
+      id: 'twin-source',
+      title: 'Источник',
+      rules: [
+        SavePathRule(id: 'p1', label: 'Сохранения', template: a.path),
+        SavePathRule(id: 'p2', label: 'Сохранения', template: b.path),
+      ],
+    );
+    final snapshot = await manager.createSnapshot(source);
+    final here = await writeSaves('twin-here', {'slot': 'здешнее'});
+    final game = gameWith(
+      id: 'twin-here',
+      title: 'Здесь',
+      rules: [
+        SavePathRule(id: 'local', label: 'Сохранения', template: here.path),
+      ],
+    );
+
+    expect(manager.previewTargets(game, snapshot), isEmpty);
+    await expectLater(
+      manager.restoreSnapshot(
+        game: game,
+        snapshot: snapshot,
+        backupCurrent: false,
+      ),
+      throwsA(isA<SaveException>()),
+    );
+    expect(File(p.join(here.path, 'slot')).readAsStringSync(), 'здешнее');
+  });
+
+  // Вложенность ловилась только при восстановлении: снимок выходил с
+  // дублями, а разложить его не удавалось никогда.
+  test('снимок с пересекающимися правилами отказывает словами', () async {
+    final outer = await writeSaves('overlap', {'Saves/slot': 'прогресс'});
+    final game = gameWith(
+      id: 'overlap',
+      title: 'Пересечение',
+      rules: [
+        SavePathRule(id: 'o', label: 'Всё', template: outer.path),
+        SavePathRule(
+          id: 'i',
+          label: 'Сейвы',
+          template: p.join(outer.path, 'Saves'),
+        ),
+      ],
+    );
+
+    await expectLater(
+      manager.createSnapshot(game),
+      throwsA(
+        isA<SaveException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('Всё'), contains('Сейвы')),
+        ),
+      ),
+    );
+  });
+
   test('ошибка создания бэкапа отменяет восстановление', () async {
     final saves = await writeSaves('backup-failure', {'slot': 'old'});
     final game = gameWith(
@@ -577,6 +744,46 @@ void main() {
       throwsA(isA<SaveException>()),
     );
     expect(await File(p.join(saves.path, 'slot')).readAsString(), 'current');
+  });
+
+  // Чужие пакеты ходят другим путём: импорт → хранилище → раскладка, где
+  // сверяется одна длина. Проверка CRC осталась только на пути старых
+  // архивов, а папка синхронизации — ровно то место, где файлы бывают
+  // недоехавшими.
+  test('импорт пакета с неверной CRC отказывает', () async {
+    final saves = await writeSaves('crc-import', {'slot': 'current'});
+    final game = gameWith(
+      id: 'crc-import',
+      title: 'CRC',
+      rules: [SavePathRule(id: 'a', label: 'A', template: saves.path)],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    final bytes = ZipEncoder().encode(
+      Archive()
+        ..add(
+          ArchiveFile.string(
+            SaveSnapshot.manifestEntry,
+            jsonEncode(snapshot.toManifest()),
+          ),
+        )
+        ..add(ArchiveFile.noCompress('data/a/slot', 4, [1, 2, 3, 4])),
+    );
+    for (var i = 0; i + 3 < bytes.length; i++) {
+      if (bytes[i] == 1 &&
+          bytes[i + 1] == 2 &&
+          bytes[i + 2] == 3 &&
+          bytes[i + 3] == 4) {
+        bytes[i] = 9;
+        break;
+      }
+    }
+    final broken = p.join(tmp.path, 'broken${SaveSnapshot.fileExtension}');
+    await File(broken).writeAsBytes(bytes);
+
+    await expectLater(
+      manager.importPackage(broken, game: game),
+      throwsA(isA<SaveException>()),
+    );
   });
 
   test('неверная CRC отклоняется до замены существующих сейвов', () async {
@@ -805,6 +1012,71 @@ void main() {
     // Наружу пакет не вернулся, и половина его на диске никому не нужна:
     // отличить её от целого нечем, а место она занимает то же.
     expect(File(destination).existsSync(), isFalse);
+  });
+
+  // Автовыгрузка пишет под одно и то же имя. Выгрузка писала прямо в него:
+  // пропал один блоб — и из Dropbox исчез вчерашний рабочий пакет, а
+  // клиент синхронизации успел унести половину нового.
+  test('сорванная выгрузка не трогает прежний пакет', () async {
+    final saves = await writeSaves('keep-old', {
+      'slot1.sav': 'первый',
+      'slot2.sav': 'второй',
+    });
+    final game = gameWith(
+      id: 'keep-old',
+      title: 'Прежний пакет',
+      rules: [
+        SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
+      ],
+    );
+    final snapshot = await manager.createSnapshot(game);
+    final sync = Directory(p.join(tmp.path, 'sync'));
+    final destination = p.join(sync.path, 'игра${SaveSnapshot.fileExtension}');
+    await manager.exportSnapshot(snapshot, destination);
+    final yesterday = await File(destination).readAsBytes();
+
+    final failing = SaveManager(
+      paths: paths,
+      addToArchive: (encoder, file, name) async {
+        if (name.endsWith('slot2.sav')) {
+          throw FileSystemException('Simulated read failure', file.path);
+        }
+        return encoder.addFile(file, name);
+      },
+    );
+    await expectLater(
+      failing.exportSnapshot(snapshot, destination),
+      throwsA(isA<FileSystemException>()),
+    );
+
+    expect(await File(destination).readAsBytes(), yesterday);
+    // И ничего своего в чужой папке не оставили.
+    expect(sync.listSync().map((e) => p.basename(e.path)), [
+      p.basename(destination),
+    ]);
+  });
+
+  test('удачная выгрузка заменяет прежний пакет', () async {
+    final saves = await writeSaves('replace-old', {'slot.sav': 'первый'});
+    final game = gameWith(
+      id: 'replace-old',
+      title: 'Замена',
+      rules: [
+        SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
+      ],
+    );
+    final destination = p.join(tmp.path, 'игра${SaveSnapshot.fileExtension}');
+    await manager.exportSnapshot(
+      await manager.createSnapshot(game),
+      destination,
+    );
+    await File(p.join(saves.path, 'slot.sav')).writeAsString('второй');
+    final next = await manager.createSnapshot(game);
+
+    await manager.exportSnapshot(next, destination);
+
+    final info = await manager.inspectPackage(destination);
+    expect(info.snapshot.id, next.id);
   });
 
   group('хранилище по содержимому', () {

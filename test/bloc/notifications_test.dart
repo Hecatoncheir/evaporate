@@ -9,6 +9,7 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
+import 'package:evaporate/services/saves/save_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -187,4 +188,49 @@ void main() {
     expect(saves.state.notice?.isError, isTrue);
     expect(notifications.ofKind(NotificationKind.saveFailed), isEmpty);
   });
+
+  // Файл сейва ещё держит игра, и снимок падает сырым
+  // `FileSystemException`, а не `SaveException`. Эта ветка уведомления не
+  // слала вовсе: тихий автоснимок проваливался тихо.
+  test(
+    'провал автоснимка по вводу-выводу тоже приходит уведомлением',
+    () async {
+      final failing = SavesBloc(
+        paths: paths,
+        library: library,
+        settings: settings,
+        notifications: notifications,
+        saveManager: _BusyFileManager(paths),
+        saveRoots: () => const [],
+      );
+      addTearDown(failing.close);
+      final id = const Uuid().v4();
+      library.add(GameAdded(id: id, title: 'Занятый файл'));
+      final added = await waitForLibrary((s) => s.gameById(id) != null);
+
+      failing.add(
+        SnapshotRequested(
+          added.gameById(id)!,
+          origin: SnapshotOrigin.autoOnExit,
+        ),
+      );
+      await settle();
+
+      final failures = notifications.ofKind(NotificationKind.saveFailed);
+      expect(failures, hasLength(1));
+      expect(failures.single.body, contains('Занятый файл'));
+    },
+  );
+}
+
+/// Снимок падает так, как падает на Windows, пока игра держит сейв.
+class _BusyFileManager extends SaveManager {
+  _BusyFileManager(AppPaths paths) : super(paths: paths);
+
+  @override
+  Future<SaveSnapshot> createSnapshot(
+    Game game, {
+    SnapshotOrigin origin = SnapshotOrigin.manual,
+    String? note,
+  }) async => throw const FileSystemException('файл занят другим процессом');
 }

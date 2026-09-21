@@ -348,4 +348,53 @@ void main() {
       );
     });
   });
+
+  // Окно правила держит профиль на момент открытия: пока оно открыто, поиск
+  // по базе заводил «Сохранения», человек сохранял предзаполненные
+  // «Сохранения» — и перенос отказывался от обеих одинаковых меток.
+  group('правила, применённые к профилю', () {
+    final root = p.join(p.rootPrefix(p.current), 'Games', 'X');
+    SavePathRule rule(String id, String label, String template) =>
+        SavePathRule(id: id, label: label, template: template);
+
+    test('занятая метка разводится номером при применении', () {
+      final profile = SaveProfile(
+        rules: [rule('a', SavePathRule.defaultLabel, p.join(root, 'A'))],
+      );
+
+      final next = profile.withRules([
+        rule('b', SavePathRule.defaultLabel, p.join(root, 'B')),
+      ]);
+
+      expect(next.rules.map((r) => r.label), [
+        SavePathRule.defaultLabel,
+        '${SavePathRule.defaultLabel} 2',
+      ]);
+    });
+
+    // Есть `…/X/Saves`, база добавляет `…/X` — снимок с дублями, а любое
+    // восстановление падает на вложенных целях.
+    test('путь внутри заданного или вокруг него не добавляется', () {
+      final profile = SaveProfile(
+        rules: [rule('a', 'Сейвы', p.join(root, 'Saves'))],
+      );
+
+      final next = profile.withRules([
+        rule('outer', 'Всё', root),
+        rule('inner', 'Слот', p.join(root, 'Saves', 'slot1')),
+        rule('beside', 'Настройки', p.join(root, 'Config')),
+      ]);
+
+      expect(next.rules.map((r) => r.id), ['a', 'beside']);
+    });
+
+    test('повтор шаблона не добавляется', () {
+      final profile = SaveProfile(rules: [rule('a', 'Сейвы', root)]);
+
+      expect(
+        profile.withRules([rule('b', 'Другое', root)]).rules,
+        hasLength(1),
+      );
+    });
+  });
 }
