@@ -108,8 +108,15 @@ class UpdateUnpack {
     }
     // Права в zip не переживают распаковку, а запускать после обновления
     // придётся именно эти файлы.
+    // Не встал бит — отказ здесь, а не позже: помощник заменил бы рабочую
+    // установку такой, которую нечем запустить.
     if (!Platform.isWindows && _looksExecutable(file)) {
-      await Process.run('chmod', ['+x', destination]);
+      final result = await Process.run('chmod', ['+x', destination]);
+      if (result.exitCode != 0) {
+        throw UpdateException(
+          'Не поставить бит запуска: $destination: ${result.stderr}'.trim(),
+        );
+      }
     }
   }
 

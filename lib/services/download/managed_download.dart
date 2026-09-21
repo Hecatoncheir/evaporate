@@ -1,7 +1,13 @@
 part of 'dtorrent_engine.dart';
 
-/// Где задача в очереди: ждёт слота, идёт, остановлена или сорвалась.
-enum SlotState { waiting, running, paused, failed }
+/// Где задача в очереди: ждёт слота, идёт, раздаёт, остановлена или
+/// сорвалась.
+///
+/// Раздача — своё состояние, а не «идёт»: готовая задача слота не держит.
+/// Прежде держала, и при трёх слотах и раздаче «вечно» (оба — значения по
+/// умолчанию) три скачанные игры запирали очередь навсегда, а строка
+/// состояния при этом показывала «0 / 3» — интерфейс готовые не считал.
+enum SlotState { waiting, running, seeding, paused, failed }
 
 /// Одна загрузка: задача движка плюс то, что нужно её восстановить.
 class _ManagedDownload {
@@ -51,6 +57,12 @@ class _ManagedDownload {
   /// Ждёт слота. Остановленная и сорвавшаяся не ждут: первую остановили
   /// сами, вторую поднимет «Возобновить».
   bool get isWaiting => slot == SlotState.waiting;
+
+  /// Скачана и раздаёт — слота не занимает.
+  bool get isSeeding => slot == SlotState.seeding;
+
+  /// Скачалась: слот уступает следующей, а раздача идёт дальше.
+  void markSeeding() => slot = SlotState.seeding;
 
   /// Слот занят: задача поднимается или уже идёт.
   ///
@@ -241,6 +253,8 @@ class _ManagedDownload {
     metadata = null;
     // Остановленную и сорвавшуюся не трогаем: слот они и так не
     // занимают, а их состояние человеку ещё показывают.
-    if (slot == SlotState.running) slot = SlotState.waiting;
+    if (slot == SlotState.running || slot == SlotState.seeding) {
+      slot = SlotState.waiting;
+    }
   }
 }

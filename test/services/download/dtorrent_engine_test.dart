@@ -129,6 +129,52 @@ void main() {
       );
     });
 
+    // Готовая задача держала слот: при трёх слотах и раздаче «вечно» —
+    // значениях по умолчанию — три скачанные игры запирали очередь
+    // навсегда, а строка состояния показывала «0 / 3».
+    test('скачавшаяся задача раздаёт, но слот уступает', () {
+      expect(
+        DtorrentEngine.slotAfter(SlotState.running, DownloadState.complete),
+        SlotState.seeding,
+      );
+      expect(
+        DtorrentEngine.slotAfter(SlotState.running, DownloadState.active),
+        SlotState.running,
+      );
+      // Остановленную и сорвавшуюся опрос не трогает — их решает человек.
+      expect(
+        DtorrentEngine.slotAfter(SlotState.paused, DownloadState.complete),
+        SlotState.paused,
+      );
+    });
+
+    // Заполнители BEP 47 библиотека держит виртуальными, ссылки создаёт
+    // ссылками: скачанная целиком раздача оставалась «с ошибкой» навсегда.
+    test('заполнители и ссылки на диске не ищутся', () {
+      final expected = DtorrentEngine.expectedOnDisk([
+        dt.TorrentFileModel(path: 'Игра/game.exe', length: 10, offset: 0),
+        dt.TorrentFileModel(
+          path: 'Игра/.pad/_____padding_file_0_____',
+          length: 6,
+          offset: 10,
+        ),
+        dt.TorrentFileModel(
+          path: 'Игра/выровнено',
+          length: 4,
+          offset: 16,
+          isPaddingFile: true,
+        ),
+        dt.TorrentFileModel(
+          path: 'Игра/link',
+          length: 0,
+          offset: 20,
+          symlinkPath: ['game.exe'],
+        ),
+      ]);
+
+      expect(expected, [(path: 'Игра/game.exe', length: 10)]);
+    });
+
     test('состояние движка доходит без изменений', () {
       expect(stateOf(completedBytes: 50), DownloadState.active);
       expect(
@@ -184,6 +230,7 @@ void main() {
       Future<dt.TorrentModel?> Function(String infoHash) fetch, {
       int maxConcurrent = 1,
       ProxySettings proxy = const ProxySettings(),
+      Duration metadataTimeout = const Duration(minutes: 10),
     }) {
       final engine = DtorrentEngine(
         downloadDir: p.join(tmp.path, 'games'),
@@ -192,6 +239,7 @@ void main() {
         maxConcurrent: maxConcurrent,
         fetchMetadata: fetch,
         proxy: proxy,
+        metadataTimeout: metadataTimeout,
       );
       addTearDown(engine.dispose);
       return engine;
@@ -252,6 +300,23 @@ void main() {
         engine.taskById(hashA)!.errorMessage,
         LRu().magnetNeedsTorrentBehindProxy,
       );
+    });
+
+    // Библиотека шлёт отказ только после трёх несовпадений хеша, а без
+    // пиров — никогда: задача вечно «получала метаданные» и держала слот.
+    test('magnet без пиров срывается по пределу и отдаёт слот', () async {
+      final engine = launching(
+        never,
+        metadataTimeout: const Duration(milliseconds: 50),
+      );
+
+      await engine.addMagnet(magnet(hashA), dir: tmp.path);
+      await engine.addMagnet(magnet(hashB), dir: tmp.path);
+      await until(() => engine.startedIds.contains(hashB));
+      await engine.refresh();
+
+      expect(engine.taskById(hashA)!.state, DownloadState.error);
+      expect(engine.taskById(hashA)!.errorMessage, LRu().metadataNotFound);
     });
 
     test('исключение при запуске тоже освобождает слот', () async {

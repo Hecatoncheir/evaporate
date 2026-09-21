@@ -110,4 +110,34 @@ void main() {
 
     expect(root.existsSync(), isTrue);
   });
+
+  // Файлы стёрли, а карта кусков осталась: та же раздача, заведённая
+  // снова, недостающего не запрашивала и создавала файлы нулями.
+  test('вместе с файлами уходит и карта скачанных кусков', () async {
+    const hash = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
+    final game = await write('Наша игра/game.exe');
+    final state = await write('$hash.bt.state');
+    final paths = await write('$hash.bt.paths.json');
+    final foreign = await write('ffff.bt.state');
+
+    await DownloadsBloc.deleteDownloaded(
+      DownloadTask(
+        id: 't1',
+        name: 'Наша игра',
+        state: DownloadState.active,
+        dir: root.path,
+        files: [game],
+        infoHash: hash,
+      ),
+      root: root.path,
+    );
+
+    expect(File(state).existsSync(), isFalse);
+    expect(File(paths).existsSync(), isFalse);
+    expect(
+      File(foreign).existsSync(),
+      isTrue,
+      reason: 'чужую карту не трогаем',
+    );
+  });
 }

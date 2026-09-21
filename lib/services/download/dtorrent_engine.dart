@@ -37,6 +37,7 @@ class DtorrentEngine implements DownloadEngine {
     this.maxConcurrent = 3,
     this.autoStart = true,
     L Function()? localizations,
+    this.metadataTimeout = const Duration(minutes: 10),
     @visibleForTesting this._fetchMetadata,
   }) : _localizations = localizations ?? _defaultLocalizations,
        _store = JsonStore(stateFile) {
@@ -66,6 +67,14 @@ class DtorrentEngine implements DownloadEngine {
   /// В тестах выключается, чтобы движок не лез в сеть: очередь и состояние
   /// проверяются без единого соединения.
   final bool autoStart;
+
+  /// Сколько ждать описание раздачи по magnet-ссылке.
+  ///
+  /// Библиотека отказ шлёт только после трёх несовпадений хеша, а при
+  /// полном отсутствии пиров — никогда: задача навсегда оставалась
+  /// «получающей метаданные» и держала слот. Десяти минут хватает живой
+  /// раздаче с медленным DHT; дольше — уже не ожидание, а зависание.
+  final Duration metadataTimeout;
 
   /// Получение метаданных вместо сети — для тестов запуска задачи.
   final Future<dt.TorrentModel?> Function(String infoHash)? _fetchMetadata;
@@ -258,13 +267,24 @@ class DtorrentEngine implements DownloadEngine {
     _limits = limits;
   }
 
+  /// Куда переходит слот задачи по её состоянию.
+  ///
+  /// Скачавшаяся из «идёт» уходит в «раздаёт» и слот освобождает: иначе при
+  /// трёх слотах и раздаче «вечно» три готовые игры запирали очередь
+  /// навсегда. Прочие переходы решают нажатия человека и отказы, а не опрос.
+  @visibleForTesting
+  static SlotState slotAfter(SlotState slot, DownloadState state) =>
+      slot == SlotState.running && state == DownloadState.complete
+      ? SlotState.seeding
+      : slot;
+
   /// Останавливает раздачу, когда заданный рейтинг достигнут.
   ///
   /// Проверяем при каждом опросе, а не по событию: движок о рейтинге ничего
   /// не знает, а отданное растёт постепенно. Остановленную задачу очередь
   /// больше не поднимает — для неё это выглядит как пауза от пользователя.
   void _stopSeedingIfDone(_ManagedDownload managed, DownloadTask task) {
-    if (!managed.isActive || task.state != DownloadState.complete) return;
+    if (!managed.isSeeding || task.state != DownloadState.complete) return;
     final done = _limits.seedingDone(
       uploaded: task.uploadedBytes,
       downloaded: task.completedBytes,
@@ -372,6 +392,7 @@ class DtorrentEngine implements DownloadEngine {
     var download = 0;
     var upload = 0;
     var active = 0;
+    var freed = false;
 
     for (final managed in _ordered) {
       final task = managed.toDownloadTask();
@@ -379,8 +400,16 @@ class DtorrentEngine implements DownloadEngine {
       download += task.downloadSpeed;
       upload += task.uploadSpeed;
       if (task.isRunning) active++;
+      final next = slotAfter(managed.slot, task.state);
+      if (next != managed.slot) {
+        managed.markSeeding();
+        freed = true;
+      }
       _stopSeedingIfDone(managed, task);
     }
+    // Скачавшаяся уступила слот — отдаём его следующей сразу, а не к
+    // следующему добавлению.
+    if (freed) pumpQueue();
 
     _tasks.value = snapshot;
     _stats.value = EngineStats(
@@ -447,11 +476,25 @@ class DtorrentEngine implements DownloadEngine {
 
     return IntegrityCheck.run(
       root: managed.savePath,
-      expected: [
-        for (final file in model.files) (path: file.path, length: file.length),
-      ],
+      expected: expectedOnDisk(model.files),
     );
   }
+
+  /// Какие файлы раздачи обязаны лежать на диске.
+  ///
+  /// Заполнители выравнивания (BEP 47, `_____padding_file_N_____`) библиотека
+  /// держит виртуальными, а ссылки создаёт ссылками — ни у тех, ни у
+  /// других на диске нет файла той длины, что записана в раздаче. Проверка
+  /// считала их пропавшими, и скачанная целиком раздача навсегда
+  /// оставалась «с ошибкой».
+  @visibleForTesting
+  static List<({String path, int length})> expectedOnDisk(
+    Iterable<dt.TorrentFileModel> files,
+  ) => [
+    for (final file in files)
+      if (!file.isPaddingFile && (file.symlinkPath?.isEmpty ?? true))
+        (path: file.path, length: file.length),
+  ];
 
   @override
   void dispose() {

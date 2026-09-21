@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -98,5 +99,32 @@ void main() {
 
     expect(reports, isNotEmpty);
     expect(reports.last, 8192);
+  });
+
+  // Сеть пропала посреди ответа — `await for` не кончался никогда: очередь
+  // поиска метаданных вставала до перезапуска, а обновление навсегда
+  // оставалось «устанавливается».
+  test('замолчавший посреди ответа сервер обрывается по пределу', () async {
+    final silent = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => silent.close(force: true));
+    silent.listen((request) async {
+      request.response
+        ..statusCode = HttpStatus.ok
+        ..contentLength = 1000
+        ..add(utf8.encode('начало'));
+      await request.response.flush();
+      // Дальше — тишина: соединение открыто, а байтов нет.
+    });
+
+    final fetch = HttpFetch(
+      openClient: directHttpClient,
+      describeStatus: (code) => HttpException('ответил $code'),
+      idleTimeout: const Duration(milliseconds: 200),
+    );
+
+    await expectLater(
+      fetch.bytes(Uri.parse('http://127.0.0.1:${silent.port}/')),
+      throwsA(isA<TimeoutException>()),
+    );
   });
 }

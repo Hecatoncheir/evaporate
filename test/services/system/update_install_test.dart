@@ -555,7 +555,7 @@ void main() {
       // закрытым приложением.
       final script = posixScript();
       const launch = r'"$launch" >/dev/null';
-      const verdict = r'if [ "$replaced" -eq 1 ]';
+      const verdict = r'if [ "$replaced" -ne 1 ]';
       expect(script, contains(launch));
       expect(script, contains(verdict));
       expect(
@@ -922,6 +922,7 @@ void main() {
             stagedRoot: staged,
             pid: gone.pid,
             logPath: log,
+            settle: const Duration(seconds: 1),
           ),
         );
         final result = await Process.run('sh', [script.path]);
@@ -929,9 +930,16 @@ void main() {
         return File(log).readAsString();
       }
 
-      Future<String> newBuild() async {
+      /// Новая сборка. Живая — работает дольше, чем помощник ждёт; упавшая
+      /// выходит сразу, как сборка без плагина или с битым бинарём.
+      Future<String> newBuild({bool dies = false}) async {
         final staged = await ownInstall(p.join('staged', 'evaporate'));
-        await File(staged.executable).writeAsString('#!/bin/sh\n# новая\n');
+        await File(staged.executable).writeAsString(
+          dies
+              ? '#!/bin/sh\n# новая\nexit 1\n'
+              : '#!/bin/sh\n# новая\nsleep 3\n',
+        );
+        await Process.run('chmod', ['+x', staged.executable]);
         return staged.root;
       }
 
@@ -946,6 +954,22 @@ void main() {
         expect(
           Directory('${layout.root}${UpdateScript.backupSuffix}').existsSync(),
           isFalse,
+        );
+      });
+
+      // Запуск — ещё не удача: помощник убирал прежнюю копию сразу после
+      // запуска новой, и упавшая на первой секунде оставляла человека без
+      // приложения вовсе.
+      test('упавшая новая версия меняется обратно на прежнюю', () async {
+        final layout = await ownInstall('app');
+        final staged = await newBuild(dies: true);
+
+        final log = await runHelper(layout, staged);
+
+        expect(log, contains('возвращаю прежнюю'));
+        expect(
+          File(layout.executable).readAsStringSync(),
+          isNot(contains('новая')),
         );
       });
 

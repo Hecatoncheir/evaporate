@@ -89,8 +89,15 @@ class InstallLayout {
   /// пакетный менеджер: писать туда нельзя, да и не нужно — обновлять такое
   /// должен тот же менеджер. Молчать об этом нельзя, но и предлагать
   /// обновление, которое не встанет, — тоже.
+  ///
+  /// Пробуем **родителя**, а не саму папку: замена — это `mv` папки
+  /// приложения, а переименованию нужны права на того, в ком она лежит.
+  /// `/opt/evaporate`, отданная пользователю, проходила пробу внутри себя,
+  /// и замена шесть секунд билась о `mv` — а человек видел прежнюю версию
+  /// без единого слова.
   Future<bool> get isWritable async {
-    final probe = File(p.join(root, '.evaporate-write-probe'));
+    if (!await Directory(root).exists()) return false;
+    final probe = File(p.join(p.dirname(root), '.evaporate-write-probe'));
     try {
       await probe.writeAsString('1', flush: true);
       await probe.delete();
@@ -136,6 +143,7 @@ class UpdateScript {
     required String stagedRoot,
     required int pid,
     required String logPath,
+    Duration settle = defaultSettle,
   }) {
     final backup = '${layout.root}$backupSuffix';
     // Пути подставляются внутрь одинарных кавычек sh, а имя
@@ -150,8 +158,16 @@ class UpdateScript {
         .replaceAll('@LOG@', quoted(logPath))
         .replaceAll('@MARKER@', InstallLayout.marker)
         .replaceAll('@ENTRIES@', InstallLayout.linuxEntries.join('|'))
+        .replaceAll('@SETTLE@', '${settle.inSeconds}')
         .replaceAll('@PID@', '$pid');
   }
+
+  /// Сколько новая версия должна прожить, прежде чем прежнюю уберут.
+  ///
+  /// Запуск — ещё не удача: сборка без плагина или с битым бинарём падает
+  /// на первой секунде, а прежнюю копию помощник уже удалил бы. Упавшую
+  /// меняют обратно на прежнюю.
+  static const defaultSettle = Duration(seconds: 5);
 
   static const fileName = 'evaporate-update.sh';
 
@@ -270,14 +286,38 @@ fi
 # Запускаем в любом случае — и после удачи, и после отката: остаться вовсе
 # без приложения хуже, чем остаться на прежней версии.
 "$launch" >/dev/null 2>&1 &
+started=$!
 
-if [ "$replaced" -eq 1 ]; then
+if [ "$replaced" -ne 1 ]; then
+  note 'обновление: не установлено, версия прежняя'
+  exit 1
+fi
+
+# Запуск — ещё не удача: новая версия могла упасть на первой секунде.
+# Прежнюю убираем, только если новая жива спустя время.
+sleep @SETTLE@
+if kill -0 "$started" 2>/dev/null; then
   note 'обновление: установлено'
   if ours "$backup"; then
     rm -rf "$backup" 2>/dev/null || true
   fi
-else
-  note 'обновление: не установлено, версия прежняя'
+  exit 0
 fi
+
+note 'обновление: новая версия не запустилась, возвращаю прежнюю'
+broken="$root.evaporate-broken"
+if swap "$root" "$broken"; then
+  if swap "$backup" "$root"; then
+    "$launch" >/dev/null 2>&1 &
+    note 'обновление: не установлено, версия прежняя'
+    if ours "$broken"; then
+      rm -rf "$broken" 2>/dev/null || true
+    fi
+    exit 1
+  fi
+  swap "$broken" "$root" || true
+fi
+note "обновление: вернуть прежнюю не вышло, она лежит в $backup"
+exit 1
 ''';
 }

@@ -236,7 +236,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     DownloadReordered event,
     Emitter<DownloadsState> emit,
   ) async {
-    final index = state.orderIndexBefore(event.beforeId);
+    final index = state.orderIndexBefore(event.beforeId, moving: event.id);
     if (index == null) return;
     await engine.reorder(event.id, index);
   }
@@ -628,6 +628,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     DownloadTask task, {
     required String root,
   }) async {
+    await _deleteResumeState(task);
     final dir = deriveInstallDir(task);
     // `isWithin` на равных путях даёт false — это здесь и нужно.
     if (dir != null && p.isWithin(root, dir)) {
@@ -638,6 +639,22 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     for (final path in task.files) {
       if (!p.isWithin(root, path)) continue;
       final file = File(path);
+      if (await file.exists()) await file.delete();
+    }
+  }
+
+  /// Убирает карту скачанных кусков, которую торрент-библиотека кладёт
+  /// рядом с загрузкой (`<infohash>.bt.state` и `.bt.paths.json`).
+  ///
+  /// Файлы стёрли, а карта осталась: та же раздача, заведённая снова,
+  /// верила ей, недостающие куски не запрашивала, частично затронутые
+  /// файлы создавала нулями — и проверка целостности их пропускала.
+  static Future<void> _deleteResumeState(DownloadTask task) async {
+    final dir = task.dir;
+    final hash = task.infoHash;
+    if (dir == null || hash == null || hash.isEmpty) return;
+    for (final name in ['$hash.bt.state', '$hash.bt.paths.json']) {
+      final file = File(p.join(dir, name));
       if (await file.exists()) await file.delete();
     }
   }

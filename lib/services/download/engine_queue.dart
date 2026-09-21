@@ -109,7 +109,12 @@ extension EngineQueue on DtorrentEngine {
       throw DownloadEngineException(_l.magnetNeedsTorrentBehindProxy);
     }
     final fetch = _fetchMetadata;
-    return fetch != null ? fetch(managed.infoHash) : managed.fetchMetadata();
+    final found = fetch != null
+        ? fetch(managed.infoHash)
+        : managed.fetchMetadata();
+    // Не дождались — «не найдено»: `_launch` сорвёт задачу словами, и слот
+    // уйдёт следующей.
+    return found.timeout(metadataTimeout, onTimeout: () => null);
   }
 
   /// Задача сорвалась: она уступает слот следующей, а ошибку снимает

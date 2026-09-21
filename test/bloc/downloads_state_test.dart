@@ -1,5 +1,6 @@
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/models/download_task.dart';
+import 'package:evaporate/services/download/download_queue.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Что считается задачей «в работе», решает одно место — состояние.
@@ -57,6 +58,36 @@ void main() {
     test('пропавший сосед не двигает ничего', () {
       expect(state.orderIndexBefore('такой задачи нет'), isNull);
       expect(const DownloadsState().orderIndexBefore(null), isNull);
+    });
+
+    // [a, b, c], «a перед c»: номер соседа — 2, но вынутая `a` сдвигает
+    // `c` на место 1, и moveTo(a, 2) ставил её после c — [b, c, a]. Все
+    // тесты двигали только вверх.
+    test('вниз по очереди задача встаёт перед соседом, а не за ним', () {
+      DownloadTask waiting(String id) => DownloadTask(
+        id: id,
+        name: id,
+        state: DownloadState.waiting,
+        isQueued: true,
+      );
+      final three = DownloadsState(
+        tasks: [waiting('a'), waiting('b'), waiting('c')],
+      );
+      final queue = DownloadQueue()
+        ..add('a')
+        ..add('b')
+        ..add('c');
+
+      queue.moveTo('a', three.orderIndexBefore('c', moving: 'a')!);
+      expect(queue.ids, ['b', 'a', 'c']);
+
+      // Вверх — как было.
+      final up = DownloadQueue()
+        ..add('a')
+        ..add('b')
+        ..add('c');
+      up.moveTo('c', three.orderIndexBefore('a', moving: 'c')!);
+      expect(up.ids, ['c', 'a', 'b']);
     });
   });
 }

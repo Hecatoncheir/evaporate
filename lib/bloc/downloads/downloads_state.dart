@@ -50,10 +50,16 @@ class DownloadsState extends Equatable {
   /// `null` — соседа нет в списке, переставлять некуда. Движку нужна
   /// позиция среди **всех** задач, а очередь — только их часть: знать это
   /// виджету незачем, поэтому перевод живёт здесь.
-  int? orderIndexBefore(String? beforeId) {
+  ///
+  /// Позиция — после того, как [moving] вынут из списка: движок сначала
+  /// вынимает задачу, потом вставляет. Стоит она выше соседа — сосед после
+  /// этого сдвигается на одну, и без поправки «a перед c» ставило a за c.
+  int? orderIndexBefore(String? beforeId, {String? moving}) {
     if (beforeId == null) return tasks.isEmpty ? null : tasks.length - 1;
     final index = tasks.indexWhere((task) => task.id == beforeId);
-    return index == -1 ? null : index;
+    if (index == -1) return null;
+    final from = tasks.indexWhere((task) => task.id == moving);
+    return from != -1 && from < index ? index - 1 : index;
   }
 
   DownloadsState copyWith({

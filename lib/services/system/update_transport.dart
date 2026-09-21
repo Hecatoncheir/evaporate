@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
 import '../../core/progress_throttle.dart';
+import 'http_fetch.dart';
 import 'proxy_http_overrides.dart';
 import 'update_exception.dart';
 
@@ -80,7 +82,11 @@ class UpdateTransport {
       interval: _progressInterval,
     );
     try {
-      await for (final chunk in response) {
+      // Простойный предел, как у `HttpFetch`: сеть, пропавшая посреди
+      // загрузки, иначе оставляла «устанавливается» навсегда.
+      await for (final chunk in response.timeout(
+        HttpFetch.defaultIdleTimeout,
+      )) {
         sink.add(chunk);
         received += chunk.length;
         progress.tick();
@@ -106,7 +112,9 @@ class UpdateTransport {
       if (from > 0) {
         request.headers.set(HttpHeaders.rangeHeader, 'bytes=$from-');
       }
-      final response = await request.close();
+      final response = await request.close().timeout(
+        HttpFetch.defaultIdleTimeout,
+      );
       if (!response.isRedirect) return response;
       final location = response.headers.value(HttpHeaders.locationHeader);
       if (location == null) return response;

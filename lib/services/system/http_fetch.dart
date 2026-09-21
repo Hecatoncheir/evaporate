@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -20,7 +21,18 @@ class HttpFetch {
     required this.describeStatus,
     this.headers = const {},
     this.limitBytes,
+    this.idleTimeout = defaultIdleTimeout,
   });
+
+  /// Сколько ждать следующий кусок ответа, прежде чем счесть связь мёртвой.
+  ///
+  /// Простойный, а не общий: манифест путей по медленному каналу честно
+  /// качается минутами, а замершее соединение — нет. Без предела сеть,
+  /// пропавшая посреди ответа, вешала `await for` навсегда: очередь поиска
+  /// метаданных стояла до перезапуска.
+  final Duration idleTimeout;
+
+  static const defaultIdleTimeout = Duration(seconds: 30);
 
   /// Откуда брать клиента: прямого, перехваченного или своего.
   final HttpClient Function() openClient;
@@ -48,7 +60,7 @@ class HttpFetch {
     try {
       final request = await client.getUrl(uri);
       headers.forEach(request.headers.set);
-      final response = await request.close();
+      final response = await request.close().timeout(idleTimeout);
       if (response.statusCode != HttpStatus.ok) {
         throw describeStatus(response.statusCode);
       }
@@ -58,7 +70,7 @@ class HttpFetch {
       final progress = ProgressThrottle(
         () => onProgress?.call(builder.length, total),
       );
-      await for (final chunk in response) {
+      await for (final chunk in response.timeout(idleTimeout)) {
         builder.add(chunk);
         final limit = limitBytes;
         if (limit != null && builder.length > limit) {
