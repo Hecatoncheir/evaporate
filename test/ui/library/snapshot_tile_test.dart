@@ -1,12 +1,11 @@
 import 'package:evaporate/core/format.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/ui/library/saves/snapshot_tile.dart';
-import 'package:evaporate/ui/theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/host_widget.dart';
 
 /// Плитка снимка сохранений на странице игры.
 ///
@@ -39,18 +38,12 @@ void main() {
   setUp(() => restored = exported = deleted = 0);
 
   Future<void> show(WidgetTester tester) => tester.pumpWidget(
-    MaterialApp(
-      theme: EvaporateTheme.dark(),
-      localizationsDelegates: L.localizationsDelegates,
-      supportedLocales: L.supportedLocales,
-      locale: const Locale('ru'),
-      home: Scaffold(
-        body: SnapshotTile(
-          snapshot: snapshot,
-          onRestore: () => restored++,
-          onExport: () => exported++,
-          onDelete: () => deleted++,
-        ),
+    hostWidget(
+      SnapshotTile(
+        snapshot: snapshot,
+        onRestore: () => restored++,
+        onExport: () => exported++,
+        onDelete: () => deleted++,
       ),
     ),
   );

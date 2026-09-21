@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:evaporate/core/format.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/game_rating.dart';
 import 'package:evaporate/ui/library/detail/rating_row.dart';
@@ -9,6 +8,7 @@ import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/host_widget.dart';
 import '../../support/test_app.dart';
 
 /// Оценка игры: подпись Steam, доля положительных, оба счётчика обзоров и
@@ -28,14 +28,9 @@ void main() {
       GameRating value, {
       ThemeData? theme,
     }) => tester.pumpWidget(
-      MaterialApp(
-        theme: theme ?? EvaporateTheme.dark(),
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        home: Scaffold(
-          body: Center(child: RatingRow(rating: value)),
-        ),
+      hostWidget(
+        Center(child: RatingRow(rating: value)),
+        theme: theme,
       ),
     );
 

@@ -1,13 +1,12 @@
 import 'dart:io';
 
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/services/system/app_log.dart';
 import 'package:evaporate/ui/settings/log_card.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../support/host_widget.dart';
 import '../../support/temp_dir.dart';
 
 /// Журнал нужен ровно затем, что семь десятков мест в приложении гасят
@@ -148,15 +147,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        theme: EvaporateTheme.dark(),
-        home: Scaffold(
-          body: ListView(children: [LogCard(log: log)]),
-        ),
-      ),
+      hostWidget(ListView(children: [LogCard(log: log)])),
     );
     await tester.pumpAndSettle();
 

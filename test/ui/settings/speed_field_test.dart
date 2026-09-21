@@ -1,8 +1,8 @@
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/settings/speed_field.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/host_widget.dart';
 
 /// Поле скорости в настройках.
 ///
@@ -13,18 +13,8 @@ void main() {
   Future<List<int>> pumpField(WidgetTester tester, {int value = 0}) async {
     final changes = <int>[];
     await tester.pumpWidget(
-      MaterialApp(
-        theme: EvaporateTheme.dark(),
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        home: Scaffold(
-          body: SpeedField(
-            label: 'Загрузка',
-            value: value,
-            onChanged: changes.add,
-          ),
-        ),
+      hostWidget(
+        SpeedField(label: 'Загрузка', value: value, onChanged: changes.add),
       ),
     );
     return changes;

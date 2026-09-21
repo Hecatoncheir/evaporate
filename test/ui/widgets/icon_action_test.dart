@@ -1,8 +1,9 @@
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/icon_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/host_widget.dart';
 
 /// Мелкая клавиша со значком на карточке загрузки. Голый значок служебного
 /// цвета на плотной подложке читался как украшение: найти паузу и отмену
@@ -14,19 +15,14 @@ void main() {
     required bool dark,
   }) async {
     await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        theme: dark ? EvaporateTheme.dark() : EvaporateTheme.light(),
-        home: Scaffold(
-          body: IconAction(
-            icon: Icons.pause,
-            tooltip: 'пауза',
-            onPressed: () {},
-            danger: danger,
-          ),
+      hostWidget(
+        IconAction(
+          icon: Icons.pause,
+          tooltip: 'пауза',
+          onPressed: () {},
+          danger: danger,
         ),
+        theme: dark ? EvaporateTheme.dark() : EvaporateTheme.light(),
       ),
     );
     return tester.widget<IconButton>(find.byType(IconButton)).style;

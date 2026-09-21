@@ -6,13 +6,13 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/saves/bulk_transfer_card.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../support/host_widget.dart';
 import '../../support/temp_dir.dart';
 
 /// Клавиши массовой загрузки решают судьбу чужого прогресса, и проверять
@@ -83,13 +83,7 @@ void main() {
           BlocProvider<LibraryBloc>.value(value: library),
           BlocProvider<SavesBloc>.value(value: saves),
         ],
-        child: MaterialApp(
-          theme: EvaporateTheme.dark(),
-          localizationsDelegates: L.localizationsDelegates,
-          supportedLocales: L.supportedLocales,
-          locale: const Locale('ru'),
-          home: const Scaffold(body: BulkTransferCard()),
-        ),
+        child: hostWidget(const BulkTransferCard()),
       ),
     );
     await tester.pumpAndSettle();

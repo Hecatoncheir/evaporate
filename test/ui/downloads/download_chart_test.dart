@@ -2,14 +2,14 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:evaporate/bloc/download_history/download_history_bloc.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/ui/downloads/download_chart.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/host_widget.dart';
 
 /// График скоростей.
 ///
@@ -37,21 +37,15 @@ void main() {
 
     final key = GlobalKey();
     await tester.pumpWidget(
-      MaterialApp(
-        theme: EvaporateTheme.dark(),
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        home: Scaffold(
-          body: BlocProvider<DownloadHistoryBloc>.value(
-            value: bloc,
-            child: Center(
-              child: RepaintBoundary(
-                key: key,
-                child: const SizedBox(
-                  width: 600,
-                  child: DownloadChart(task: task),
-                ),
+      hostWidget(
+        BlocProvider<DownloadHistoryBloc>.value(
+          value: bloc,
+          child: Center(
+            child: RepaintBoundary(
+              key: key,
+              child: const SizedBox(
+                width: 600,
+                child: DownloadChart(task: task),
               ),
             ),
           ),

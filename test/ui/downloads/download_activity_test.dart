@@ -1,25 +1,19 @@
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
 import 'package:evaporate/ui/downloads/download_history_scope.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/host_widget.dart';
+
 void main() {
-  Widget app(DownloadTask task) => MaterialApp(
-    theme: EvaporateTheme.dark(),
-    localizationsDelegates: L.localizationsDelegates,
-    supportedLocales: L.supportedLocales,
-    locale: const Locale('ru'),
-    home: Scaffold(
-      body: SizedBox(
-        width: 720,
-        // Историю держит область: график и показания читают её сообща.
-        child: DownloadHistoryScope(
-          task: task,
-          child: DownloadActivity(task: task),
-        ),
+  Widget app(DownloadTask task) => hostWidget(
+    SizedBox(
+      width: 720,
+      // Историю держит область: график и показания читают её сообща.
+      child: DownloadHistoryScope(
+        task: task,
+        child: DownloadActivity(task: task),
       ),
     ),
   );
@@ -59,18 +53,12 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        theme: EvaporateTheme.dark(),
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        home: const Scaffold(
-          body: SizedBox(
-            width: 300,
-            child: DownloadHistoryScope(
-              task: task,
-              child: DownloadActivity(task: task),
-            ),
+      hostWidget(
+        const SizedBox(
+          width: 300,
+          child: DownloadHistoryScope(
+            task: task,
+            child: DownloadActivity(task: task),
           ),
         ),
       ),

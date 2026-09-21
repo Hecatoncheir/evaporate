@@ -1,10 +1,10 @@
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/ui/library/saves/rule_tile.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/host_widget.dart';
 
 /// Строка правила сохранений в узкой колонке страницы игры.
 void main() {
@@ -18,25 +18,19 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        theme: EvaporateTheme.dark(),
-        localizationsDelegates: L.localizationsDelegates,
-        supportedLocales: L.supportedLocales,
-        locale: const Locale('ru'),
-        home: Scaffold(
-          body: SizedBox(
-            width: 320,
-            child: RuleTile(
-              rule: const SavePathRule(
-                id: 'r',
-                label: 'Профиль второго игрока на общем компьютере',
-                template: '/абсолютный/путь/к/сохранениям',
-                platform: 'windows',
-              ),
-              gameDir: null,
-              exists: false,
-              onRemove: () {},
+      hostWidget(
+        SizedBox(
+          width: 320,
+          child: RuleTile(
+            rule: const SavePathRule(
+              id: 'r',
+              label: 'Профиль второго игрока на общем компьютере',
+              template: '/абсолютный/путь/к/сохранениям',
+              platform: 'windows',
             ),
+            gameDir: null,
+            exists: false,
+            onRemove: () {},
           ),
         ),
       ),
@@ -48,24 +42,18 @@ void main() {
   /// Строка правила с заданным признаком «папка на диске».
   Future<void> pumpTile(WidgetTester tester, {required bool? exists}) =>
       tester.pumpWidget(
-        MaterialApp(
-          theme: EvaporateTheme.dark(),
-          localizationsDelegates: L.localizationsDelegates,
-          supportedLocales: L.supportedLocales,
-          locale: const Locale('ru'),
-          home: Scaffold(
-            body: SizedBox(
-              width: 320,
-              child: RuleTile(
-                rule: const SavePathRule(
-                  id: 'r',
-                  label: 'Сохранения',
-                  template: '{APPSUPPORT}/Игра',
-                ),
-                gameDir: null,
-                exists: exists,
-                onRemove: () {},
+        hostWidget(
+          SizedBox(
+            width: 320,
+            child: RuleTile(
+              rule: const SavePathRule(
+                id: 'r',
+                label: 'Сохранения',
+                template: '{APPSUPPORT}/Игра',
               ),
+              gameDir: null,
+              exists: exists,
+              onRemove: () {},
             ),
           ),
         ),

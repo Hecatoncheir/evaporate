@@ -2,17 +2,16 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
-import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/services/system/desktop_entry.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/ui/settings/about_card.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../support/host_widget.dart';
 import '../../support/temp_dir.dart';
 
 void main() {
@@ -45,23 +44,17 @@ void main() {
     await tester.pumpWidget(
       BlocProvider.value(
         value: settings,
-        child: MaterialApp(
-          theme: EvaporateTheme.dark(),
-          localizationsDelegates: L.localizationsDelegates,
-          supportedLocales: L.supportedLocales,
-          locale: const Locale('ru'),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: AboutCard(
-                check: UpdateCheck(
-                  currentVersion: '0.1.0',
-                  fetch: (uri) async => answer,
-                ),
-                openLink: openLink,
-                desktop: DesktopEntry(
-                  executablePath: '/tmp/evaporate',
-                  environment: const {},
-                ),
+        child: hostWidget(
+          SingleChildScrollView(
+            child: AboutCard(
+              check: UpdateCheck(
+                currentVersion: '0.1.0',
+                fetch: (uri) async => answer,
+              ),
+              openLink: openLink,
+              desktop: DesktopEntry(
+                executablePath: '/tmp/evaporate',
+                environment: const {},
               ),
             ),
           ),
