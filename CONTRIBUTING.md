@@ -81,11 +81,9 @@ git push origin v0.24.0
 
 Дальше всё делает CI: сверяет, что раздел для тега на месте — до сборок, а не
 после, — гоняет тесты на трёх системах, собирает установщики, считает
-`SHA256SUMS` и подписывает его ключом из секрета `UPDATE_SIGNING_KEY`,
-заводит релиз черновиком, выкладывает файлы и только потом публикует, иначе
-подписчики получают письмо о версии, скачать которую ещё нечего. Без
-секрета выпуск падает до публикации: неподписанный релиз обновление не
-примет.
+`SHA256SUMS`, заводит релиз черновиком, выкладывает файлы и только потом
+публикует, иначе подписчики получают письмо о версии, скачать которую ещё
+нечего.
 
 Номер попадает в сборку оттуда же, из тега: `--build-name` в свойства файла и
 `--dart-define` в само приложение, откуда его читает проверка обновлений.
@@ -236,11 +234,9 @@ git push origin v0.24.0
 
 CI does the rest: it checks the tag's section is there — before the builds,
 not after — runs the tests on three systems, builds the installers, computes
-`SHA256SUMS` and signs it with the key from the `UPDATE_SIGNING_KEY` secret,
-opens the release as a draft, uploads the files and only then publishes it,
-so that subscribers never get an email about a version with nothing to
-download yet. Without the secret the release fails before publishing: an
-unsigned release would not be accepted as an update.
+`SHA256SUMS`, opens the release as a draft, uploads the files and only then
+publishes it, so that subscribers never get an email about a version with
+nothing to download yet.
 
 The number reaches the build from the same tag: `--build-name` for the file's
 properties and `--dart-define` for the app itself, where the update check

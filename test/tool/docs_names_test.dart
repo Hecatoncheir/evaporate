@@ -14,7 +14,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   // Записи решений — тоже: «почему нет X» уводит в пустоту, если Y, на
   // котором решение стоит, с тех пор переименовали. Оценки разборов —
-  // нет: они описывают код своего дня.
+  // нет: они описывают код своего дня. Отменённая запись — тоже нет, по
+  // той же причине: её код убрала та запись, что её отменила.
   final documents = [
     'CLAUDE.md',
     'README.md',
@@ -23,7 +24,10 @@ void main() {
     for (final entity in Directory(
       'docs/decisions',
     ).listSync()..sort((a, b) => a.path.compareTo(b.path)))
-      if (entity.path.endsWith('.md')) entity.path.replaceAll(r'\', '/'),
+      if (entity is File &&
+          entity.path.endsWith('.md') &&
+          !isCancelled(entity.readAsStringSync()))
+        entity.path.replaceAll(r'\', '/'),
   ];
   final code = _projectCode();
 
@@ -68,6 +72,19 @@ void main() {
       expect(docNames(text), ['AppPaths']);
     });
 
+    test('отменённую запись решения узнают по пометке', () {
+      expect(
+        isCancelled(
+          '# 0007. X\n\n*Принято 2026-09-23.*\n\n'
+          '*Отменено 2026-09-23 записью [0008](0008-y.md).*\n',
+        ),
+        isTrue,
+      );
+      // Слово в тексте — не пометка: отменить можно и что-то внутри
+      // действующего решения.
+      expect(isCancelled('# 0005. Z\n\nОтменено: прежний подход.\n'), isFalse);
+    });
+
     test('ссылки внутрь репозитория — тоже пути', () {
       const text =
           '[тест](test/tool/gate_test.dart), [раздел](#ci), '
@@ -95,6 +112,11 @@ BlocProvider(create: (_) => NavigationBloc(library: widget.library)),
     });
   });
 }
+
+/// Запись решения, отменённая другой: строка-пометка `*Отменено …*` под
+/// заголовком, как `*Принято …*`.
+bool isCancelled(String record) =>
+    RegExp(r'^\*Отменено ', multiLine: true).hasMatch(record);
 
 /// Имена, которых в коде нет намеренно: документ рассказывает, чем они
 /// стали, или почему их так и не завели.

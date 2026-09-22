@@ -474,14 +474,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Из репозитория здесь нужен один файл — открытый ключ подписи
-      # обновлений, которым подпись проверяется сразу после того, как
-      # поставлена.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: tool/update_signing_key.pub.pem
-          sparse-checkout-cone-mode: false
-
       # Описание релиза приходит артефактом: считать его здесь заново
       # значило бы поставить весь Flutter ради одного `dart run`, уже
       # выполненного в анализе.
@@ -501,7 +493,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
         run: |
           set -eu
           TAG="${GITHUB_REF_NAME}"
@@ -514,27 +505,6 @@ jobs:
           # распаковывать её поверх установки нельзя.
           ( cd dist && sha256sum evaporate-*.* > SHA256SUMS )
           cat dist/SHA256SUMS
-
-          # Подпись под суммами — то, что отличает наш релиз от выложенного
-          # от нашего имени: суммы считает это же задание, и тот, кто сумел
-          # бы выложить релиз, выложил бы и их. Приложение без подписи
-          # обновление не ставит, поэтому без секрета выпуск падает здесь,
-          # до публикации, а не у людей. Ключ ложится во временный файл с
-          # правами только для владельца и сразу убирается.
-          if [ -z "${UPDATE_SIGNING_KEY:-}" ]; then
-            echo 'Нет секрета UPDATE_SIGNING_KEY: неподписанный релиз обновление не примет.' >&2
-            exit 1
-          fi
-          key="$RUNNER_TEMP/update-signing.pem"
-          ( umask 077 && printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key" )
-          openssl pkeyutl -sign -inkey "$key" -rawin \
-            -in dist/SHA256SUMS -out dist/SHA256SUMS.sig
-          rm -f "$key"
-          # Проверка тем открытым ключом, что вшит в приложение: секрет, не
-          # парный ему, дал бы релиз, который не примет ни одна установленная
-          # копия. `update_signature_test` сверяет файл с приложением.
-          openssl pkeyutl -verify -pubin -inkey tool/update_signing_key.pub.pem \
-            -rawin -in dist/SHA256SUMS -sigfile dist/SHA256SUMS.sig
 
           # Описание релиза и запись в истории изменений — один и тот же
           # текст; писать его дважды значит однажды разойтись. Готовит его

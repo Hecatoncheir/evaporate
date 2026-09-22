@@ -9,7 +9,6 @@ import '../../l10n/app_localizations_ru.dart';
 import 'app_log.dart';
 import 'update_check.dart';
 import 'update_exception.dart';
-import 'update_signature.dart';
 import 'update_transport.dart';
 import 'update_unpack.dart';
 
@@ -45,8 +44,7 @@ class UpdateProgress {
 /// Проверка не формальность. Канал защищён TLS, но оборванная загрузка
 /// выглядит как целый файл, и распаковывать её поверх установки — верный
 /// способ оставить человека без работающего приложения. Поэтому сначала
-/// размер, потом подпись под `SHA256SUMS`, потом sha256 из него, и только
-/// потом распаковка.
+/// размер, потом sha256 из `SHA256SUMS`, и только потом распаковка.
 ///
 /// На Windows результат — готовый Inno Setup. На macOS и Linux архив
 /// распаковывается в папку, которую заменит POSIX-помощник после
@@ -65,7 +63,6 @@ class UpdateDownload {
     )?
     download,
     AppLog Function()? log,
-    this._signature = const UpdateSignature(),
     L Function()? localizations,
   }) : _platform = platform ?? currentPlatformKey(),
        _fetch = fetch ?? UpdateTransport.fetch,
@@ -82,9 +79,6 @@ class UpdateDownload {
 
   static AppLog _appLog() => AppLog.instance;
   final String _platform;
-
-  /// Чьей подписи верим — подменяется в прогоне своим ключом.
-  final UpdateSignature _signature;
 
   /// Сообщения отсюда человек читает в карточке обновления, а
   /// `BuildContext` здесь взять неоткуда.
@@ -203,13 +197,11 @@ class UpdateDownload {
     await part.rename(target.path);
   }
 
-  /// Размер, подпись под суммами и сама сумма.
+  /// Размер и контрольная сумма.
   ///
-  /// Сумма ловит оборванную и побитую загрузку, подлинность держит
-  /// подпись: суммы кладёт в релиз то же задание, что и сборки, и тот, кто
-  /// сумел выложить релиз, выложил бы и их. Проверить нечем — нет подписи,
-  /// нет сумм, нет в них своего файла — значит не ставить: на Windows
-  /// скачанный установщик запускается молча.
+  /// Сумма не защищает от подменённого источника — она приходит оттуда же,
+  /// — но ловит оборванную и побитую загрузку, а это самое частое.
+  /// Подписи под суммами нет намеренно (`docs/decisions/0008`).
   Future<void> _verify(Release release, ReleaseAsset archive, File file) async {
     // Не сошлось — недокачанное выбрасываем. Иначе следующая попытка
     // продолжила бы с середины испорченного файла и не сошлась бы уже
@@ -223,9 +215,28 @@ class UpdateDownload {
       throw UpdateException(_l.updateIncomplete);
     }
 
-    final expected = _sumFor(await _signedSums(release), archive.name);
+    // Файла сумм может не быть у старых релизов — размера уже достаточно.
+    // Но пропуск сверки — не мелочь, и след его должен остаться.
+    final sums = release.checksums;
+    if (sums == null) {
+      _log().write('обновление ${release.version}: сумм нет, сверка пропущена');
+      return;
+    }
+
+    final List<int> raw;
+    try {
+      raw = await _fetch(Uri.parse(sums.url), (_, _) {});
+    } on Object catch (error) {
+      _log().write('обновление: суммы не получены, сверка пропущена', error);
+      return;
+    }
+
+    final expected = _sumFor(String.fromCharCodes(raw), archive.name);
     if (expected == null) {
-      throw UpdateException(_l.updateNotListed(archive.name));
+      _log().write(
+        'обновление: ${archive.name} нет в суммах, сверка пропущена',
+      );
+      return;
     }
     // Считаем по потоку: сборка весит десятки мегабайт, и держать её в
     // памяти целиком незачем.
@@ -234,30 +245,6 @@ class UpdateDownload {
       await file.delete();
       throw UpdateException(_l.updateChecksumMismatch);
     }
-  }
-
-  /// Файл сумм релиза, если под ним стоит подпись того, кому верим.
-  Future<String> _signedSums(Release release) async {
-    final sums = release.checksums;
-    final signature = release.signature;
-    if (sums == null || signature == null) {
-      _log().write('обновление ${release.version}: в релизе нет подписи');
-      throw UpdateException(_l.updateUnsigned);
-    }
-    final List<int> text;
-    final List<int> signed;
-    try {
-      text = await _fetch(Uri.parse(sums.url), (_, _) {});
-      signed = await _fetch(Uri.parse(signature.url), (_, _) {});
-    } on Object catch (error) {
-      _log().write('обновление: суммы или подпись не получены', error);
-      throw UpdateException(_l.updateSignatureUnavailable);
-    }
-    if (!await _signature.verify(text, signed)) {
-      _log().write('обновление ${release.version}: подпись не сошлась');
-      throw UpdateException(_l.updateSignatureInvalid);
-    }
-    return String.fromCharCodes(text);
   }
 
   /// Строка вида `<sha256>  <имя файла>` — формат `sha256sum`.

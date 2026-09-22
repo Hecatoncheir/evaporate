@@ -122,10 +122,7 @@ and save snapshots stay. It also takes `--prefix DIR` and `--extract DIR` if
 installing is not what you want.
 
 The app can update itself: a button in the settings downloads the new
-version, checks the release signature and its checksum and replaces the
-installation. The signature is Ed25519 over the `SHA256SUMS` file, and only
-the project holds the private key; a release with no signature, or someone
-else's, is not installed. The `.deb` is the
+version, checks its checksum and replaces the installation. The `.deb` is the
 deliberate exception — it lands in `/opt`, which needs root to write, and
 what a package manager installed a package manager should update. A `.run`
 install lives in the user's own directory, where updating works.
