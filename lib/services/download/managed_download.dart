@@ -102,7 +102,9 @@ class _ManagedDownload {
   /// как «Получение метаданных», а не пропадает из интерфейса.
   bool get isFetchingMetadata => model == null && error == null;
 
-  Future<dt.TorrentModel?> fetchMetadata() async {
+  /// [proxy] — тот же, что у задачи: при SOCKS5 поиск ходит к пирам через
+  /// него и без DHT (см. `canFetchMetadata`).
+  Future<dt.TorrentModel?> fetchMetadata({dt.ProxyConfig? proxy}) async {
     final link = magnet;
     if (link == null) return null;
 
@@ -110,6 +112,7 @@ class _ManagedDownload {
     final downloader = dt.MetadataDownloader(
       infoHash,
       trackers: parsed?.trackers,
+      proxyConfig: proxy,
     );
     metadata = downloader;
 

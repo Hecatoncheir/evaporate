@@ -95,8 +95,13 @@ void main() {
     note: 'перед восстановлением',
     fileCount: 3,
     origin: SnapshotOrigin.preRestore,
-    blobs: const [
-      SnapshotBlob(name: 'data/r1/slot.sav', hash: 'ab12', size: 7),
+    blobs: [
+      SnapshotBlob(
+        name: 'data/r1/slot.sav',
+        hash: 'ab12',
+        size: 7,
+        modified: DateTime.fromMillisecondsSinceEpoch(1700000000000),
+      ),
     ],
   );
 

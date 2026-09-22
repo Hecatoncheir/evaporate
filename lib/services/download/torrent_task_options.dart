@@ -57,10 +57,13 @@ List<Uri> announcesFor(List<Uri> announces, ProxySettings proxy) {
 
 /// Можно ли искать метаданные magnet-ссылки по сети при этих настройках.
 ///
-/// Поиск ведёт `MetadataDownloader` библиотеки, а тот о прокси не знает
-/// вовсе: сам поднимает DHT и сам соединяется с пирами. При SOCKS5, который
-/// включают ради того, чтобы пиры не видели адреса, это отказ, а не тихий
-/// обход. HTTP-прокси пиров и так не покрывает — это написано в подписи к
-/// нему, — и там поиск идёт как шёл.
-bool canFetchMetadata(ProxySettings proxy) =>
-    !(proxy.isUsable && proxy.kind == ProxyKind.socks5);
+/// При SOCKS5 поиск идёт к пирам через прокси, а DHT не поднимается вовсе:
+/// он — голый UDP, и узлы видели бы настоящий адрес. Пиров тогда дают
+/// только HTTP-трекеры ссылки (`udp://` через SOCKS5 не пройдёт), и ссылка
+/// без них не найдётся никогда — это отказ словами сразу, а не десять
+/// минут ожидания. HTTP-прокси пиров не покрывает — это в подписи к нему, —
+/// и там поиск идёт как шёл.
+bool canFetchMetadata(ProxySettings proxy, Iterable<Uri> trackers) {
+  if (!proxy.isUsable || proxy.kind != ProxyKind.socks5) return true;
+  return trackers.any((uri) => uri.scheme == 'http' || uri.scheme == 'https');
+}

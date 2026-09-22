@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/speed_limits.dart';
-import '../../widgets/inline_warning.dart';
 import '../speed_field.dart';
 
 /// Ограничения скорости: приём, отдача, доля раздачи и приём во время игры.
@@ -29,8 +28,6 @@ class SpeedLimitsSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InlineWarning(l.speedLimitsInactive),
-        const SizedBox(height: 10),
         SpeedField(
           label: l.limitDownload,
           value: limits.download,

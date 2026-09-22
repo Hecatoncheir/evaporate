@@ -92,6 +92,7 @@ class EvsavePackage {
     Archive archive, {
     String? package,
     Offload? offload,
+    Map<String, DateTime> modified = const {},
   }) sync* {
     for (final file in archive.files) {
       if (file.isSymbolicLink) {
@@ -103,6 +104,7 @@ class EvsavePackage {
         localizations: _localizations,
         package: package,
         offload: offload,
+        modified: modified[file.name],
       );
     }
   }
@@ -160,6 +162,7 @@ class ArchiveEntrySource implements RestoreSource {
     required this._localizations,
     this._package,
     this._offload,
+    this.modified,
   });
 
   final ArchiveFile _file;
@@ -177,6 +180,11 @@ class ArchiveEntrySource implements RestoreSource {
 
   @override
   int get size => _file.size;
+
+  /// Из манифеста ([SaveSnapshot.manifestModifiedKey]), а не из записи
+  /// zip: там время местное и без пояса.
+  @override
+  final DateTime? modified;
 
   @override
   Future<void> writeTo(String path) async {

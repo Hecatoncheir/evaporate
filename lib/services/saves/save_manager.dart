@@ -448,6 +448,7 @@ class SaveManager {
               archive,
               package: snapshot.archivePath,
               offload: _offload,
+              modified: SaveSnapshot.modifiedOf(_package.manifestOf(archive)),
             )
             .toList(),
         backupCurrent: backupCurrent,
@@ -615,9 +616,7 @@ class SaveManager {
       id: manifest['id'] as String? ?? _uuid.v4(),
       gameId: manifest['gameId'] as String? ?? '',
       gameTitle: manifest['gameTitle'] as String? ?? _l.untitled,
-      createdAt:
-          DateTime.tryParse(manifest['createdAt'] as String? ?? '') ??
-          DateTime.now(),
+      createdAt: SaveSnapshot.readMoment(manifest['createdAt']),
       deviceName: manifest['deviceName'] as String? ?? _l.saveUnknownDevice,
       platform: manifest['platform'] as String? ?? '',
       sizeBytes: manifest['sizeBytes'] as int? ?? 0,
@@ -660,11 +659,15 @@ class SaveManager {
     // память: пакет может весить гигабайты.
     final dir = Directory(_paths.snapshotDirFor(game.id));
     await dir.create(recursive: true);
-    await _package.open(path, (archive) async => _checkDeclaredSize(archive));
+    final modified = await _package.open(path, (archive) async {
+      _checkDeclaredSize(archive);
+      return SaveSnapshot.modifiedOf(_package.manifestOf(archive));
+    });
 
     final blobs = await _importEntries(
       path,
       Directory(p.join(dir.path, '.import-${_uuid.v4()}')),
+      modified: modified,
     );
 
     if (blobs.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
@@ -709,15 +712,22 @@ class SaveManager {
   /// из папки синхронизации файл лёг бы туда как целый.
   Future<List<SnapshotBlob>> _importEntries(
     String path,
-    Directory staging,
-  ) async {
+    Directory staging, {
+    required Map<String, DateTime> modified,
+  }) async {
     try {
       final entries = await _offload(
         EvsaveJobs.unpack(path: path, staging: staging.path),
       );
       final blobs = <SnapshotBlob>[];
       for (final entry in entries) {
-        blobs.add(await store.put(entry.name, File(entry.path)));
+        blobs.add(
+          await store.put(
+            entry.name,
+            File(entry.path),
+            modified: modified[entry.name],
+          ),
+        );
         // Уже в хранилище — место под копией отдаём сразу, а не в конце.
         await File(entry.path).delete();
       }

@@ -7,6 +7,7 @@ import 'package:dtorrent_task_v2/dtorrent_task_v2.dart' as dt;
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/proxy_settings.dart';
+import 'package:evaporate/models/speed_limits.dart';
 import 'package:evaporate/services/download/download_engine.dart';
 import 'package:evaporate/services/download/dtorrent_engine.dart';
 import 'package:evaporate/services/download/integrity_check.dart';
@@ -272,9 +273,9 @@ void main() {
       expect(failed.isQueued, isFalse, reason: 'очередь её обходит');
     });
 
-    // Поиск метаданных в библиотеке о прокси не знает: сам поднимает DHT и
-    // сам идёт к пирам. При SOCKS5 это отказ словами, а не тихий обход.
-    test('magnet при SOCKS5 в сеть не идёт и говорит почему', () async {
+    // При SOCKS5 поиск идёт через прокси и без DHT: пиров дают только
+    // HTTP-трекеры ссылки. Ссылка без них — отказ словами, а не ожидание.
+    test('magnet без HTTP-трекера при SOCKS5 в сеть не идёт', () async {
       var asked = 0;
       final engine = launching(
         (hash) async {
@@ -295,11 +296,38 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 5));
       }
 
-      expect(asked, 0, reason: 'метаданные искали мимо прокси');
+      expect(asked, 0, reason: 'без HTTP-трекера через прокси не найти');
       expect(
         engine.taskById(hashA)!.errorMessage,
         LRu().magnetNeedsTorrentBehindProxy,
       );
+    });
+
+    // Прежде поиск при SOCKS5 не шёл вовсе: библиотека о прокси не знала и
+    // пошла бы к пирам напрямую. Теперь он умеет ходить через прокси.
+    test('magnet с HTTP-трекером при SOCKS5 ищется', () async {
+      var asked = 0;
+      final engine = launching(
+        (hash) async {
+          asked++;
+          return null;
+        },
+        proxy: const ProxySettings(
+          enabled: true,
+          host: '127.0.0.1',
+          port: 1080,
+        ),
+      );
+
+      final link =
+          '${magnet(hashA)}&tr=${Uri.encodeComponent('https://t.example/a')}';
+      await engine.addMagnet(link, dir: tmp.path);
+      for (var i = 0; i < 200 && asked == 0; i++) {
+        await engine.refresh();
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+
+      expect(asked, 1);
     });
 
     // Библиотека шлёт отказ только после трёх несовпадений хеша, а без
@@ -695,12 +723,35 @@ void main() {
     engine.dispose();
   });
 
-  // Предел скорости библиотека принимает только окном расписания, а
-  // скорость из окна не читает нигде. Постановка окна при этом зовёт
+  // Прежде `applyLimits` пределы только запоминал: ограничивать библиотека
+  // не умела, и настройки честно говорили «пока не действует».
+  test('пределы становятся скоростью общих ограничителей', () async {
+    final engine = buildEngine();
+
+    await engine.applyLimits(
+      const SpeedLimits(download: 2048, upload: 512, whilePlaying: 256),
+      playing: false,
+    );
+    expect(engine.downloadRate, 2048 * 1024);
+    expect(engine.uploadRate, 512 * 1024);
+
+    // Во время игры — меньший из двух пределов приёма.
+    await engine.applyLimits(
+      const SpeedLimits(download: 2048, upload: 512, whilePlaying: 256),
+      playing: true,
+    );
+    expect(engine.downloadRate, 256 * 1024);
+
+    await engine.applyLimits(SpeedLimits.unlimited, playing: false);
+    expect(engine.downloadRate, isNull);
+    expect(engine.uploadRate, isNull);
+    engine.dispose();
+  });
+
+  // Окно расписания библиотеки скорость не читает, а его постановка зовёт
   // `resumeTask`: запустил игру при пределе на время игры — и задачи на
-  // паузе качали на полную, пока интерфейс показывал «Пауза». Живую задачу
-  // тесту подставить нечем, поэтому сторожим сам вызов: вернуть его можно
-  // только вместе с правкой форка, которая научит окно ограничивать.
+  // паузе качали на полную, пока интерфейс показывал «Пауза». Пределы идут
+  // общими ограничителями, и окну здесь делать нечего.
   test('движок не ставит задачам окно расписания', () {
     final sources = Directory(p.join('lib', 'services', 'download'))
         .listSync()

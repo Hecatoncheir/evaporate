@@ -82,7 +82,7 @@ class SaveSnapshot extends Equatable {
     'id': id,
     'gameId': gameId,
     'gameTitle': gameTitle,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': writeMoment(createdAt),
     'deviceName': deviceName,
     'platform': platform,
     'sizeBytes': sizeBytes,
@@ -99,8 +99,7 @@ class SaveSnapshot extends Equatable {
     id: json['id'] as String,
     gameId: json['gameId'] as String,
     gameTitle: json['gameTitle'] as String? ?? '',
-    createdAt:
-        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+    createdAt: readMoment(json['createdAt']),
     deviceName: json['deviceName'] as String? ?? '',
     platform: json['platform'] as String? ?? '',
     sizeBytes: json['sizeBytes'] as int? ?? 0,
@@ -126,7 +125,7 @@ class SaveSnapshot extends Equatable {
     'id': id,
     'gameId': gameId,
     'gameTitle': gameTitle,
-    'createdAt': createdAt.toIso8601String(),
+    'createdAt': writeMoment(createdAt),
     'deviceName': deviceName,
     'platform': platform,
     'playtimeSeconds': playtime.inSeconds,
@@ -134,7 +133,34 @@ class SaveSnapshot extends Equatable {
     'sizeBytes': sizeBytes,
     if (note != null) 'note': note,
     'rules': rules.map((r) => r.toJson()).toList(),
+    if (blobs.any((blob) => blob.modified != null))
+      manifestModifiedKey: {
+        for (final blob in blobs)
+          if (blob.modified != null)
+            blob.name: blob.modified!.millisecondsSinceEpoch,
+      },
   };
+
+  /// Время изменения файлов пакета: имя записи → миллисекунды эпохи.
+  ///
+  /// В манифесте, а не в самих записях zip, хотя поле для времени там есть:
+  /// оно хранит местное время без пояса с точностью до двух секунд, то есть
+  /// переносит ровно ту ошибку, от которой [writeMoment] уводит дату снимка.
+  /// Ключ необязательный: сборки, которые о нём не знают, его пропускают, а
+  /// пакет без него раскладывается как раньше. Версия формата поэтому не
+  /// меняется.
+  static const manifestModifiedKey = 'modified';
+
+  /// Читает [manifestModifiedKey]; нечитаемые записи пропускаются.
+  static Map<String, DateTime> modifiedOf(Map<String, dynamic>? manifest) {
+    final raw = manifest?[manifestModifiedKey];
+    if (raw is! Map) return const {};
+    return {
+      for (final MapEntry(:key, :value) in raw.entries)
+        if (key is String && SnapshotBlob.momentOf(value) != null)
+          key: SnapshotBlob.momentOf(value)!,
+    };
+  }
 
   /// Формат, которым подписываются новые пакеты.
   static const manifestFormat = 'evaporate.save/1';
@@ -149,6 +175,31 @@ class SaveSnapshot extends Equatable {
   /// пока где-то могут лежать такие пакеты.
   static const readableFormats = {manifestFormat};
   static const manifestEntry = 'manifest.json';
+
+  /// Момент снятия — в UTC, со смещением в записи.
+  ///
+  /// Прежде писалось местное время без смещения, и другое устройство
+  /// читало его как своё местное: снимок из UTC+3 в 10:00 на машине в UTC+0
+  /// считался снятым в 10:00 по Гринвичу, на три часа позже правды, и
+  /// проверка «здесь новее» при переносе ошибалась ровно на разницу поясов
+  /// — в одну сторону затирая прогресс, в другую давая ложные конфликты.
+  /// `Z` понимают и старые сборки: `DateTime.parse` читал его всегда, так
+  /// что версия формата от этого не меняется. Пакеты, записанные раньше,
+  /// по-прежнему читаются местным временем читающего — смещения в них нет,
+  /// и восстановить его неоткуда.
+  static String writeMoment(DateTime moment) =>
+      moment.toUtc().toIso8601String();
+
+  /// Читает [writeMoment] и прежние записи без смещения.
+  ///
+  /// Нечитаемая дата — эпоха, а не «сейчас»: пакет с «сейчас» выглядел бы
+  /// самым свежим из всех и проходил бы проверку «здесь новее» при
+  /// переносе, затирая то, что новее на самом деле. В местное время
+  /// переводится сразу, чтобы снимки сравнивались и показывались одинаково,
+  /// откуда бы ни пришли.
+  static DateTime readMoment(Object? raw) =>
+      (raw is String ? DateTime.tryParse(raw)?.toLocal() : null) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
   static const dataPrefix = 'data';
   static const fileExtension = '.evsave';
 

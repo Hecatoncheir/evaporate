@@ -115,13 +115,22 @@ void main() {
       );
     });
 
-    // HTTP-прокси пиров не покрывает и честно об этом говорит — там поиск
-    // метаданных идёт как шёл. SOCKS5 включают ради того, чтобы пиры не
-    // видели адреса.
-    test('метаданные magnet по сети не ищут только при SOCKS5', () {
-      expect(canFetchMetadata(const ProxySettings()), isTrue);
-      expect(canFetchMetadata(socks), isFalse);
-      expect(canFetchMetadata(socks.copyWith(kind: ProxyKind.http)), isTrue);
+    // При SOCKS5 поиск идёт через прокси и без DHT: пиров дают только
+    // HTTP-трекеры ссылки. Ссылку без них через прокси не найти никогда —
+    // отказ словами сразу, а не десять минут ожидания. HTTP-прокси пиров не
+    // покрывает и честно об этом говорит — там поиск идёт как шёл.
+    test('через SOCKS5 magnet ищется, только если есть HTTP-трекер', () {
+      final udpOnly = [Uri.parse('udp://tracker.example:1337/announce')];
+      final withHttp = [...udpOnly, Uri.parse('https://t.example/announce')];
+
+      expect(canFetchMetadata(const ProxySettings(), const []), isTrue);
+      expect(canFetchMetadata(socks, withHttp), isTrue);
+      expect(canFetchMetadata(socks, udpOnly), isFalse);
+      expect(canFetchMetadata(socks, const []), isFalse);
+      expect(
+        canFetchMetadata(socks.copyWith(kind: ProxyKind.http), udpOnly),
+        isTrue,
+      );
     });
   });
 }

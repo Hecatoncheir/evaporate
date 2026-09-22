@@ -251,20 +251,30 @@ class DtorrentEngine implements DownloadEngine {
   @visibleForTesting
   SpeedLimits get appliedLimits => _limits;
 
-  /// Запоминает пределы, но задачам их не ставит.
+  /// Общие на все задачи пределы: «качать не быстрее 2 МБ/с» — это одна
+  /// скорость на всё приложение, а не на каждую раздачу.
+  final _downloadLimiter = dt.BandwidthLimiter();
+  final _uploadLimiter = dt.BandwidthLimiter();
+
+  @visibleForTesting
+  int? get downloadRate => _downloadLimiter.bytesPerSecond;
+
+  @visibleForTesting
+  int? get uploadRate => _uploadLimiter.bytesPerSecond;
+
+  /// Ставит пределы — сразу всем задачам, и уже идущим тоже.
   ///
-  /// Предел скорости `dtorrent_task_v2` принимает только окном расписания,
-  /// а скорость из окна кладёт в поле, которое сама не читает нигде: предел
-  /// не действует вовсе. Зато постановка окна зовёт `resumeTask` — и
-  /// поставленные на паузу задачи начинали качать на полную, пока
-  /// интерфейс показывал «Пауза»: достаточно было запустить игру при
-  /// заданном пределе на время игры. Вернуть сюда окно можно только вместе
-  /// с правкой форка, которая научит его ограничивать; до тех пор подпись
-  /// в настройках говорит, что предел не действует. Рейтинг раздачи
-  /// считаем сами (`_stopSeedingIfDone`), и он работает.
+  /// Задачи держат одни и те же ограничители, поэтому смена предела —
+  /// смена скорости у них, а не обход задач. Окно расписания библиотеки
+  /// (`addScheduleWindow`) здесь не зовётся нарочно: скорость из него она
+  /// не читала вовсе, а постановка окна снимала паузу, и приостановленные
+  /// загрузки начинали качать на полную. Рейтинг раздачи считаем сами
+  /// (`_stopSeedingIfDone`).
   @override
   Future<void> applyLimits(SpeedLimits limits, {required bool playing}) async {
     _limits = limits;
+    _downloadLimiter.bytesPerSecond = limits.downloadBytes(playing: playing);
+    _uploadLimiter.bytesPerSecond = limits.uploadBytes;
   }
 
   /// Куда переходит слот задачи по её состоянию.

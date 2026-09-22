@@ -130,6 +130,9 @@ class _Source implements RestoreSource {
   int get size => text.length;
 
   @override
+  DateTime? get modified => null;
+
+  @override
   Future<void> writeTo(String path) async {
     await gate;
     await File(path).parent.create(recursive: true);

@@ -64,7 +64,7 @@ extension EngineQueue on DtorrentEngine {
       null,
       null,
       torrentProxyConfig(_proxy),
-    );
+    )..setBandwidthLimiters(download: _downloadLimiter, upload: _uploadLimiter);
     managed.task = task;
     await task.start();
   }
@@ -103,15 +103,14 @@ extension EngineQueue on DtorrentEngine {
     if (path != null && await File(path).exists()) {
       return TorrentSource.fromFile(path);
     }
-    // Искать по сети при SOCKS5 значит пойти к пирам мимо него:
-    // поиск метаданных в библиотеке прокси не знает.
-    if (!canFetchMetadata(_proxy)) {
+    final trackers = dt.MagnetParser.parse(managed.magnet ?? '')?.trackers;
+    if (!canFetchMetadata(_proxy, trackers ?? const [])) {
       throw DownloadEngineException(_l.magnetNeedsTorrentBehindProxy);
     }
     final fetch = _fetchMetadata;
     final found = fetch != null
         ? fetch(managed.infoHash)
-        : managed.fetchMetadata();
+        : managed.fetchMetadata(proxy: torrentProxyConfig(_proxy));
     // Не дождались — «не найдено»: `_launch` сорвёт задачу словами, и слот
     // уйдёт следующей.
     return found.timeout(metadataTimeout, onTimeout: () => null);

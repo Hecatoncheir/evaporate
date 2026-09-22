@@ -210,6 +210,9 @@ class _ChangingFile implements File {
       reads[_read < reads.length ? _read : reads.length - 1].length;
 
   @override
+  Future<DateTime> lastModified() async => DateTime(2026);
+
+  @override
   Stream<List<int>> openRead([int? start, int? end]) {
     final index = _read < reads.length ? _read : reads.length - 1;
     _read++;

@@ -39,7 +39,7 @@ dependencies:
   dtorrent_task_v2:
     git:
       url: https://github.com/Hecatoncheir/dtorrent_task_v2.git
-      ref: 2668afb14ed31f3631f9b338e56eec4482786809
+      ref: 99da3b839af3ffed7d437580a42b52d60dc71377
   equatable: ^2.1.0
   file_selector: ^1.1.0
   flutter:

@@ -23,6 +23,13 @@ abstract class RestoreSource {
 
   int get size;
 
+  /// Когда файл менялся на снявшем устройстве; `null` — неизвестно.
+  ///
+  /// Раскладка ставит его положенному файлу ([_placed]): иначе всё
+  /// разложенное датировано «сейчас», и защита «здесь новее» при переносе
+  /// считает эти сейвы свежее любого пакета.
+  DateTime? get modified;
+
   /// Кладёт содержимое по пути [path] — и отвечает за то, что положенное
   /// совпадает с обещанным.
   Future<void> writeTo(String path);
@@ -343,7 +350,23 @@ class RestoreTransaction {
       throw FileSystemException('Expected a file', target.path);
     }
     // Ровно одна запись на такую цель — это проверено при сборке плана.
-    await entries.single.source.writeTo(candidatePath);
+    await _placed(entries.single.source, candidatePath);
+  }
+
+  /// Кладёт файл и возвращает ему время изменения со снявшего устройства.
+  ///
+  /// Время — не содержимое: не встало (файловая система его не держит,
+  /// права) — раскладка идёт дальше, файл просто датирован «сейчас», как
+  /// было прежде.
+  Future<void> _placed(RestoreSource source, String path) async {
+    await source.writeTo(path);
+    final modified = source.modified;
+    if (modified == null) return;
+    try {
+      await File(path).setLastModified(modified);
+    } on FileSystemException {
+      // См. выше: без времени файл остаётся целым.
+    }
   }
 
   /// Собирает новую папку целиком: при слиянии — поверх копии нынешней,
@@ -364,7 +387,7 @@ class RestoreTransaction {
     }
     for (final entry in entries) {
       final relative = p.relative(entry.destination, from: target.path);
-      await entry.source.writeTo(p.join(candidate.path, relative));
+      await _placed(entry.source, p.join(candidate.path, relative));
     }
   }
 
@@ -467,6 +490,14 @@ class RestoreTransaction {
       } else if (entity is File) {
         await File(destination).parent.create(recursive: true);
         await entity.copy(destination);
+        // Слияние переносит нетронутые снимком файлы копией, а копия на
+        // macOS и Linux датирована «сейчас»: без этого после восстановления
+        // «новее» выглядели бы и файлы, которых оно не касалось.
+        try {
+          await File(destination).setLastModified(await entity.lastModified());
+        } on FileSystemException {
+          // Как в [_placed]: без времени файл остаётся целым.
+        }
       } else if (entity is Link) {
         // Не теряем ссылку при слиянии и не пишем по ней вне цели.
         throw SaveException(_l.savePathEscapes(entity.path));

@@ -194,7 +194,18 @@ class SnapshotStore {
   /// лежало бы чужое содержимое, и ничто бы этого не поймало.
   ///
   /// Крупный файл хешируется и сжимается в отдельном изоляте ([Offload]).
-  Future<SnapshotBlob> put(String name, File source) async {
+  ///
+  /// [modified] — время изменения, если оно известно лучше, чем по самому
+  /// файлу: запись пакета разжимается во временный файл, и его время — миг
+  /// разжатия, а настоящее лежит в манифесте.
+  Future<SnapshotBlob> put(
+    String name,
+    File source, {
+    DateTime? modified,
+  }) async {
+    // До чтения: время должно описывать ту версию, что ляжет в снимок, а
+    // не ту, что игра, может быть, допишет, пока мы читаем.
+    final changed = modified ?? await source.lastModified();
     final size = await source.length();
     // Мелкое читается на месте и через сам [source]: изолят получает только
     // путь, а мелкому он не нужен.
@@ -203,14 +214,24 @@ class SnapshotStore {
         ? _offload(_hashJob(source.path))
         : _hashOf(source.openRead()));
     if (await _isKept(seen.hash)) {
-      return SnapshotBlob(name: name, hash: seen.hash, size: seen.size);
+      return SnapshotBlob(
+        name: name,
+        hash: seen.hash,
+        size: seen.size,
+        modified: changed,
+      );
     }
     final written = await _writeHashed(
       (tmp) => offload
           ? _offload(_compressJob(source.path, tmp))
           : _compressTo(source.openRead(), tmp),
     );
-    return SnapshotBlob(name: name, hash: written.hash, size: written.size);
+    return SnapshotBlob(
+      name: name,
+      hash: written.hash,
+      size: written.size,
+      modified: changed,
+    );
   }
 
   static Future<_Hashed> Function() _hashJob(String path) =>
@@ -508,6 +529,9 @@ class StoredBlobSource implements RestoreSource {
 
   @override
   int get size => _blob.size;
+
+  @override
+  DateTime? get modified => _blob.modified;
 
   /// Не развернулось — содержимое убирается из хранилища ([SnapshotStore.discard]):
   /// следующий снимок того же сейва его перепишет, а не ответит «уже
