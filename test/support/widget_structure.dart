@@ -1,43 +1,183 @@
 import 'guards.dart';
 
-/// Класс, наследующий какой-либо `…Widget`: `StatelessWidget`,
-/// `StatefulWidget`, `InheritedWidget`, `ImplicitlyAnimatedWidget`,
-/// `SingleChildRenderObjectWidget` и прочие. `State<…>` сюда не попадает.
-final _widgetClass = RegExp(
-  r'^\s*(?:abstract\s+)?(?:final\s+)?class\s+(\w+)(?:<[^>{]*>)?\s+extends\s+(\w*Widget)\b',
+/// Объявление класса с родителем: `class Foo<T> extends Bar`.
+final _classWithParent = RegExp(
+  r'^\s*(?:abstract\s+)?(?:final\s+)?(?:base\s+)?class\s+(\w+)(?:<[^>{]*>)?\s+extends\s+(\w+)\b',
   multiLine: true,
 );
 
-/// Объявление функции или метода, возвращающего виджет: `Widget _row(`,
-/// `List<Widget> _items(`, `static Widget of(`. Вызовы сюда не попадают:
-/// перед именем обязан стоять тип.
-final _widgetFunction = RegExp(
-  r'^\s*(?:static\s+)?(?:Widget|PreferredSizeWidget|List<Widget>)\??\s+(\w+)\s*(?:<[^>(]*>)?\(',
+/// Объявление функции, метода или геттера с типом возврата: `Widget _row(`,
+/// `Column get _header =>`, `static List<Widget> _items(`. Вызовы сюда не
+/// попадают: перед именем обязан стоять тип.
+final _typedDeclaration = RegExp(
+  r'^\s*(?:static\s+)?(\w+)(?:<\s*(\w+)\s*>)?\??\s+(get\s+)?(\w+)\s*(?:<[^>(]*>)?\s*(\(|=>|\{)',
   multiLine: true,
 );
+
+/// Частые виджеты Flutter, которыми метод-виджет бывает объявлен вместо
+/// `Widget`: `Column _section()` — тот же метод-виджет, и страж, знавший
+/// только `Widget`, его не видел.
+const flutterWidgets = {
+  'Widget',
+  'PreferredSizeWidget',
+  'Align',
+  'AlertDialog',
+  'AnimatedBuilder',
+  'Builder',
+  'Card',
+  'Center',
+  'Column',
+  'Container',
+  'DecoratedBox',
+  'Divider',
+  'Expanded',
+  'Flexible',
+  'GestureDetector',
+  'Icon',
+  'IconButton',
+  'InkWell',
+  'ListTile',
+  'ListView',
+  'Padding',
+  'Positioned',
+  'Row',
+  'Scaffold',
+  'SizedBox',
+  'Stack',
+  'Text',
+  'Tooltip',
+  'Wrap',
+};
+
+/// Типы виджетов, известные по [files]: частые из Flutter, всё на
+/// `…Widget` и свои классы, наследующие любой из них — `class Foo extends
+/// SectionCard` такой же виджет, хотя в имени родителя `Widget` нет.
+Set<String> widgetTypes(Iterable<SourceFile> files) {
+  final types = {...flutterWidgets};
+  final parents = {
+    for (final file in files)
+      for (final match in _classWithParent.allMatches(file.code))
+        match.group(1)!: match.group(2)!,
+  };
+  var grew = true;
+  while (grew) {
+    grew = false;
+    for (final MapEntry(key: name, value: parent) in parents.entries) {
+      if (types.contains(name)) continue;
+      if (types.contains(parent) || parent.endsWith('Widget')) {
+        types.add(name);
+        grew = true;
+      }
+    }
+  }
+  return types;
+}
+
+/// Классы-виджеты файла.
+Iterable<String> _widgetsIn(SourceFile file, Set<String> types) sync* {
+  for (final match in _classWithParent.allMatches(file.code)) {
+    final parent = match.group(2)!;
+    if (types.contains(parent) || parent.endsWith('Widget')) {
+      yield match.group(1)!;
+    }
+  }
+}
 
 /// Приватные виджеты: `class _Foo extends StatelessWidget`.
-Iterable<String> privateWidgets(SourceFile file) sync* {
-  for (final match in _widgetClass.allMatches(file.code)) {
-    final name = match.group(1)!;
+Iterable<String> privateWidgets(
+  SourceFile file, {
+  Set<String> types = flutterWidgets,
+}) sync* {
+  for (final name in _widgetsIn(file, types)) {
     if (name.startsWith('_')) yield '${file.path}: $name';
   }
 }
 
-/// Функции и методы, собирающие виджеты, — кроме `build`: он и есть
-/// законное место сборки. Метод-виджет — тот же приватный виджет, только
-/// без своего `Element`: без границы перестроения, без `const`, невидимый
-/// в инспекторе.
-Iterable<String> widgetFunctions(SourceFile file) sync* {
-  for (final match in _widgetFunction.allMatches(file.code)) {
-    final name = match.group(1)!;
-    if (name == 'build') continue;
+/// Функции, методы и геттеры, собирающие виджеты, — кроме `build`: он и
+/// есть законное место сборки. Метод-виджет — тот же приватный виджет,
+/// только без своего `Element`: без границы перестроения, без `const`,
+/// невидимый в инспекторе.
+Iterable<String> widgetFunctions(
+  SourceFile file, {
+  Set<String> types = flutterWidgets,
+}) sync* {
+  for (final match in _typedDeclaration.allMatches(file.code)) {
+    final type = match.group(1)!;
+    final element = match.group(2);
+    final isWidget = element == null
+        ? types.contains(type) || type.endsWith('Widget')
+        : type == 'List' && types.contains(element);
+    final name = match.group(4)!;
+    // `of` и `maybeOf` у `InheritedWidget` виджет ищут, а не собирают:
+    // это идиома Flutter, а не метод-виджет.
+    if (!isWidget || const {'build', 'of', 'maybeOf'}.contains(name)) {
+      continue;
+    }
+    // `class Foo extends …` сюда не попадает: у объявления класса нет ни
+    // скобок, ни стрелки сразу за именем.
     yield '${file.path}: $name';
   }
 }
 
+/// Виджеты с числом параметров конструктора больше [limit], кроме `key`:
+/// `путь: Имя: число`.
+///
+/// Дробление на виджеты обходят и так: восемь, десять, четырнадцать
+/// параметров — это метод-виджет, переодетый классом, в который родитель
+/// передаёт половину своего состояния по одной штуке.
+Iterable<String> wideWidgets(
+  SourceFile file, {
+  Set<String> types = flutterWidgets,
+  int limit = 7,
+}) sync* {
+  for (final name in _widgetsIn(file, types)) {
+    final ctor = RegExp('(?:const\\s+)?\\b$name\\s*\\(')
+        .firstMatch(file.code.substring(file.code.indexOf('class $name')));
+    if (ctor == null) continue;
+    final start = file.code.indexOf('class $name') + ctor.end;
+    var depth = 1;
+    var end = start;
+    for (; end < file.code.length && depth > 0; end++) {
+      final c = file.code[end];
+      if ('([{'.contains(c)) depth++;
+      if (')]}'.contains(c)) depth--;
+    }
+    final params = _topLevelParts(file.code.substring(start, end - 1))
+        .where((part) => part.isNotEmpty && !part.contains('key'))
+        .length;
+    if (params > limit) yield '${file.path}: $name: $params';
+  }
+}
+
+/// Части списка параметров, разделённые запятыми на верхнем уровне.
+///
+/// Глубина — только по круглым и угловым скобкам: фигурные и квадратные
+/// на верхнем уровне — рамки именованных и необязательных параметров, и
+/// запятые внутри них делят параметры так же.
+List<String> _topLevelParts(String params) {
+  final parts = <String>[];
+  var depth = 0;
+  var from = 0;
+  for (var k = 0; k < params.length; k++) {
+    final c = params[k];
+    if (c == '(' || c == '<') depth++;
+    if (c == ')' || c == '>') depth--;
+    if (c == ',' && depth == 0) {
+      parts.add(params.substring(from, k));
+      from = k + 1;
+    }
+  }
+  parts.add(params.substring(from));
+  return [
+    for (final part in parts) part.replaceAll(RegExp(r'[{}\[\]]'), '').trim(),
+  ];
+}
+
 /// Файл, где объявлено больше одного виджета.
-Iterable<String> crowdedFiles(SourceFile file) sync* {
-  final count = _widgetClass.allMatches(file.code).length;
+Iterable<String> crowdedFiles(
+  SourceFile file, {
+  Set<String> types = flutterWidgets,
+}) sync* {
+  final count = _widgetsIn(file, types).length;
   if (count > 1) yield '${file.path}: $count';
 }

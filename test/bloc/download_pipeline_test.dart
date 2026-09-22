@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../support/bloc_idle.dart';
 import '../support/recording_notifications.dart';
 import '../support/temp_dir.dart';
 import '../support/wait_for_state.dart';
@@ -90,8 +91,10 @@ void main() {
     late LibraryBloc library;
     late DownloadsBloc downloads;
     late RecordingNotificationService notifications;
+    late HandlerTracker handlers;
 
     setUp(() async {
+      handlers = installHandlerTracker();
       tmp = await Directory.systemTemp.createTemp('evaporate_pipeline_');
       paths = AppPaths.custom(
         dataDir: p.join(tmp.path, 'data'),
@@ -143,9 +146,7 @@ void main() {
         limits: const SpeedLimits(download: 400, upload: 50),
       );
       settings.add(SettingsPatched((_) => next));
-      for (var i = 0; i < 100 && engine.appliedLimits != next.limits; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      }
+      await handlers.settle();
 
       expect(engine.downloadDir, next.installDir);
       expect(engine.maxConcurrent, next.maxConcurrent);
@@ -194,11 +195,7 @@ void main() {
     Future<List<AppNotification>> waitForNotifications(
       NotificationKind kind,
     ) async {
-      for (var i = 0; i < 100; i++) {
-        final sent = notifications.ofKind(kind);
-        if (sent.isNotEmpty) return sent;
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      }
+      await handlers.settle();
       return notifications.ofKind(kind);
     }
 
@@ -286,7 +283,7 @@ void main() {
 
         downloads.add(EngineTasksChanged([task]));
         downloads.add(EngineTasksChanged([task]));
-        await Future<void>.delayed(const Duration(milliseconds: 200));
+        await handlers.settle();
 
         expect(
           notifications.ofKind(NotificationKind.downloadFinished),

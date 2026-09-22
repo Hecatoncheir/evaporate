@@ -20,6 +20,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../support/bloc_idle.dart';
 import '../support/temp_dir.dart';
 import '../support/wait_for_state.dart';
 
@@ -29,6 +30,7 @@ void main() {
   late SettingsBloc settings;
   late LibraryBloc library;
   late SavesBloc saves;
+  late HandlerTracker handlers;
 
   // Загрузка настроек спрашивает систему, включён ли автозапуск. Настоящий
   // `Autostart` на Windows ради этого запускает `reg query` по реестру
@@ -45,6 +47,7 @@ void main() {
   );
 
   setUp(() async {
+    handlers = installHandlerTracker();
     tmp = await Directory.systemTemp.createTemp('evaporate_bloc_');
     paths = AppPaths.custom(
       dataDir: p.join(tmp.path, 'data'),
@@ -658,7 +661,7 @@ void main() {
         )
         ..add(SaveRuleRemoved(id, 'нет такого'));
       await waitFor((s) => s.gameById(id)!.saveProfile.rules.isNotEmpty);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await handlers.settle();
 
       expect(library.state.gameById(id)!.saveProfile.rules.map((r) => r.id), [
         'a',
@@ -941,7 +944,7 @@ void main() {
       final id = await gameWithDir(dir.path);
 
       library.add(GameFolderOpenRequested(id));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(calls, [
         ['xdg-open', dir.path],

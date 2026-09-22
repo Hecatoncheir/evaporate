@@ -30,13 +30,48 @@ void main() {
     return file.path;
   }
 
-  Game gameWith(String? executablePath) => Game(
+  Game gameWith(String? executablePath, {List<String> args = const []}) => Game(
     id: 'game-1',
     title: 'Тестовая',
     addedAt: DateTime.now(),
     installDir: tmp.path,
     executablePath: executablePath,
+    launchArgs: args,
   );
+
+  // «Игры» для каждой системы. На Windows `sh` нет, и прежде семь тестов
+  // из двенадцати там пропускались — на главной игровой системе запуск,
+  // код возврата и остановка не проверялись нигде. Там «игра» — системная
+  // программа с аргументами: `cmd.exe` для кода возврата и шума, `ping` для
+  // «идёт», причём без `cmd` посередине — убитый `cmd` оставил бы `ping`
+  // сиротой, и тест проверял бы не ту остановку.
+  final system32 = p.join(
+    Platform.environment['SystemRoot'] ?? r'C:\Windows',
+    'System32',
+  );
+
+  Future<Game> exitingWith(int code) async => Platform.isWindows
+      ? gameWith(p.join(system32, 'cmd.exe'), args: ['/c', 'exit $code'])
+      : gameWith(await makeScript('exit $code'));
+
+  Future<Game> stillPlaying() async => Platform.isWindows
+      ? gameWith(p.join(system32, 'PING.EXE'), args: ['-n', '30', '127.0.0.1'])
+      : gameWith(await makeScript('sleep 5'));
+
+  Future<Game> noisy() async => Platform.isWindows
+      ? gameWith(
+          p.join(system32, 'cmd.exe'),
+          args: [
+            '/c',
+            'for /L %i in (1,1,20000) do @(echo строка %i & echo ошибка %i 1>&2)',
+          ],
+        )
+      : gameWith(
+          await makeScript(
+            'i=0; while [ \$i -lt 20000 ]; do '
+            'echo "строка \$i"; echo "ошибка \$i" >&2; i=\$((i+1)); done',
+          ),
+        );
 
   test('без указанного файла запускать нечего', () async {
     await expectLater(
@@ -56,51 +91,44 @@ void main() {
   });
 
   test('процесс запускается, а его завершение доходит до колбэка', () async {
-    final path = await makeScript('exit 0');
     final exited = Completer<int>();
 
     await launcher.launch(
-      gameWith(path),
+      await exitingWith(0),
       onExit: (game, played, code) => exited.complete(code),
     );
 
     expect(await exited.future.timeout(const Duration(seconds: 10)), 0);
     expect(launcher.isRunning('game-1'), isFalse);
-  }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
+  });
 
   test('код возврата игры передаётся как есть', () async {
-    final path = await makeScript('exit 3');
     final exited = Completer<int>();
 
     await launcher.launch(
-      gameWith(path),
+      await exitingWith(3),
       onExit: (game, played, code) => exited.complete(code),
     );
 
     expect(await exited.future.timeout(const Duration(seconds: 10)), 3);
-  }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
+  });
 
   test('большой stdout и stderr не блокируют завершение', () async {
-    final path = await makeScript(
-      'i=0; while [ \$i -lt 20000 ]; do '
-      'echo "строка \$i"; echo "ошибка \$i" >&2; i=\$((i+1)); done',
-    );
     final exited = Completer<int>();
 
     await launcher.launch(
-      gameWith(path),
+      await noisy(),
       onExit: (_, _, code) => exited.complete(code),
     );
 
     expect(await exited.future.timeout(const Duration(seconds: 10)), 0);
-  }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
+  });
 
   test('пока игра идёт, она числится запущенной', () async {
-    final path = await makeScript('sleep 5');
     final exited = Completer<void>();
 
     await launcher.launch(
-      gameWith(path),
+      await stillPlaying(),
       onExit: (_, _, _) => exited.complete(),
     );
 
@@ -113,24 +141,21 @@ void main() {
 
     expect(launcher.isRunning('game-1'), isFalse);
     expect(launcher.runningIds.value, isEmpty);
-  }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
+  });
 
   test('дважды одну игру не запустить', () async {
-    final path = await makeScript('sleep 5');
+    final game = await stillPlaying();
     final exited = Completer<void>();
-    await launcher.launch(
-      gameWith(path),
-      onExit: (_, _, _) => exited.complete(),
-    );
+    await launcher.launch(game, onExit: (_, _, _) => exited.complete());
 
     await expectLater(
-      launcher.launch(gameWith(path), onExit: (_, _, _) {}),
+      launcher.launch(game, onExit: (_, _, _) {}),
       throwsA(isA<LaunchException>()),
     );
 
     await launcher.terminate('game-1');
     await exited.future.timeout(const Duration(seconds: 10));
-  }, skip: Platform.isWindows ? 'скрипт sh не запустится на Windows' : null);
+  });
 
   // Проверка «уже запущена» и регистрация процесса разделены ожиданиями:
   // два быстрых нажатия проходили проверку оба, и выход первого процесса

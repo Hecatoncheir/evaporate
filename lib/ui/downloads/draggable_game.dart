@@ -21,11 +21,11 @@ class DraggableGame extends StatelessWidget {
         feedback: Material(
           color: AppColors.transparent,
           child: Opacity(
-            opacity: 0.9,
+            opacity: EvaporateAlpha.lifted,
             child: SizedBox(width: 250, child: GameChip(game: game)),
           ),
         ),
-        childWhenDragging: Opacity(opacity: 0.35, child: tile),
+        childWhenDragging: Opacity(opacity: EvaporateAlpha.ghost, child: tile),
         child: tile,
       ),
     );

@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../support/temp_dir.dart';
+import '../../support/wait_for_state.dart';
 
 void main() {
   group('модель отчёта', () {
@@ -85,17 +86,11 @@ void main() {
       }
     });
 
-    Future<LibraryState> waitFor(bool Function(LibraryState) test) {
-      if (test(library.state)) return Future.value(library.state);
-      return library.stream
-          .firstWhere(test)
-          .timeout(const Duration(seconds: 10));
-    }
+    Future<LibraryState> waitFor(bool Function(LibraryState) test) =>
+        waitForState(library, test);
 
-    Future<SavesState> waitForSaves(bool Function(SavesState) test) {
-      if (test(saves.state)) return Future.value(saves.state);
-      return saves.stream.firstWhere(test).timeout(const Duration(seconds: 10));
-    }
+    Future<SavesState> waitForSaves(bool Function(SavesState) test) =>
+        waitForState(saves, test);
 
     Future<void> addGame(String title, {bool withFiles = true}) async {
       final id = const Uuid().v4();

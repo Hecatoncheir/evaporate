@@ -146,7 +146,12 @@ const _notFunctions = {
 ) {
   if (!_startsWord(code, i)) return null;
   final head = RegExp(
-    r'(get\s+)?([A-Za-z_]\w*)\s*(?:<[^<>(){};=]*(?:<[^<>]*>[^<>(){};=]*)*>)?\s*',
+    // Имя — простое, именованного конструктора или фабрики (`Foo.fromJson`)
+    // или оператор: без двух последних мимо ворот шли все `fromJson` и
+    // `operator ==`.
+    r'(get\s+)?(operator\s*(?:==|\[\]=?|<<|>>>?|[<>]=?|[-+*/%~^&|])'
+    r'|[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\s*'
+    r'(?:<[^<>(){};=]*(?:<[^<>]*>[^<>(){};=]*)*>)?\s*',
   ).matchAsPrefix(code, i);
   if (head == null) return null;
   final name = head.group(2)!;
@@ -159,6 +164,8 @@ const _notFunctions = {
     j = _matching(code, j);
     if (j == -1) return null;
     j++;
+    j = _skipInitializers(code, j);
+    if (j == -1) return null;
   }
   final tail = RegExp(r'\s*(?:async\*?|sync\*)?\s*(\{|=>)')
       .matchAsPrefix(code, j);
@@ -181,6 +188,28 @@ const _notFunctions = {
   return (start: i, name: name, bodyStart: bodyStart, end: end);
 }
 
+/// Пропускает список инициализации конструктора — `: _x = x, super(y)` —
+/// до тела. Без этого мимо ворот шёл конструктор каждого блока: у
+/// `LibraryBloc` в нём девяносто строк подписок и обработчиков.
+///
+/// Возвращает позицию тела или `-1`, если тела нет (`: super(x);`).
+int _skipInitializers(String code, int from) {
+  var k = from;
+  while (k < code.length && (code[k] == ' ' || code[k] == '\n')) {
+    k++;
+  }
+  if (k >= code.length || code[k] != ':') return from;
+  var depth = 0;
+  for (k++; k < code.length; k++) {
+    final c = code[k];
+    if (depth == 0 && (c == '{' || code.startsWith('=>', k))) return k;
+    if (depth == 0 && c == ';') return -1;
+    if (c == '(' || c == '[' || c == '{') depth++;
+    if (c == ')' || c == ']' || c == '}') depth--;
+  }
+  return -1;
+}
+
 /// Перед объявлением стоит тип, модификатор, аннотация или граница
 /// предыдущего члена, а не оператор выражения.
 bool _declarationContext(String code, int i) {
@@ -191,6 +220,7 @@ bool _declarationContext(String code, int i) {
   if (k < 0) return true;
   final c = code[k];
   if (c == '\n' || c == ';' || c == '{' || c == '}') return true;
+  if (c == ')') return _typeInParens(code, k);
   // Тип возвращаемого значения: `Widget build(`, `List<Widget> _x(`,
   // `Future<void>? load(`.
   if (RegExp(r'[\w>?\]]').hasMatch(c)) {
@@ -218,6 +248,35 @@ bool _declarationContext(String code, int i) {
 }
 
 final _wordChar = RegExp(r'\w');
+
+/// Скобки перед именем — тип возврата, а не условие: запись
+/// `({int a, int b}) f()` в начале объявления или тип-функция
+/// `void Function() f()`. Условие `if (x) f()` отличает слово перед
+/// скобкой.
+bool _typeInParens(String code, int close) {
+  var depth = 0;
+  var open = close;
+  for (; open >= 0; open--) {
+    if (code[open] == ')') depth++;
+    if (code[open] == '(') depth--;
+    if (depth == 0) break;
+  }
+  if (open < 0) return false;
+  var k = open - 1;
+  while (k >= 0 && (code[k] == ' ' || code[k] == '\t')) {
+    k--;
+  }
+  if (k < 0) return true;
+  if ('\n;{}'.contains(code[k])) return true;
+  var start = k;
+  while (start > 0 && _wordChar.hasMatch(code[start - 1])) {
+    start--;
+  }
+  final word = code.substring(start, k + 1);
+  return const {'Function', 'static', 'external', 'late'}.contains(word) ||
+      code[k] == '?' ||
+      code[k] == '>';
+}
 
 bool _startsWord(String code, int i) =>
     i == 0 || !RegExp(r'[\w$.]').hasMatch(code[i - 1]);
@@ -364,4 +423,134 @@ String stripCommentsAndStrings(String source) {
     i++;
   }
   return out.toString();
+}
+
+/// Перепись: сколько тел функций в файле на уровне объявлений — у
+/// верхнего уровня и у членов классов, перечислений, расширений.
+///
+/// Считается иначе, чем [measure], — не по заголовку, а по телу: `{` или
+/// `=>` там, где объявляют члены, и не после `=` (это значение поля, а не
+/// тело). Разойдутся два счёта — значит, [measure] пропустил функцию, и
+/// её длина со сложностью мимо ворот: так незамеченными ходили
+/// конструкторы блоков со списком инициализации, фабрики `fromJson` и
+/// `operator ==`.
+int bodiesIn(String source) {
+  final code = stripCommentsAndStrings(source);
+  final members = <int>{0};
+  var depth = 0;
+  var segment = 0;
+  var count = 0;
+  var k = 0;
+  while (k < code.length) {
+    final c = code[k];
+    if (members.contains(depth)) {
+      if (c == ';') {
+        segment = k + 1;
+      } else if (c == '{' || code.startsWith('=>', k)) {
+        final head = code.substring(segment, k);
+        if (c == '{' && _typeHeader.hasMatch('$head{')) {
+          members.add(depth + 1);
+          depth++;
+          segment = k + 1;
+          k++;
+          continue;
+        }
+        if (!_isValue(head)) {
+          count++;
+          k = c == '{' ? _matching(code, k) + 1 : _arrowEnd(code, k + 2);
+          if (k <= 0) return count;
+          segment = k;
+          continue;
+        }
+      }
+    }
+    if (c == '(' || c == '[' || c == '{') {
+      depth++;
+    } else if (c == ')' || c == ']' || c == '}') {
+      if (c == '}' && members.remove(depth)) segment = k + 1;
+      depth--;
+    }
+    k++;
+  }
+  return count;
+}
+
+/// Объявление — значение, а не функция: `=` стоит раньше списка
+/// параметров. У конструктора `=` бывает только после скобок, в списке
+/// инициализации.
+bool _isValue(String head) {
+  var depth = 0;
+  for (var k = 0; k < head.length; k++) {
+    final c = head[k];
+    // Скобки тип-функции (`void Function(int) onTap = …`) — ещё тип, а не
+    // параметры.
+    if (depth == 0 && c == '(' && !head.substring(0, k).endsWith('Function')) {
+      return false;
+    }
+    if (c == '(' || c == '[' || c == '{' || c == '<') depth++;
+    if (c == ')' || c == ']' || c == '}' || c == '>') depth--;
+    if (depth != 0) continue;
+    if (c == '(') return false;
+    if (c == '=' && !_partOfOperator(head, k)) return true;
+  }
+  return false;
+}
+
+bool _partOfOperator(String s, int k) {
+  final before = k > 0 ? s[k - 1] : '';
+  final after = k + 1 < s.length ? s[k + 1] : '';
+  return after == '=' ||
+      after == '>' ||
+      before == '=' ||
+      before == '!' ||
+      before == '<' ||
+      before == '>';
+}
+
+/// Замыкания внутри `build` и их длина в строках: `builder: (context,
+/// state) { … }`, `itemBuilder: (_, i) => …`.
+///
+/// Метод-виджет страж запрещает, и его обходят замыканием-строителем: те
+/// же пятьдесят строк разметки, только без имени и не отдельным виджетом.
+/// Отсюда вторая ступень храповика — на длину замыкания в `build`.
+List<({String name, int line, int lines})> buildClosures(
+  String path,
+  String source,
+) {
+  final code = stripCommentsAndStrings(source);
+  final found = <({String name, int line, int lines})>[];
+  for (final function in measure(path, source)) {
+    if (!function.name.endsWith('.build')) continue;
+    final start = _offsetOfLine(code, function.line);
+    final end = _offsetOfLine(code, function.line + function.lines);
+    // Собственные скобки параметров `build` под правило не попадают: перед
+    // ними стоит имя, а не `(`, `,` или `:`.
+    for (final match in _closure.allMatches(code.substring(start, end))) {
+      final at = start + match.start;
+      final open = at + match.group(0)!.length - 1;
+      final close = code[open] == '{'
+          ? _matching(code, open)
+          : _arrowEnd(code, open + 1);
+      if (close < 0) continue;
+      found.add((
+        name: function.name,
+        line: _lineOf(code, at),
+        lines: _lineOf(code, close) - _lineOf(code, at) + 1,
+      ));
+    }
+  }
+  return found;
+}
+
+/// Литерал функции аргументом: `(a, b) {` или `(a) =>` после `(`, `,` или
+/// `:` — там, где стоит значение, а не объявление.
+final _closure = RegExp(r'(?<=[(,:]\s*)\([\w\s,?]*\)\s*(?:async\s*)?(?:\{|=>)');
+
+int _offsetOfLine(String code, int line) {
+  var offset = 0;
+  for (var n = 1; n < line && offset >= 0; n++) {
+    offset = code.indexOf('\n', offset) + 1;
+    if (offset == 0) return code.length;
+  }
+  return offset;
 }

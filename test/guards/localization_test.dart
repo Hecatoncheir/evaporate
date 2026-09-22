@@ -10,6 +10,8 @@ import 'package:evaporate/ui/labels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/guards.dart';
+
 void main() {
   Map<String, dynamic> arb(String lang) =>
       jsonDecode(File('lib/l10n/app_$lang.arb').readAsStringSync())
@@ -172,18 +174,7 @@ void main() {
   // непереведённой: приложение соберётся, тесты пройдут, и обнаружится это
   // только у человека с английским интерфейсом.
   test('в слое интерфейса не осталось непереведённых строк', () {
-    final offenders = <String>[];
-    final literal = RegExp(r"'[^']*[а-яёА-ЯЁ][^']*'");
-
-    for (final entity in Directory('lib/ui').listSync(recursive: true)) {
-      if (entity is! File || !entity.path.endsWith('.dart')) continue;
-      for (final line in entity.readAsLinesSync()) {
-        final code = line.trimLeft();
-        // Комментарии по-русски — это норма, речь только о строках.
-        if (code.startsWith('//') || code.startsWith('///')) continue;
-        if (literal.hasMatch(line)) offenders.add('${entity.path}: $code');
-      }
-    }
+    final offenders = dartSources('lib/ui').expand(cyrillicStrings).toList();
 
     expect(
       offenders,
@@ -191,6 +182,56 @@ void main() {
       reason: 'эти строки нужно вынести в lib/l10n/app_ru.arb',
     );
   });
+
+  // Сломанная проверка — вечная зелень. Прежняя искала только одинарные
+  // кавычки построчно: строка в двойных, в тройных кавычках или
+  // разбитая на две строки проходила, а хвостовой комментарий с
+  // апострофом и русским словом валил прогон.
+  group('страж ловит нарушение', () {
+    SourceFile file(String code) => SourceFile('lib/ui/x.dart', code);
+
+    const strings = {
+      'одинарные кавычки': "Text('Привет')",
+      'двойные кавычки': 'Text("Привет")',
+      'тройные кавычки': "Text('''\nПривет\n''')",
+      'подстановка рядом': r"Text('${n} файлов')",
+    };
+    for (final MapEntry(key: shape, value: code) in strings.entries) {
+      test(shape, () => expect(cyrillicStrings(file(code)), hasLength(1)));
+    }
+
+    test('комментарии по-русски — норма', () {
+      const code = '''
+// Подпись берётся из ARB.
+/// Документ по-русски.
+final a = 'ok'; // хвост с 'апострофом' по-русски
+/* Блок
+   по-русски */
+''';
+      expect(cyrillicStrings(file(code)), isEmpty);
+    });
+  });
+}
+
+/// Строки с русскими буквами: `путь:строка`.
+///
+/// Ищет по разбору, а не по строкам файла: в [SourceFile.code] содержимое
+/// строк и комментарии заменены пробелами, а кавычки оставлены. Русская
+/// буква в тексте, на месте которой в разборе пробел, стоит в строке, если
+/// слева от неё — кавычка, и в комментарии, если что-то другое.
+Iterable<String> cyrillicStrings(SourceFile file) sync* {
+  final cyrillic = RegExp('[а-яёА-ЯЁ]');
+  final reported = <int>{};
+  for (final match in cyrillic.allMatches(file.text)) {
+    var k = match.start - 1;
+    while (k >= 0 && (file.code[k] == ' ' || file.code[k] == '\n')) {
+      k--;
+    }
+    if (k < 0 || !const {"'", '"'}.contains(file.code[k])) continue;
+    final line =
+        '\n'.allMatches(file.text.substring(0, match.start)).length + 1;
+    if (reported.add(line)) yield '${file.path}:$line';
+  }
 }
 
 /// Имена подстановок в строке ARB, включая ICU.

@@ -87,6 +87,20 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     // В списке инициализаторов `steam` — ещё параметр: одноимённое поле
     // он закрывает, а сборщику нужен именно готовый каталог.
     this.metadata = metadata ?? GameMetadataFetcher(this.steam);
+    _handleGames();
+    _handleLookups();
+    // this нужен явно: без него имя разрешается в параметр конструктора.
+    this.savePaths.onProgress = (value) {
+      if (!_closing) add(SavePathsProgressChanged(value));
+    };
+
+    _launcher.runningIds.addListener(_pushRunningGames);
+  }
+
+  /// Правка, запуск и перемещение игр — всё, что приходит от человека и
+  /// от лаунчера. Отдельным шагом, а не в конструкторе: конструктор
+  /// и так занят сборкой служб, и вместе они не читались одним экраном.
+  void _handleGames() {
     on<LibraryLoadRequested>(_onLoadRequested);
     on<GameAdded>(_onGameAdded);
     on<GameStatusChanged>(_onStatusChanged);
@@ -110,6 +124,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     on<GameStopRequested>(_onStopRequested);
     on<GameExited>(_onGameExited);
     on<RunningGamesChanged>(_onRunningGamesChanged);
+  }
+
+  /// Поиски в сети и на диске — метаданные, пути сохранений, ярлыки Steam.
+  void _handleLookups() {
     // По одному запросу за раз, а не все разом. Загрузка библиотеки
     // ставит поиск метаданных каждой игре сразу, а Bloc по умолчанию
     // обрабатывает события параллельно: сорок игр давали сорок
@@ -137,12 +155,6 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     on<SavePathsProgressChanged>(_onSavePathsProgress);
     on<MetadataRetryRequested>(_onMetadataRetry);
     on<MetadataRefreshRequested>(_onMetadataRefresh);
-    // this нужен явно: без него имя разрешается в параметр конструктора.
-    this.savePaths.onProgress = (value) {
-      if (!_closing) add(SavePathsProgressChanged(value));
-    };
-
-    _launcher.runningIds.addListener(_pushRunningGames);
   }
 
   final SettingsBloc settings;
@@ -270,6 +282,12 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
     }
   }
 
+  /// Записывает библиотеку сейчас, мимо отложенной записи.
+  ///
+  /// Методом, а не событием: тест, проверяющий записанное, обязан
+  /// дождаться записи, а события не дожидаются. Закрытие блока пишет так
+  /// же, но после него блоком уже не пользуются.
+  // ignore: avoid_public_bloc_methods
   Future<void> persist() async {
     _persistTimer?.cancel();
     if (_frozen) return;

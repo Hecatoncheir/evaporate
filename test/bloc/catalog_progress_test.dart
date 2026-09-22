@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../support/temp_dir.dart';
+import '../support/wait_for_state.dart';
 
 void main() {
   group('доля выполненного', () {
@@ -119,12 +120,8 @@ void main() {
       }
     });
 
-    Future<LibraryState> waitFor(bool Function(LibraryState) test) {
-      if (test(library.state)) return Future.value(library.state);
-      return library.stream
-          .firstWhere(test)
-          .timeout(const Duration(seconds: 10));
-    }
+    Future<LibraryState> waitFor(bool Function(LibraryState) test) =>
+        waitForState(library, test);
 
     test('сообщение о ходе попадает в состояние', () async {
       library.add(

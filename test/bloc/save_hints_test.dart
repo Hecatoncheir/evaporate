@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../support/bloc_idle.dart';
 import '../support/temp_dir.dart';
 import '../support/wait_for_state.dart';
 
@@ -22,8 +23,10 @@ void main() {
   late SettingsBloc settings;
   late LibraryBloc library;
   late SavesBloc saves;
+  late HandlerTracker handlers;
 
   setUp(() async {
+    handlers = installHandlerTracker();
     tmp = await Directory.systemTemp.createTemp('evaporate_hints_');
     watched = await Directory(p.join(tmp.path, 'watched')).create();
     paths = AppPaths.custom(
@@ -168,8 +171,8 @@ void main() {
 
     await play(state.gameById(game.id)!);
     await waitFor((s) => s.gameById(game.id)!.play.lastPlayed != null);
-    // Даём обходу отработать: подсказка не должна вернуться.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    // Дожидаемся обхода: подсказка не должна вернуться.
+    await handlers.settle();
 
     expect(saves.state.hintsFor(game.id), isEmpty);
   });
@@ -206,7 +209,7 @@ void main() {
       saves.add(SavePathSuggestionsRequested(game));
 
       await waitForSaves((s) => s.hintsFor(game.id).isNotEmpty);
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await handlers.settle();
       await watch.cancel();
 
       expect(told, hasLength(1));

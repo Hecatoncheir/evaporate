@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../support/bloc_idle.dart';
 import '../support/fake_download_engine.dart';
 import '../support/temp_dir.dart';
 import '../support/wait_for_state.dart';
@@ -31,8 +32,10 @@ void main() {
   late DownloadsBloc downloads;
   late FakeDownloadEngine engine;
   late ValueNotifier<ProxyRouting> proxyRouting;
+  late HandlerTracker handlers;
 
   setUp(() async {
+    handlers = installHandlerTracker();
     tmp = await Directory.systemTemp.createTemp('evaporate_downloads_');
     paths = AppPaths.custom(
       dataDir: p.join(tmp.path, 'data'),
@@ -77,9 +80,7 @@ void main() {
   /// Ждёт, пока движку поручат нужное: поручения идут через очередь
   /// событий блока, и к следующей строке теста они ещё не дошли.
   Future<void> waitForCall(String call) async {
-    for (var i = 0; i < 200 && !engine.calls.contains(call); i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 5));
-    }
+    await handlers.settle();
     expect(engine.calls, contains(call));
   }
 
@@ -254,7 +255,7 @@ void main() {
       final game = await addedGame();
 
       downloads.add(DownloadPauseRequested(game));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(engine.calls, isEmpty);
     });
@@ -361,7 +362,7 @@ void main() {
 
       expect(state.gameById(game.id)!.lastError, contains('диск отказал'));
       downloads.add(EngineTasksChanged([done(game.download.downloadTaskId!)]));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
       expect(
         engine.calls.where((call) => call.startsWith('verify')),
         hasLength(1),
@@ -411,7 +412,7 @@ void main() {
       await waitForDownloads((s) => s.tasks.length == 1);
 
       downloads.add(const DownloadReordered(id: 'a', beforeId: 'нет такого'));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(engine.calls, isEmpty);
     });
@@ -470,12 +471,10 @@ void main() {
     // Про запущенную игру знает библиотека, про скорость — настройки;
     // свести их может только тот, кто владеет движком.
     test('запуск игры пересчитывает пределы скорости', () async {
-      await downloads.applyLimits();
-      expect(engine.appliedPlaying, isFalse);
-
       downloads.add(const DownloadLimitsRefreshed());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
+      expect(engine.appliedPlaying, isFalse);
       expect(engine.appliedLimits, settings.state.limits);
     });
   });
@@ -515,7 +514,7 @@ void main() {
       await useProxy();
 
       proxyRouting.value = ProxyRouting.through;
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(downloads.state.notice, isNull);
     });

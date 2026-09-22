@@ -59,30 +59,29 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
              maxConcurrent: settings.state.maxConcurrent,
            ),
        super(const DownloadsState()) {
-    // В теле конструктора `engine` — ещё параметр, а не поле: имя
-    // одноимённого параметра его закрывает.
+    _handleEngine();
+    _handleTasks();
+    _listen();
+  }
+
+  /// Жизнь движка и то, что он сам сообщает. Шагами, а не одним
+  /// конструктором: вместе со сборкой служб и подписками он переваливал
+  /// за экран.
+  void _handleEngine() {
     on<DownloadEngineStartRequested>((event, emit) async {
-      await applyLimits();
-      await this.engine.start();
+      await _applyLimits();
+      await engine.start();
     });
     on<DownloadEngineRestartRequested>((event, emit) async {
-      await this.engine.stop();
-      await this.engine.start();
+      await engine.stop();
+      await engine.start();
     });
     on<DownloadSettingsApplied>(
       _onSettingsApplied,
       transformer: (events, mapper) => events.asyncExpand(mapper),
     );
     on<DownloadLimitsRefreshed>(_onLimitsRefreshed);
-    library.launcher.runningIds.addListener(_onRunningChanged);
-    on<DownloadRequested>(_onDownloadRequested);
-    on<DownloadPauseRequested>(_onPauseRequested);
-    on<DownloadResumeRequested>(_onResumeRequested);
-    on<DownloadCancelRequested>(_onCancelRequested);
-    on<TorrentExportRequested>(_onTorrentExport);
-    on<DownloadReordered>(_onReordered);
     on<EngineTasksChanged>(_onTasksChanged);
-    on<DownloadFinalizeRequested>(_onFinalizeRequested);
     on<EngineStatusChanged>((event, emit) {
       emit(state.copyWith(engine: event.status));
     });
@@ -90,11 +89,26 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
       emit(state.copyWith(stats: event.stats));
     });
     on<ProxyRoutingChanged>(_onProxyRoutingChanged);
-    _proxyRouting?.addListener(_pushProxyRouting);
+  }
 
-    this.engine.tasks.addListener(_pushTasks);
-    this.engine.status.addListener(_pushStatus);
-    this.engine.stats.addListener(_pushStats);
+  /// Поручения человека: поставить, остановить, снять, переставить.
+  void _handleTasks() {
+    on<DownloadRequested>(_onDownloadRequested);
+    on<DownloadPauseRequested>(_onPauseRequested);
+    on<DownloadResumeRequested>(_onResumeRequested);
+    on<DownloadCancelRequested>(_onCancelRequested);
+    on<TorrentExportRequested>(_onTorrentExport);
+    on<DownloadReordered>(_onReordered);
+    on<DownloadFinalizeRequested>(_onFinalizeRequested);
+  }
+
+  /// Внешние источники: движок, настройки, библиотека, маршрут прокси.
+  void _listen() {
+    library.launcher.runningIds.addListener(_onRunningChanged);
+    _proxyRouting?.addListener(_pushProxyRouting);
+    engine.tasks.addListener(_pushTasks);
+    engine.status.addListener(_pushStatus);
+    engine.stats.addListener(_pushStats);
     _settingsSubscription = settings.stream.listen(
       (value) => add(DownloadSettingsApplied(value)),
     );
@@ -212,7 +226,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   ///
   /// Про запущенную игру знает библиотека, про скорость — настройки, поэтому
   /// свести их может только тот, кто владеет движком.
-  Future<void> applyLimits() => engine.applyLimits(
+  Future<void> _applyLimits() => engine.applyLimits(
     settings.state.limits,
     playing: library.launcher.runningIds.value.isNotEmpty,
   );
@@ -223,7 +237,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
   Future<void> _onLimitsRefreshed(
     DownloadLimitsRefreshed event,
     Emitter<DownloadsState> emit,
-  ) => applyLimits();
+  ) => _applyLimits();
 
   // ------------------------------------------------------------ действия
 
@@ -310,7 +324,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
 
   /// Где искать `.torrent` игры. Собственного состояния у поиска нет,
   /// поэтому он собирается на каждый запрос.
-  TorrentExport get torrents => TorrentExport(
+  TorrentExport get _torrents => TorrentExport(
     torrentsDir: paths.torrentsDir,
     enginePath: engine.torrentPathFor,
   );
@@ -323,7 +337,7 @@ class DownloadsBloc extends Bloc<DownloadsEvent, DownloadsState>
     Emitter<DownloadsState> emit,
   ) async {
     try {
-      final source = await torrents.locate(event.game);
+      final source = await _torrents.locate(event.game);
       if (source == null) {
         emit(
           state.copyWith(

@@ -1,7 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../tool/check_complexity.dart';
 import '../support/guards.dart';
 import '../support/widget_structure.dart';
+
+/// Порог длины замыкания-строителя в `build`.
+const maxClosureLines = 25;
 
 /// Один файл — один публичный виджет; ни приватных виджетов, ни методов,
 /// собирающих виджеты.
@@ -12,14 +18,23 @@ import '../support/widget_structure.dart';
 /// `const`, и в инспекторе его не видно. Законны `_FooState` — это идиома
 /// Flutter, а не виджет, — и `build`.
 ///
+/// Виджеты живут не только в `lib/ui`: оболочка приложения — в
+/// `lib/main.dart`, ввод (`InputScope`) — в `lib/input`. Прежде страж их не
+/// обходил, и правило там держалось на честном слове.
+///
 /// Списки ниже — известные нарушители на момент введения правила (см.
 /// этап 3 в `TODO.md`). Пополнять их нельзя; вынесенное — вычёркивать.
 void main() {
-  final sources = dartSources('lib/ui');
+  final sources = [
+    ...dartSources('lib/ui'),
+    ...dartSources('lib/input'),
+    SourceFile('lib/main.dart', File('lib/main.dart').readAsStringSync()),
+  ];
+  final types = widgetTypes(dartSources('lib'));
 
   test('новых приватных виджетов нет', () {
     expectRatchet(
-      found: sources.expand(privateWidgets),
+      found: sources.expand((f) => privateWidgets(f, types: types)),
       known: _privateWidgets,
       rule: 'приватный виджет — в свой файл под публичным именем',
     );
@@ -27,7 +42,7 @@ void main() {
 
   test('новых методов, собирающих виджеты, нет', () {
     expectRatchet(
-      found: sources.expand(widgetFunctions),
+      found: sources.expand((f) => widgetFunctions(f, types: types)),
       known: _widgetFunctions,
       rule: 'метод-виджет — в класс виджета своим файлом',
     );
@@ -38,10 +53,143 @@ void main() {
   // запись уходит.
   test('новых файлов с несколькими виджетами нет', () {
     expectRatchet(
-      found: sources.expand(crowdedFiles),
+      found: sources.expand((f) => crowdedFiles(f, types: types)),
       known: _crowdedFiles,
       rule: 'один файл — один виджет',
     );
+  });
+
+  // Следующая ступень: то, чем дробление на виджеты обходят.
+  test('замыкания-строители в build не длиннее $maxClosureLines строк', () {
+    final longest = <String, int>{};
+    for (final file in sources) {
+      for (final c in buildClosures(file.path, file.text)) {
+        if (c.lines <= maxClosureLines) continue;
+        final key = '${file.path}: ${c.name}';
+        if (c.lines > (longest[key] ?? 0)) longest[key] = c.lines;
+      }
+    }
+    expectRatchet(
+      found: [for (final e in longest.entries) '${e.key}: ${e.value}'],
+      known: _longClosures,
+      rule: 'длинное замыкание-строитель — в свой виджет',
+    );
+  });
+
+  test('у виджета не больше семи параметров', () {
+    expectRatchet(
+      found: sources.expand((f) => wideWidgets(f, types: types)),
+      known: _wideWidgets,
+      rule: 'широкий виджет — на части или с одним значением вместо россыпи',
+    );
+  });
+
+  // Сломанная регулярка — вечная зелень: страж, который ничего не
+  // находит, выглядит ровно как страж, которому нечего найти.
+  group('страж ловит нарушение', () {
+    test('длинное замыкание-строитель в build', () {
+      final lines = List.filled(maxClosureLines, '        const Text("x"),');
+      final source =
+          '''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) {
+    return Builder(
+      builder: (context) {
+        return Column(children: [
+${lines.join('\n')}
+        ]);
+      },
+    );
+  }
+}
+''';
+      final found = buildClosures('lib/ui/x.dart', source);
+      expect(found.single.lines, greaterThan(maxClosureLines));
+    });
+
+    test('короткое замыкание и замыкание вне build не в счёт', () {
+      const source = '''
+class A extends StatelessWidget {
+  void onTap() => items.forEach((x) { print(x); });
+  Widget build(BuildContext context) =>
+      ListView.builder(itemBuilder: (_, i) => Text('\$i'));
+}
+''';
+      final found = buildClosures('lib/ui/x.dart', source);
+      expect(found.map((c) => c.lines), [1]);
+    });
+
+    test('широкий виджет', () {
+      final params = [for (var i = 0; i < 8; i++) 'required this.p$i'];
+      final code = SourceFile('lib/ui/x.dart', '''
+class Wide extends StatelessWidget {
+  const Wide({super.key, ${params.join(', ')}});
+}
+class Narrow extends StatelessWidget {
+  const Narrow(this.a, {super.key, required this.b, this.c = const []});
+}
+''');
+      expect(wideWidgets(code), ['lib/ui/x.dart: Wide: 8']);
+    });
+
+    SourceFile file(String code) => SourceFile('lib/ui/x.dart', code);
+    final types = widgetTypes([
+      file('class SectionCard extends StatelessWidget {}'),
+      file('class FancyCard extends SectionCard {}'),
+    ]);
+
+    const functions = {
+      'метод с типом Widget': 'Widget _row() => const SizedBox();',
+      'геттер-виджет': 'Widget get _header => const SizedBox();',
+      'конкретный тип Flutter': 'Column _section() { return Column(); }',
+      'список виджетов': 'List<Widget> _items() => [];',
+      'статический метод': 'static Widget _make(BuildContext c) => Text("");',
+      'свой виджет в возврате': 'FancyCard _card() => FancyCard();',
+      'тип, допускающий null': 'Widget? _maybe() => null;',
+    };
+    for (final MapEntry(key: shape, value: code) in functions.entries) {
+      test(shape, () {
+        expect(widgetFunctions(file(code), types: types), hasLength(1));
+      });
+    }
+
+    test('build, вызовы и поля нарушением не считаются', () {
+      const code = '''
+Widget build(BuildContext context) {
+  return Column(children: [Text('a')]);
+}
+final Widget child;
+''';
+      expect(widgetFunctions(file(code), types: types), isEmpty);
+    });
+
+    test('приватный наследник своего виджета', () {
+      final found = privateWidgets(
+        file('class _Fancy extends FancyCard {}'),
+        types: types,
+      );
+      expect(found, ['lib/ui/x.dart: _Fancy']);
+    });
+
+    test('поиск унаследованного виджета — не сборка', () {
+      final code = file(
+        'static WindowControl? maybeOf(BuildContext c) => c.dependOn();',
+      );
+      expect(widgetFunctions(code, types: {'WindowControl'}), isEmpty);
+    });
+
+    test('состояние виджетом не считается', () {
+      final code = file('class _FooState extends State<Foo> {}');
+      expect(privateWidgets(code, types: types), isEmpty);
+    });
+
+    test('два виджета в файле', () {
+      final code = file('''
+class A extends StatelessWidget {}
+class B extends FancyCard {}
+''');
+      expect(crowdedFiles(code, types: types), ['lib/ui/x.dart: 2']);
+    });
   });
 }
 
@@ -50,3 +198,56 @@ const _privateWidgets = <String>[];
 const _widgetFunctions = <String>[];
 
 const _crowdedFiles = <String>[];
+
+/// Замыкания-строители в `build` длиннее 25 строк: `путь: build: длина
+/// самого длинного`. Метод-виджет запрещён — и его обходят замыканием, те
+/// же пятьдесят строк разметки без имени. Выросло число — новое нарушение;
+/// укоротили — число правят следом.
+const _longClosures = [
+  'lib/main.dart: _EvaporateAppState.build: 27',
+  'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 37',
+  'lib/ui/downloads/game_chip.dart: GameChip.build: 43',
+  'lib/ui/downloads/queue_column.dart: QueueColumn.build: 38',
+  'lib/ui/library/detail/cover_backdrop.dart: CoverBackdrop.build: 31',
+  'lib/ui/library/detail/files_section.dart: FilesSection.build: 53',
+  'lib/ui/library/effects/game_wave.dart: _GameWaveState.build: 43',
+  'lib/ui/library/effects/library_atmosphere.dart: LibraryAtmosphereState.build: 47',
+  'lib/ui/library/effects/portal/portal_sparks.dart: PortalSparksState.build: 31',
+  'lib/ui/library/featured/shots_slideshow.dart: ShotsSlideshow.build: 40',
+  'lib/ui/library/featured_game.dart: FeaturedGame.build: 31',
+  'lib/ui/library/library_body.dart: LibraryBody.build: 49',
+  'lib/ui/library/library_grid.dart: LibraryGrid.build: 50',
+  'lib/ui/library/library_grid_tile.dart: LibraryGridTile.build: 47',
+  'lib/ui/library/saves/find_paths_button.dart: FindPathsButton.build: 28',
+  'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 45',
+  'lib/ui/library/saves/rule_dialog.dart: _RuleDialogState.build: 29',
+  'lib/ui/library/saves/snapshots_section.dart: SnapshotsSection.build: 50',
+  'lib/ui/library/scan/scan_drop_area.dart: ScanDropArea.build: 48',
+  'lib/ui/library/toolbar/add_game_menu_button.dart: AddGameMenuButton.build: 33',
+  'lib/ui/library/toolbar/toolbar_layout.dart: ToolbarLayout.build: 35',
+  'lib/ui/saves/saves_page.dart: SavesPage.build: 44',
+  'lib/ui/saves/snapshot_row.dart: SnapshotRow.build: 36',
+  'lib/ui/settings/about_body.dart: AboutBody.build: 46',
+  'lib/ui/settings/log_card.dart: LogCard.build: 45',
+  'lib/ui/settings/proxy_form_body.dart: ProxyFormBody.build: 41',
+  'lib/ui/shell/navigation_key.dart: NavigationKey.build: 40',
+  'lib/ui/shell/navigation_rack.dart: NavigationRack.build: 49',
+  'lib/ui/shell/top_action.dart: TopAction.build: 30',
+  'lib/ui/widgets/interface_scale.dart: InterfaceScale.build: 28',
+  'lib/ui/widgets/launcher_action_button.dart: _LauncherActionButtonState.build: 37',
+];
+
+/// Виджеты больше чем с семью параметрами, кроме `key`: `путь: Имя: число`.
+/// Родитель, передающий половину своего состояния по одной штуке, —
+/// метод-виджет, переодетый классом.
+const _wideWidgets = [
+  'lib/main.dart: EvaporateApp: 9',
+  'lib/ui/library/add/add_game_fields.dart: AddGameFields: 14',
+  'lib/ui/library/game_cover.dart: GameCoverTile: 8',
+  'lib/ui/library/library_body.dart: LibraryBody: 17',
+  'lib/ui/library/library_grid_tile.dart: LibraryGridTile: 11',
+  'lib/ui/library/library_shelf_bar.dart: LibraryShelfBar: 8',
+  'lib/ui/library/toolbar.dart: LibraryToolbar: 8',
+  'lib/ui/settings/proxy_address_fields.dart: ProxyAddressFields: 10',
+  'lib/ui/widgets/nav_tile.dart: NavTile: 12',
+];

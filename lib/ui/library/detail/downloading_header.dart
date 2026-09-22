@@ -34,7 +34,7 @@ class DownloadingHeader extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
             child: Opacity(
-              opacity: 0.5,
+              opacity: EvaporateAlpha.underlay,
               // Без своей высоты: заполняет то, что вышло у заголовка.
               // Прижатый книзу график не доставал бы до названия, а оно и
               // есть то, подо что подложку кладут.

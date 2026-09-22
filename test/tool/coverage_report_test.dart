@@ -60,6 +60,67 @@ end_of_record
     );
   });
 
+  // Общий процент прячет нули: девятнадцать пустых файлов не двигали его и
+  // на пункт. Поэтому храповик на файл.
+  group('тонкие файлы', () {
+    final files = parseCoverage('''
+SF:lib/ui/new.dart
+DA:1,1
+DA:2,0
+DA:3,0
+end_of_record
+SF:lib/ui/known.dart
+DA:1,1
+DA:2,0
+DA:3,0
+DA:4,0
+end_of_record
+SF:lib/ui/grown.dart
+DA:1,1
+DA:2,1
+end_of_record
+SF:lib/ui/solid.dart
+DA:1,1
+end_of_record
+''');
+
+    test('новый тонкий файл роняет прогон', () {
+      expect(
+        thinFileProblems(
+          files,
+          known: const {'lib/ui/known.dart': 25, 'lib/ui/grown.dart': 10},
+        ),
+        contains(startsWith('lib/ui/new.dart: 33%')),
+      );
+    });
+
+    test('названный не может стать тоньше своего числа', () {
+      final problems = thinFileProblems(
+        files,
+        known: const {'lib/ui/new.dart': 33, 'lib/ui/known.dart': 30},
+      );
+      expect(problems, [startsWith('lib/ui/known.dart: 25%')]);
+    });
+
+    test('доросший до порога обязан уйти из списка', () {
+      final problems = thinFileProblems(
+        files,
+        known: const {
+          'lib/ui/new.dart': 33,
+          'lib/ui/known.dart': 25,
+          'lib/ui/grown.dart': 10,
+        },
+      );
+      expect(problems, [contains('вычеркните')]);
+    });
+
+    test('записи списка — настоящие файлы', () {
+      // Переименованный файл иначе держал бы в списке место для нового.
+      final sources = libSources().toSet();
+      expect(thinFiles.keys.where((path) => !sources.contains(path)), isEmpty);
+    });
+  });
+
   test('в список файлов не попадают генерация и не-Dart', () {
     final sources = libSources();
 

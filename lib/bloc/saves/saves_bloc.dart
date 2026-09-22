@@ -259,6 +259,11 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     );
   }
 
+  /// Записывает список снимков сейчас, мимо отложенной записи.
+  ///
+  /// Методом, а не событием — по той же причине, что у библиотеки: запись
+  /// дожидаются, а события не дожидаются.
+  // ignore: avoid_public_bloc_methods
   Future<void> persist() async {
     if (_frozen) return;
     // До записи, а не после: изменение, пришедшее посреди неё, взведёт
@@ -502,6 +507,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   ///
   /// Не событием, а методом: библиотека обязана его дождаться, а события
   /// не дожидаются. Записать снятое в состояние — уже дело события.
+  // ignore: avoid_public_bloc_methods
   Future<void> snapshotBeforeLaunch(Game game) async {
     // Прежде всего — без условий — вернуть застрявшие сейвы: автоснимок
     // по умолчанию выключен, и без этого игра стартовала бы без них,

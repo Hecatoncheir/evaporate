@@ -5,9 +5,14 @@ import 'package:evaporate/services/system/update_download.dart';
 import 'package:evaporate/services/system/update_installer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/bloc_idle.dart';
+
 /// Обновление по нажатию заменяет само приложение: молчать здесь нельзя ни
 /// об отказе, ни о том, что замена уже идёт.
 void main() {
+  late HandlerTracker handlers;
+  setUp(() => handlers = installHandlerTracker());
+
   UpdateCheck answering(String body) =>
       UpdateCheck(currentVersion: '0.1.0', fetch: (uri) async => body);
 
@@ -100,7 +105,7 @@ void main() {
       final update = bloc(installer: _ReadOnlyInstall());
 
       update.add(const UpdateInstallRequested());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(update.state.installing, isFalse);
       expect(update.state.message, isNull);
@@ -121,7 +126,7 @@ void main() {
       final update = bloc();
 
       update.add(const UpdateLinkRequested('https://релиз/9.9.9'));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(update.state.message, isNull);
       expect(update.state.isError, isFalse);
@@ -131,7 +136,7 @@ void main() {
   group('запись в меню приложений', () {
     test('там, где её не бывает, о ней и не спрашивают', () async {
       final update = bloc();
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await handlers.settle();
 
       expect(update.menuEntrySupported, isFalse);
       expect(update.state.inMenu, isNull);

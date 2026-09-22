@@ -61,6 +61,26 @@ void main() {
     });
   });
 
+  // Замер ищет функции по заголовку, перепись — по телу. Разошлись —
+  // значит, какую-то функцию замер не узнал, и её длина со сложностью
+  // идут мимо ворот. Так незамеченными ходили конструктор `LibraryBloc`
+  // на девяносто пять строк, все фабрики `fromJson` и `operator ==`.
+  test('замер видит каждое тело функции', () {
+    final missed = [
+      for (final entity in Directory('lib').listSync(recursive: true))
+        if (entity is File && entity.path.endsWith('.dart'))
+          if (entity.path.replaceAll(r'\', '/') case final path
+              when !isGenerated(path))
+            if ((
+                  bodies: bodiesIn(entity.readAsStringSync()),
+                  found: measure(path, entity.readAsStringSync()).length,
+                )
+                case (:final bodies, :final found) when bodies != found)
+              '$path: тел $bodies, замер нашёл $found',
+    ];
+    expect(missed, isEmpty, reason: 'замер не узнал объявление');
+  });
+
   // Замер грубый, но обязан быть предсказуемым: иначе храповик роняет
   // прогон на ровном месте или молчит там, где стоило бы сказать.
   group('замер', () {
@@ -114,6 +134,79 @@ int top(int x) => x > 0 ? x : -x;
 ''');
       expect(all.map((f) => f.name), ['A.size', 'A.build', 'top']);
       expect(all.last.complexity, 1);
+    });
+
+    // Каждая форма ниже прежде проходила мимо замера — и мимо ворот.
+    group('объявления, которые замер не видел', () {
+      const shapes = {
+        'конструктор со списком инициализации': (
+          '''
+class A {
+  A(int x) : _x = x, super() {
+    if (x > 0) {}
+  }
+  final int _x;
+}
+''',
+          'A.A',
+        ),
+        'именованный конструктор': (
+          'class A { A.empty() { if (true) {} } }',
+          'A.A.empty',
+        ),
+        'фабрика стрелкой': (
+          '''
+class A {
+  factory A.fromJson(Map<String, dynamic> json) =>
+      json.isEmpty ? A.empty() : A.empty();
+}
+''',
+          'A.A.fromJson',
+        ),
+        'оператор равенства': (
+          'class A { bool operator ==(Object other) => other is A; }',
+          'A.operator ==',
+        ),
+        'тип-запись в возврате': (
+          '({int a, int b}) pair() { return (a: 1, b: 2); }',
+          'pair',
+        ),
+        'тип-функция в возврате': (
+          'void Function() later() => () {};',
+          'later',
+        ),
+      };
+      for (final MapEntry(key: shape, value: (source, name))
+          in shapes.entries) {
+        test(shape, () {
+          expect(measure('x.dart', source).map((f) => f.name), [name]);
+          expect(bodiesIn(source), 1);
+        });
+      }
+
+      test('конструктор без тела функцией не считается', () {
+        const source =
+            'class A { const A(this.x) : assert(x > 0); final int x; }';
+        expect(measure('x.dart', source), isEmpty);
+        expect(bodiesIn(source), 0);
+      });
+
+      test('условие перед вызовом не принимается за тип возврата', () {
+        const source = 'void f(bool a) { if (a) g(1); }\nvoid g(int x) {}';
+        expect(measure('x.dart', source).map((f) => f.name), ['f', 'g']);
+      });
+
+      test('поле со значением-замыканием — не тело', () {
+        const source = '''
+class A {
+  final void Function(int) onTap = (x) {};
+  static const table = {1: 2};
+  int get size => table.length;
+}
+''';
+        expect(bodiesIn(source), 1);
+        expect(measure('x.dart', source).map((f) => f.name), ['A.size']);
+      });
     });
   });
 }

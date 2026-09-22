@@ -234,18 +234,32 @@ abstract final class EvsaveJobs {
         ArchiveFile.string(SaveSnapshot.manifestEntry, manifest),
       );
       for (final (index, entry) in entries.indexed) {
-        final staged = File('$staging${Platform.pathSeparator}$index.part');
-        try {
-          await _gunzip(entry, staged);
-          await encoder.addFile(staged, entry.name);
-        } finally {
-          if (await staged.exists()) await staged.delete();
-        }
+        await _addEntry(
+          encoder,
+          entry,
+          staged: '$staging${Platform.pathSeparator}$index.part',
+        );
       }
     } finally {
       await encoder.close();
     }
   };
+
+  /// Кладёт одну запись в пакет через развёрнутую копию [staged] и убирает
+  /// копию: снимок может весить гигабайты, и держать их разом нечем.
+  static Future<void> _addEntry(
+    ZipFileEncoder encoder,
+    PackageEntry entry, {
+    required String staged,
+  }) async {
+    final file = File(staged);
+    try {
+      await _gunzip(entry, file);
+      await encoder.addFile(file, entry.name);
+    } finally {
+      if (await file.exists()) await file.delete();
+    }
+  }
 
   /// Разворачивает содержимое хранилища и сверяет длину: обрезанный gzip
   /// разжимается и без ошибки, только короче, — и в пакет, который унесут
@@ -272,28 +286,46 @@ abstract final class EvsaveJobs {
     required String staging,
   }) => () async {
     await Directory(staging).create(recursive: true);
+    return _withArchive(path, (archive) => _unpackAll(archive, staging));
+  };
+
+  static Future<List<UnpackedEntry>> _unpackAll(
+    Archive archive,
+    String staging,
+  ) async {
+    final out = <UnpackedEntry>[];
+    for (final file in archive.files.where(_isData)) {
+      final target = '$staging${Platform.pathSeparator}${out.length}';
+      if (!await writeVerified(file, target)) throw UnreadableEntry(file.name);
+      out.add((name: file.name, path: target));
+    }
+    return out;
+  }
+
+  /// Запись данных снимка: не манифест, не папка и с разбираемым именем.
+  static bool _isData(ArchiveFile file) =>
+      file.isFile &&
+      file.name != SaveSnapshot.manifestEntry &&
+      EvsavePackage.parseEntryName(file.name) != null;
+
+  /// Открывает пакет в изоляте, отдаёт его [use] и закрывает оба потока —
+  /// архива и файла, как и [EvsavePackage.open] на главном.
+  static Future<T> _withArchive<T>(
+    String path,
+    Future<T> Function(Archive archive) use,
+  ) async {
     final input = InputFileStream(path);
     try {
       final archive = ZipDecoder().decodeStream(input);
       try {
-        final out = <UnpackedEntry>[];
-        for (final file in archive.files) {
-          if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
-          if (EvsavePackage.parseEntryName(file.name) == null) continue;
-          final target = '$staging${Platform.pathSeparator}${out.length}';
-          if (!await writeVerified(file, target)) {
-            throw UnreadableEntry(file.name);
-          }
-          out.add((name: file.name, path: target));
-        }
-        return out;
+        return await use(archive);
       } finally {
         await archive.clear();
       }
     } finally {
       await input.close();
     }
-  };
+  }
 
   /// Разжимает одну запись пакета [package] в [target] со сверкой.
   ///
@@ -304,20 +336,11 @@ abstract final class EvsaveJobs {
     required String package,
     required String name,
     required String target,
-  }) => () async {
-    final input = InputFileStream(package);
-    try {
-      final archive = ZipDecoder().decodeStream(input);
-      try {
+  }) =>
+      () => _withArchive(package, (archive) async {
         final file = archive.findFile(name);
         return file != null && await writeVerified(file, target);
-      } finally {
-        await archive.clear();
-      }
-    } finally {
-      await input.close();
-    }
-  };
+      });
 
   /// Пишет запись пакета в файл и сверяет записанное с длиной и CRC из
   /// заголовка zip: пакет приходит извне, и обрыв на середине выглядит
