@@ -35,14 +35,7 @@ const gateSteps = [
     'tool',
   ]),
   GateStep('Анализатор', 'flutter', ['analyze']),
-  GateStep('Правила bloc', 'dart', [
-    'pub',
-    'global',
-    'run',
-    'bloc_tools:bloc',
-    'lint',
-    'lib',
-  ]),
+  GateStep('Правила bloc', 'dart', ['run', 'bloc_tools:bloc', 'lint', 'lib']),
   GateStep('Регистраторы плагинов пересобраны', 'git', [
     'diff',
     '--exit-code',

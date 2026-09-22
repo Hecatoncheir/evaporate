@@ -40,12 +40,20 @@ class SmokeRun {
     required Future<void> Function() shutdown,
     required String dataDir,
     required String logFile,
+    bool Function()? trayShown,
     Duration timeout = const Duration(seconds: 60),
     void Function(String line) report = print,
   }) async {
     try {
       await firstFrame.timeout(timeout);
       report('smoke: первый кадр');
+
+      // Отказ трея приложение переживает, показывая окно, — поэтому по
+      // окну его и не видно. А без значка свёрнутое при запуске приложение
+      // не открыть ничем.
+      if (trayShown != null && !trayShown()) {
+        throw StateError('значок в трее не встал');
+      }
 
       final store = JsonStore(p.join(dataDir, 'smoke.json'), private: true);
       await store.write({'ok': true});

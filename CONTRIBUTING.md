@@ -16,8 +16,8 @@ flutter test
 пропускается там, где проверять нечем: работа с реестром и ветки реестра из
 базы путей — вне Windows. Это нормально, красным они не горят.
 
-Для сборки под Linux нужен `libayatana-appindicator3-dev` — без него не
-соберётся значок в трее. Для сборки под macOS — полный Xcode, не только
+Для сборки под Linux нужны `libgtk-3-dev`, `libx11-dev` и `libxi-dev` —
+без двух последних не соберётся значок в трее. Для сборки под macOS — полный Xcode, не только
 Command Line Tools.
 
 ## Что проверяется в CI
@@ -25,7 +25,6 @@ Command Line Tools.
 Всё, что CI проверяет на каждой правке, собрано в одну команду:
 
 ```bash
-dart pub global activate bloc_tools 0.1.0-dev.24   # один раз
 dart tool/gate.dart
 ```
 
@@ -165,8 +164,8 @@ skipped where there is nothing to check against: the registry work, and the
 registry keys from the path database, outside Windows. That is expected, not a
 failure.
 
-Building for Linux needs `libayatana-appindicator3-dev` — the tray icon will
-not compile without it. Building for macOS needs full Xcode, not just the
+Building for Linux needs `libgtk-3-dev`, `libx11-dev` and `libxi-dev` — the
+tray icon will not compile without the last two. Building for macOS needs full Xcode, not just the
 Command Line Tools.
 
 ## What CI checks
@@ -174,7 +173,6 @@ Command Line Tools.
 Everything CI checks on every change is one command:
 
 ```bash
-dart pub global activate bloc_tools 0.1.0-dev.24   # once
 dart tool/gate.dart
 ```
 

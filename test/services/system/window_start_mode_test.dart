@@ -6,9 +6,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/window_start_mode.dart';
 import 'package:evaporate/services/system/app_tray.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tray_manager/tray_manager.dart';
 
 void main() {
   group('режим запуска окна', () {
@@ -80,32 +78,27 @@ void main() {
   });
 
   group('значок в трее', () {
-    testWidgets('смена локали обновляет установленное меню', (tester) async {
-      final calls = <MethodCall>[];
-      const channel = MethodChannel('tray_manager');
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) async {
-            calls.add(call);
-            return null;
-          });
-      addTearDown(
-        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(channel, null),
-      );
+    // `windowManager` при создании заводит канал к платформе, а без
+    // привязки Flutter канала нет.
+    TestWidgetsFlutterBinding.ensureInitialized();
+
+    test('смена языка обновляет установленное меню', () async {
+      final host = _RecordingHost();
       L language = LRu();
-      final tray = AppTray(localizations: () => language);
+      final tray = AppTray(host: host, localizations: () => language);
+
       await tray.install();
       language = LEn();
       await tray.updateMenu();
-      final menus = calls
-          .where((call) => call.method == 'setContextMenu')
-          .toList();
-      expect(menus, hasLength(2));
-      expect(menus.last.arguments.toString(), contains('Open Evaporate'));
+
+      expect(host.menus, hasLength(2));
+      expect(host.menus.last.first.label, 'Open Evaporate');
       await tray.dispose();
-      expect(calls.last.method, 'destroy');
+      expect(host.disposed, isTrue);
     });
-    // Windows принимает в трее только .ico — PNG там просто не появится.
+
+    // На Windows — .ico: он несёт несколько размеров, и значок не мылится
+    // при масштабе экрана больше ста процентов.
     test('формат значка выбирается под систему', () {
       expect(AppTray.iconPath, endsWith(Platform.isWindows ? '.ico' : '.png'));
     });
@@ -116,26 +109,61 @@ void main() {
     });
 
     test('в меню есть чем открыть и чем выйти', () {
-      final keys = AppTray.buildMenu(LRu()).items!.map((i) => i.key).toList();
+      final ids = AppTray.menuEntries(LRu()).map((e) => e.id).toList();
 
-      expect(keys, contains('show'));
-      expect(keys, contains('quit'));
+      expect(ids, containsAll(['show', 'quit']));
     });
 
     test('текст меню берётся из выбранного языка', () {
-      expect(AppTray.buildMenu(LEn()).items!.first.label, 'Open Evaporate');
-      expect(AppTray.buildMenu(LRu()).items!.first.label, 'Открыть Evaporate');
+      expect(AppTray.menuEntries(LEn()).first.label, 'Open Evaporate');
+      expect(AppTray.menuEntries(LRu()).first.label, 'Открыть Evaporate');
     });
 
     // Своими силами трей умеет только убить окно вместе с процессом, и
     // отложенные записи на диск до него не доходят.
     test('«Выход» уходит через завершение приложения, а не мимо него', () {
       var quits = 0;
-      final tray = AppTray(onQuit: () async => quits++);
+      final tray = AppTray(host: _RecordingHost(), onQuit: () async => quits++);
 
-      tray.onTrayMenuItemClick(MenuItem(key: 'quit'));
+      tray.onMenuSelected('quit');
 
       expect(quits, 1);
     });
+
+    // Отказ трея приложение переживает показом окна (`main`), а для этого
+    // отказ должен дойти до него, а не потеряться внутри.
+    test('отказ системного трея доходит до того, кто ставил', () async {
+      final tray = AppTray(host: _RecordingHost(fails: true));
+
+      await expectLater(tray.install(), throwsStateError);
+    });
   });
+}
+
+/// Трей, который запоминает, что ему поручили.
+class _RecordingHost implements TrayHost {
+  _RecordingHost({this.fails = false});
+
+  final bool fails;
+  final menus = <List<TrayEntry>>[];
+  var disposed = false;
+
+  @override
+  void show({
+    required String iconAsset,
+    required String tooltip,
+    required List<TrayEntry> menu,
+    required void Function() onIconClick,
+    required void Function(String id) onMenuSelected,
+  }) {
+    if (fails) throw StateError('трей недоступен');
+    menus.add(menu);
+  }
+
+  @override
+  void setMenu(List<TrayEntry> menu, void Function(String id) onMenuSelected) =>
+      menus.add(menu);
+
+  @override
+  void dispose() => disposed = true;
 }

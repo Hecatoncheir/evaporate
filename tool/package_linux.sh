@@ -50,8 +50,9 @@ size_kb=$(du -sk "$stage" | cut -f1)
 
 # Зависимости перечислены руками, а не через dpkg-shlibdeps: тот требует
 # дерева исходного пакета Debian, которого здесь нет. Список короткий и
-# известен: gtk тянет за собой почти всё остальное, appindicator нужен
-# значку в трее, xdg-utils — открытию ссылок.
+# известен: gtk тянет за собой почти всё остальное, X11 и Xi нужны значку
+# в трее (tray_manager 0.7 держит его через nativeapi, appindicator ему
+# больше не нужен), xdg-utils — открытию ссылок.
 install -d "$stage/DEBIAN"
 cat > "$stage/DEBIAN/control" <<CONTROL
 Package: evaporate
@@ -59,7 +60,7 @@ Version: $version
 Section: games
 Priority: optional
 Architecture: amd64
-Depends: libgtk-3-0, libayatana-appindicator3-1, xdg-utils
+Depends: libgtk-3-0, libx11-6, libxi6, xdg-utils
 Installed-Size: $size_kb
 Maintainer: Hecatoncheir <noreply@github.com>
 Homepage: https://github.com/Hecatoncheir/evaporate

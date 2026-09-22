@@ -72,6 +72,7 @@ const _reportedNowhere = {
   'lib/main.dart',
   'lib/app_services.dart',
   'lib/services/notifications/system_notification_service.dart',
+  'lib/services/system/native_tray_host.dart',
   'lib/ui/theme.dart',
   'lib/models/app_theme_mode.dart',
   'lib/ui/theme/alpha.dart',

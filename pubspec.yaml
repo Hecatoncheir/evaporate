@@ -35,12 +35,14 @@ dependencies:
   # скачанное оно считает само, — но чужой `progress` читают и другие.
   #
   # Коммит закреплён намеренно: ветка может уехать, а сборка обязана
-  # собираться той же.
+  # собираться той же. Тег переставить можно, коммит — нет, поэтому здесь
+  # хеш, а тег форка (`v0.5.4-evaporate.1` — этот же коммит) — для людей:
+  # по нему видно, какая это сборка форка, не читая историю.
   dtorrent_task_v2:
     git:
       url: https://github.com/Hecatoncheir/dtorrent_task_v2.git
       ref: 99da3b839af3ffed7d437580a42b52d60dc71377
-  equatable: ^2.1.0
+  equatable: ^3.0.0
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
@@ -58,7 +60,7 @@ dependencies:
   path_provider: ^2.1.6
   provider: ^6.1.5+1
   socks5_proxy: ^2.1.1
-  tray_manager: ^0.5.3
+  tray_manager: ^0.7.0
   url_launcher: ^6.3.2
   uuid: ^4.6.0
   window_manager: ^0.5.2
@@ -66,6 +68,7 @@ dependencies:
 
 dev_dependencies:
   bloc_lint: ^0.4.2
+  bloc_tools: 0.1.0-dev.24
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter

@@ -84,17 +84,17 @@ jobs:
         run: flutter analyze
 
       # Правила bloc_lint читает не анализатор: плагина у пакета нет, и
-      # запускается он своей программой. Версия закреплена, как и всё
-      # остальное, что прогон берёт снаружи.
+      # запускается он своей программой. Сама программа — в
+      # `dev_dependencies`, а не глобальной установкой: так её транзитивные
+      # зависимости закреплены `pubspec.lock` и `--enforce-lockfile`, а не
+      # разрешаются заново на каждом прогоне.
       #
       # Только `lib`: в тестах живут блоки-двойники, и
       # `prefer_file_naming_conventions` требует от `_CounterBloc` своего
       # файла — правило про устройство приложения, а не про подделки в
       # прогоне.
       - name: Правила bloc
-        run: |
-          dart pub global activate bloc_tools 0.1.0-dev.24
-          dart pub global run bloc_tools:bloc lint lib
+        run: dart run bloc_tools:bloc lint lib
 
       # Регистраторы плагинов генерирует `pub get`, а лежат они в
       # репозитории. Разойдясь, они молчат: файл прекрасно компилируется,
@@ -296,7 +296,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
-            libayatana-appindicator3-dev xvfb
+            libx11-dev libxi-dev xvfb
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:

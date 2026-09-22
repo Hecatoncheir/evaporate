@@ -322,8 +322,8 @@ subprocess, and the fact that the macOS release of Ludusavi is arm64 only.
 
 - Flutter 3.47+ (verified on 3.47.2, Dart 3.13.2).
 - No external programs needed: the download engine is built into the app.
-- Building for Linux needs `libayatana-appindicator3-dev` — the tray icon
-  will not compile without it.
+- Building for Linux needs `libgtk-3-dev`, `libx11-dev` and `libxi-dev` —
+  the tray icon will not compile without the last two.
 
 Building for macOS needs **full Xcode** (not just the Command Line Tools) and
 CocoaPods:

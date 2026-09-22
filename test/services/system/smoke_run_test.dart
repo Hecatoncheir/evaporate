@@ -59,6 +59,22 @@ void main() {
     expect(lines.last, contains('провал'));
   });
 
+  // Отказ трея приложение переживает, показывая окно, — и по окну его не
+  // видно. А без значка свёрнутое при запуске приложение не открыть.
+  test('не вставший значок в трее — провал', () async {
+    final code = await smoke.check(
+      firstFrame: Future<void>.value(),
+      shutdown: writeLog,
+      dataDir: dataDir,
+      logFile: logFile,
+      trayShown: () => false,
+      report: lines.add,
+    );
+
+    expect(code, 1);
+    expect(lines.last, contains('трее'));
+  });
+
   test('сорвавшееся завершение — провал', () async {
     expect(await check(shutdown: () async => throw StateError('шаг')), 1);
   });

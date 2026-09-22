@@ -28,6 +28,7 @@ import 'services/system/app_log.dart';
 import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
+import 'services/system/native_tray_host.dart';
 import 'services/system/proxy_http_overrides.dart';
 import 'services/system/single_instance.dart';
 import 'services/system/smoke_run.dart';
@@ -102,7 +103,7 @@ Future<void> main(List<String> args) async {
       tray: tray,
     ),
   );
-  if (smoke != null) unawaited(_smokeTest(smoke, paths, shutdown));
+  if (smoke != null) unawaited(_smokeTest(smoke, paths, shutdown, tray));
 }
 
 /// Дымовой запуск: проверки после первого кадра и выход с их итогом.
@@ -113,12 +114,16 @@ Future<void> _smokeTest(
   SmokeRun smoke,
   AppPaths paths,
   AppShutdown shutdown,
+  AppTray tray,
 ) async {
   final code = await smoke.check(
     firstFrame: WidgetsBinding.instance.waitUntilFirstFrameRasterized,
     shutdown: shutdown.run,
     dataDir: paths.dataDir,
     logFile: paths.logFile,
+    // На Linux значку нужна панель, которая его примет: под `xvfb` в CI её
+    // нет, как нет и в GNOME без расширения, и это не поломка сборки.
+    trayShown: Platform.isLinux ? null : () => tray.isInstalled,
   );
   exit(code);
 }
@@ -252,12 +257,18 @@ Future<AppTray> _installTray(
   L Function() localizations,
   Future<void> Function() onQuit,
 ) async {
-  final tray = AppTray(localizations: localizations, onQuit: onQuit);
+  final tray = AppTray(
+    host: NativeTrayHost(),
+    localizations: localizations,
+    onQuit: onQuit,
+  );
   try {
     await tray.install();
-  } on Object {
+  } on Object catch (error) {
     // Отказ трея не должен оставлять стартовавшее свёрнутым приложение
-    // без способа открыть окно.
+    // без способа открыть окно. И молчать о нём нельзя: пропавший значок
+    // иначе не объяснить ничем.
+    AppLog.instance.write('значок в трее', error);
     await windowManager.show();
   }
   return tray;

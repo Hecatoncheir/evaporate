@@ -1,25 +1,31 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+
+/// Пункт меню трея: `id` — что делать по нажатию, `label` — что написано.
+/// Без подписи — разделитель.
+typedef TrayEntry = ({String id, String? label});
 
 /// Значок в трее.
 ///
 /// Нужен прежде всего ради запуска свёрнутым: приложение, стартовавшее вместе
 /// с системой и не показавшее окна, иначе было бы ничем не открыть. Заодно
 /// закрытое в трей окно позволяет догружать игры, не занимая панель задач.
-class AppTray with TrayListener {
+///
+/// Меню задано данными ([menuEntries]), а нажатие — именем пункта
+/// ([onMenuSelected]): то и другое проверяется без системного трея, которого
+/// в тестах нет. Сам трей — [TrayHost].
+class AppTray {
   AppTray({
-    TrayManager? manager,
+    required this.host,
     WindowManager? window,
     L Function()? localizations,
     this.onQuit,
-  }) : _tray = manager ?? trayManager,
-       _window = window ?? windowManager,
+  }) : _window = window ?? windowManager,
        _localizations = localizations ?? _defaultLocalizations;
 
   /// Как выходить по пункту «Выход».
@@ -35,43 +41,51 @@ class AppTray with TrayListener {
 
   static L _defaultLocalizations() => LRu();
 
-  final TrayManager _tray;
+  /// Системный трей: в приложении — `NativeTrayHost`, в тестах — подделка.
+  final TrayHost host;
   final WindowManager _window;
 
   bool _installed = false;
 
-  /// Windows принимает в трее только `.ico`, остальные — обычный PNG.
+  /// Стоит ли значок: дымовой запуск проверяет, что трей встал.
+  bool get isInstalled => _installed;
+
+  /// Файл значка из ассетов приложения.
+  ///
+  /// На Windows — `.ico`: он несёт несколько размеров сразу, и значок не
+  /// мылится при масштабе экрана 150 %. Остальным хватает PNG.
   static String get iconPath => Platform.isWindows
       ? 'assets/branding/tray_icon.ico'
       : 'assets/branding/tray_icon.png';
 
-  static Menu buildMenu(L l) => Menu(
-    items: [
-      MenuItem(key: 'show', label: l.trayOpen),
-      MenuItem.separator(),
-      MenuItem(key: 'quit', label: l.trayQuit),
-    ],
-  );
+  static List<TrayEntry> menuEntries(L l) => [
+    (id: 'show', label: l.trayOpen),
+    (id: 'separator', label: null),
+    (id: 'quit', label: l.trayQuit),
+  ];
 
   Future<void> install() async {
     if (_installed) return;
-    await _tray.setIcon(iconPath);
-    // Подсказка нужна: значок мелкий, и по нему одному приложение не узнать.
-    await _tray.setToolTip('Evaporate');
-    await _tray.setContextMenu(buildMenu(_localizations()));
-    _tray.addListener(this);
+    host.show(
+      iconAsset: iconPath,
+      // Подсказка нужна: значок мелкий, и по нему одному приложение не узнать.
+      tooltip: 'Evaporate',
+      menu: menuEntries(_localizations()),
+      // Левый клик по значку — самый ожидаемый способ вернуть окно.
+      onIconClick: () => unawaited(reveal()),
+      onMenuSelected: onMenuSelected,
+    );
     _installed = true;
   }
 
   Future<void> updateMenu() async {
     if (!_installed) return;
-    await _tray.setContextMenu(buildMenu(_localizations()));
+    host.setMenu(menuEntries(_localizations()), onMenuSelected);
   }
 
   Future<void> dispose() async {
     if (!_installed) return;
-    _tray.removeListener(this);
-    await _tray.destroy();
+    host.dispose();
     _installed = false;
   }
 
@@ -80,21 +94,9 @@ class AppTray with TrayListener {
     await _window.focus();
   }
 
-  @override
-  void onTrayIconMouseDown() {
-    // Левый клик по значку — самый ожидаемый способ вернуть окно.
-    // Колбэки трея синхронны по контракту: ждать здесь некому.
-    unawaited(reveal());
-  }
-
-  @override
-  void onTrayIconRightMouseDown() {
-    unawaited(_tray.popUpContextMenu());
-  }
-
-  @override
-  void onTrayMenuItemClick(MenuItem menuItem) {
-    switch (menuItem.key) {
+  /// Нажат пункт меню. Колбэки трея синхронны: ждать здесь некому.
+  void onMenuSelected(String id) {
+    switch (id) {
       case 'show':
         unawaited(reveal());
       case 'quit':
@@ -106,4 +108,22 @@ class AppTray with TrayListener {
         }
     }
   }
+}
+
+/// Системный трей: значок, подсказка и меню.
+abstract class TrayHost {
+  /// Показывает значок. Не вышло — бросает: приложение тогда показывает
+  /// окно, иначе свёрнутое при запуске было бы ничем не открыть.
+  void show({
+    required String iconAsset,
+    required String tooltip,
+    required List<TrayEntry> menu,
+    required void Function() onIconClick,
+    required void Function(String id) onMenuSelected,
+  });
+
+  /// Заменяет меню: добавить или убрать пункты можно только новым меню.
+  void setMenu(List<TrayEntry> menu, void Function(String id) onMenuSelected);
+
+  void dispose();
 }
