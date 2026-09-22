@@ -12,6 +12,13 @@ import 'package:flutter/material.dart';
 ///
 /// Лежит в папке темы, а не рядом с виджетами: цвета в приложении
 /// заводятся только здесь, и за этим следит `color_palette_test`.
+///
+/// Ручки здесь одиночные — по одной на панель, полосу, карточку, — и это
+/// не мешок, а материал: все они про то, насколько плотен корпус и сколько
+/// света он пропускает, и крутят их вместе, меняя облик схемы. Своё
+/// расширение получает компонент с тремя ручками и больше, как стекло
+/// (`GlassSurfaceTheme`); класс темы на одно поле — церемония без выгоды
+/// (`docs/decisions/0002-theme-in-three-tiers.md`).
 @immutable
 class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   const HardwareSurfaceTheme({

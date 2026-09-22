@@ -63,6 +63,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
     NotificationService? notifications,
     L Function()? localizations,
     List<SaveRoot> Function()? saveRoots,
+    Future<bool> Function(String path)? pathExists,
     AppLog Function()? log,
   }) : _localizations = localizations ?? _defaultLocalizations,
        _log = log ?? _appLog,
@@ -71,6 +72,7 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
        _legacyStore = legacyStore ?? JsonStore(paths.libraryFile),
        _saves = saveManager ?? SaveManager(paths: paths, log: log),
        _saveRoots = saveRoots ?? SavePathFinder.roots,
+       _pathExists = pathExists ?? _onDisk,
        super(const SavesState()) {
     // Собирается здесь, а не в списке инициализации: там на _saves,
     // от которого он зависит, ссылаться ещё нельзя.
@@ -137,6 +139,14 @@ class SavesBloc extends Bloc<SavesEvent, SavesState>
   /// Где смотреть следы работы игры. Подменяется в тестах: настоящие
   /// «Документы» и `AppData` там обходить незачем и небезопасно.
   final List<SaveRoot> Function() _saveRoots;
+
+  /// Лежит ли на диске папка или файл правила. Подменяется в тестах по той
+  /// же причине, что и [_saveRoots]: настоящий ввод-вывод внутри
+  /// `testWidgets` не завершается.
+  final Future<bool> Function(String path) _pathExists;
+
+  static Future<bool> _onDisk(String path) async =>
+      await Directory(path).exists() || await File(path).exists();
 
   final JsonStore _store;
 

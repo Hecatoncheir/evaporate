@@ -41,7 +41,7 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   /// контроллер, живущий всю сессию, по слушателю на каждую пересборку.
   late final CurvedAnimation _opacity = CurvedAnimation(
     parent: _controller,
-    curve: Curves.easeOut,
+    curve: EvaporateMotion.ease,
   );
 
   @override

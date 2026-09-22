@@ -518,11 +518,15 @@ void main() {
     );
 
     saves.add(SnapshotRequested(ready.gameById(id)!));
-    final done = await waitForSaves((s) => s.snapshotsFor(id).isNotEmpty);
+    // Конец операции, а не первое появление снимка: между ними список
+    // ложится на диск, и сообщение приходит после.
+    final done = await waitForSaves(
+      (s) =>
+          s.snapshotsFor(id).isNotEmpty && !s.isBusy(SavesBloc.snapshotKey(id)),
+    );
 
     expect(done.snapshotsFor(id), hasLength(1));
-    expect(saves.state.notice?.isError, isFalse);
-    expect(saves.state.isBusy(SavesBloc.snapshotKey(id)), isFalse);
+    expect(done.notice?.isError, isFalse);
   });
 
   test('выход из игры засчитывает время и приходит событием', () async {

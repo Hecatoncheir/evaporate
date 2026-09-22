@@ -40,19 +40,17 @@ extension _SavesHints on SavesBloc {
   ///
   /// Одним заходом на все правила: строка правила спрашивала диск сама,
   /// дважды на каждое правило и на каждый кадр.
-  void _onSavePathsPresenceRequested(
+  Future<void> _onSavePathsPresenceRequested(
     SavePathsPresenceRequested event,
     Emitter<SavesState> emit,
-  ) {
-    // Спрашиваем диск синхронно, и это не оплошность: проверок столько,
-    // сколько правил у одной игры, идут они раз на событие, а не на кадр,
-    // — тогда как ожидание здесь не закончилось бы в виджет-тестах вовсе.
+  ) async {
     final presence = <String, bool>{};
     for (final rule in event.game.saveProfile.rules) {
       final resolved = rule.resolve(gameDir: event.game.installDir);
       if (resolved == null) continue;
-      presence[resolved] =
-          Directory(resolved).existsSync() || File(resolved).existsSync();
+      // Папка сохранений бывает на сетевом диске, который отвечает
+      // секундами: синхронный вопрос держал бы на это время кадр.
+      presence[resolved] = await _pathExists(resolved);
     }
     if (presence.isEmpty) return;
     emit(state.copyWith(pathPresence: {...state.pathPresence, ...presence}));

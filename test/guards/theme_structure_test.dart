@@ -55,6 +55,14 @@ void main() {
     );
   });
 
+  test('кривые движения интерфейса — токены, а не Curves по месту', () {
+    expectRatchet(
+      found: count(_curveHere),
+      known: _curves,
+      rule: 'кривая — EvaporateMotion.ease / enter / exit',
+    );
+  });
+
   test('длительности не задаются числом по месту', () {
     expectRatchet(
       found: count(_durationHere),
@@ -116,6 +124,13 @@ void main() {
       _fontSizeHere: (
         catches: ['TextStyle(fontSize: 12)', 'fontSize : 9'],
         passes: ['context.text.body'],
+      ),
+      _curveHere: (
+        catches: [
+          'curve: Curves.easeOut,',
+          'Curves.easeInOutCubic.transform(t)',
+        ],
+        passes: ['curve: EvaporateMotion.ease,'],
       ),
       _durationHere: (
         catches: [
@@ -201,6 +216,10 @@ final _durationHere = RegExp(
   r'Duration\(\s*(?:milliseconds|microseconds|seconds|minutes)\s*:\s*\d',
 );
 
+/// Кривая из `Curves` по месту: у интерфейса их четыре токена, и
+/// разбросанные кривые расходятся так же, как числа длительностей.
+final _curveHere = RegExp(r'\bCurves\.\w');
+
 /// Радиус числом — и `BorderRadius.circular(8)`, и
 /// `BorderRadius.all(Radius.circular(8))`: второе прежде проходило мимо.
 final _radiusHere = RegExp(r'Radius\.circular\(\s*\d');
@@ -244,6 +263,19 @@ const _durations = [
 ];
 
 const _radii = <String>[];
+
+// Не переходы интерфейса, а геометрия украшений: форма капли выбора,
+// пробег света и фольга считают положение кривой, а не анимируют переход.
+// Токен тут подменил бы рисунок, а не характер движения.
+const _curves = [
+  'lib/ui/library/effects/foil/foil_motion.dart: 1',
+  'lib/ui/library/effects/hero_sweep.dart: 1',
+  'lib/ui/library/featured/shots_slideshow.dart: 1',
+  'lib/ui/widgets/liquid/liquid_selection_path.dart: 3',
+  // Прозрачность нарочно на своей кривой поверх общей: она догоняет
+  // смещение, иначе плитка проявлялась бы уже на месте.
+  'lib/ui/widgets/rise_in.dart: 1',
+];
 
 const _alphas = [
   'lib/ui/downloads/download_chart.dart: 2',

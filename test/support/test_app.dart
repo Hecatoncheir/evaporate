@@ -115,6 +115,9 @@ class TestHarness {
       // Тест, которому подсказки нужны, задаёт корни сам и крутит обход
       // через `runAsync`.
       saveRoots: saveRoots ?? () => const [],
+      // То же с вопросом «есть ли папка правила»: ответ без ожидания диска.
+      pathExists: (path) async =>
+          Directory(path).existsSync() || File(path).existsSync(),
     );
     downloads = DownloadsBloc(
       paths: paths,

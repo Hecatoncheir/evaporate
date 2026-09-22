@@ -64,7 +64,11 @@ extension _SavesSnapshots on SavesBloc {
       // секундами, а то и не задаётся вовсе — держать ради неё снимок
       // незаписанным значит рисковать им ради необязательного удобства.
       emit(state.copyWith(snapshots: _withSnapshot(snapshot)));
-      if (_syncFolderWanted) await _exportToSync(snapshot);
+      // Список — на диск до выгрузки и до сообщения: «вышел из игры и
+      // закрыл лончер» — самый обычный порядок, а выгрузка идёт секундами,
+      // и список, записанный после неё, при закрытии терялся.
+      await persist();
+      if (settings.state.saves.exportsToSync) await _exportToSync(snapshot);
 
       finishBusy(
         emit,
@@ -100,23 +104,9 @@ extension _SavesSnapshots on SavesBloc {
     finishBusy(emit, key, message: silent ? null : message, isError: true);
   }
 
-  /// Просили ли класть копию снимка в папку синхронизации.
-  ///
-  /// Проверка снаружи, а не внутри: ждать шаг, которого нет, значит
-  /// отложить сообщение об удаче на лишнюю микрозадачу, а на него смотрят
-  /// сразу после появления снимка.
-  bool get _syncFolderWanted => settings.state.saves.exportsToSync;
-
   /// Кладёт копию снимка в папку синхронизации. Отказ снимка не отменяет:
   /// локально он уже сохранён.
-  ///
-  /// Список снимков пишется **до** выгрузки: «вышел из игры и закрыл
-  /// лончер» — самый обычный порядок, а выгрузка идёт секундами, и список,
-  /// записанный после неё, при закрытии терялся. Без выгрузки запись идёт
-  /// следом за сообщением об удаче, а не перед ним: лишний `await` его
-  /// отложил бы, а читают его сразу за появлением снимка.
   Future<void> _exportToSync(SaveSnapshot snapshot) async {
-    await persist();
     try {
       await _exportToSyncFolder(snapshot);
     } on Object catch (error) {

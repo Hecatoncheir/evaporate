@@ -90,7 +90,7 @@ class _NavTileState extends State<NavTile> {
           child: AnimatedScale(
             scale: _focused ? widget.focusedScale : 1,
             duration: context.motion.instant,
-            curve: Curves.easeOutCubic,
+            curve: EvaporateMotion.ease,
             child: AnimatedContainer(
               duration: context.motion.instant,
               padding: widget.padding,

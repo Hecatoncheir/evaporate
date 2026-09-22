@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/add_game/add_game_bloc.dart';
-import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
@@ -36,7 +35,6 @@ class AddGameDialogView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     final bloc = context.read<AddGameBloc>();
-    final engine = context.watch<DownloadsBloc>().state.engine;
 
     return AlertDialog(
       title: Text(l.addGame),
@@ -44,21 +42,11 @@ class AddGameDialogView extends StatelessWidget {
         width: EvaporateLayout.dialogWidth,
         child: SingleChildScrollView(
           child: AddGameFields(
-            kind: form.kind,
-            onKind: (value) => bloc.add(AddGameKindChanged(value)),
             magnetController: magnetController,
             titleController: titleController,
-            filePath: form.filePath,
-            folderPath: form.folderPath,
             onMagnetChanged: onMagnetChanged,
-            onTitleChanged: (value) => bloc.add(AddGameTitleChanged(value)),
             onPickTorrent: onPickTorrent,
             onPickFolder: onPickFolder,
-            startImmediately: form.startImmediately,
-            onStartImmediately: (value) =>
-                bloc.add(AddGameStartImmediatelyChanged(start: value)),
-            engine: engine,
-            error: form.error,
           ),
         ),
       ),

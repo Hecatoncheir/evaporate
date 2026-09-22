@@ -71,16 +71,6 @@ class ProxyFormBody extends StatelessWidget {
             port: port,
             user: user,
             password: password,
-            enabled: saved.enabled,
-            portError: form.portInvalid ? l.proxyPortInvalid : null,
-            onHost: (value) =>
-                context.read<ProxyFormBloc>().add(ProxyHostChanged(value)),
-            onPort: (value) =>
-                context.read<ProxyFormBloc>().add(ProxyPortChanged(value)),
-            onUser: (value) =>
-                context.read<ProxyFormBloc>().add(ProxyUserChanged(value)),
-            onPassword: (value) =>
-                context.read<ProxyFormBloc>().add(ProxyPasswordChanged(value)),
           ),
           const SizedBox(height: 10),
           ProxyApplyRow(

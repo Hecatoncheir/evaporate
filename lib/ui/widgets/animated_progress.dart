@@ -60,7 +60,7 @@ class AnimatedProgress extends StatelessWidget {
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: value!.clamp(0.0, 1.0)),
               duration: context.motion.track,
-              curve: Curves.easeOut,
+              curve: EvaporateMotion.ease,
               builder: (context, animated, _) => Align(
                 alignment: Alignment.centerLeft,
                 child: FractionallySizedBox(
