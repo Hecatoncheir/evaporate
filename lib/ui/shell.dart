@@ -50,8 +50,7 @@ class AppShell extends StatelessWidget {
     final nav = context.read<NavigationBloc>();
     final gamepad = context.read<GamepadService>();
     final ambientEnabled = context.select<SettingsBloc, bool>(
-      (bloc) =>
-          bloc.state.libraryEffects && bloc.state.isOn(LibraryEffect.ambient),
+      (bloc) => bloc.state.appearance.shows(LibraryEffect.ambient),
     );
     // Свет корпуса берётся от выбранной игры, поэтому оболочке нужно и то,
     // что выбрано, и название — два разных блока.

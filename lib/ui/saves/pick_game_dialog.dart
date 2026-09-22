@@ -24,7 +24,7 @@ class PickGameDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(l.whichGameToApply),
       content: SizedBox(
-        width: 460,
+        width: EvaporateLayout.dialogWidthNarrow,
         child: ListView.builder(
           shrinkWrap: true,
           itemCount: sorted.length,

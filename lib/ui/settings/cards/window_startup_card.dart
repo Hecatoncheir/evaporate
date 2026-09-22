@@ -24,17 +24,22 @@ class WindowStartupCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           WindowStartPicker(
-            value: settings.windowStart,
+            value: settings.startup.windowStart,
             onChanged: (mode) => store.add(
-              SettingsPatched((current) => current.copyWith(windowStart: mode)),
+              SettingsPatched(
+                (current) =>
+                    current.withStartup((s) => s.copyWith(windowStart: mode)),
+              ),
             ),
           ),
           const SizedBox(height: 4),
           SettingSwitch(
-            value: settings.launchAtStartup,
+            value: settings.startup.launchAtStartup,
             onChanged: (value) => store.add(
               SettingsPatched(
-                (current) => current.copyWith(launchAtStartup: value),
+                (current) => current.withStartup(
+                  (s) => s.copyWith(launchAtStartup: value),
+                ),
               ),
             ),
             title: l.launchAtStartup,

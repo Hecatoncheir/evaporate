@@ -39,7 +39,7 @@ class LibraryEffectsCard extends StatelessWidget {
           const EffectPresetPicker(),
           const SizedBox(height: 10),
           SettingNote(
-            settings.effectPreset == null
+            settings.appearance.effectPreset == null
                 ? l.effectPresetCustom
                 : l.libraryEffectsNote,
           ),

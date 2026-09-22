@@ -50,8 +50,10 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
       // Про автозапуск спрашиваем саму систему: его могли отключить её
       // средствами, и записанная настройка не должна это переспорить.
       final actual = await _autostart.isEnabled();
-      if (actual != settings.launchAtStartup) {
-        settings = settings.copyWith(launchAtStartup: actual);
+      if (actual != settings.startup.launchAtStartup) {
+        settings = settings.withStartup(
+          (s) => s.copyWith(launchAtStartup: actual),
+        );
       }
       emit(settings);
     } finally {
@@ -68,12 +70,14 @@ class SettingsBloc extends Bloc<SettingsEvent, AppSettings> {
     };
     if (next == state) return;
 
-    if (next.launchAtStartup != state.launchAtStartup) {
+    if (next.startup.launchAtStartup != state.startup.launchAtStartup) {
       try {
-        await _autostart.setEnabled(enabled: next.launchAtStartup);
+        await _autostart.setEnabled(enabled: next.startup.launchAtStartup);
       } on Object {
         // Не вышло — переключатель не должен показывать несбывшееся.
-        next = next.copyWith(launchAtStartup: state.launchAtStartup);
+        next = next.withStartup(
+          (s) => s.copyWith(launchAtStartup: state.startup.launchAtStartup),
+        );
       }
     }
 

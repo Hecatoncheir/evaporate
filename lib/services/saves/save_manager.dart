@@ -14,6 +14,7 @@ import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
 import '../system/app_log.dart';
 import 'evsave_package.dart';
+import 'offload.dart';
 import 'restore_transaction.dart';
 import 'rule_matcher.dart';
 import 'save_collector.dart';
@@ -80,14 +81,17 @@ class SaveManager {
     AppLog Function()? log,
     Future<FileSystemEntity> Function(FileSystemEntity, String)?
     renameForRestore,
-    Future<void> Function(ZipFileEncoder, File, String)? addToArchive,
+    Offload? offload,
     this.maxSnapshotBytes = defaultMaxSnapshotBytes,
   }) : _paths = paths ?? AppPaths.instance,
        _renameForRestore = renameForRestore ?? _rename,
-       _addToArchive = addToArchive ?? _addFile,
+       _offload = offload ?? runInIsolate,
        _localizations = localizations ?? _defaultLocalizations,
        _log = log ?? _appLog,
-       store = SnapshotStore(root: (paths ?? AppPaths.instance).blobsDir);
+       store = SnapshotStore(
+         root: (paths ?? AppPaths.instance).blobsDir,
+         offload: offload,
+       );
 
   /// Хранилище файлов снимков по содержимому.
   ///
@@ -129,15 +133,10 @@ class SaveManager {
   static Future<FileSystemEntity> _rename(FileSystemEntity source, String to) =>
       source.rename(to);
 
-  // По той же причине подменяется и запись файла в архив: сбой на середине
-  // снимка иначе пришлось бы вызывать правами доступа, а они на трёх
-  // системах ведут себя по-разному.
-  final Future<void> Function(ZipFileEncoder, File, String) _addToArchive;
-  static Future<void> _addFile(
-    ZipFileEncoder encoder,
-    File file,
-    String name,
-  ) => encoder.addFile(file, name);
+  /// Где собирать и разбирать zip — см. [Offload]. Пакет — всегда в
+  /// изоляте: он собирается один раз на выгрузку, и заведение изолята
+  /// теряется рядом с упаковкой хоть бы и мегабайта.
+  final Offload _offload;
 
   /// Откуда брать переводы: сообщения об ошибках доходят до пользователя
   /// уведомлениями, а `BuildContext` здесь взять неоткуда.
@@ -294,6 +293,11 @@ class SaveManager {
   /// при первом же пропавшем блобе стирала вчерашний рабочий пакет, а
   /// клиент синхронизации успевал унести половину нового. Распакованные
   /// блобы лежат у нас, а не в чужой папке, — их клиент унёс бы тоже.
+  ///
+  /// Сама упаковка идёт в изоляте ([EvsaveJobs.write]): гигабайт сейвов
+  /// разжимался из хранилища и сжимался обратно в zip на том же изоляте,
+  /// что рисует окно. Здесь остаётся то, что знает хранилище: всё ли
+  /// содержимое на месте, — и то, что знает язык: слова для отказа.
   Future<File> _materialize(SaveSnapshot snapshot, String destination) async {
     final target = File(destination);
     await target.parent.create(recursive: true);
@@ -303,46 +307,57 @@ class SaveManager {
         '.${p.basename(destination)}.${_uuid.v4()}.part',
       ),
     );
-    final staging = Directory(p.join(_paths.dataDir, 'export-staging'));
-    await staging.create(recursive: true);
+    // Своя папка на каждую выгрузку: записи в ней лежат под номерами, и
+    // две выгрузки разом писали бы в одни и те же файлы.
+    final staging = Directory(
+      p.join(_paths.dataDir, 'export-staging', _uuid.v4()),
+    );
 
-    final encoder = ZipFileEncoder();
-    encoder.create(partial.path);
+    final entries = <PackageEntry>[];
+    for (final blob in snapshot.blobs) {
+      if (!await store.contains(blob.hash)) {
+        throw SaveException(_l.saveArchiveMissing(blob.name));
+      }
+      entries.add((
+        name: blob.name,
+        blob: store.pathFor(blob.hash),
+        hash: blob.hash,
+        size: blob.size,
+      ));
+    }
+
     var complete = false;
     try {
-      encoder.addArchiveFile(
-        ArchiveFile.string(
-          SaveSnapshot.manifestEntry,
-          const JsonEncoder.withIndent('  ').convert(snapshot.toManifest()),
+      await staging.create(recursive: true);
+      await _offload(
+        EvsaveJobs.write(
+          partial: partial.path,
+          manifest: const JsonEncoder.withIndent('  ')
+              .convert(snapshot.toManifest()),
+          entries: entries,
+          staging: staging.path,
         ),
       );
-      // Содержимое в хранилище лежит сжатым, а zip-упаковщику нужен
-      // обычный файл — распаковываем по одному, а не всё разом: снимок
-      // может весить гигабайты, и держать их в памяти нечем.
-      for (final blob in snapshot.blobs) {
-        if (!await store.contains(blob.hash)) {
-          throw SaveException(_l.saveArchiveMissing(blob.name));
-        }
-        final staged = File(p.join(staging.path, '${_uuid.v4()}.part'));
-        try {
-          await store.extractTo(blob.hash, staged.path);
-          await _addToArchive(encoder, staged, blob.name);
-        } finally {
-          if (await staged.exists()) await staged.delete();
-        }
-      }
       complete = true;
+    } on UnreadableEntry catch (error) {
+      // Не развернулось — содержимое уходит из хранилища, как и при
+      // раскладке: следующий снимок того же сейва его перепишет.
+      if (error.hash != null) await store.discard(error.hash!);
+      throw SaveException(_l.saveArchiveReadFailed(error.name));
     } finally {
-      await encoder.close();
-      if (!complete) {
-        try {
-          if (await partial.exists()) await partial.delete();
-        } on FileSystemException {
-          // Уборка не удалась — исходную ошибку подменять этим не станем.
-        }
-      }
+      await _quietly(() => staging.delete(recursive: true));
+      if (!complete) await _quietly(partial.delete);
     }
     return partial.rename(destination);
+  }
+
+  /// Уборка, которой не удалось, исходную ошибку не подменяет.
+  static Future<void> _quietly(Future<Object?> Function() cleanup) async {
+    try {
+      await cleanup();
+    } on FileSystemException {
+      // Нечего убирать или убрать нельзя — дальше идёт своя ошибка.
+    }
   }
 
   /// Когда сохранения игры в последний раз менялись на этом устройстве.
@@ -427,7 +442,13 @@ class SaveManager {
         rules: _package.rulesOf(
           _package.checkedManifest(_package.manifestOf(archive)),
         ),
-        sources: _package.entriesOf(archive).toList(),
+        sources: _package
+            .entriesOf(
+              archive,
+              package: snapshot.archivePath,
+              offload: _offload,
+            )
+            .toList(),
         backupCurrent: backupCurrent,
         wipeTarget: wipeTarget,
         onBackup: onBackup,
@@ -634,16 +655,12 @@ class SaveManager {
     // память: пакет может весить гигабайты.
     final dir = Directory(_paths.snapshotDirFor(game.id));
     await dir.create(recursive: true);
-    final blobs = <SnapshotBlob>[];
+    await _package.open(path, (archive) async => _checkDeclaredSize(archive));
 
-    await _package.open(path, (archive) async {
-      _checkDeclaredSize(archive);
-      for (final file in archive.files) {
-        if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
-        if (EvsavePackage.parseEntryName(file.name) == null) continue;
-        blobs.add(await _importEntry(file, dir));
-      }
-    });
+    final blobs = await _importEntries(
+      path,
+      Directory(p.join(dir.path, '.import-${_uuid.v4()}')),
+    );
 
     if (blobs.isEmpty) throw SaveNothingFoundException(_l.saveNothingFound);
 
@@ -678,25 +695,32 @@ class SaveManager {
     }
   }
 
-  /// Переливает одну запись пакета в хранилище через временный файл.
+  /// Переливает записи пакета в хранилище через временные файлы.
   ///
-  /// Через [ArchiveEntrySource], а не своей записью: «записать запись пакета
-  /// в файл» было в двух копиях, и CRC с размером сверяла только одна —
-  /// на пути старых архивов. Чужие пакеты ходят этим путём, и дальше, в
-  /// раскладке, у них сверяется одна длина: недоехавший из папки
-  /// синхронизации файл ложился бы в хранилище как целый.
-  Future<SnapshotBlob> _importEntry(ArchiveFile file, Directory dir) async {
-    final tmp = File(
-      p.join(dir.path, '.import-${DateTime.now().microsecondsSinceEpoch}'),
-    );
+  /// Разбор zip — в изоляте ([EvsaveJobs.unpack]): пакет в гигабайт иначе
+  /// разжимался бы на том же изоляте, что рисует окно. Записи сверяются
+  /// по длине и CRC там же, тем же [EvsaveJobs.writeVerified], что у
+  /// раскладки: дальше, в хранилище, сверяется одна длина, и недоехавший
+  /// из папки синхронизации файл лёг бы туда как целый.
+  Future<List<SnapshotBlob>> _importEntries(
+    String path,
+    Directory staging,
+  ) async {
     try {
-      await ArchiveEntrySource(
-        file,
-        localizations: _localizations,
-      ).writeTo(tmp.path);
-      return await store.put(file.name, tmp);
+      final entries = await _offload(
+        EvsaveJobs.unpack(path: path, staging: staging.path),
+      );
+      final blobs = <SnapshotBlob>[];
+      for (final entry in entries) {
+        blobs.add(await store.put(entry.name, File(entry.path)));
+        // Уже в хранилище — место под копией отдаём сразу, а не в конце.
+        await File(entry.path).delete();
+      }
+      return blobs;
+    } on UnreadableEntry catch (error) {
+      throw SaveException(_l.saveArchiveReadFailed(error.name));
     } finally {
-      if (await tmp.exists()) await tmp.delete();
+      await _quietly(() => staging.delete(recursive: true));
     }
   }
 

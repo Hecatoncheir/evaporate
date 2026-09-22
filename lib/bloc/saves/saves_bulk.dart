@@ -98,7 +98,7 @@ extension _SavesBulk on SavesBloc {
     SyncFolderScanRequested event,
     Emitter<SavesState> emit,
   ) async {
-    final folder = settings.state.syncFolder;
+    final folder = settings.state.saves.syncFolder;
     if (folder == null) {
       emit(state.copyWith(syncPackages: const [], syncScanned: true));
       return;

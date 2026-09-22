@@ -1,20 +1,17 @@
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
-import 'package:evaporate/ui/downloads/download_history_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/download_history.dart';
 import '../../support/host_widget.dart';
 
 void main() {
   Widget app(DownloadTask task) => hostWidget(
     SizedBox(
       width: 720,
-      // Историю держит область: график и показания читают её сообща.
-      child: DownloadHistoryScope(
-        task: task,
-        child: DownloadActivity(task: task),
-      ),
+      // История одна на приложение: график и показания читают её сообща.
+      child: withHistory(DownloadActivity(task: task), [task]),
     ),
   );
 
@@ -54,12 +51,9 @@ void main() {
 
     await tester.pumpWidget(
       hostWidget(
-        const SizedBox(
+        SizedBox(
           width: 300,
-          child: DownloadHistoryScope(
-            task: task,
-            child: DownloadActivity(task: task),
-          ),
+          child: withHistory(const DownloadActivity(task: task), [task]),
         ),
       ),
     );

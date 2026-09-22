@@ -21,7 +21,7 @@ class SyncFolderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final folder = context.select<SettingsBloc, String?>(
-      (bloc) => bloc.state.syncFolder,
+      (bloc) => bloc.state.saves.syncFolder,
     );
     final scanning = context.select<SavesBloc, bool>(
       (bloc) => bloc.state.scanningSync,

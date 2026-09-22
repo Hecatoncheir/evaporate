@@ -24,9 +24,7 @@ class ShellSections extends StatelessWidget {
       (bloc) => bloc.state.section,
     );
     final animated = context.select<SettingsBloc, bool>(
-      (bloc) =>
-          bloc.state.libraryEffects &&
-          bloc.state.isOn(LibraryEffect.interfaceAnimations),
+      (bloc) => bloc.state.appearance.shows(LibraryEffect.interfaceAnimations),
     );
     return FadeIndexedStack(
       index: section.index,

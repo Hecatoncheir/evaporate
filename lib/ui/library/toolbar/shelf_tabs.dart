@@ -37,9 +37,7 @@ class _ShelfTabsState extends State<ShelfTabs> {
       color: context.colors.selection,
       radius: EvaporateTheme.radiusControl,
       enabled: context.select<SettingsBloc, bool>(
-        (b) =>
-            b.state.libraryEffects &&
-            b.state.isOn(LibraryEffect.liquidSelection),
+        (b) => b.state.appearance.shows(LibraryEffect.liquidSelection),
       ),
       child: Wrap(
         crossAxisAlignment: WrapCrossAlignment.center,

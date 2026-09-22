@@ -53,7 +53,7 @@ class LibraryBody extends StatelessWidget {
 
   final Shelf shelf;
   final String? selectedId;
-  final AppSettings effects;
+  final Appearance effects;
   final double scale;
 
   /// Идёт поиск установленных игр: пока он идёт, сброс в окно перехватывает

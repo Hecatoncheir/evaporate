@@ -23,9 +23,10 @@ class AppearanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     final store = context.watch<SettingsBloc>();
-    final settings = store.state;
-    void update(AppSettings Function(AppSettings current) patch) =>
-        store.add(SettingsPatched(patch));
+    final look = store.state.appearance;
+    // Карточка правит только облик — и правка сразу о нём.
+    void update(Appearance Function(Appearance current) edit) =>
+        store.add(SettingsPatched((s) => s.withAppearance(edit)));
 
     return SectionCard(
       title: l.appearanceAndLanguage,
@@ -34,15 +35,13 @@ class AppearanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           LanguagePicker(
-            value: settings.locale,
-            onChanged: (code) =>
-                update((current) => current.copyWith(locale: code)),
+            value: look.locale,
+            onChanged: (code) => update((a) => a.copyWith(locale: code)),
           ),
           const SizedBox(height: 12),
           ThemePicker(
-            value: settings.themeMode,
-            onChanged: (mode) =>
-                update((current) => current.copyWith(themeMode: mode)),
+            value: look.themeMode,
+            onChanged: (mode) => update((a) => a.copyWith(themeMode: mode)),
           ),
           const SizedBox(height: 14),
           // Крупность обложек отсюда убрана: она стоит в самой библиотеке,
@@ -59,13 +58,12 @@ class AppearanceCard extends StatelessWidget {
               ScaleControl(
                 key: const ValueKey('interface-scale'),
                 label: l.interfaceScale,
-                value: settings.interfaceScale,
-                min: AppSettings.minInterfaceScale,
-                max: AppSettings.maxInterfaceScale,
+                value: look.interfaceScale,
+                min: Appearance.minInterfaceScale,
+                max: Appearance.maxInterfaceScale,
                 step: 0.05,
-                onChanged: (value) => update(
-                  (current) => current.copyWith(interfaceScale: value),
-                ),
+                onChanged: (value) =>
+                    update((a) => a.copyWith(interfaceScale: value)),
               ),
             ],
           ),

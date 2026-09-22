@@ -9,6 +9,7 @@ import '../../bloc/library_view/library_view_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/shelf.dart';
 import '../../services/launch/library_scanner.dart';
@@ -124,9 +125,12 @@ class _LibraryPageState extends State<LibraryPage> {
     final opened = context.select<LibraryBloc, Game?>(
       (b) => b.state.gameById(navState.openedGameId),
     );
-    final effects = context.watch<SettingsBloc>().state;
+    // Только облик: папка игр или прокси сетку обложек не касаются.
+    final effects = context.select<SettingsBloc, Appearance>(
+      (b) => b.state.appearance,
+    );
     final scale = context.select<SettingsBloc, double>(
-      (b) => b.state.libraryScale,
+      (b) => b.state.appearance.libraryScale,
     );
     _grid.forgetGone(all.map((game) => game.id).toSet());
 

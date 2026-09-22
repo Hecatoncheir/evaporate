@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:evaporate/bloc/download_history/download_history_bloc.dart';
 import 'package:evaporate/bloc/downloads/downloads_bloc.dart';
 import 'package:evaporate/bloc/library/library_bloc.dart';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/saves/saves_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/bloc/update/update_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/input/gamepad_service.dart';
@@ -14,6 +16,8 @@ import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/launch/drop_import.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
+import 'package:evaporate/services/system/desktop_entry.dart';
+import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/interface_scale.dart';
@@ -119,6 +123,19 @@ class TestHarness {
       notifications: notifications,
     );
     nav = NavigationBloc();
+    // Без сети и без домашней папки: настоящий запрос к GitHub в прогоне
+    // ни к чему, а файловый ввод-вывод записи в меню внутри `testWidgets`
+    // не завершается.
+    update = UpdateBloc(
+      check: UpdateCheck(currentVersion: '0.1.0', fetch: (uri) async => '{}'),
+      desktop: DesktopEntry(
+        executablePath: '/tmp/evaporate',
+        environment: const {},
+      ),
+    );
+    history = DownloadHistoryBloc(
+      tasks: downloads.stream.map((state) => state.tasks).distinct(),
+    );
     gamepad = GamepadService(
       source: gamepadEvents.stream,
       // Автоповтор проверяется юнит-тестами сервиса. Здесь он только мешает:
@@ -168,6 +185,8 @@ class TestHarness {
   late final DownloadsBloc downloads;
   late final GamepadService gamepad;
   late final NavigationBloc nav;
+  late final DownloadHistoryBloc history;
+  late final UpdateBloc update;
   final StreamController<NormalizedGamepadEvent> gamepadEvents;
 
   /// Добавляет игру событием и возвращает её идентификатор — событие
@@ -204,6 +223,8 @@ class TestHarness {
         BlocProvider.value(value: saves),
         BlocProvider.value(value: downloads),
         BlocProvider.value(value: nav),
+        BlocProvider.value(value: history),
+        BlocProvider.value(value: update),
       ],
       child: MultiProvider(
         providers: [
@@ -277,6 +298,8 @@ class TestHarness {
     await library.close();
     await settings.close();
     await nav.close();
+    await history.close();
+    await update.close();
   }
 }
 

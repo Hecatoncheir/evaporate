@@ -9,7 +9,6 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
 import 'package:evaporate/ui/downloads/download_chart.dart';
-import 'package:evaporate/ui/downloads/download_history_scope.dart';
 import 'package:evaporate/ui/library/detail/action_panel.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
@@ -17,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/download_history.dart';
 import '../../support/test_app.dart';
 
 void main() {
@@ -183,7 +183,7 @@ void main() {
             home: MediaQuery(
               data: const MediaQueryData(disableAnimations: true),
               child: Scaffold(
-                body: DownloadHistoryScope(
+                body: historyScope(
                   task: task,
                   child: ActionPanel(
                     game: Game(

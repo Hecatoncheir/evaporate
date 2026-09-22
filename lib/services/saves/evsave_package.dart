@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
+import 'offload.dart';
 import 'restore_transaction.dart';
 import 'save_exception.dart';
 
@@ -84,13 +85,25 @@ class EvsavePackage {
   /// Манифест и папки пропускаются, а вот ссылка не пропускается, а
   /// останавливает разбор: в наших пакетах её не бывает, и чужая уводит
   /// запись куда угодно.
-  Iterable<RestoreSource> entriesOf(Archive archive) sync* {
+  ///
+  /// [package] и [offload] — чтобы крупную запись разжать в изоляте: он
+  /// откроет пакет сам, по пути, — открытый здесь архив туда не переслать.
+  Iterable<RestoreSource> entriesOf(
+    Archive archive, {
+    String? package,
+    Offload? offload,
+  }) sync* {
     for (final file in archive.files) {
       if (file.isSymbolicLink) {
         throw SaveException(_l.savePathEscapes(file.name));
       }
       if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
-      yield ArchiveEntrySource(file, localizations: _localizations);
+      yield ArchiveEntrySource(
+        file,
+        localizations: _localizations,
+        package: package,
+        offload: offload,
+      );
     }
   }
 
@@ -142,10 +155,20 @@ class EntryName {
 /// Записанное сверяется по длине и CRC из заголовка zip: пакет приходит
 /// извне, и обрыв на середине выглядит как обычный файл.
 class ArchiveEntrySource implements RestoreSource {
-  ArchiveEntrySource(this._file, {required this._localizations});
+  ArchiveEntrySource(
+    this._file, {
+    required this._localizations,
+    this._package,
+    this._offload,
+  });
 
   final ArchiveFile _file;
   final L Function() _localizations;
+
+  /// Путь к пакету и где разжимать крупное. Без них запись разжимается
+  /// на месте, из уже открытого архива.
+  final String? _package;
+  final Offload? _offload;
 
   L get _l => _localizations();
 
@@ -157,11 +180,154 @@ class ArchiveEntrySource implements RestoreSource {
 
   @override
   Future<void> writeTo(String path) async {
+    final package = _package;
+    final offload = _offload;
+    final whole = package != null && offload != null && size >= offloadFromBytes
+        ? await offload(
+            EvsaveJobs.extractOne(package: package, name: name, target: path),
+          )
+        : await EvsaveJobs.writeVerified(_file, path);
+    if (!whole) {
+      throw SaveException(_l.saveArchiveReadFailed(_file.name));
+    }
+  }
+}
+
+/// Одна запись будущего пакета: имя в zip и сжатое содержимое в хранилище.
+typedef PackageEntry = ({String name, String blob, String hash, int size});
+
+/// Запись пакета, разложенная во временный файл.
+typedef UnpackedEntry = ({String name, String path});
+
+/// Запись, которую не удалось прочитать: обрыв, чужая CRC, битый gzip.
+///
+/// Своим классом, а не `SaveException`: бросается в изоляте, где нет
+/// переводов, а слова к нему подбирает тот, кто изолят заводил.
+class UnreadableEntry implements Exception {
+  const UnreadableEntry(this.name, {this.hash});
+
+  final String name;
+
+  /// Содержимое хранилища, которое не развернулось, — если дело в нём.
+  final String? hash;
+
+  @override
+  String toString() => 'UnreadableEntry($name)';
+}
+
+/// Работа с байтами пакета, которую можно отдать изоляту.
+///
+/// Задачи собираются статикой из строк и списков: замыкание, пересылаемое
+/// в изолят, не должно тянуть с собой ни менеджера, ни хранилища.
+abstract final class EvsaveJobs {
+  /// Собирает пакет в [partial]: манифест и все записи, развёрнутые из
+  /// хранилища по одной через [staging].
+  static Future<void> Function() write({
+    required String partial,
+    required String manifest,
+    required List<PackageEntry> entries,
+    required String staging,
+  }) => () async {
+    final encoder = ZipFileEncoder()..create(partial);
+    try {
+      encoder.addArchiveFile(
+        ArchiveFile.string(SaveSnapshot.manifestEntry, manifest),
+      );
+      for (final (index, entry) in entries.indexed) {
+        final staged = File('$staging${Platform.pathSeparator}$index.part');
+        try {
+          await _gunzip(entry, staged);
+          await encoder.addFile(staged, entry.name);
+        } finally {
+          if (await staged.exists()) await staged.delete();
+        }
+      }
+    } finally {
+      await encoder.close();
+    }
+  };
+
+  /// Разворачивает содержимое хранилища и сверяет длину: обрезанный gzip
+  /// разжимается и без ошибки, только короче, — и в пакет, который унесут
+  /// на другую машину, лёг бы обрывок под видом сейва.
+  static Future<void> _gunzip(PackageEntry entry, File staged) async {
+    try {
+      await File(entry.blob)
+          .openRead()
+          .transform(gzip.decoder)
+          .pipe(staged.openWrite());
+    } on FormatException {
+      throw UnreadableEntry(entry.name, hash: entry.hash);
+    }
+    if (await staged.length() != entry.size) {
+      throw UnreadableEntry(entry.name, hash: entry.hash);
+    }
+  }
+
+  /// Раскладывает записи данных пакета [path] по временным файлам в
+  /// [staging] — под номерами, а не под именами из пакета: имя пришло
+  /// извне и может уводить за пределы папки.
+  static Future<List<UnpackedEntry>> Function() unpack({
+    required String path,
+    required String staging,
+  }) => () async {
+    await Directory(staging).create(recursive: true);
+    final input = InputFileStream(path);
+    try {
+      final archive = ZipDecoder().decodeStream(input);
+      try {
+        final out = <UnpackedEntry>[];
+        for (final file in archive.files) {
+          if (!file.isFile || file.name == SaveSnapshot.manifestEntry) continue;
+          if (EvsavePackage.parseEntryName(file.name) == null) continue;
+          final target = '$staging${Platform.pathSeparator}${out.length}';
+          if (!await writeVerified(file, target)) {
+            throw UnreadableEntry(file.name);
+          }
+          out.add((name: file.name, path: target));
+        }
+        return out;
+      } finally {
+        await archive.clear();
+      }
+    } finally {
+      await input.close();
+    }
+  };
+
+  /// Разжимает одну запись пакета [package] в [target] со сверкой.
+  ///
+  /// Пакет открывается заново: открытый архив держит поток файла, и в
+  /// изолят его не переслать. Заход по центральному каталогу дёшев, а
+  /// зовут это только ради крупных записей.
+  static Future<bool> Function() extractOne({
+    required String package,
+    required String name,
+    required String target,
+  }) => () async {
+    final input = InputFileStream(package);
+    try {
+      final archive = ZipDecoder().decodeStream(input);
+      try {
+        final file = archive.findFile(name);
+        return file != null && await writeVerified(file, target);
+      } finally {
+        await archive.clear();
+      }
+    } finally {
+      await input.close();
+    }
+  };
+
+  /// Пишет запись пакета в файл и сверяет записанное с длиной и CRC из
+  /// заголовка zip: пакет приходит извне, и обрыв на середине выглядит
+  /// как обычный файл.
+  static Future<bool> writeVerified(ArchiveFile file, String path) async {
     final outFile = File(path);
     await outFile.parent.create(recursive: true);
     final output = OutputFileStream(path);
     try {
-      _file.writeContent(output);
+      file.writeContent(output);
     } finally {
       await output.close();
     }
@@ -171,8 +337,6 @@ class ArchiveEntrySource implements RestoreSource {
       size += chunk.length;
       crc = getCrc32(chunk, crc);
     }
-    if (size != _file.size || (_file.crc32 != null && crc != _file.crc32)) {
-      throw SaveException(_l.saveArchiveReadFailed(_file.name));
-    }
+    return size == file.size && (file.crc32 == null || crc == file.crc32);
   }
 }

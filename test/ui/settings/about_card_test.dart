@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
+import 'package:evaporate/bloc/update/update_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/services/system/desktop_entry.dart';
@@ -46,16 +47,19 @@ void main() {
         value: settings,
         child: hostWidget(
           SingleChildScrollView(
-            child: AboutCard(
-              check: UpdateCheck(
-                currentVersion: '0.1.0',
-                fetch: (uri) async => answer,
+            child: BlocProvider(
+              create: (_) => UpdateBloc(
+                check: UpdateCheck(
+                  currentVersion: '0.1.0',
+                  fetch: (uri) async => answer,
+                ),
+                openLink: openLink,
+                desktop: DesktopEntry(
+                  executablePath: '/tmp/evaporate',
+                  environment: const {},
+                ),
               ),
-              openLink: openLink,
-              desktop: DesktopEntry(
-                executablePath: '/tmp/evaporate',
-                environment: const {},
-              ),
+              child: const AboutCard(),
             ),
           ),
         ),

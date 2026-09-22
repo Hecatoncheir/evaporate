@@ -103,28 +103,34 @@ void main() {
   const settings = AppSettings(
     installDir: 'D:/games',
     maxConcurrent: 5,
-    syncFolder: 'D:/sync',
-    autoExportToSync: false,
-    autoSnapshotOnExit: false,
-    autoSnapshotOnLaunch: true,
     systemNotifications: false,
-    launchAtStartup: true,
-    windowStart: WindowStartMode.minimized,
-    checkUpdates: false,
-    themeMode: AppThemeMode.light,
-    libraryEffects: false,
-    // Набор нарочно не совпадает с поставляемым: забытое украшение в
-    // `toJson` или `fromJson` иначе прошло бы незамеченным.
-    effects: {
-      LibraryEffect.particles,
-      LibraryEffect.liquidDistortion,
-      LibraryEffect.liquidSelection,
-      LibraryEffect.drops,
-      LibraryEffect.selectionFrame,
-    },
-    interfaceScale: 1.25,
-    libraryScale: 0.9,
-    locale: 'en',
+    saves: SaveAutomation(
+      syncFolder: 'D:/sync',
+      autoExportToSync: false,
+      autoSnapshotOnExit: false,
+      autoSnapshotOnLaunch: true,
+    ),
+    startup: StartupSettings(
+      launchAtStartup: true,
+      windowStart: WindowStartMode.minimized,
+      checkUpdates: false,
+    ),
+    appearance: Appearance(
+      themeMode: AppThemeMode.light,
+      libraryEffects: false,
+      // Набор нарочно не совпадает с поставляемым: забытое украшение в
+      // `toJson` или `fromJson` иначе прошло бы незамеченным.
+      effects: {
+        LibraryEffect.particles,
+        LibraryEffect.liquidDistortion,
+        LibraryEffect.liquidSelection,
+        LibraryEffect.drops,
+        LibraryEffect.selectionFrame,
+      },
+      interfaceScale: 1.25,
+      libraryScale: 0.9,
+      locale: 'en',
+    ),
     proxy: ProxySettings(
       enabled: true,
       kind: ProxyKind.socks5,
@@ -163,6 +169,9 @@ void main() {
     expect(game.copyWith(), game);
     expect(snapshot.copyWith(), snapshot);
     expect(settings.copyWith(), settings);
+    expect(settings.appearance.copyWith(), settings.appearance);
+    expect(settings.startup.copyWith(), settings.startup);
+    expect(settings.saves.copyWith(), settings.saves);
     expect(game.saveProfile.copyWith(), game.saveProfile);
     expect(game.details.copyWith(), game.details);
     expect(game.saveDiscovery.copyWith(), game.saveDiscovery);
@@ -195,6 +204,35 @@ void main() {
         'infoHash',
         'playtimeSeconds',
         'lastPlayed',
+      ]),
+    );
+  });
+
+  // Настройки разобраны на части так же, и так же обязаны писать прежние
+  // ключи: файл настроек лежит у людей на дисках, и сборка до разбора
+  // должна прочесть записанное после него.
+  test('запись настроек осталась плоской, с прежними ключами', () {
+    final json = settings.toJson();
+
+    expect(json.keys, isNot(contains('appearance')));
+    expect(json.keys, isNot(contains('startup')));
+    expect(json.keys, isNot(contains('saves')));
+    expect(
+      json.keys,
+      containsAll([
+        'themeMode',
+        'locale',
+        'interfaceScale',
+        'libraryScale',
+        'libraryEffects',
+        'particlesEnabled',
+        'launchAtStartup',
+        'windowStart',
+        'checkUpdates',
+        'syncFolder',
+        'autoExportToSync',
+        'autoSnapshotOnExit',
+        'autoSnapshotOnLaunch',
       ]),
     );
   });

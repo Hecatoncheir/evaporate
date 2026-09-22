@@ -15,8 +15,8 @@ import '../support/guards.dart';
 /// - `fontSize:` — кегль берётся из ролей типографики;
 /// - `Duration(milliseconds:` — длительность берётся из `context.motion`;
 /// - `BorderRadius.circular(<число>)` — радиус берётся из `EvaporateTheme`;
-/// - поле страницы 28, предельная ширина 1340 и подпись настройки 220 —
-///   из `EvaporateLayout`;
+/// - поле страницы 28, предельная ширина 1340, подпись настройки 220 и
+///   ширины диалогов 460 и 560 — из `EvaporateLayout`;
 /// - `withValues(alpha: <число>)` — прозрачность берётся ступенью
 ///   `EvaporateAlpha`.
 ///
@@ -73,7 +73,9 @@ void main() {
   test('размеры раскладки не задаются числом по месту', () {
     expectRatchet(
       found: count(
-        RegExp(r'fromLTRB\(\s*28\b|maxWidth:\s*1340\b|width:\s*220\b'),
+        RegExp(
+          r'fromLTRB\(\s*28\b|maxWidth:\s*1340\b|width:\s*(220|460|560)\b',
+        ),
       ),
       known: const [],
       rule: 'поля, ширины и высоты полос — постоянные EvaporateLayout',
@@ -119,9 +121,6 @@ const _fontSize = [
   'lib/ui/library/featured/featured_compact_bar.dart: 1',
   'lib/ui/library/featured/featured_poster.dart: 1',
   'lib/ui/shell/top_bar_brand.dart: 1',
-  // Ещё не сведена клавиша обоймы: это метка без моно, и перевод на
-  // `label` заметно меняет облик — решается отдельно.
-  'lib/ui/shell/navigation_key.dart: 1',
 ];
 
 const _durations = [

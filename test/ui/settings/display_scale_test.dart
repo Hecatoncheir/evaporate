@@ -17,9 +17,11 @@ import '../../support/test_app.dart';
 void main() {
   test('масштабы независимы, переживают перезапуск и зажимаются в границы', () {
     final defaults = AppSettings.fromJson(const {}, '/games');
-    expect(defaults.interfaceScale, 1);
-    expect(defaults.libraryScale, 1);
-    final changed = defaults.copyWith(interfaceScale: 1.2, libraryScale: 0.75);
+    expect(defaults.appearance.interfaceScale, 1);
+    expect(defaults.appearance.libraryScale, 1);
+    final changed = defaults.withAppearance(
+      (a) => a.copyWith(interfaceScale: 1.2, libraryScale: 0.75),
+    );
     expect(changed, isNot(defaults));
     final restored = AppSettings.fromJson(changed.toJson(), '/games');
     expect(restored.toJson(), changed.toJson());
@@ -27,14 +29,14 @@ void main() {
       AppSettings.fromJson(const {
         'interfaceScale': 99,
         'libraryScale': -1,
-      }, '/games').interfaceScale,
+      }, '/games').appearance.interfaceScale,
       1.25,
     );
     expect(
       AppSettings.fromJson(const {
         'interfaceScale': 99,
         'libraryScale': -1,
-      }, '/games').libraryScale,
+      }, '/games').appearance.libraryScale,
       0.75,
     );
     expect(
@@ -56,7 +58,10 @@ void main() {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);
       harness.settings.add(
-        SettingsPatched((current) => current.copyWith(interfaceScale: 1.25)),
+        SettingsPatched(
+          (current) =>
+              current.withAppearance((a) => a.copyWith(interfaceScale: 1.25)),
+        ),
       );
       await tester.pumpWidget(
         BlocProvider.value(
@@ -119,7 +124,7 @@ void main() {
     final before = tester.getSize(find.byType(GameCoverTile).first);
     await tester.tap(find.byTooltip('Увеличить: Обложки игр').first);
     await tester.pumpAndSettle();
-    expect(harness.settings.state.libraryScale, 1.25);
+    expect(harness.settings.state.appearance.libraryScale, 1.25);
     expect(
       tester.getSize(find.byType(GameCoverTile).first).width,
       greaterThan(before.width),
@@ -129,15 +134,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Увеличить: Масштаб интерфейса'));
     await tester.pumpAndSettle();
-    expect(harness.settings.state.interfaceScale, 1.05);
-    expect(harness.settings.state.libraryScale, 1.25);
+    expect(harness.settings.state.appearance.interfaceScale, 1.05);
+    expect(harness.settings.state.appearance.libraryScale, 1.25);
     final reset = find.descendant(
       of: find.byKey(const ValueKey('interface-scale')),
       matching: find.byType(TextButton),
     );
     await tester.tap(reset);
     await tester.pumpAndSettle();
-    expect(harness.settings.state.interfaceScale, 1);
+    expect(harness.settings.state.appearance.interfaceScale, 1);
     expect(tester.takeException(), isNull);
   });
 
@@ -153,8 +158,9 @@ void main() {
       harness.addGame(title: 'Another game');
       harness.settings.add(
         SettingsPatched(
-          (current) =>
-              current.copyWith(interfaceScale: 1.25, libraryScale: 1.5),
+          (current) => current.withAppearance(
+            (a) => a.copyWith(interfaceScale: 1.25, libraryScale: 1.5),
+          ),
         ),
       );
       tester.view.physicalSize = const Size(900, 578);

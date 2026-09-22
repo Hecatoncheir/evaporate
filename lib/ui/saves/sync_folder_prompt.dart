@@ -26,7 +26,11 @@ class SyncFolderPrompt extends StatelessWidget {
           onPressed: () async {
             final dir = await getDirectoryPath();
             if (dir == null) return;
-            settings.add(SettingsPatched((s) => s.copyWith(syncFolder: dir)));
+            settings.add(
+              SettingsPatched(
+                (s) => s.withSaves((s) => s.copyWith(syncFolder: dir)),
+              ),
+            );
           },
           icon: const Icon(Icons.folder_outlined, size: 16),
           label: Text(L.of(context).chooseFolder),

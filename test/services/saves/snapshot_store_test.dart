@@ -201,6 +201,12 @@ class _ChangingFile implements File {
   final List<List<int>> reads;
   var _read = 0;
 
+  // Длина — того, что отдаст следующее чтение: по ней хранилище решает,
+  // читать ли на месте или в изоляте.
+  @override
+  Future<int> length() async =>
+      reads[_read < reads.length ? _read : reads.length - 1].length;
+
   @override
   Stream<List<int>> openRead([int? start, int? end]) {
     final index = _read < reads.length ? _read : reads.length - 1;

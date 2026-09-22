@@ -4,17 +4,15 @@ import 'package:evaporate/models/library_effect.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const base = AppSettings(installDir: '/games');
+  // Набор — дело облика: остальные настройки он не видит вовсе.
+  const base = Appearance();
 
   group('наборы украшений', () {
     test('свежие настройки отвечают набору «обычно»', () {
       // Иначе на свежей установке не горел бы ни один сегмент, и выбор
       // выглядел бы сломанным.
       expect(base.effectPreset, EffectPreset.standard);
-      expect(
-        AppSettings.fromJson(const {}, '/games').effectPreset,
-        EffectPreset.standard,
-      );
+      expect(Appearance.fromJson(const {}).effectPreset, EffectPreset.standard);
     });
 
     test('выключение не стирает собранный человеком набор', () {
@@ -70,7 +68,7 @@ void main() {
       final standard = EffectPreset.standard.applyTo(base);
       final full = EffectPreset.full.applyTo(base);
 
-      bool subset(AppSettings a, AppSettings b) => [
+      bool subset(Appearance a, Appearance b) => [
         (a.isOn(LibraryEffect.particles), b.isOn(LibraryEffect.particles)),
         (a.isOn(LibraryEffect.waves), b.isOn(LibraryEffect.waves)),
         (a.isOn(LibraryEffect.foil), b.isOn(LibraryEffect.foil)),
@@ -134,11 +132,10 @@ void main() {
       }
     });
 
-    test('набор не трогает ничего, кроме украшений', () {
+    test('набор не трогает в облике ничего, кроме украшений', () {
       final settings = base.copyWith(
         interfaceScale: 1.2,
         libraryScale: 1.5,
-        maxConcurrent: 8,
         locale: 'en',
       );
 
@@ -146,7 +143,6 @@ void main() {
         final applied = preset.applyTo(settings);
         expect(applied.interfaceScale, 1.2);
         expect(applied.libraryScale, 1.5);
-        expect(applied.maxConcurrent, 8);
         expect(applied.locale, 'en');
       }
     });

@@ -16,8 +16,8 @@ class InterfaceScale extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = context
-        .select<SettingsBloc, double>((b) => b.state.interfaceScale)
-        .clamp(AppSettings.minInterfaceScale, AppSettings.maxInterfaceScale);
+        .select<SettingsBloc, double>((b) => b.state.appearance.interfaceScale)
+        .clamp(Appearance.minInterfaceScale, Appearance.maxInterfaceScale);
     return LayoutBuilder(
       builder: (context, constraints) {
         final media = MediaQuery.of(context);

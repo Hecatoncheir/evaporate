@@ -1,4 +1,4 @@
-import 'app_settings.dart';
+import 'appearance.dart';
 import 'library_effect.dart';
 
 /// Набор украшений одним выбором: выключено, спокойно, обычно, полностью.
@@ -31,7 +31,7 @@ extension EffectPresetFlags on EffectPreset {
   /// Рамку выбора набор не трогает: она показывает место в сетке, а не
   /// украшает её, и живёт мимо общего выключателя. Поэтому всё
   /// независимое переносится из нынешних настроек как есть.
-  AppSettings applyTo(AppSettings settings) => switch (this) {
+  Appearance applyTo(Appearance settings) => switch (this) {
     EffectPreset.off => settings.copyWith(libraryEffects: false),
     EffectPreset.calm => settings.copyWith(
       libraryEffects: true,
@@ -48,7 +48,7 @@ extension EffectPresetFlags on EffectPreset {
   };
 
   Set<LibraryEffect> _keepIndependent(
-    AppSettings settings,
+    Appearance settings,
     Set<LibraryEffect> chosen,
   ) => {
     for (final effect in chosen)
@@ -58,7 +58,7 @@ extension EffectPresetFlags on EffectPreset {
   };
 }
 
-extension EffectPresetOf on AppSettings {
+extension EffectPresetOf on Appearance {
   /// Какому набору отвечают нынешние украшения, или `null` — человек собрал
   /// свой в «Подробно».
   ///

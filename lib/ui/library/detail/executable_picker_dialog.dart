@@ -26,7 +26,7 @@ class ExecutablePickerDialog extends StatelessWidget {
     return AlertDialog(
       title: Text(L.of(context).whatToRunQuestion),
       content: SizedBox(
-        width: 560,
+        width: EvaporateLayout.dialogWidth,
         child: ListView.builder(
           shrinkWrap: true,
           itemCount: candidates.length,

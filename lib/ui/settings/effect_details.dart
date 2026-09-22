@@ -28,9 +28,12 @@ class EffectDetails extends StatelessWidget {
       children: [
         SettingSwitch(
           key: const ValueKey('effects-master-toggle'),
-          value: settings.libraryEffects,
-          onChanged: (value) =>
-              update((current) => current.copyWith(libraryEffects: value)),
+          value: settings.appearance.libraryEffects,
+          onChanged: (value) => update(
+            (current) => current.withAppearance(
+              (a) => a.copyWith(libraryEffects: value),
+            ),
+          ),
           title: l.libraryEffectsEnable,
         ),
         // Переключатели идут прямо по перечислимой: порядок объявления —
@@ -42,13 +45,16 @@ class EffectDetails extends StatelessWidget {
             key: ValueKey('effects-${effect.name}-toggle'),
             title: _title(l, effect),
             note: _note(l, effect),
-            value: settings.isOn(effect),
+            value: settings.appearance.isOn(effect),
             // Рамка выбора живёт мимо общего выключателя: она показывает
             // место в сетке, а не украшает её, и зажигается по прямой
             // просьбе.
-            onChanged: settings.libraryEffects || effect.independent
-                ? (value) =>
-                      update((current) => current.withEffect(effect, on: value))
+            onChanged: settings.appearance.libraryEffects || effect.independent
+                ? (value) => update(
+                    (current) => current.withAppearance(
+                      (a) => a.withEffect(effect, on: value),
+                    ),
+                  )
                 : null,
           ),
       ],

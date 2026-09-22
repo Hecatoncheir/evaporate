@@ -92,8 +92,8 @@ extension _LibraryDrops on LibraryBloc {
     ),
     details: GameDetails(steamAppId: scanned.steamAppId),
     saveProfile: SaveProfile(
-      autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
-      autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
+      autoSnapshotOnExit: settings.state.saves.autoSnapshotOnExit,
+      autoSnapshotOnLaunch: settings.state.saves.autoSnapshotOnLaunch,
     ),
   );
 
@@ -109,8 +109,8 @@ extension _LibraryDrops on LibraryBloc {
       executablePath: candidate.executablePath,
       status: installed ? GameStatus.installed : GameStatus.notInstalled,
       saveProfile: SaveProfile(
-        autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
-        autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
+        autoSnapshotOnExit: settings.state.saves.autoSnapshotOnExit,
+        autoSnapshotOnLaunch: settings.state.saves.autoSnapshotOnLaunch,
       ),
     );
   }

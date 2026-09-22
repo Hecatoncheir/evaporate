@@ -42,7 +42,7 @@ class LibraryGridTile extends StatelessWidget {
   /// Под курсором, а если курсора в сетке нет — выбранная: фольга и
   /// наклон горят только у одной плитки.
   final bool active;
-  final AppSettings effects;
+  final Appearance effects;
 
   /// Ключ плитки: по нему рамка выбранного знает, куда перетечь.
   final GlobalKey tileKey;
@@ -63,9 +63,7 @@ class LibraryGridTile extends StatelessWidget {
       onEnter: (_) => onHover(true),
       onExit: (_) => onHover(false),
       child: RiseIn(
-        enabled:
-            effects.libraryEffects &&
-            effects.isOn(LibraryEffect.interfaceAnimations),
+        enabled: effects.shows(LibraryEffect.interfaceAnimations),
         // Очередь всхода — только для первого экрана. Дальше ленивая сетка
         // строит плитки по мере прокрутки, и задержка означала бы, что
         // домотанное появляется через полсекунды после того, как человек
@@ -93,11 +91,8 @@ class LibraryGridTile extends StatelessWidget {
                 key: ValueKey(game.id),
                 game: game,
                 selected: selected,
-                dropsEnabled:
-                    effects.libraryEffects && effects.isOn(LibraryEffect.drops),
-                portalEnabled:
-                    effects.libraryEffects &&
-                    effects.isOn(LibraryEffect.portal),
+                dropsEnabled: effects.shows(LibraryEffect.drops),
+                portalEnabled: effects.shows(LibraryEffect.portal),
                 // Рамка живёт мимо общего выключателя эффектов: она
                 // показывает, где ты в сетке, а не украшает её.
                 frameEnabled: effects.isOn(LibraryEffect.selectionFrame),

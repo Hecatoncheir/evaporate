@@ -81,7 +81,7 @@ void main() {
     test('поддерживаются ровно те, что объявлены в настройках', () {
       final codes = L.supportedLocales.map((l) => l.languageCode).toSet();
 
-      expect(codes, AppSettings.supportedLocales.toSet());
+      expect(codes, Appearance.supportedLocales.toSet());
     });
 
     test('незнакомый язык читается как системный', () {
@@ -90,20 +90,23 @@ void main() {
         'locale': 'kl',
       }, '/games');
 
-      expect(restored.locale, isNull);
+      expect(restored.appearance.locale, isNull);
     });
 
     test('выбранный язык переживает запись и чтение', () {
-      for (final code in AppSettings.supportedLocales) {
+      for (final code in Appearance.supportedLocales) {
         final settings = const AppSettings(installDir: '/games')
-            .copyWith(locale: code);
+            .withAppearance((a) => a.copyWith(locale: code));
 
-        expect(AppSettings.fromJson(settings.toJson(), '/games').locale, code);
+        expect(
+          AppSettings.fromJson(settings.toJson(), '/games').appearance.locale,
+          code,
+        );
       }
     });
 
     test('по умолчанию язык не задан — берётся системный', () {
-      expect(const AppSettings(installDir: '/games').locale, isNull);
+      expect(const AppSettings(installDir: '/games').appearance.locale, isNull);
     });
   });
 

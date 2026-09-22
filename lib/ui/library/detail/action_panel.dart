@@ -58,7 +58,7 @@ class ActionPanel extends StatelessWidget {
               const SizedBox(height: 16),
               // Без графика: он уехал подложкой под заголовок страницы, и
               // рисовать его здесь второй раз незачем. История у них общая
-              // — её держит `DownloadHistoryScope` вокруг всей страницы.
+              // — `DownloadHistoryBloc` один на приложение.
               DownloadActivity(task: task!, showChart: false),
               const SizedBox(height: 10),
               DownloadSummary(task: task!),

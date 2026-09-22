@@ -17,7 +17,7 @@ class GamePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final backdrop = context.select<SettingsBloc, bool>(
-      (bloc) => bloc.state.isOn(LibraryEffect.coverBackdrop),
+      (bloc) => bloc.state.appearance.isOn(LibraryEffect.coverBackdrop),
     );
     return Stack(
       children: [

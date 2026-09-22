@@ -39,12 +39,12 @@ class EffectPresetPicker extends StatelessWidget {
       // что выбрано, а не куда ткнуть наугад.
       emptySelectionAllowed: true,
       showSelectedIcon: false,
-      selected: {?settings.effectPreset},
+      selected: {?settings.appearance.effectPreset},
       // Нажатие на горящий сегмент снимает выбор и отдаёт пустое множество —
       // это не новый набор, а отсутствие действия.
       onSelectionChanged: (selection) {
         if (selection.isEmpty) return;
-        update(selection.first.applyTo);
+        update((s) => s.withAppearance(selection.first.applyTo));
       },
     );
   }

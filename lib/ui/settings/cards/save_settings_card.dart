@@ -17,9 +17,10 @@ class SaveSettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     final store = context.watch<SettingsBloc>();
-    final settings = store.state;
-    void update(AppSettings Function(AppSettings current) patch) =>
-        store.add(SettingsPatched(patch));
+    final saves = store.state.saves;
+    // Карточка правит только то, что делается с сохранениями само.
+    void update(SaveAutomation Function(SaveAutomation current) edit) =>
+        store.add(SettingsPatched((s) => s.withSaves(edit)));
 
     return SectionCard(
       title: l.saves,
@@ -29,36 +30,34 @@ class SaveSettingsCard extends StatelessWidget {
         children: [
           PathSetting(
             label: l.syncFolder,
-            value: settings.syncFolder ?? l.notSet,
+            value: saves.syncFolder ?? l.notSet,
             onPick: () => pickSettingsFolder(
               context,
-              (s, dir) => s.copyWith(syncFolder: dir),
+              (s, dir) => s.withSaves((a) => a.copyWith(syncFolder: dir)),
             ),
-            onClear: settings.syncFolder == null
+            onClear: saves.syncFolder == null
                 ? null
-                : () => update((current) => current.copyWith(syncFolder: null)),
+                : () => update((a) => a.copyWith(syncFolder: null)),
           ),
           const SizedBox(height: 6),
           SettingSwitch(
-            value: settings.autoExportToSync,
+            value: saves.autoExportToSync,
             onChanged: (value) =>
-                update((current) => current.copyWith(autoExportToSync: value)),
+                update((a) => a.copyWith(autoExportToSync: value)),
             title: l.copyToSyncFolder,
           ),
           const SizedBox(height: 6),
           SettingSwitch(
-            value: settings.autoSnapshotOnExit,
-            onChanged: (value) => update(
-              (current) => current.copyWith(autoSnapshotOnExit: value),
-            ),
+            value: saves.autoSnapshotOnExit,
+            onChanged: (value) =>
+                update((a) => a.copyWith(autoSnapshotOnExit: value)),
             title: l.snapshotOnExit,
             note: l.defaultForNewGames,
           ),
           SettingSwitch(
-            value: settings.autoSnapshotOnLaunch,
-            onChanged: (value) => update(
-              (current) => current.copyWith(autoSnapshotOnLaunch: value),
-            ),
+            value: saves.autoSnapshotOnLaunch,
+            onChanged: (value) =>
+                update((a) => a.copyWith(autoSnapshotOnLaunch: value)),
             title: l.snapshotOnLaunch,
             note: l.autoSnapshotOnLaunchNote,
           ),

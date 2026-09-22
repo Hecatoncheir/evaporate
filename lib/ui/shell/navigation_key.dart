@@ -94,10 +94,9 @@ class NavigationKey extends StatelessWidget {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
     ),
-    textStyle: const TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.9,
-    ),
+    // Роль метки, как у надписей корпуса: обойма — та же маркировка на
+    // корпусе, что и «[ 01 / КОЛЛЕКЦИЯ ]» под ней. Цвет роли не спорит
+    // с выбранной клавишей: у кнопки текст красит `foregroundColor`.
+    textStyle: EvaporateTypography(colors).label,
   );
 }

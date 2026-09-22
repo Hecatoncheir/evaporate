@@ -34,10 +34,14 @@ void main() {
     // Пока «открыт диалог», человек меняет другое.
     settings
       ..add(SettingsPatched((current) => current.copyWith(maxConcurrent: 5)))
-      ..add(SettingsPatched((s) => s.copyWith(syncFolder: '/sync')));
+      ..add(
+        SettingsPatched(
+          (s) => s.withSaves((s) => s.copyWith(syncFolder: '/sync')),
+        ),
+      );
 
     final state = await settings.stream
-        .firstWhere((s) => s.syncFolder == '/sync')
+        .firstWhere((s) => s.saves.syncFolder == '/sync')
         .timeout(const Duration(seconds: 5));
 
     expect(state.maxConcurrent, 5, reason: 'правка не затёрла соседнюю');

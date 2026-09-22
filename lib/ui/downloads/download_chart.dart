@@ -31,16 +31,22 @@ class DownloadChart extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: double.infinity,
-        child: BlocBuilder<DownloadHistoryBloc, DownloadSpeedHistory>(
-          builder: (context, history) => CustomPaint(
-            painter: _SpeedChartPainter(
-              samples: history.samples,
-              networkColor: context.colors.primary,
-              diskColor: context.colors.accent,
-              gridColor: context.colors.outline,
+        child:
+            BlocSelector<
+              DownloadHistoryBloc,
+              DownloadHistories,
+              DownloadSpeedHistory
+            >(
+              selector: (histories) => histories.of(task.id),
+              builder: (context, history) => CustomPaint(
+                painter: _SpeedChartPainter(
+                  samples: history.samples,
+                  networkColor: context.colors.primary,
+                  diskColor: context.colors.accent,
+                  gridColor: context.colors.outline,
+                ),
+              ),
             ),
-          ),
-        ),
       ),
     );
   }

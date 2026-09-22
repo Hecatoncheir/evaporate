@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/add_game/add_game_bloc.dart';
 import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
 import 'add_game_fields.dart';
 
@@ -40,7 +41,7 @@ class AddGameDialogView extends StatelessWidget {
     return AlertDialog(
       title: Text(l.addGame),
       content: SizedBox(
-        width: 520,
+        width: EvaporateLayout.dialogWidth,
         child: SingleChildScrollView(
           child: AddGameFields(
             kind: form.kind,

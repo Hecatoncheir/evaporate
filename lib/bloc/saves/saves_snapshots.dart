@@ -105,8 +105,7 @@ extension _SavesSnapshots on SavesBloc {
   /// Проверка снаружи, а не внутри: ждать шаг, которого нет, значит
   /// отложить сообщение об удаче на лишнюю микрозадачу, а на него смотрят
   /// сразу после появления снимка.
-  bool get _syncFolderWanted =>
-      settings.state.autoExportToSync && settings.state.syncFolder != null;
+  bool get _syncFolderWanted => settings.state.saves.exportsToSync;
 
   /// Кладёт копию снимка в папку синхронизации. Отказ снимка не отменяет:
   /// локально он уже сохранён.
@@ -313,7 +312,7 @@ extension _SavesSnapshots on SavesBloc {
   }
 
   Future<File> _exportToSyncFolder(SaveSnapshot snapshot) async {
-    final folder = settings.state.syncFolder;
+    final folder = settings.state.saves.syncFolder;
     if (folder == null) {
       throw SaveException(_l.noticeSyncFolderNotSet);
     }

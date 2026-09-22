@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -6,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/snapshot_blob.dart';
+import 'offload.dart';
 import 'restore_transaction.dart';
 import 'save_exception.dart';
 
@@ -33,9 +35,11 @@ class SnapshotStore {
     this.trashKeep = defaultTrashKeep,
     DateTime Function()? clock,
     Stream<FileSystemEntity> Function(Directory dir)? listFiles,
+    Offload? offload,
   }) : trash = trash ?? p.join(p.dirname(root), '${p.basename(root)}-trash'),
        _clock = clock ?? DateTime.now,
-       _listFiles = listFiles ?? _listRecursive;
+       _listFiles = listFiles ?? _listRecursive,
+       _offload = offload ?? runInIsolate;
 
   /// Куда складывать содержимое — `AppPaths.blobsDir`.
   final String root;
@@ -63,6 +67,17 @@ class SnapshotStore {
 
   static Stream<FileSystemEntity> _listRecursive(Directory dir) =>
       dir.list(recursive: true, followLinks: false);
+
+  /// Где хешировать и сжимать крупное — см. [Offload].
+  final Offload _offload;
+
+  /// Выполняет работу с байтами файла на месте или в изоляте — по размеру.
+  ///
+  /// Сама работа собирается статикой ([_hashJob] и соседи), а не
+  /// замыканием в методе: такое замыкание несёт с собой `this`, а
+  /// хранилище с его очередями и таймерами в изолят не пересылается.
+  Future<R> _heavy<R>(int size, FutureOr<R> Function() job) async =>
+      size >= offloadFromBytes ? _offload(job) : job();
 
   /// Сколько работ идёт сейчас.
   var _busy = 0;
@@ -177,12 +192,24 @@ class SnapshotStore {
   /// дописать файл, поэтому записанное адресуется хешем **второго** чтения,
   /// посчитанным по тем же байтам, что легли на диск. Иначе под хешем
   /// лежало бы чужое содержимое, и ничто бы этого не поймало.
+  ///
+  /// Крупный файл хешируется и сжимается в отдельном изоляте ([Offload]).
   Future<SnapshotBlob> put(String name, File source) async {
-    final seen = await _hashOf(source.openRead());
+    final size = await source.length();
+    // Мелкое читается на месте и через сам [source]: изолят получает только
+    // путь, а мелкому он не нужен.
+    final offload = size >= offloadFromBytes;
+    final seen = await (offload
+        ? _offload(_hashJob(source.path))
+        : _hashOf(source.openRead()));
     if (await _isKept(seen.hash)) {
       return SnapshotBlob(name: name, hash: seen.hash, size: seen.size);
     }
-    final written = await _writeHashed(source.openRead());
+    final written = await _writeHashed(
+      (tmp) => offload
+          ? _offload(_compressJob(source.path, tmp))
+          : _compressTo(source.openRead(), tmp),
+    );
     return SnapshotBlob(name: name, hash: written.hash, size: written.size);
   }
 
@@ -190,10 +217,25 @@ class SnapshotStore {
   Future<SnapshotBlob> putBytes(String name, List<int> bytes) async {
     final hash = sha256.convert(bytes).toString();
     if (!await _isKept(hash)) {
-      await _writeHashed(Stream<List<int>>.value(bytes));
+      await _writeHashed(
+        (tmp) => _compressTo(Stream<List<int>>.value(bytes), tmp),
+      );
     }
     return SnapshotBlob(name: name, hash: hash, size: bytes.length);
   }
+
+  static Future<_Hashed> Function() _hashJob(String path) =>
+      () => _hashOf(File(path).openRead());
+
+  static Future<_Hashed> Function() _compressJob(String source, String tmp) =>
+      () => _compressTo(File(source).openRead(), tmp);
+
+  static Future<void> Function() _gunzipJob(String source, String target) =>
+      () =>
+          File(source)
+              .openRead()
+              .transform(gzip.decoder)
+              .pipe(File(target).openWrite());
 
   /// Лежит ли уже такое содержимое.
   ///
@@ -229,41 +271,27 @@ class SnapshotStore {
     return target.exists();
   }
 
-  /// Пишет поток сжатым во временный файл, считая хеш по тем же байтам, и
-  /// кладёт под этим хешем.
-  Future<({String hash, int size})> _writeHashed(
-    Stream<List<int>> content,
+  /// Пишет сжатое во временный файл и кладёт под хешем, который посчитал
+  /// [compress] по тем же байтам.
+  Future<_Hashed> _writeHashed(
+    Future<_Hashed> Function(String tmp) compress,
   ) async {
     await Directory(root).create(recursive: true);
     // `uuid`, а не часы: у двух одновременных записей на Windows время
     // совпадает, и вторая писала бы в чужой временный файл.
     final tmp = File(p.join(root, '${_uuid.v4()}.tmp'));
     try {
-      final digest = _DigestSink();
-      final hasher = sha256.startChunkedConversion(digest);
-      var size = 0;
-      await content
-          .map((chunk) {
-            hasher.add(chunk);
-            size += chunk.length;
-            return chunk;
-          })
-          .transform(gzip.encoder)
-          .pipe(tmp.openWrite());
-      await _syncToDisk(tmp);
-      hasher.close();
-      final hash = digest.value.toString();
-
-      if (await _isKept(hash)) {
+      final written = await compress(tmp.path);
+      if (await _isKept(written.hash)) {
         await tmp.delete();
       } else {
-        final target = fileFor(hash);
+        final target = fileFor(written.hash);
         await target.parent.create(recursive: true);
         // Под именем мог остаться пустой след оборванной записи.
         if (await target.exists()) await target.delete();
         await tmp.rename(target.path);
       }
-      return (hash: hash, size: size);
+      return written;
     } on Object {
       if (await tmp.exists()) await tmp.delete();
       rethrow;
@@ -271,6 +299,28 @@ class SnapshotStore {
   }
 
   static const _uuid = Uuid();
+
+  /// Сжимает поток в [tmp], считая хеш по тем же байтам, и сбрасывает
+  /// записанное на диск. Статикой: идёт и в изоляте.
+  static Future<_Hashed> _compressTo(
+    Stream<List<int>> content,
+    String tmp,
+  ) async {
+    final digest = _DigestSink();
+    final hasher = sha256.startChunkedConversion(digest);
+    var size = 0;
+    await content
+        .map((chunk) {
+          hasher.add(chunk);
+          size += chunk.length;
+          return chunk;
+        })
+        .transform(gzip.encoder)
+        .pipe(File(tmp).openWrite());
+    await _syncToDisk(File(tmp));
+    hasher.close();
+    return (hash: digest.value.toString(), size: size);
+  }
 
   /// Сбрасывает записанное на диск до переименования.
   ///
@@ -286,9 +336,7 @@ class SnapshotStore {
     }
   }
 
-  static Future<({String hash, int size})> _hashOf(
-    Stream<List<int>> content,
-  ) async {
+  static Future<_Hashed> _hashOf(Stream<List<int>> content) async {
     final digest = _DigestSink();
     final hasher = sha256.startChunkedConversion(digest);
     var size = 0;
@@ -303,15 +351,19 @@ class SnapshotStore {
   /// Распаковывает содержимое в отдельный файл.
   ///
   /// Нужно при сборке пакета: `.evsave` — обычный zip, и упаковщику нужен
-  /// настоящий файл, а не наше сжатое представление.
-  Future<void> extractTo(String hash, String destination) async {
+  /// настоящий файл, а не наше сжатое представление. [size] — длина
+  /// развёрнутого, если она известна: по ней решается, стоит ли
+  /// распаковка изолята.
+  Future<void> extractTo(String hash, String destination, {int? size}) async {
     final source = fileFor(hash);
     if (!await _isWhole(source) && !await _revive(hash)) {
       throw FileSystemException('Содержимое снимка не найдено', source.path);
     }
-    final target = File(destination);
-    await target.parent.create(recursive: true);
-    await source.openRead().transform(gzip.decoder).pipe(target.openWrite());
+    await File(destination).parent.create(recursive: true);
+    await _heavy(
+      size ?? await source.length(),
+      _gunzipJob(source.path, destination),
+    );
   }
 
   /// Убирает содержимое, на которое больше никто не ссылается.
@@ -475,7 +527,7 @@ class StoredBlobSource implements RestoreSource {
   @override
   Future<void> writeTo(String path) async {
     try {
-      await _store.extractTo(_blob.hash, path);
+      await _store.extractTo(_blob.hash, path, size: _blob.size);
       if (await File(path).length() == _blob.size) return;
     } on SaveException {
       rethrow;
@@ -486,3 +538,6 @@ class StoredBlobSource implements RestoreSource {
     throw SaveException(_l.saveArchiveReadFailed(_blob.name));
   }
 }
+
+/// Хеш содержимого и его длина до сжатия.
+typedef _Hashed = ({String hash, int size});

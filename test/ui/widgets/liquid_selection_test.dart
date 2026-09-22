@@ -193,8 +193,9 @@ void main() {
       addTearDown(harness.dispose);
       harness.settings.add(
         SettingsPatched(
-          (current) =>
-              current.withEffect(LibraryEffect.liquidSelection, on: true),
+          (current) => current.withAppearance(
+            (a) => a.withEffect(LibraryEffect.liquidSelection, on: true),
+          ),
         ),
       );
       for (final title in [
@@ -320,8 +321,11 @@ void main() {
       await capture('settings');
       await tester.tap(off);
       await frames(5);
-      expect(harness.settings.state.libraryEffects, isFalse);
-      expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+      expect(harness.settings.state.appearance.libraryEffects, isFalse);
+      expect(
+        harness.settings.state.appearance.isOn(LibraryEffect.portal),
+        isTrue,
+      );
       expect(tester.takeException(), isNull);
     });
   }

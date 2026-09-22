@@ -6,6 +6,8 @@ import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
 import 'bloc/saves/saves_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
+import 'bloc/update/update_announcer.dart';
+import 'bloc/update/update_bloc.dart';
 import 'core/app_paths.dart';
 import 'input/gamepad_service.dart';
 import 'l10n/app_localizations.dart';
@@ -27,6 +29,7 @@ class AppServices {
     required this.downloads,
     required this.gamepad,
     required this.notifications,
+    required this.update,
   });
 
   final LibraryBloc library;
@@ -34,6 +37,9 @@ class AppServices {
   final DownloadsBloc downloads;
   final GamepadService gamepad;
   final NotificationService notifications;
+
+  /// Проверка и установка обновлений — одна на приложение.
+  final UpdateBloc update;
 
   /// Поднимает всё и дописывает в [shutdownSteps], что гасить при выходе.
   ///
@@ -56,8 +62,7 @@ class AppServices {
       paths: paths,
       settings: settings,
       localizations: localizations,
-    );
-    library.add(const LibraryLoadRequested());
+    )..add(const LibraryLoadRequested());
 
     final saves = SavesBloc(
       paths: paths,
@@ -65,9 +70,10 @@ class AppServices {
       settings: settings,
       notifications: notifications,
       localizations: localizations,
-    );
-    saves.add(const SavesLoadRequested());
+    )..add(const SavesLoadRequested());
 
+    // Движок поднимается в фоне: даже если он не поднимется, приложение
+    // должно открыться — библиотекой и сейвами можно пользоваться.
     final downloads = DownloadsBloc(
       paths: paths,
       library: library,
@@ -75,10 +81,14 @@ class AppServices {
       notifications: notifications,
       localizations: localizations,
       proxyRouting: proxyRouting,
+    )..add(const DownloadEngineStartRequested());
+
+    final update = _updates(
+      settings: settings,
+      shutdownSteps: shutdownSteps,
+      notifications: notifications,
+      localizations: localizations,
     );
-    // Движок поднимается в фоне: даже если он не поднимется, приложение
-    // должно открыться — библиотекой и сейвами можно пользоваться.
-    downloads.add(const DownloadEngineStartRequested());
 
     final gamepad = _gamepad(settings);
     shutdownSteps.addAll([
@@ -95,7 +105,34 @@ class AppServices {
       downloads: downloads,
       gamepad: gamepad,
       notifications: notifications,
+      update: update,
     );
+  }
+
+  /// Обновления: блок на всё время работы и уведомление о найденном.
+  ///
+  /// Стартовая проверка — через тот же блок, что и кнопка: найденное видно
+  /// в карточке «О программе» сразу, а не только в уведомлении.
+  ///
+  /// Гасится первым — шаги кладутся в [shutdownSteps] раньше остальных.
+  static UpdateBloc _updates({
+    required SettingsBloc settings,
+    required List<ShutdownStep> shutdownSteps,
+    required NotificationService notifications,
+    required L Function() localizations,
+  }) {
+    final update = UpdateBloc(localizations: localizations);
+    final announcing = announceFoundReleases(
+      updates: update.stream,
+      enabled: () => settings.state.systemNotifications,
+      notifications: notifications,
+      localizations: localizations,
+    );
+    if (settings.state.startup.checkUpdates) {
+      update.add(const UpdateCheckRequested());
+    }
+    shutdownSteps.addAll([announcing.cancel, update.close]);
+    return update;
   }
 
   /// Разрешение у системы не спрашиваем на старте: это делает человек

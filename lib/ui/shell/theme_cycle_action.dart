@@ -40,13 +40,15 @@ class ThemeCycleAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = context.watch<SettingsBloc>();
     final settings = store.state;
-    final mode = settings.themeMode;
+    final mode = settings.appearance.themeMode;
     return TopAction(
       tooltip: _label(context, nextTheme(mode)),
       icon: _icon(mode),
       onPressed: () => store.add(
         SettingsPatched(
-          (current) => current.copyWith(themeMode: nextTheme(mode)),
+          (current) => current.withAppearance(
+            (a) => a.copyWith(themeMode: nextTheme(mode)),
+          ),
         ),
       ),
     );

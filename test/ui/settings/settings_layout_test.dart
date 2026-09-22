@@ -113,10 +113,13 @@ void main() {
     await tester.tap(find.text(l.effectPresetCalm));
     await tester.pumpAndSettle();
 
-    expect(harness.settings.state.libraryEffects, isTrue);
-    expect(harness.settings.state.isOn(LibraryEffect.portal), isFalse);
+    expect(harness.settings.state.appearance.libraryEffects, isTrue);
     expect(
-      harness.settings.state.isOn(LibraryEffect.interfaceAnimations),
+      harness.settings.state.appearance.isOn(LibraryEffect.portal),
+      isFalse,
+    );
+    expect(
+      harness.settings.state.appearance.isOn(LibraryEffect.interfaceAnimations),
       isTrue,
     );
 

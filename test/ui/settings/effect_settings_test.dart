@@ -22,20 +22,23 @@ void main() {
       AppSettings.fromJson(const {'libraryEffects': true}, '/games'),
       AppSettings.fromJson(const {'libraryEffects': false}, '/games'),
     ]) {
-      expect(settings.isOn(LibraryEffect.particles), isFalse);
-      expect(settings.isOn(LibraryEffect.waves), isTrue);
-      expect(settings.isOn(LibraryEffect.foil), isTrue);
-      expect(settings.isOn(LibraryEffect.cardTilt), isTrue);
-      expect(settings.isOn(LibraryEffect.liquidDistortion), isFalse);
-      expect(settings.isOn(LibraryEffect.liquidSelection), isFalse);
-      expect(settings.isOn(LibraryEffect.ambient), isTrue);
-      expect(settings.isOn(LibraryEffect.heroSweep), isTrue);
-      expect(settings.isOn(LibraryEffect.shotsBackdrop), isTrue);
-      expect(settings.isOn(LibraryEffect.coverBackdrop), isTrue);
-      expect(settings.isOn(LibraryEffect.interfaceAnimations), isTrue);
-      expect(settings.isOn(LibraryEffect.drops), isFalse);
-      expect(settings.isOn(LibraryEffect.portal), isTrue);
-      expect(settings.isOn(LibraryEffect.selectionFrame), isFalse);
+      expect(settings.appearance.isOn(LibraryEffect.particles), isFalse);
+      expect(settings.appearance.isOn(LibraryEffect.waves), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.foil), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.cardTilt), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.liquidDistortion), isFalse);
+      expect(settings.appearance.isOn(LibraryEffect.liquidSelection), isFalse);
+      expect(settings.appearance.isOn(LibraryEffect.ambient), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.heroSweep), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.shotsBackdrop), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.coverBackdrop), isTrue);
+      expect(
+        settings.appearance.isOn(LibraryEffect.interfaceAnimations),
+        isTrue,
+      );
+      expect(settings.appearance.isOn(LibraryEffect.drops), isFalse);
+      expect(settings.appearance.isOn(LibraryEffect.portal), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.selectionFrame), isFalse);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),
@@ -43,25 +46,45 @@ void main() {
     }
     const base = AppSettings(installDir: '/games');
     for (final changed in [
-      base.withEffect(LibraryEffect.particles, on: true),
-      base.withEffect(LibraryEffect.waves, on: false),
-      base.withEffect(LibraryEffect.foil, on: false),
-      base.withEffect(LibraryEffect.cardTilt, on: false),
-      base.withEffect(LibraryEffect.liquidDistortion, on: true),
-      base.withEffect(LibraryEffect.liquidSelection, on: true),
-      base.withEffect(LibraryEffect.ambient, on: false),
-      base.withEffect(LibraryEffect.heroSweep, on: false),
-      base.withEffect(LibraryEffect.shotsBackdrop, on: false),
-      base.withEffect(LibraryEffect.interfaceAnimations, on: false),
-      base.withEffect(LibraryEffect.drops, on: true),
-      base.withEffect(LibraryEffect.portal, on: false),
-      base.withEffect(LibraryEffect.selectionFrame, on: true),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.particles, on: true),
+      ),
+      base.withAppearance((a) => a.withEffect(LibraryEffect.waves, on: false)),
+      base.withAppearance((a) => a.withEffect(LibraryEffect.foil, on: false)),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.cardTilt, on: false),
+      ),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.liquidDistortion, on: true),
+      ),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.liquidSelection, on: true),
+      ),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.ambient, on: false),
+      ),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.heroSweep, on: false),
+      ),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.shotsBackdrop, on: false),
+      ),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.interfaceAnimations, on: false),
+      ),
+      base.withAppearance((a) => a.withEffect(LibraryEffect.drops, on: true)),
+      base.withAppearance((a) => a.withEffect(LibraryEffect.portal, on: false)),
+      base.withAppearance(
+        (a) => a.withEffect(LibraryEffect.selectionFrame, on: true),
+      ),
     ]) {
       expect(changed, isNot(base));
       final restored = AppSettings.fromJson(changed.toJson(), '/games');
       expect(restored.toJson(), changed.toJson());
       expect(
-        changed.copyWith(libraryEffects: false).copyWith(libraryEffects: true),
+        changed
+            .withAppearance((a) => a.copyWith(libraryEffects: false))
+            .withAppearance((a) => a.copyWith(libraryEffects: true)),
         changed,
       );
     }
@@ -186,7 +209,10 @@ void main() {
         Future<void> toggle(String name) => toggleEffect(tester, harness, name);
 
         await toggle('particles');
-        expect(harness.settings.state.isOn(LibraryEffect.particles), isTrue);
+        expect(
+          harness.settings.state.appearance.isOn(LibraryEffect.particles),
+          isTrue,
+        );
         expect(atmosphere.field.particles, isNotEmpty);
         await toggle('waves');
         expect(find.byKey(const ValueKey('detail-wave-paint')), findsNothing);
@@ -195,7 +221,10 @@ void main() {
         expect(atmosphere.field.particles, isEmpty);
         await toggle('particles');
         expect(atmosphere.field.particles, isNotEmpty);
-        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+        expect(
+          harness.settings.state.appearance.isOn(LibraryEffect.portal),
+          isTrue,
+        );
         final sparks = find.byWidgetPredicate(
           (widget) => widget is PortalSparks && widget.enabled,
         );
@@ -219,16 +248,28 @@ void main() {
           secondGame,
         );
         await toggle('portal');
-        expect(harness.settings.state.isOn(LibraryEffect.portal), isFalse);
+        expect(
+          harness.settings.state.appearance.isOn(LibraryEffect.portal),
+          isFalse,
+        );
         expect(sparks, findsNothing);
         await toggle('portal');
-        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+        expect(
+          harness.settings.state.appearance.isOn(LibraryEffect.portal),
+          isTrue,
+        );
         expect(sparks, findsOneWidget);
         await toggle('master');
         expect(atmosphere.field.particles, isEmpty);
         expect(atmosphere.isAnimating, isFalse);
-        expect(harness.settings.state.isOn(LibraryEffect.particles), isTrue);
-        expect(harness.settings.state.isOn(LibraryEffect.portal), isTrue);
+        expect(
+          harness.settings.state.appearance.isOn(LibraryEffect.particles),
+          isTrue,
+        );
+        expect(
+          harness.settings.state.appearance.isOn(LibraryEffect.portal),
+          isTrue,
+        );
         expect(sparks, findsNothing);
         await toggle('master');
         expect(atmosphere.field.particles, isNotEmpty);
@@ -267,14 +308,17 @@ void main() {
 
       await focusCover();
       expect(
-        harness.settings.state.isOn(LibraryEffect.selectionFrame),
+        harness.settings.state.appearance.isOn(LibraryEffect.selectionFrame),
         isFalse,
       );
       expect(frame, findsNothing);
 
       await toggleEffect(tester, harness, 'selectionFrame');
       await focusCover();
-      expect(harness.settings.state.isOn(LibraryEffect.selectionFrame), isTrue);
+      expect(
+        harness.settings.state.appearance.isOn(LibraryEffect.selectionFrame),
+        isTrue,
+      );
       expect(frame, findsOneWidget);
 
       await toggleEffect(tester, harness, 'selectionFrame');
@@ -289,7 +333,7 @@ void main() {
       // эффектов её не касается.
       await toggleEffect(tester, harness, 'master');
       await focusCover();
-      expect(harness.settings.state.libraryEffects, isFalse);
+      expect(harness.settings.state.appearance.libraryEffects, isFalse);
       expect(frame, findsOneWidget);
       expect(tester.takeException(), isNull);
     });

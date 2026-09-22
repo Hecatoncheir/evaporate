@@ -7,16 +7,16 @@ sealed class DownloadHistoryEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Движок прислал новое состояние задачи.
+/// Движок прислал снимок задач — выборка по каждой.
 ///
-/// Прошлое состояние идёт вместе с новым: выборку добавляют, только когда
-/// что-то и правда сдвинулось, а прошлое знает тот, кто держит задачу.
-final class SpeedSampled extends DownloadHistoryEvent implements FrequentEvent {
-  const SpeedSampled({required this.task, required this.previous});
+/// Выборка добавляется всегда, а не только когда что-то сдвинулось: у
+/// замершей загрузки график обязан ползти нулями, а не стоять на последней
+/// живой скорости, как будто качается.
+final class TasksSampled extends DownloadHistoryEvent implements FrequentEvent {
+  const TasksSampled(this.tasks);
 
-  final DownloadTask task;
-  final DownloadTask previous;
+  final List<DownloadTask> tasks;
 
   @override
-  List<Object?> get props => [task, previous];
+  List<Object?> get props => [tasks];
 }

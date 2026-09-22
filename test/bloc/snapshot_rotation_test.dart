@@ -330,13 +330,15 @@ void main() {
     final id = await gameWithSave('Выгрузка', keep: 5);
     settings.add(
       SettingsPatched(
-        (s) => s.copyWith(
-          syncFolder: p.join(tmp.path, 'sync'),
-          autoExportToSync: true,
+        (s) => s.withSaves(
+          (a) => a.copyWith(
+            syncFolder: p.join(tmp.path, 'sync'),
+            autoExportToSync: true,
+          ),
         ),
       ),
     );
-    await settings.stream.firstWhere((s) => s.syncFolder != null);
+    await settings.stream.firstWhere((s) => s.saves.syncFolder != null);
     final hanging = _HangingExport(paths);
     final closing = SavesBloc(
       paths: paths,

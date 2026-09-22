@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
-import '../downloads/download_history_scope.dart';
 import 'detail/game_detail_body.dart';
 
 /// Карточка игры целиком.
@@ -21,23 +20,14 @@ class GameDetail extends StatelessWidget {
     final task = context.select<DownloadsBloc, DownloadTask?>(
       (bloc) => bloc.state.taskForGame(game),
     );
-    final downloading = task != null && !task.isFinished;
-    final body = Align(
+    // Истории скоростей здесь больше не заводятся: она одна на приложение
+    // (`DownloadHistoryBloc`), и график с показаниями берут её по задаче.
+    return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 940),
         child: GameDetailBody(game: game, task: task),
       ),
-    );
-
-    // Область истории охватывает обе половины сразу: подложку под
-    // заголовком и показания у клавиш. Ключ по задаче — иначе при
-    // перелистывании страниц история одной игры досталась бы другой.
-    if (!downloading) return body;
-    return DownloadHistoryScope(
-      key: ValueKey(task.id),
-      task: task,
-      child: body,
     );
   }
 }

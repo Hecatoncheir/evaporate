@@ -375,8 +375,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState>
       download: DownloadLink(source: event.source),
       details: GameDetails(steamAppId: event.steamAppId),
       saveProfile: SaveProfile(
-        autoSnapshotOnExit: settings.state.autoSnapshotOnExit,
-        autoSnapshotOnLaunch: settings.state.autoSnapshotOnLaunch,
+        autoSnapshotOnExit: settings.state.saves.autoSnapshotOnExit,
+        autoSnapshotOnLaunch: settings.state.saves.autoSnapshotOnLaunch,
       ),
     );
     emit(state.copyWith(games: [...state.games, game]));

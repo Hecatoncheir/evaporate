@@ -36,7 +36,7 @@ class RestoreDialogBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     return SizedBox(
-      width: 560,
+      width: EvaporateLayout.dialogWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

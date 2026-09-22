@@ -37,7 +37,7 @@ class RuleFormFields extends StatelessWidget {
     final bloc = context.read<RuleFormBloc>();
 
     return SizedBox(
-      width: 540,
+      width: EvaporateLayout.dialogWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

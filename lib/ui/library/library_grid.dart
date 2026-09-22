@@ -31,7 +31,7 @@ class LibraryGrid extends StatelessWidget {
 
   final List<Game> games;
   final String? selectedId;
-  final AppSettings effects;
+  final Appearance effects;
 
   /// Крупность плиток из настроек библиотеки.
   final double scale;
@@ -53,9 +53,7 @@ class LibraryGrid extends StatelessWidget {
         return LiquidSelection(
           key: const ValueKey('grid-liquid'),
           targetKey: () => controller.targetKey(selectedId),
-          enabled:
-              effects.libraryEffects &&
-              effects.isOn(LibraryEffect.liquidSelection),
+          enabled: effects.shows(LibraryEffect.liquidSelection),
           color: context.colors.selection,
           radius: EvaporateTheme.radiusPanel,
           padding: const EdgeInsets.all(7),

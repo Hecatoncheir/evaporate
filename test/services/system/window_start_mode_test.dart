@@ -26,11 +26,11 @@ void main() {
     test('выбор переживает запись и чтение', () {
       for (final mode in WindowStartMode.values) {
         final settings = const AppSettings(installDir: '/games')
-            .copyWith(windowStart: mode);
+            .withStartup((s) => s.copyWith(windowStart: mode));
 
         final restored = AppSettings.fromJson(settings.toJson(), '/games');
 
-        expect(restored.windowStart, mode);
+        expect(restored.startup.windowStart, mode);
       }
     });
   });
@@ -44,34 +44,38 @@ void main() {
 
     test('прежнее «всегда разворачивать» становится режимом', () {
       expect(
-        read({'startMaximized': true}).windowStart,
+        read({'startMaximized': true}).startup.windowStart,
         WindowStartMode.maximized,
       );
     });
 
     test('прежнее «не запоминать размер» тоже даёт развёрнутое', () {
       expect(
-        read({'rememberWindowSize': false}).windowStart,
+        read({'rememberWindowSize': false}).startup.windowStart,
         WindowStartMode.maximized,
       );
     });
 
     test('прежние значения по умолчанию дают «как закрыли»', () {
       expect(
-        read({'rememberWindowSize': true, 'startMaximized': false}).windowStart,
+        read({'rememberWindowSize': true, 'startMaximized': false})
+            .startup
+            .windowStart,
         WindowStartMode.remembered,
       );
     });
 
     test('новое значение важнее старых', () {
       expect(
-        read({'windowStart': 'minimized', 'startMaximized': true}).windowStart,
+        read({'windowStart': 'minimized', 'startMaximized': true})
+            .startup
+            .windowStart,
         WindowStartMode.minimized,
       );
     });
 
     test('пустой файл настроек не ломает чтение', () {
-      expect(read({}).windowStart, WindowStartMode.remembered);
+      expect(read({}).startup.windowStart, WindowStartMode.remembered);
     });
   });
 

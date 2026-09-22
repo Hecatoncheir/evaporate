@@ -36,7 +36,7 @@ class ScanDialogBody extends StatelessWidget {
     final bloc = context.read<ScanBloc>();
 
     return SizedBox(
-      width: 560,
+      width: EvaporateLayout.dialogWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

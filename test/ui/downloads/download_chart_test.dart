@@ -132,10 +132,7 @@ void main() {
 /// История, поданная целиком: строить её выборка за выборкой значило бы
 /// подделывать ещё и время между ними.
 class _Prepared extends DownloadHistoryBloc {
-  _Prepared(List<SpeedSample> history)
-    : super(
-        const DownloadTask(id: 't', name: 'n', state: DownloadState.active),
-      ) {
-    emit(DownloadSpeedHistory(samples: history));
+  _Prepared(List<SpeedSample> history) : super(tasks: const Stream.empty()) {
+    emit(DownloadHistories({'t1': DownloadSpeedHistory(samples: history)}));
   }
 }

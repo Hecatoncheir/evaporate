@@ -63,9 +63,7 @@ class NavigationRack extends StatelessWidget {
             color: colors.selection,
             radius: EvaporateTheme.radiusChip,
             enabled: context.select<SettingsBloc, bool>(
-              (b) =>
-                  b.state.libraryEffects &&
-                  b.state.isOn(LibraryEffect.liquidSelection),
+              (b) => b.state.appearance.shows(LibraryEffect.liquidSelection),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

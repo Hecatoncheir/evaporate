@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/download_history.dart';
 import '../../support/test_app.dart';
 
 /// Отмена снимает задачу насовсем: место в очереди, обмен с пирами и
@@ -67,7 +68,10 @@ void main() {
           home: MediaQuery(
             data: const MediaQueryData(disableAnimations: true),
             child: Scaffold(
-              body: TaskCard(task: task, game: game),
+              body: historyScope(
+                task: task,
+                child: TaskCard(task: task, game: game),
+              ),
             ),
           ),
         ),
@@ -122,13 +126,16 @@ void main() {
             home: MediaQuery(
               data: const MediaQueryData(disableAnimations: true),
               child: Scaffold(
-                body: TaskCard(
+                body: historyScope(
                   task: task,
-                  game: Game(
-                    id: 'g1',
-                    title: 'Игра',
-                    addedAt: DateTime.now(),
-                    status: GameStatus.downloading,
+                  child: TaskCard(
+                    task: task,
+                    game: Game(
+                      id: 'g1',
+                      title: 'Игра',
+                      addedAt: DateTime.now(),
+                      status: GameStatus.downloading,
+                    ),
                   ),
                 ),
               ),

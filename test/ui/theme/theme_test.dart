@@ -214,11 +214,11 @@ void main() {
     test('режим переживает запись и чтение', () {
       for (final mode in AppThemeMode.values) {
         final settings = const AppSettings(installDir: '/games')
-            .copyWith(themeMode: mode);
+            .withAppearance((a) => a.copyWith(themeMode: mode));
 
         final restored = AppSettings.fromJson(settings.toJson(), '/games');
 
-        expect(restored.themeMode, mode);
+        expect(restored.appearance.themeMode, mode);
       }
     });
 
@@ -230,12 +230,12 @@ void main() {
         'themeMode': 'сепия',
       }, '/games');
 
-      expect(restored.themeMode, AppThemeMode.system);
+      expect(restored.appearance.themeMode, AppThemeMode.system);
     });
 
     test('по умолчанию тема системная', () {
       expect(
-        const AppSettings(installDir: '/games').themeMode,
+        const AppSettings(installDir: '/games').appearance.themeMode,
         AppThemeMode.system,
       );
     });

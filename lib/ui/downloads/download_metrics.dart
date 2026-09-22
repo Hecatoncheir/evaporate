@@ -17,9 +17,11 @@ class DownloadMetrics extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
-    // Историю читаем из общего Cubit: на странице игры по ней же рисуется
-    // подложка под заголовком, и расходиться этим двум нельзя.
-    final history = context.watch<DownloadHistoryBloc>().state;
+    // Историю читаем из общего блока: по ней же рисуется график, и
+    // расходиться показаниям с ним нельзя.
+    final history = context.select<DownloadHistoryBloc, DownloadSpeedHistory>(
+      (bloc) => bloc.state.of(task.id),
+    );
 
     return Wrap(
       spacing: 10,

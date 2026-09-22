@@ -9,12 +9,14 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_services.dart';
+import 'bloc/download_history/download_history_bloc.dart';
 import 'bloc/downloads/downloads_bloc.dart';
 import 'bloc/library/library_bloc.dart';
 import 'bloc/logging_observer.dart';
 import 'bloc/navigation/navigation_bloc.dart';
 import 'bloc/saves/saves_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
+import 'bloc/update/update_bloc.dart';
 import 'core/app_paths.dart';
 import 'core/json_store.dart';
 import 'input/gamepad_service.dart';
@@ -58,7 +60,7 @@ Future<void> main() async {
   final (proxyRouting, stopProxyRouting) = await _routeThroughProxy(settings);
 
   L localizations() {
-    final code = settings.state.locale;
+    final code = settings.state.appearance.locale;
     return lookupL(code == null ? _systemLocale() : Locale(code));
   }
 
@@ -85,8 +87,6 @@ Future<void> main() async {
   // Замок — под конец: пока идут шаги, второй экземпляр не нужен.
   shutdownSteps.addAll([tray.dispose, instance.release, AppLog.instance.flush]);
 
-  _checkUpdatesInBackground(services.notifications, settings, localizations);
-
   runApp(
     EvaporateApp(
       settings: settings,
@@ -95,23 +95,11 @@ Future<void> main() async {
       downloads: services.downloads,
       gamepad: services.gamepad,
       notifications: services.notifications,
+      update: services.update,
       windowMode: windowMode,
       tray: tray,
     ),
   );
-}
-
-/// Смотрит, нет ли новой версии, — в фоне и без ожидания.
-///
-/// Сеть может не ответить, а приложение должно открыться сразу. Молчим и
-/// при ошибке: недоступный GitHub не повод встречать человека сообщением.
-void _checkUpdatesInBackground(
-  NotificationService notifications,
-  SettingsBloc settings,
-  L Function() localizations,
-) {
-  if (!settings.state.checkUpdates) return;
-  unawaited(_announceUpdate(notifications, settings, localizations()));
 }
 
 /// Заводит журнал и сводит в него чужие жалобы.
@@ -212,7 +200,7 @@ Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
     () async {
       // macOS сохраняет нативные тень/скругление NSWindow, но без кнопок.
       if (!Platform.isMacOS) await windowManager.setAsFrameless();
-      await window.restore(settings.windowStart);
+      await window.restore(settings.startup.windowStart);
     },
   );
   return window;
@@ -262,6 +250,7 @@ class EvaporateApp extends StatefulWidget {
     required this.downloads,
     required this.gamepad,
     required this.notifications,
+    required this.update,
     required this.windowMode,
     this.tray,
   });
@@ -272,6 +261,7 @@ class EvaporateApp extends StatefulWidget {
   final DownloadsBloc downloads;
   final GamepadService gamepad;
   final NotificationService notifications;
+  final UpdateBloc update;
   final WindowModeWatch windowMode;
   final AppTray? tray;
 
@@ -288,44 +278,47 @@ class _EvaporateAppState extends State<EvaporateApp> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = widget.settings;
-    final library = widget.library;
-    final saves = widget.saves;
     final downloads = widget.downloads;
-    final gamepad = widget.gamepad;
     final notifications = widget.notifications;
     return MultiBlocProvider(
       providers: [
-        BlocProvider.value(value: settings),
-        BlocProvider.value(value: library),
-        BlocProvider.value(value: saves),
+        BlocProvider.value(value: widget.settings),
+        BlocProvider.value(value: widget.library),
+        BlocProvider.value(value: widget.saves),
         BlocProvider.value(value: downloads),
-        BlocProvider(create: (_) => NavigationBloc(library: library)),
+        BlocProvider(create: (_) => NavigationBloc(library: widget.library)),
+        BlocProvider.value(value: widget.update),
+        // Истории скоростей — одна на приложение: на задачу смотрят и
+        // карточка на загрузках, и страница игры, живущие разом.
+        BlocProvider(
+          create: (_) => DownloadHistoryBloc(
+            tasks: downloads.stream.map((state) => state.tasks).distinct(),
+          ),
+        ),
       ],
       // Сервис ввода состояния не имеет — его внедряет обычный Provider,
       // на котором flutter_bloc и так построен.
       child: MultiProvider(
         providers: [
-          Provider.value(value: gamepad),
+          Provider.value(value: widget.gamepad),
           Provider<NotificationService>.value(value: notifications),
         ],
         child: BlocConsumer<SettingsBloc, AppSettings>(
-          listenWhen: (before, after) => before.locale != after.locale,
+          listenWhen: (before, after) =>
+              before.appearance.locale != after.appearance.locale,
           listener: (context, settings) {
             unawaited(widget.tray?.updateMenu().catchError((Object _) {}));
             if (notifications is SystemNotificationService) {
               unawaited(notifications.initialize());
             }
           },
-          buildWhen: (before, after) =>
-              before.themeMode != after.themeMode ||
-              before.locale != after.locale,
+          buildWhen: (before, after) => _app(before) != _app(after),
           builder: (context, settings) => MaterialApp(
             title: 'Evaporate',
             debugShowCheckedModeBanner: false,
             theme: EvaporateTheme.light(),
             darkTheme: EvaporateTheme.dark(),
-            themeMode: settings.themeMode.material,
+            themeMode: _app(settings).theme,
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
             builder: (context, child) => AppWindowFrame(
@@ -334,7 +327,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
             ),
             // null означает «взять язык системы»: MaterialApp сам
             // подберёт ближайший из поддерживаемых.
-            locale: settings.locale == null ? null : Locale(settings.locale!),
+            locale: _app(settings).locale,
             home: const AppShell(),
           ),
         ),
@@ -343,27 +336,17 @@ class _EvaporateAppState extends State<EvaporateApp> {
   }
 }
 
-/// Сообщает о вышедшей версии, если она есть.
-Future<void> _announceUpdate(
-  NotificationService notifications,
-  SettingsBloc settings,
-  L l,
-) async {
-  try {
-    final release = await UpdateCheck().latest();
-    if (release == null) return;
-    if (!settings.state.systemNotifications) return;
-    await notifications.show(
-      AppNotification(
-        title: l.newVersionOut(release.version),
-        body: l.updateAvailableBody,
-        kind: NotificationKind.updateAvailable,
-      ),
-    );
-  } on Object {
-    // Проверка обновлений — удобство, а не обязанность: недоступная сеть
-    // не должна ничем оборачиваться для пользователя.
-  }
+/// То из настроек, от чего зависит сам `MaterialApp`: схема и язык.
+///
+/// Записью, а не двумя сравнениями по месту: перестраивать приложение
+/// целиком стоит только на них, и сравнивать надо ровно то, что отдаётся
+/// в `MaterialApp`, — иначе однажды одно добавят, а другое забудут.
+({ThemeMode theme, Locale? locale}) _app(AppSettings settings) {
+  final code = settings.appearance.locale;
+  return (
+    theme: settings.appearance.themeMode.material,
+    locale: code == null ? null : Locale(code),
+  );
 }
 
 /// Язык системы, приведённый к поддерживаемому.

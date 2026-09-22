@@ -60,10 +60,11 @@ class AboutBody extends StatelessWidget {
               onToggle: () => bloc.add(const MenuEntryToggled()),
             ),
           SettingSwitch(
-            value: settings.checkUpdates,
+            value: settings.startup.checkUpdates,
             onChanged: (value) => context.read<SettingsBloc>().add(
               SettingsPatched(
-                (current) => current.copyWith(checkUpdates: value),
+                (current) =>
+                    current.withStartup((s) => s.copyWith(checkUpdates: value)),
               ),
             ),
             title: l.checkUpdatesOnStart,

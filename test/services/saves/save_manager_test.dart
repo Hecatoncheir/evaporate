@@ -51,6 +51,13 @@ void main() {
     return dir;
   }
 
+  /// Портит содержимое файла снимка в хранилище: на месте и не пустое, но
+  /// не разворачивается — сбой на середине выгрузки без игры с правами.
+  Future<void> breakBlob(SaveSnapshot snapshot, String file) async {
+    final blob = snapshot.blobs.firstWhere((b) => b.name.endsWith(file));
+    await manager.store.fileFor(blob.hash).writeAsString('не gzip');
+  }
+
   Game gameWith({
     required String id,
     required String title,
@@ -992,21 +999,13 @@ void main() {
         SavePathRule(id: 'rule-1', label: 'Сохранения', template: saves.path),
       ],
     );
-    final failing = SaveManager(
-      paths: paths,
-      addToArchive: (encoder, file, name) async {
-        if (name.endsWith('slot2.sav')) {
-          throw FileSystemException('Simulated read failure', file.path);
-        }
-        return encoder.addFile(file, name);
-      },
-    );
-    final snapshot = await failing.createSnapshot(game);
+    final snapshot = await manager.createSnapshot(game);
+    await breakBlob(snapshot, 'slot2.sav');
     final destination = p.join(tmp.path, 'вывоз${SaveSnapshot.fileExtension}');
 
     await expectLater(
-      failing.exportSnapshot(snapshot, destination),
-      throwsA(isA<FileSystemException>()),
+      manager.exportSnapshot(snapshot, destination),
+      throwsA(isA<SaveException>()),
     );
 
     // Наружу пакет не вернулся, и половина его на диске никому не нужна:
@@ -1034,19 +1033,11 @@ void main() {
     final destination = p.join(sync.path, 'игра${SaveSnapshot.fileExtension}');
     await manager.exportSnapshot(snapshot, destination);
     final yesterday = await File(destination).readAsBytes();
+    await breakBlob(snapshot, 'slot2.sav');
 
-    final failing = SaveManager(
-      paths: paths,
-      addToArchive: (encoder, file, name) async {
-        if (name.endsWith('slot2.sav')) {
-          throw FileSystemException('Simulated read failure', file.path);
-        }
-        return encoder.addFile(file, name);
-      },
-    );
     await expectLater(
-      failing.exportSnapshot(snapshot, destination),
-      throwsA(isA<FileSystemException>()),
+      manager.exportSnapshot(snapshot, destination),
+      throwsA(isA<SaveException>()),
     );
 
     expect(await File(destination).readAsBytes(), yesterday);

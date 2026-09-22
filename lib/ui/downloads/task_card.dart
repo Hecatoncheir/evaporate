@@ -4,7 +4,6 @@ import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
 import 'download_activity.dart';
-import 'download_history_scope.dart';
 import 'task_header.dart';
 import 'task_stats.dart';
 
@@ -26,11 +25,7 @@ class TaskCard extends StatelessWidget {
         children: [
           TaskHeader(task: task, game: game),
           const SizedBox(height: 14),
-          DownloadHistoryScope(
-            key: ValueKey(task.id),
-            task: task,
-            child: DownloadActivity(task: task),
-          ),
+          DownloadActivity(task: task),
           const SizedBox(height: 12),
           TaskStats(task: task),
           if (task.errorMessage != null) ...[

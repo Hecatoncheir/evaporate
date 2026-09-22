@@ -331,8 +331,10 @@ void main() {
 
   test('украшения включены по умолчанию, переживают запись и участвуют в сравнении', () {
     final settings = AppSettings.fromJson(const {}, '/games');
-    expect(settings.libraryEffects, isTrue);
-    final disabled = settings.copyWith(libraryEffects: false);
+    expect(settings.appearance.libraryEffects, isTrue);
+    final disabled = settings.withAppearance(
+      (a) => a.copyWith(libraryEffects: false),
+    );
     expect(disabled, isNot(settings));
     expect(
       AppSettings.fromJson(disabled.toJson(), '/games').toJson(),
@@ -362,7 +364,9 @@ void main() {
       if (particles) {
         harness.settings.add(
           SettingsPatched(
-            (current) => current.withEffect(LibraryEffect.particles, on: true),
+            (current) => current.withAppearance(
+              (a) => a.withEffect(LibraryEffect.particles, on: true),
+            ),
           ),
         );
       }
@@ -539,12 +543,19 @@ void main() {
         await frames(tester, 2);
         expect(state.isAnimating, isTrue);
         harness.settings.add(
-          SettingsPatched((current) => current.copyWith(libraryEffects: false)),
+          SettingsPatched(
+            (current) => current.withAppearance(
+              (a) => a.copyWith(libraryEffects: false),
+            ),
+          ),
         );
         await frames(tester, 4);
         expect(state.isAnimating, isFalse);
         harness.settings.add(
-          SettingsPatched((current) => current.copyWith(libraryEffects: true)),
+          SettingsPatched(
+            (current) =>
+                current.withAppearance((a) => a.copyWith(libraryEffects: true)),
+          ),
         );
         await frames(tester, 4);
         await tester.pumpWidget(

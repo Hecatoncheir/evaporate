@@ -22,7 +22,7 @@ void main() {
     addTearDown(harness.dispose);
 
     await harness.pump(tester);
-    expect(harness.settings.state.themeMode, AppThemeMode.system);
+    expect(harness.settings.state.appearance.themeMode, AppThemeMode.system);
 
     // Прежде клавиша переключала тёмное со светлым и молча съедала «как в
     // системе»: вернуть его было можно только в настройках.
@@ -33,7 +33,7 @@ void main() {
     ]) {
       await tester.tap(find.byTooltip(tooltip));
       await tester.pumpAndSettle();
-      expect(harness.settings.state.themeMode, mode);
+      expect(harness.settings.state.appearance.themeMode, mode);
     }
   });
 

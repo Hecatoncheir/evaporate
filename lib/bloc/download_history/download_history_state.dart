@@ -37,3 +37,17 @@ class DownloadSpeedHistory extends Equatable {
   @override
   List<Object?> get props => [samples];
 }
+
+/// Истории всех задач — по идентификатору задачи.
+class DownloadHistories extends Equatable {
+  const DownloadHistories([this.byTask = const {}]);
+
+  final Map<String, DownloadSpeedHistory> byTask;
+
+  /// История задачи; у незнакомой — пустая.
+  DownloadSpeedHistory of(String taskId) =>
+      byTask[taskId] ?? const DownloadSpeedHistory(samples: []);
+
+  @override
+  List<Object?> get props => [byTask];
+}

@@ -22,8 +22,7 @@ class ShellPanel extends StatelessWidget {
       (bloc) => bloc.state.section,
     );
     final waveEnabled = context.select<SettingsBloc, bool>(
-      (bloc) =>
-          bloc.state.libraryEffects && bloc.state.isOn(LibraryEffect.waves),
+      (bloc) => bloc.state.appearance.shows(LibraryEffect.waves),
     );
     final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
     return ClipRRect(

@@ -7,13 +7,13 @@ import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/download_chart.dart';
-import 'package:evaporate/ui/downloads/download_history_scope.dart';
 import 'package:evaporate/ui/library/detail/downloading_header.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/download_history.dart';
 import '../../support/test_app.dart';
 
 /// Заголовок качающейся игры лежит поверх её же графика: страница отвечает
@@ -56,7 +56,7 @@ void main() {
           home: MediaQuery(
             data: const MediaQueryData(disableAnimations: true),
             child: Scaffold(
-              body: DownloadHistoryScope(
+              body: historyScope(
                 task: task,
                 child: DownloadingHeader(
                   game: Game(

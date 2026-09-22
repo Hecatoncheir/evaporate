@@ -30,7 +30,7 @@ class LibraryFeaturedSlot extends StatelessWidget {
 
   final List<Game> games;
   final String? selectedId;
-  final AppSettings effects;
+  final Appearance effects;
 
   /// Высота, доставшаяся разделу.
   final double height;
@@ -49,10 +49,8 @@ class LibraryFeaturedSlot extends StatelessWidget {
     return FeaturedGame(
       game: game,
       compact: height < _roomyHeight,
-      sweepEnabled:
-          effects.libraryEffects && effects.isOn(LibraryEffect.heroSweep),
-      shotsEnabled:
-          effects.libraryEffects && effects.isOn(LibraryEffect.shotsBackdrop),
+      sweepEnabled: effects.shows(LibraryEffect.heroSweep),
+      shotsEnabled: effects.shows(LibraryEffect.shotsBackdrop),
       onOpen: () => context.read<NavigationBloc>().add(GameOpened(game.id)),
       onPrimary: () => dispatchPrimaryAction(context, game),
     );
