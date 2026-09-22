@@ -155,7 +155,6 @@ const thinFiles = <String, int>{
   'lib/services/system/managed_window.dart': 35,
   'lib/services/system/update_transport.dart': 38,
   'lib/services/download/engine_queue.dart': 41,
-  'lib/core/system_folders.dart': 42,
   'lib/bloc/update/update_event.dart': 43,
   'lib/ui/library/effects/cover_drops.dart': 44,
 };

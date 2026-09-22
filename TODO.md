@@ -1246,7 +1246,7 @@ list`. Код читали пять параллельных рецензий п
   одиночные ручки десяти других виджетов (`shellOpacity`, `toolbarOpacity`,
   `cardOpacity`, `readoutOpacity`, `scrimOpacity`, `ambientStrength`,
   `vignetteOpacity`, `keySheen`, тени обоймы и кадра) всё ещё в
-  `HardwareSurfaceTheme`; `grilleHole` уйдёт с `HardwareGrille` в F13.
+  `HardwareSurfaceTheme`; `grilleHole` ушёл с `HardwareGrille` в F13.
 - [ ] **F10. Роли текста расползаются, а шкалы отступов нет вовсе.** **[○]**
   47 употреблений ролей из 133 правят роль через `copyWith` (`caption` — 8
   из 10, `figure` — 4 из 5); `label` (9 / w700 / +1,4) и `eyebrow` (9,5 /
