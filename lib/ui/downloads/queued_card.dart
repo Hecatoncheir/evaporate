@@ -14,11 +14,19 @@ class QueuedCard extends StatelessWidget {
     required this.task,
     required this.position,
     required this.game,
+    this.onMoveUp,
+    this.onMoveDown,
   });
 
   final DownloadTask task;
   final int position;
   final Game? game;
+
+  /// Поднять или опустить в очереди — `null` у крайних. Клавишами, а не
+  /// только перетаскиванием: с клавиатуры и геймпада очередь было не
+  /// переставить вовсе, а до клавиши доходит обычный обход фокуса.
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +62,16 @@ class QueuedCard extends StatelessWidget {
             Text(
               L.of(context).waitingInQueue,
               style: context.text.captionMuted,
+            ),
+            IconAction(
+              onPressed: onMoveUp,
+              icon: Icons.arrow_upward_rounded,
+              tooltip: L.of(context).queueMoveUp,
+            ),
+            IconAction(
+              onPressed: onMoveDown,
+              icon: Icons.arrow_downward_rounded,
+              tooltip: L.of(context).queueMoveDown,
             ),
             if (game != null)
               // Та же клавиша, что на карточке задачи: действие одно и то

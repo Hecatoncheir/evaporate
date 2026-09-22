@@ -9,6 +9,7 @@ import '../../models/game.dart';
 import '../../services/saves/save_manager.dart';
 import '../feedback/confirm.dart';
 import '../feedback/snack.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/inset_tile.dart';
 import 'pick_game_dialog.dart';
@@ -32,7 +33,7 @@ class SyncPackageRow extends StatelessWidget {
                 Text(snapshot.gameTitle, style: context.text.bodyStrong),
                 const SizedBox(height: 3),
                 Text(
-                  '${formatDateTime(snapshot.createdAt)} · '
+                  '${dateTimeLabel(L.of(context), snapshot.createdAt)} · '
                   '${snapshot.deviceName} · '
                   '${platformLabel(snapshot.platform)} · '
                   '${L.of(context).filesCount(snapshot.fileCount)}',
@@ -74,7 +75,7 @@ class SyncPackageRow extends StatelessWidget {
           .of(context)
           .applyNote(
             package.snapshot.gameTitle,
-            formatDateTime(package.snapshot.createdAt),
+            dateTimeLabel(L.of(context), package.snapshot.createdAt),
             package.snapshot.deviceName,
             game.title,
           ),

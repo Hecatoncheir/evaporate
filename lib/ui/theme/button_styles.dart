@@ -20,8 +20,13 @@ class EvaporateButtons {
       TextButton.styleFrom(foregroundColor: _colors.danger);
 
   /// Залитая клавиша необратимого — подтверждение в диалоге.
-  ButtonStyle get dangerFilled =>
-      FilledButton.styleFrom(backgroundColor: _colors.danger);
+  ///
+  /// Заливка и надпись — парой, как у главной клавиши: цвет `danger` для
+  /// текста под надписью Картриджа давал 2,7:1.
+  ButtonStyle get dangerFilled => FilledButton.styleFrom(
+    backgroundColor: _colors.dangerFill,
+    foregroundColor: _colors.onDanger,
+  );
 
   /// Залитая клавиша в плотной карточке, рядом с полями и списками.
   ButtonStyle get compactFilled => FilledButton.styleFrom(

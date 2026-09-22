@@ -352,11 +352,12 @@ python3 tool/make_icon.py
 
 ## CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — five jobs:
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — six jobs:
 
 | Job | Runner | What it does |
 |-----|--------|--------------|
-| Analyse and test | ubuntu | `dart format --set-exit-if-changed`, `flutter analyze`, `flutter test` |
+| Format and analyse | ubuntu | `dart format`, `flutter analyze`, `bloc lint`, the plugin registrant check, the `CHANGELOG` section on a tag |
+| Tests | ubuntu, macOS, Windows | `flutter test` in random order; on ubuntu with coverage and its threshold |
 | Build macOS | macos | the `.app`: a `ditto` archive and a `.dmg` image |
 | Build Linux | ubuntu | a bundle with every dependency: a `.tar.gz`, a `.deb` and a `.run` |
 | Build Windows | windows | the Release directory: a `.zip` and an Inno Setup installer |
@@ -366,7 +367,7 @@ An update started by the user looks for `-macos.zip`, `-linux-x64.tar.gz`, or
 `-windows-setup.exe` in the release. On macOS and Linux, a detached helper
 swaps the installation directory. On Windows, the app starts Inno Setup itself
 as a detached process; after the silent installation, the installer relaunches
-Evaporate. [`release_artifacts_test.dart`](test/release_artifacts_test.dart)
+Evaporate. [`release_artifacts_test.dart`](test/tool/release_artifacts_test.dart)
 keeps the names from drifting apart. The packaging recipes sit next to the
 platform code: [`windows/installer.iss`](windows/installer.iss),
 [`tool/package_macos.sh`](tool/package_macos.sh),
@@ -375,13 +376,17 @@ platform code: [`windows/installer.iss`](windows/installer.iss),
 
 A push to `main` runs the analysis and the tests only. The three platform
 builds run on a `v*` tag, and that is when the finished files are attached
-to the release. On a push they would establish what the tests already do, and
+to the release — and once a week on a schedule: the tests compile neither the
+plugin runners nor the installer, so a broken build would otherwise surface on
+release day. On a push they would establish what the tests already do, and
 take four times as long doing it: the macOS build runs for minutes, while
 “the tests passed” is wanted at once.
 
 To check a build without cutting a release, run the workflow by hand
 (`workflow_dispatch`) — the builds run there too. They still wait for the
-tests to pass (`needs: analyze`).
+analysis and the tests to pass (`needs: [analyze, test]`). Everything the
+analysis and test jobs check on every change runs locally as
+`dart tool/gate.dart`.
 
 Most tests need neither Xcode, nor the network, nor a gamepad: the engine is
 created with `autoStart: false` and the queue is exercised without a single
@@ -432,14 +437,14 @@ footing with user input. The launcher reports a finished process through
 means and edits state in one place.
 
 Asynchronous work never throws into widgets. A bloc keeps a set of in-flight
-operation keys (`state.isBusy(...)`) and a one-shot `Notice`, and a single
-`BlocListener` in the shell shows it as a SnackBar. That is why screens carry
+operation keys (`state.isBusy(...)`) and a one-shot `Notice`, and only the
+shell shows it as a SnackBar, with one listener per bloc that has messages. That is why screens carry
 no `bool _busy` and no `try/catch` around calls. `Notice` has a `seq` counter:
 without it, two identical messages in a row would count as the same state and
 the second would never appear.
 
-An event returns nothing, and that changes a couple of places. The add-game
-dialog generates the identifier itself and passes it into `GameAdded` so it
+An event returns nothing, and that changes a couple of places. `AddGameBloc`
+generates the identifier itself and passes it into `GameAdded` so it
 knows immediately which game to select. And before starting a download it waits
 for the game to actually appear in state — otherwise two blocs could disagree
 about the order things happened in.
@@ -455,7 +460,7 @@ brightened copy of the night scheme would look washed out, and the reverse would
 too. Pick one in Settings — dark, light, or "follow the system", which is the
 default.
 
-Contrast was not eyeballed: `test/theme_test.dart` measures the ratio for every
+Contrast was not eyeballed: `test/ui/theme/theme_test.dart` measures the ratio for every
 colour against every surface and demands WCAG levels — 4.5 for captions, 7 for
 body text. That test is also what forced the departures from the source values
 where text would otherwise be unreadable.
@@ -473,8 +478,8 @@ does not glow), `depth` (the edge under a key — transparent at night) and
 
 Colours are handed out by a theme extension (`context.colors.textSecondary`)
 rather than as constants: the two schemes could not otherwise coexist. All of
-them are defined in `lib/ui/app_colors.dart`, and a test rejects new colour
-literals elsewhere in the application. The geometry of the chassis is four radii
+them are defined in `lib/ui/theme/` — the schemes in `palette.dart`, the decoration and game colours in `decor_colors.dart` — and a test rejects new colour
+literals elsewhere in the application. The geometry of the chassis is three radii
 in `EvaporateTheme`, shared by both schemes: different corners would read as two
 different applications, and numbers are never written into
 `BorderRadius.circular(…)` on the spot. Motion is tokens too

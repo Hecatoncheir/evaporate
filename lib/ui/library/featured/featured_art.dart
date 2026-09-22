@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../models/game.dart';
 import '../../theme.dart';
+import '../cover/decode_width.dart';
 import '../effects/hero_sweep.dart';
 import '../shots_backdrop.dart';
 
@@ -50,6 +51,11 @@ class FeaturedArt extends StatelessWidget {
                     File(coverPath),
                     key: const ValueKey('featured-game-background'),
                     fit: BoxFit.cover,
+                    // Кадр — во всю ширину окна, и шире его не бывает.
+                    cacheWidth: decodeWidth(
+                      context,
+                      MediaQuery.sizeOf(context).width,
+                    ),
                     alignment: Alignment.center,
                     filterQuality: FilterQuality.medium,
                     errorBuilder: (context, error, stackTrace) => fallback,

@@ -9,6 +9,7 @@ import '../../core/app_paths.dart';
 import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import '../../l10n/labels.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
 import '../../models/save_snapshot.dart';
@@ -202,7 +203,7 @@ class SaveManager {
       throw SaveNothingFoundException(_l.saveNothingFound);
     }
     if (found.totalBytes > maxSnapshotBytes) {
-      throw SaveException(_l.saveTooLarge(formatBytes(found.totalBytes)));
+      throw SaveException(_l.saveTooLarge(bytesLabel(_l, found.totalBytes)));
     }
 
     // Своего архива у снимка нет: файлы уходят в хранилище по содержимому,
@@ -552,6 +553,10 @@ class SaveManager {
       return await createSnapshot(
         game,
         origin: SnapshotOrigin.preRestore,
+        // Дата — журнальной функцией, а не по языку: заметка хранится в
+        // снимке и уезжает на другие устройства, а `DateFormat` языка
+        // требует данных, которые загружает интерфейс, — без него
+        // восстановление падало бы на резервной копии.
         note: _l.saveAutoBackupNote(formatDateTime(snapshot.createdAt)),
       );
     } on SaveNothingFoundException {
@@ -691,7 +696,7 @@ class SaveManager {
       if (file.isFile) declared += file.size;
     }
     if (declared > maxSnapshotBytes) {
-      throw SaveException(_l.saveTooLarge(formatBytes(declared)));
+      throw SaveException(_l.saveTooLarge(bytesLabel(_l, declared)));
     }
   }
 

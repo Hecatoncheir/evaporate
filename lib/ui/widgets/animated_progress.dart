@@ -59,9 +59,7 @@ class AnimatedProgress extends StatelessWidget {
             ColoredBox(color: colors.surfaceHigh),
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: value!.clamp(0.0, 1.0)),
-              // Чуть дольше, чем приходят сообщения о ходе загрузки: полоса
-              // едет непрерывно, не успевая замереть между ними.
-              duration: const Duration(milliseconds: 900),
+              duration: context.motion.track,
               curve: Curves.easeOut,
               builder: (context, animated, _) => Align(
                 alignment: Alignment.centerLeft,

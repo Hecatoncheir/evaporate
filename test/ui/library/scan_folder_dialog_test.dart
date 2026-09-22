@@ -10,6 +10,7 @@ import 'package:evaporate/services/launch/scan_session.dart';
 import 'package:evaporate/ui/library/library_page.dart';
 import 'package:evaporate/ui/library/scan_folder_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gamepads/gamepads.dart';
 import 'package:path/path.dart' as p;
@@ -274,6 +275,19 @@ void main() {
 
     final harness = await openScan(tester);
     await tester.tap(find.widgetWithText(TextButton, 'Отмена'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(harness.library.state.games, isEmpty);
+  });
+
+  // Кнопка B геймпада окно закрывала, а Esc — нет: `barrierDismissible:
+  // false` выключил вместе с нажатием мимо окна и клавишу выхода.
+  testWidgets('Esc закрывает окно, как и кнопка B', (tester) async {
+    await prepare(tester, () => gameDir('Передумали'));
+
+    final harness = await openScan(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);

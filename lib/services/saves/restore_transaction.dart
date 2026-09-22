@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../../l10n/labels.dart';
 import '../../models/game.dart';
 import '../system/app_log.dart';
 import 'evsave_package.dart';
@@ -591,7 +591,9 @@ class _PlanBuilder {
 
     _bytes += payload.source.size;
     if (_bytes > _saves.maxSnapshotBytes) {
-      throw SaveException(_saves._l.saveTooLarge(formatBytes(_bytes)));
+      throw SaveException(
+        _saves._l.saveTooLarge(bytesLabel(_saves._l, _bytes)),
+      );
     }
     _entries.add(
       RestoreEntry(

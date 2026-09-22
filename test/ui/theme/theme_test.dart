@@ -96,6 +96,13 @@ void main() {
         expect(contrast(p.onPrimary, p.primaryFill), greaterThanOrEqualTo(4.5));
       });
 
+      // Та же пара у необратимого: прежде на красную заливку ложился
+      // обычный текст — 2,7:1 у опасной клавиши Картриджа и около 3:1 у
+      // сообщения об ошибке в обеих схемах.
+      test('$name: надпись на опасной заливке читается', () {
+        expect(contrast(p.onDanger, p.dangerFill), greaterThanOrEqualTo(4.5));
+      });
+
       test('$name: текстовый акцент не подменён заливочным', () {
         for (final background in [p.background, p.surface, p.surfaceHigh]) {
           expect(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/save_snapshot.dart';
 import '../../labels.dart';
@@ -37,7 +36,7 @@ class SnapshotTile extends StatelessWidget {
     // пять раз вместо четырёх.
     return Semantics(
       label: l.snapshotSpoken(
-        formatDateTime(snapshot.createdAt),
+        dateTimeLabel(L.of(context), snapshot.createdAt),
         snapshotOriginLabel(l, snapshot.origin),
         snapshot.fileCount,
       ),

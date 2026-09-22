@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../labels.dart';
@@ -31,16 +30,16 @@ class InfoSection extends StatelessWidget {
             label: L.of(context).lastLaunch,
             value: game.play.lastPlayed == null
                 ? '—'
-                : formatDateTime(game.play.lastPlayed!),
+                : dateTimeLabel(L.of(context), game.play.lastPlayed!),
           ),
           InfoRow(
             label: L.of(context).added,
-            value: formatDateTime(game.addedAt),
+            value: dateTimeLabel(L.of(context), game.addedAt),
           ),
           if (game.sizeBytes > 0)
             InfoRow(
               label: L.of(context).sizeLabel,
-              value: formatBytes(game.sizeBytes),
+              value: bytesLabel(L.of(context), game.sizeBytes),
             ),
           if (game.details.steamAppId != null)
             InfoRow(label: 'Steam', value: 'appid ${game.details.steamAppId}'),
@@ -49,13 +48,20 @@ class InfoSection extends StatelessWidget {
           if (source != null)
             InfoRow(
               label: L.of(context).source,
-              value: source.kind == GameSourceKind.magnet
-                  ? '${source.label}: ${_shorten(source.value)}'
-                  : '${source.label}: ${source.value}',
+              value: _sourceText(L.of(context), source),
             ),
         ],
       ),
     );
+  }
+
+  /// «Magnet-ссылка: …» — вид источника словами языка интерфейса, а не
+  /// журнальной подписью модели.
+  static String _sourceText(L l, GameSource source) {
+    final value = source.kind == GameSourceKind.magnet
+        ? _shorten(source.value)
+        : source.value;
+    return '${gameSourceLabel(l, source.kind)}: $value';
   }
 
   static String _shorten(String value) =>

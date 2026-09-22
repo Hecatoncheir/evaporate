@@ -22,7 +22,7 @@ class SnapshotTileSummary extends StatelessWidget {
         Row(
           children: [
             Text(
-              formatDateTime(snapshot.createdAt),
+              dateTimeLabel(L.of(context), snapshot.createdAt),
               style: context.text.bodyStrong,
             ),
             const SizedBox(width: 8),
@@ -39,7 +39,7 @@ class SnapshotTileSummary extends StatelessWidget {
           '${snapshot.deviceName} · '
           '${platformLabel(snapshot.platform)} · '
           '${l.filesCount(snapshot.fileCount)} · '
-          '${formatBytes(snapshot.sizeBytes)}',
+          '${bytesLabel(L.of(context), snapshot.sizeBytes)}',
           style: context.text.captionMuted,
         ),
       ],

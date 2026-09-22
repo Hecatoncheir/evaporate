@@ -15,11 +15,15 @@ on:
   schedule:
     - cron: '0 6 * * 1'
 
-# Новый пуш в ту же ветку отменяет предыдущий прогон — не жжём минуты
-# раннеров на устаревшем коде.
+# Отменяется только прежний прогон того же pull request: новый коммит в
+# него делает старый прогон ненужным. У `main` отменять нечего — прогон
+# каждого пуша и есть его история, — а общая с расписанием группа отменяла
+# еженедельную сборку любым пушем в понедельник утром. Имя события — в
+# группе, чтобы пуш, тег и расписание друг друга не трогали. Репозиторий
+# публичный, минуты бесплатны: экономить на этом нечего.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # По умолчанию заданиям нужно только читать репозиторий. Писать — выкладывать
 # релиз — вправе одно задание, и права оно получает само, ниже.
@@ -146,16 +150,34 @@ jobs:
       # оставалась непроверенной. Тестам не нужны ни Xcode, ни сеть, ни
       # геймпад: движок загрузок не запускается, события контроллера
       # подаются вручную, поэтому прогон дешёвый на любой из систем.
+      # Зерно перемешивания выбираем сами, а не отдаём `random`: упавший
+      # порядок иначе приходилось выкапывать из лога, а без него плавающий
+      # тест не повторить. При падении зерно уходит в сводку готовой
+      # командой. `bash` — явно: на Windows шаги идут в PowerShell.
       - name: Тесты
         if: matrix.os != 'ubuntu-latest'
-        run: flutter test --reporter compact --test-randomize-ordering-seed random
+        shell: bash
+        run: |
+          seed=$RANDOM$RANDOM
+          flutter test --reporter failures-only --test-randomize-ordering-seed $seed || {
+            # shellcheck disable=SC2016 # обратные кавычки — разметка сводки
+            printf 'Повторить порядок: `flutter test --test-randomize-ordering-seed %s`\n' "$seed" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
 
       # Покрытие снимаем один раз — оно от системы не зависит, а lcov.info
       # нужен один. Заодно это единственный прогон, чей результат виден
       # числом, а не только зелёной галочкой.
       - name: Тесты с покрытием
         if: matrix.os == 'ubuntu-latest'
-        run: flutter test --reporter compact --coverage --test-randomize-ordering-seed random
+        shell: bash
+        run: |
+          seed=$RANDOM$RANDOM
+          flutter test --reporter failures-only --coverage --test-randomize-ordering-seed $seed || {
+            # shellcheck disable=SC2016 # обратные кавычки — разметка сводки
+            printf 'Повторить порядок: `flutter test --test-randomize-ordering-seed %s`\n' "$seed" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
 
       - name: Порог покрытия без сгенерированного кода
         if: matrix.os == 'ubuntu-latest'
@@ -223,6 +245,22 @@ jobs:
           tool/package_macos.sh "$VERSION" "$APP" dist
           ls -lh dist
 
+      # Репетиция обновления: архив распаковывает наш `UpdateUnpack`, как у
+      # человека, а не `ditto`. Бандл держится на симлинках внутри
+      # фреймворков; потерянный симлинк `codesign --verify` видит сразу, а
+      # запуск — нет: такое приложение падает у человека после обновления.
+      # Затем распакованное запускается с `--smoke` (см. сборку Linux).
+      - name: Репетиция обновления и дымовой запуск
+        run: |
+          set -eu
+          VERSION='${{ needs.analyze.outputs.version }}'
+          ROOT=$(dart tool/rehearse_update.dart \
+            "dist/evaporate-$VERSION-macos.zip" "$RUNNER_TEMP/rehearsal")
+          echo "Проверяю $ROOT"
+          codesign --verify --deep --strict --verbose=2 "$ROOT"
+          EXE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$ROOT/Contents/Info.plist")
+          perl -e 'alarm 180; exec @ARGV' "$ROOT/Contents/MacOS/$EXE" --smoke
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: evaporate-macos-${{ github.sha }}
@@ -251,7 +289,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
-            libayatana-appindicator3-dev
+            libayatana-appindicator3-dev xvfb
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
@@ -288,6 +326,22 @@ jobs:
           tool/package_linux.sh "$VERSION" build/linux/x64/release/bundle dist
           tool/package_run.sh "$VERSION" build/linux/x64/release/bundle dist
           ls -lh dist
+
+      # Собранное запускается до выкладки: тесты не собирают ни раннер, ни
+      # плагины, и сломанная регистрация плагина иначе обнаруживалась бы у
+      # человека. Запускается то, что разложит у него обновление: архив,
+      # распакованный нашим же `UpdateUnpack`. Экран виртуальный, шина DBus
+      # своя — без неё трею не на чем встать. `timeout` — на случай, если
+      # окно так и не нарисуется: своё ожидание у прогона есть, но зависший
+      # до `main` процесс его не дождётся.
+      - name: Дымовой запуск
+        run: |
+          set -eu
+          VERSION='${{ needs.analyze.outputs.version }}'
+          ROOT=$(dart tool/rehearse_update.dart \
+            "dist/evaporate-$VERSION-linux-x64.tar.gz" "$RUNNER_TEMP/rehearsal")
+          echo "Запускаю $ROOT/evaporate"
+          timeout 180 dbus-run-session -- xvfb-run -a "$ROOT/evaporate" --smoke
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -355,6 +409,23 @@ jobs:
           & $iscc.FullName "/DAppVersion=$version" windows\installer.iss
           if ($LASTEXITCODE -ne 0) { throw "iscc вернул $LASTEXITCODE" }
           Get-ChildItem dist
+
+      # Дымовой запуск собранного (см. сборку Linux). Обновление на Windows
+      # ставит установщик, а не наша распаковка, поэтому запускается сама
+      # папка сборки. Приложение оконное: PowerShell его не ждёт, отсюда
+      # `Start-Process` с явным ожиданием. `Handle` берётся сразу — без
+      # этого у завершившегося процесса `ExitCode` приходит пустым.
+      - name: Дымовой запуск
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = Start-Process -FilePath build/windows/x64/runner/Release/evaporate.exe `
+            -ArgumentList '--smoke' -PassThru
+          $null = $app.Handle
+          if (-not $app.WaitForExit(180000)) {
+            $app.Kill()
+            throw 'дымовой запуск не закончился за три минуты'
+          }
+          if ($app.ExitCode -ne 0) { throw "дымовой запуск вернул $($app.ExitCode)" }
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

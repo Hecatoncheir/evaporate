@@ -308,6 +308,10 @@ int _arrowEnd(String code, int from) {
       depth--;
     }
     if (depth == 0 && c == ';') return k + 1;
+    // Стрелка аргументом кончается запятой: `onTap: () => go(), child: …`.
+    // Без этого замыкание в замере тянулось до конца вызова и забирало
+    // соседние аргументы — весь `child` со всей разметкой под ним.
+    if (depth == 0 && c == ',') return k;
   }
   return code.length;
 }

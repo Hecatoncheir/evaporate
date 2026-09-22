@@ -10,6 +10,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../models/save_snapshot.dart';
 import '../../feedback/confirm.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
 import '../../widgets/section_card.dart';
@@ -109,7 +110,7 @@ class SnapshotsSection extends StatelessWidget {
     final saves = context.read<SavesBloc>();
     final suggested =
         safeFileName(
-          '${snapshot.gameTitle} ${formatDateTime(snapshot.createdAt)}',
+          '${snapshot.gameTitle} ${dateTimeLabel(L.of(context), snapshot.createdAt)}',
         ) +
         SaveSnapshot.fileExtension;
 
@@ -127,7 +128,7 @@ class SnapshotsSection extends StatelessWidget {
       title: L.of(context).deleteSnapshotQuestion,
       message: L
           .of(context)
-          .deleteSnapshotNote(formatDateTime(snapshot.createdAt)),
+          .deleteSnapshotNote(dateTimeLabel(L.of(context), snapshot.createdAt)),
       confirmLabel: L.of(context).delete,
       destructive: true,
     );
@@ -162,7 +163,7 @@ class SnapshotsSection extends StatelessWidget {
           .of(context)
           .importSnapshotNote(
             snapshot.gameTitle,
-            formatDateTime(snapshot.createdAt),
+            dateTimeLabel(L.of(context), snapshot.createdAt),
             snapshot.deviceName,
             platformLabel(snapshot.platform),
             snapshot.fileCount,

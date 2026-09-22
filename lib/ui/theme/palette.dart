@@ -24,6 +24,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     required this.accent,
     required this.accentFill,
     required this.danger,
+    required this.dangerFill,
+    required this.onDanger,
     required this.warning,
     required this.textPrimary,
     required this.textSecondary,
@@ -59,7 +61,18 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   /// Он же для заливок и светодиодов, где яркость важнее читаемости.
   final Color accentFill;
+
+  /// Цвет необратимого **для текста**: «Удалить», «Отменить с файлами».
   final Color danger;
+
+  /// Он же **для заливки** — клавиша подтверждения и сообщение об ошибке.
+  /// Разведены по той же причине, что [primary] и [primaryFill]: красный,
+  /// читаемый как текст на подложке, под надписью давал 2,7:1 в Картридже
+  /// и около 3:1 у сообщения об ошибке в обеих схемах.
+  final Color dangerFill;
+
+  /// Что пишут поверх [dangerFill].
+  final Color onDanger;
   final Color warning;
   final Color textPrimary;
   final Color textSecondary;
@@ -95,6 +108,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     accent,
     accentFill,
     danger,
+    dangerFill,
+    onDanger,
     warning,
     textPrimary,
     textSecondary,
@@ -123,6 +138,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     accent: Color(0xFF49B7E0),
     accentFill: Color(0xFF49B7E0),
     danger: Color(0xFFE96A5C),
+    dangerFill: Color(0xFFE96A5C),
+    onDanger: Color(0xFF0A0D11),
     warning: Color(0xFFF2A93B),
     textPrimary: Color(0xFFECE6D8),
     textSecondary: Color(0xFF9BA6B2),
@@ -148,6 +165,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     accent: Color(0xFF006472),
     accentFill: Color(0xFF0090A8),
     danger: Color(0xFFA8231B),
+    dangerFill: Color(0xFFA8231B),
+    onDanger: Color(0xFFFFFFFF),
     warning: Color(0xFF7A5200),
     textPrimary: Color(0xFF16171A),
     textSecondary: Color(0xFF55585C),
@@ -172,6 +191,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     Color? accent,
     Color? accentFill,
     Color? danger,
+    Color? dangerFill,
+    Color? onDanger,
     Color? warning,
     Color? textPrimary,
     Color? textSecondary,
@@ -194,6 +215,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
       accent: accent ?? this.accent,
       accentFill: accentFill ?? this.accentFill,
       danger: danger ?? this.danger,
+      dangerFill: dangerFill ?? this.dangerFill,
+      onDanger: onDanger ?? this.onDanger,
       warning: warning ?? this.warning,
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
@@ -223,6 +246,8 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
       accent: mix(accent, other.accent),
       accentFill: mix(accentFill, other.accentFill),
       danger: mix(danger, other.danger),
+      dangerFill: mix(dangerFill, other.dangerFill),
+      onDanger: mix(onDanger, other.onDanger),
       warning: mix(warning, other.warning),
       textPrimary: mix(textPrimary, other.textPrimary),
       textSecondary: mix(textSecondary, other.textSecondary),

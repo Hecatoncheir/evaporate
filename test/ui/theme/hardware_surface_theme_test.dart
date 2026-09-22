@@ -28,6 +28,21 @@ void main() {
     expect(same, isEmpty);
   });
 
+  // Стекло — своё расширение, и то же правило: на концах смены схемы —
+  // ровно своя схема, и схемы различаются в каждом поле.
+  test('стекло смешивается по всем полям', () {
+    const night = GlassSurfaceTheme.arclight;
+    const day = GlassSurfaceTheme.cartridge;
+
+    expect(night.lerp(day, 0).values, night.values);
+    expect(night.lerp(day, 1).values, day.values);
+    final same = [
+      for (var i = 0; i < night.values.length; i++)
+        if (night.values[i] == day.values[i]) i,
+    ];
+    expect(same, isEmpty);
+  });
+
   // То же правило для палитры: двадцать полей, выписанных руками в `lerp`
   // и `copyWith`, — ровно то место, где новое поле забывают.
   test('палитра смешивается по всем полям', () {

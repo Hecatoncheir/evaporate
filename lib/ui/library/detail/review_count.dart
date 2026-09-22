@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/format.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 
 /// Счётчик обзоров: значок и число.
@@ -33,7 +34,7 @@ class ReviewCount extends StatelessWidget {
             Icon(icon, size: 13, color: color),
             const SizedBox(width: 4),
             Text(
-              formatCount(value),
+              countLabel(L.of(context), value),
               style: context.text.figure.copyWith(
                 fontWeight: FontWeight.w400,
                 color: color,

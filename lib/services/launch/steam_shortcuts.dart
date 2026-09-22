@@ -255,9 +255,14 @@ class SteamShortcuts {
     final file = File(profile.shortcutsFile);
     await file.parent.create(recursive: true);
 
-    // Копия прежнего рядом: файл чужой, и откатиться иначе нечем.
+    // Копия прежнего рядом: файл чужой, и откатиться иначе нечем. Копий
+    // две: `.bak` — до последней записи, `.orig` — до первой, и её не
+    // переписывают никогда. Одна копия уже со второй правки хранила наш
+    // собственный список, а список человека пропадал.
     if (await file.exists()) {
       try {
+        final original = File('${file.path}.evaporate.orig');
+        if (!await original.exists()) await file.copy(original.path);
         await file.copy('${file.path}.evaporate.bak');
       } on FileSystemException {
         // Не вышло — значит, и записи не будет: без пути назад не лезем.

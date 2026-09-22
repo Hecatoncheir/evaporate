@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../shots_backdrop.dart';
+import 'shots_timing.dart';
 
 /// Один кадр: сдвинут по горизонтали и увеличен ровно настолько, чтобы
 /// сдвиг не открыл край.
@@ -27,8 +27,8 @@ class ShotFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     // Середина пути, а не половина черёда: путь начинается с разбега, и
     // отсчёт от 0.5 увёл бы кадр в одну сторону сильнее, чем в другую.
-    const middle = (1 - ShotsBackdrop.preroll) / 2;
-    final shift = (offset - middle) * ShotsBackdrop.drift;
+    const middle = (1 - ShotsTiming.preroll) / 2;
+    final shift = (offset - middle) * ShotsTiming.drift;
 
     return Opacity(
       opacity: opacity,
@@ -36,7 +36,7 @@ class ShotFrame extends StatelessWidget {
         // Масштаб под весь размах сдвига и ещё десятая часть сверху: без
         // запаса край кадра приходится ровно на границу, и округление в
         // крайних положениях обнажает у рамки полоску фона.
-        scale: 1 + ShotsBackdrop.drift * ShotsBackdrop.span * 1.1,
+        scale: 1 + ShotsTiming.drift * ShotsTiming.span * 1.1,
         // Доля собственной ширины, а не ширины окна: подложка занимает
         // крупный кадр библиотеки, а не экран, и от `MediaQuery` дрейф
         // менялся бы с размером окна при неизменном кадре.
@@ -47,9 +47,6 @@ class ShotFrame extends StatelessWidget {
             fit: BoxFit.cover,
             alignment: Alignment.center,
             filterQuality: FilterQuality.medium,
-            // Кадр лежит миниатюрой 600×338, но подложка бывает шире:
-            // просим декодировать под ширину окна, а не под свой размер.
-            cacheWidth: 1024,
             gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) => fallback,
           ),

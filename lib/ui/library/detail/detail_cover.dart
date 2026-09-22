@@ -7,6 +7,7 @@ import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../theme.dart';
+import '../cover/decode_width.dart';
 import 'cover_progress.dart';
 
 /// Обложка из Steam, если её удалось найти; иначе — первая буква названия.
@@ -15,6 +16,9 @@ import 'cover_progress.dart';
 /// состояние загрузки видно сразу, не вчитываясь в панель ниже.
 class DetailCover extends StatelessWidget {
   const DetailCover({super.key, required this.game});
+
+  /// Ширина обложки — она же ширина её расшифровки.
+  static const _coverWidth = 132.0;
 
   final Game game;
 
@@ -27,7 +31,7 @@ class DetailCover extends StatelessWidget {
     final showProgress = task != null && !task.isFinished;
 
     return Container(
-      width: path == null ? 64 : 132,
+      width: path == null ? 64 : _coverWidth,
       height: 64,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -53,6 +57,7 @@ class DetailCover extends StatelessWidget {
             Image.file(
               File(path),
               fit: BoxFit.cover,
+              cacheWidth: decodeWidth(context, _coverWidth),
               // Обложка — украшение: не грузится, значит её просто нет.
               errorBuilder: (context, error, stack) => Icon(
                 Icons.image_not_supported_outlined,

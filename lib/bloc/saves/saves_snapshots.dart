@@ -73,7 +73,7 @@ extension _SavesSnapshots on SavesBloc {
             ? null
             : _l.noticeSnapshotReady(
                 snapshot.fileCount,
-                formatBytes(snapshot.sizeBytes),
+                bytesLabel(_l, snapshot.sizeBytes),
               ),
       );
       await _prune(game.id, emit);
@@ -217,7 +217,7 @@ extension _SavesSnapshots on SavesBloc {
               ? notice(
                   _l.noticeRestoredFiles(
                     report.filesWritten,
-                    formatBytes(report.bytesWritten),
+                    bytesLabel(_l, report.bytesWritten),
                   ),
                 )
               : notice(

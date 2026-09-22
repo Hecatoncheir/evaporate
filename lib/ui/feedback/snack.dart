@@ -6,13 +6,15 @@ import '../theme.dart';
 /// идёт системным уведомлением, а не сюда: SnackBar некому увидеть, если
 /// окно свёрнуто.
 ///
-/// Заливка почти плотная, а не ступень шкалы: белому тексту на красном
-/// нужен весь контраст.
+/// Заливка плотная и с парной надписью: прежде полупрозрачный красный с
+/// обычным текстом давал около 3:1 в обеих схемах, а комментарий здесь
+/// уверял, что текст белый.
 void showError(BuildContext context, Object error) {
+  final colors = context.colors;
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
-      content: Text(error.toString()),
-      backgroundColor: context.colors.danger.withValues(alpha: 0.9),
+      content: Text(error.toString(), style: TextStyle(color: colors.onDanger)),
+      backgroundColor: colors.dangerFill,
     ),
   );
 }

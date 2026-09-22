@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
@@ -46,9 +45,9 @@ class SnapshotSummary extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '${formatDateTime(snapshot.createdAt)} · '
+          '${dateTimeLabel(L.of(context), snapshot.createdAt)} · '
           '${snapshot.deviceName} · '
-          '${formatBytes(snapshot.sizeBytes)}',
+          '${bytesLabel(L.of(context), snapshot.sizeBytes)}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           // Моноширинный с табличными цифрами: иначе строка дёргалась бы

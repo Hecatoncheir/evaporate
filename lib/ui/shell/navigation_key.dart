@@ -46,6 +46,9 @@ class NavigationKey extends StatelessWidget {
         style: _style(colors),
         child: Semantics(
           label: label,
+          // Какой раздел открыт, диктор узнаёт так же, как видит глаз:
+          // прежде выбранная клавиша звучала ровно как все остальные.
+          selected: selected,
           child: ExcludeSemantics(
             child: Center(
               child: Row(

@@ -58,16 +58,35 @@ class _ScanFolderDialogState extends State<ScanFolderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ScanBloc(widget.session),
-      child: BlocBuilder<ScanBloc, ScanState>(
-        builder: (context, scan) => ScanDialogView(
-          session: widget.session,
-          scan: scan,
-          dragging: _dragging,
-          onDragging: (value) => setState(() => _dragging = value),
-          onPickFolder: () => _pickFolder(context.read<ScanBloc>()),
-          onAdd: () => _add(context, scan),
+    // Esc закрывает окно, как и кнопка B геймпада. `barrierDismissible:
+    // false` выключил вместе с нажатием мимо окна и Esc, а закрывать долгий
+    // поиск должно мешать только случайное нажатие, а не клавиша выхода.
+    return Actions(
+      actions: {
+        DismissIntent: CallbackAction<DismissIntent>(
+          onInvoke: (_) {
+            Navigator.maybePop(context);
+            return null;
+          },
+        ),
+      },
+      // Фокус — в само окно: иначе в нём не сфокусировано ничего, и Esc
+      // уходил в библиотеку под ним. Обход этот узел пропускает.
+      child: Focus(
+        autofocus: true,
+        skipTraversal: true,
+        child: BlocProvider(
+          create: (context) => ScanBloc(widget.session),
+          child: BlocBuilder<ScanBloc, ScanState>(
+            builder: (context, scan) => ScanDialogView(
+              session: widget.session,
+              scan: scan,
+              dragging: _dragging,
+              onDragging: (value) => setState(() => _dragging = value),
+              onPickFolder: () => _pickFolder(context.read<ScanBloc>()),
+              onAdd: () => _add(context, scan),
+            ),
+          ),
         ),
       ),
     );

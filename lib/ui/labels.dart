@@ -1,18 +1,18 @@
 import 'package:gamepads/gamepads.dart';
 
-import '../core/format.dart';
 import '../input/gamepad_binding.dart';
 import '../input/gamepad_service.dart';
 import '../input/nav_action.dart';
 import '../l10n/app_localizations.dart';
+import '../l10n/labels.dart';
 import '../models/app_section.dart';
 import '../models/download_task.dart';
 import '../models/game.dart';
 import '../models/save_profile.dart';
 import '../models/save_snapshot.dart';
-import '../services/launch/game_roots.dart';
 
-export '../l10n/labels.dart' show engineStateLabel;
+export '../l10n/labels.dart'
+    show bytesLabel, countLabel, dateTimeLabel, engineStateLabel;
 
 /// Переводимые подписи для того, что живёт в моделях и во вводе.
 ///
@@ -44,24 +44,6 @@ String sectionLabel(L l, AppSection section) => switch (section) {
   AppSection.downloads => l.downloads,
   AppSection.saves => l.saves,
   AppSection.settings => l.settings,
-};
-
-/// Как назвать место, где стоит поискать игры.
-///
-/// Имена лончеров не переводятся — это имена собственные; переводится всё
-/// остальное. Собрать это вместе может только слой интерфейса: у сервиса,
-/// который эти места находит, языка нет.
-String gameRootLabel(L l, GameRoot root) => switch (root.kind) {
-  GameRootKind.steam => 'Steam',
-  GameRootKind.gog => 'GOG',
-  GameRootKind.epic => 'Epic Games',
-  GameRootKind.heroic => 'Heroic',
-  GameRootKind.lutris => 'Lutris',
-  GameRootKind.games => l.rootHomeGames,
-  GameRootKind.applications => l.rootApplications,
-  GameRootKind.appDownloads => l.rootAppDownloads,
-  GameRootKind.volume => l.rootVolume(root.name ?? ''),
-  GameRootKind.drive => l.rootDrive(root.name ?? ''),
 };
 
 /// Состояние игры словами.
@@ -123,7 +105,7 @@ String gamepadStatusLabel(L l, GamepadStatus status) {
 
 /// Скорость: «1,2 МБ» плюс единица времени, которая тоже переводится.
 String speedLabel(L l, num bytesPerSecond) =>
-    l.speedPerSecond(formatBytes(bytesPerSecond));
+    l.speedPerSecond(bytesLabel(l, bytesPerSecond));
 
 /// Откуда взялся снимок сохранений.
 String snapshotOriginLabel(L l, SnapshotOrigin origin) => switch (origin) {
@@ -132,6 +114,15 @@ String snapshotOriginLabel(L l, SnapshotOrigin origin) => switch (origin) {
   SnapshotOrigin.autoOnLaunch => l.originAutoOnLaunch,
   SnapshotOrigin.imported => l.originImported,
   SnapshotOrigin.preRestore => l.originPreRestore,
+};
+
+/// Откуда берётся игра — словами языка интерфейса. `GameSource.logLabel`
+/// — для журнала и русский; в интерфейс он и попадал: в английской локали
+/// строка источника читалась «Source: Локальная папка: …».
+String gameSourceLabel(L l, GameSourceKind kind) => switch (kind) {
+  GameSourceKind.magnet => l.sourceMagnet,
+  GameSourceKind.torrentFile => l.sourceTorrent,
+  GameSourceKind.localFolder => l.sourceFolder,
 };
 
 /// Подпись метки правила.

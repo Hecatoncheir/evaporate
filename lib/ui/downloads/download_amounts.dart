@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
+import '../labels.dart';
 import '../theme.dart';
 
 /// Сколько скачано, сколько всего и какая доля готова.
@@ -27,8 +27,8 @@ class DownloadAmounts extends StatelessWidget {
           child: Text(
             task.isMetadata
                 ? l.fetchingMetadata
-                : '${formatBytes(task.completedBytes)} / '
-                      '${formatBytes(task.totalBytes)}',
+                : '${bytesLabel(L.of(context), task.completedBytes)} / '
+                      '${bytesLabel(L.of(context), task.totalBytes)}',
             style: context.text.captionMuted.copyWith(
               fontFeatures: const [FontFeature.tabularFigures()],
             ),

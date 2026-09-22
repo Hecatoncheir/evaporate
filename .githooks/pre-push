@@ -1,0 +1,6 @@
+#!/bin/sh
+# Ворота CI перед отправкой — те же шаги, что в `ci.yml` (tool/gate.dart).
+# Включается один раз: git config core.hooksPath .githooks
+# Пропустить разово: git push --no-verify — например, отправляя черновик
+# в свою ветку, где красный прогон никого не задевает.
+exec dart tool/gate.dart

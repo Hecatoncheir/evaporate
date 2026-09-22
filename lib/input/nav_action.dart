@@ -41,21 +41,4 @@ extension NavActionInfo on NavAction {
 
   /// Действия, которые имеет смысл повторять при удержании.
   bool get repeats => isDirectional || isScroll;
-
-  /// Для журналов и отладки. Пользователю действия показывают словами через
-  /// `navActionLabel` в слое интерфейса: здесь языка взять неоткуда.
-  String get label => switch (this) {
-    NavAction.up => 'Вверх',
-    NavAction.down => 'Вниз',
-    NavAction.left => 'Влево',
-    NavAction.right => 'Вправо',
-    NavAction.confirm => 'Выбрать',
-    NavAction.back => 'Назад',
-    NavAction.nextSection => 'Следующий раздел',
-    NavAction.prevSection => 'Предыдущий раздел',
-    NavAction.primaryAction => 'Играть / Скачать',
-    NavAction.search => 'Поиск',
-    NavAction.scrollUp => 'Прокрутка вверх',
-    NavAction.scrollDown => 'Прокрутка вниз',
-  };
 }

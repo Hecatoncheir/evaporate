@@ -25,6 +25,9 @@ class CaptureButtonDialog extends StatefulWidget {
 }
 
 class CaptureButtonDialogState extends State<CaptureButtonDialog> {
+  /// Кнопка, которая закрывает окно, ничего не назначая.
+  static const cancelButton = GamepadButton.start;
+
   StreamSubscription<GamepadButton>? _subscription;
 
   @override
@@ -34,7 +37,12 @@ class CaptureButtonDialogState extends State<CaptureButtonDialog> {
     // ним — см. `GamepadService.capturing`.
     widget.gamepad.capturing = true;
     _subscription = widget.gamepad.buttonPresses.listen((button) {
-      if (mounted) Navigator.pop(context, button);
+      if (!mounted) return;
+      // Start — отмена: иначе с геймпада окно не закрыть вовсе, любая
+      // кнопка становилась назначением. Start в раскладке по умолчанию
+      // нет, это кнопка «меню», и её жмут, чтобы выйти; назначить её
+      // отсюда нельзя — о чём и говорит подсказка в окне.
+      Navigator.pop(context, button == cancelButton ? null : button);
     });
   }
 
@@ -65,6 +73,15 @@ class CaptureButtonDialogState extends State<CaptureButtonDialog> {
             Text(
               L.of(context).pressAnyButton,
               style: context.text.prose,
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              L
+                  .of(context)
+                  .captureCancelHint(
+                    gamepadButtonLabel(L.of(context), cancelButton),
+                  ),
+              style: context.text.caption,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),

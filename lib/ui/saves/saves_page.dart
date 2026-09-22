@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/saves/saves_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/section_heading.dart';
+import '../widgets/watch_while_shown.dart';
 import 'bulk_transfer_card.dart';
 import 'saves_readout.dart';
 import 'snapshot_history.dart';
@@ -28,8 +28,8 @@ class SavesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final library = context.watch<LibraryBloc>().state;
-    final saves = context.watch<SavesBloc>().state;
+    final library = context.watchWhileShown<LibraryBloc, LibraryState>();
+    final saves = context.watchWhileShown<SavesBloc, SavesState>();
 
     final entries = saves.entriesFor(library.games);
     final configured = library.games

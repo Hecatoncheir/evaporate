@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/settings/settings_bloc.dart';
+import '../../input/gamepad_binding.dart';
 import '../../input/gamepad_service.dart';
 import '../theme.dart';
 import '../widgets/button_hints.dart';
@@ -20,7 +21,11 @@ class AppFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsBloc>().state;
+    // Только раскладка геймпада: подвал ни на что больше в настройках не
+    // смотрит, а подписка целиком перестраивала его от смены темы.
+    final gamepadBinding = context.select<SettingsBloc, GamepadBinding>(
+      (b) => b.state.gamepad,
+    );
     final gamepad = context.read<GamepadService>();
     return Container(
       height: EvaporateLayout.footerHeight,
@@ -46,9 +51,8 @@ class AppFooter extends StatelessWidget {
               child: ValueListenableBuilder<GamepadStatus>(
                 valueListenable: gamepad.status,
                 builder: (context, status, _) => ButtonHints(
-                  binding: settings.gamepad,
-                  gamepadConnected:
-                      settings.gamepad.enabled && status.hasDevice,
+                  binding: gamepadBinding,
+                  gamepadConnected: gamepadBinding.enabled && status.hasDevice,
                 ),
               ),
             ),

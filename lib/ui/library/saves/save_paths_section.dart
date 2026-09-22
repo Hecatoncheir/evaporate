@@ -100,7 +100,6 @@ class _SavePathsSectionState extends State<SavePathsSection> {
             for (final rule in rules)
               RuleTile(
                 rule: rule,
-                gameDir: game.installDir,
                 exists: presence.pathExists(
                   rule.resolve(gameDir: game.installDir),
                 ),

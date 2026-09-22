@@ -19,6 +19,47 @@ class NavActionIntent extends Intent {
   final NavAction action;
 }
 
+/// Сдвинуть значение на шаг — влево или вправо с геймпада.
+///
+/// Стрелки клавиатуры ползунок понимает сам, а геймпад идёт мимо клавиш —
+/// прямо в обход фокуса, и мёртвую зону стика с самого геймпада было не
+/// поменять: влево и вправо уводили к соседнему элементу. Теперь обход
+/// сначала предлагает направление фокусу, и тот, кто объявил это
+/// действие, меняет значение, а фокус остаётся на месте.
+class AdjustValueIntent extends Intent {
+  const AdjustValueIntent(this.steps);
+
+  /// На сколько шагов: `1` — вправо, `-1` — влево.
+  final int steps;
+}
+
+/// «/» — поиск, но только вне текстового поля.
+///
+/// Своим намерением, а не `NavActionIntent`: «/» — ещё и обычный символ.
+/// Перехваченная всегда, она не набиралась ни в пароле прокси, ни в самом
+/// поиске — «Fate/stay» было не найти. `Ctrl+F` и `⌘F` символов не
+/// набирают и уводят в поиск откуда угодно.
+class TypedSearchIntent extends Intent {
+  const TypedSearchIntent();
+}
+
+/// Выключено, пока фокус в поле: выключенное действие `Shortcuts` не
+/// обрабатывают, и клавиша доходит до поля как символ.
+class _TypedSearchAction extends Action<TypedSearchIntent> {
+  _TypedSearchAction(this._search);
+
+  final VoidCallback _search;
+
+  @override
+  bool isEnabled(TypedSearchIntent intent) => !focusInTextField();
+
+  @override
+  Object? invoke(TypedSearchIntent intent) {
+    _search();
+    return null;
+  }
+}
+
 /// Предлагается только поиском по библиотеке, а не текстовыми полями вообще.
 class ReturnToLibraryIntent extends Intent {
   const ReturnToLibraryIntent();
@@ -119,6 +160,7 @@ class _InputScopeState extends State<InputScope> {
     // библиотеку под ним, и вернуться в окно было уже нечем.
     final scope = focused?.nearestScope ?? FocusScope.of(context);
     if (direction == TraversalDirection.down && _returnFromSearch()) return;
+    if (_adjust(focused, direction)) return;
     if (focused == null || !focused.hasFocus || focused == scope) {
       scope.nextFocus();
       return;
@@ -132,6 +174,21 @@ class _InputScopeState extends State<InputScope> {
         scope.previousFocus();
       }
     }
+  }
+
+  /// Влево и вправо сначала — тому, кто умеет менять значение: ползунку.
+  bool _adjust(FocusNode? focused, TraversalDirection direction) {
+    final horizontal =
+        direction == TraversalDirection.left ||
+        direction == TraversalDirection.right;
+    final target = focused?.context;
+    if (!horizontal || target == null) return false;
+    if (Actions.maybeFind<AdjustValueIntent>(target) == null) return false;
+    Actions.invoke(
+      target,
+      AdjustValueIntent(direction == TraversalDirection.right ? 1 : -1),
+    );
+    return true;
   }
 
   void _activate() {
@@ -150,9 +207,8 @@ class _InputScopeState extends State<InputScope> {
     // Из текстового поля выходим раньше, чем закрываем страницу: Escape в
     // поиске должен отпускать поле, а не уводить с открытой игры.
     if (_returnFromSearch()) return;
-    final focused = primaryFocus;
-    if (focused != null && focused.context?.widget is EditableText) {
-      focused.unfocus();
+    if (focusInTextField()) {
+      primaryFocus?.unfocus();
       return;
     }
     if (widget.onBack()) return;
@@ -203,6 +259,9 @@ class _InputScopeState extends State<InputScope> {
               return null;
             },
           ),
+          TypedSearchIntent: _TypedSearchAction(
+            () => _handleAction(NavAction.search),
+          ),
         },
         // Пока фокуса нет вообще, нажатия клавиш до Shortcuts не доходят:
         // они идут в корневой скоуп над MaterialApp. Эта нода забирает фокус
@@ -218,7 +277,7 @@ class _InputScopeState extends State<InputScope> {
 /// Таблицей, а не ветвлениями: добавить клавишу — значит дописать строку,
 /// а что она делает, видно по имени действия.
 const _shortcuts = <ShortcutActivator, Intent>{
-  SingleActivator(LogicalKeyboardKey.slash): NavActionIntent(NavAction.search),
+  SingleActivator(LogicalKeyboardKey.slash): TypedSearchIntent(),
   SingleActivator(LogicalKeyboardKey.keyF, meta: true): NavActionIntent(
     NavAction.search,
   ),
@@ -244,3 +303,15 @@ const _shortcuts = <ShortcutActivator, Intent>{
   ),
   SingleActivator(LogicalKeyboardKey.escape): NavActionIntent(NavAction.back),
 };
+
+/// Фокус — в текстовом поле.
+///
+/// Контекст узла фокуса — не само поле, а `Focus` внутри его `EditableText`,
+/// поэтому поле ищется среди предков: проверка «сам виджет — поле» не
+/// срабатывала никогда.
+bool focusInTextField() {
+  final context = primaryFocus?.context;
+  if (context == null) return false;
+  return context.widget is EditableText ||
+      context.findAncestorWidgetOfExactType<EditableText>() != null;
+}

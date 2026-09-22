@@ -8,7 +8,6 @@ import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/ui/widgets/hardware_grille.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -237,9 +236,8 @@ void main() {
     await tester.pumpWidget(harness.buildApp());
     await tester.pumpAndSettle();
 
-    // Решётка и подписи — детали полноразмерной панели; в узком окне место
-    // важнее декора, но все четыре раздела остаются доступны скринридеру.
-    expect(find.byType(HardwareGrille), findsNothing);
+    // Подписи — деталь полноразмерной панели; в узком окне место важнее,
+    // но все четыре раздела остаются доступны скринридеру.
     for (final section in [
       'Библиотека',
       'Загрузки',

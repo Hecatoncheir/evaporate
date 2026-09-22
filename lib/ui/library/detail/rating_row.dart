@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game_rating.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 import 'metacritic_badge.dart';
 import 'review_count.dart';
@@ -60,12 +60,16 @@ class RatingRow extends StatelessWidget {
           ReviewCount(
             icon: Icons.thumb_up_outlined,
             value: rating.positive,
-            label: l.reviewsPositiveCount(formatCount(rating.positive)),
+            label: l.reviewsPositiveCount(
+              countLabel(L.of(context), rating.positive),
+            ),
           ),
           ReviewCount(
             icon: Icons.thumb_down_outlined,
             value: rating.negative,
-            label: l.reviewsNegativeCount(formatCount(rating.negative)),
+            label: l.reviewsNegativeCount(
+              countLabel(L.of(context), rating.negative),
+            ),
           ),
         ],
         if (rating.metacritic != null)

@@ -22,18 +22,24 @@ Command Line Tools.
 
 ## Что проверяется в CI
 
+Всё, что CI проверяет на каждой правке, собрано в одну команду:
+
 ```bash
-dart format --set-exit-if-changed lib test tool
-flutter analyze
-flutter test
+dart pub global activate bloc_tools 0.1.0-dev.24   # один раз
+dart tool/gate.dart
 ```
+
+Это формат, анализатор, правила bloc, сверка регистраторов плагинов, тесты в
+случайном порядке и порог покрытия. Хотите, чтобы она шла перед каждым
+`git push`, — `git config core.hooksPath .githooks`.
 
 **Анализатор считает провалом и подсказки, не только ошибки.** Смотрите весь
 его вывод, а не отфильтрованный по слову `error`, — иначе правка доедет до CI
 и вернётся оттуда красной.
 
-Сборки трёх платформ идут только на теге `v*`. Проверить, что проект
-собирается, не выпуская версию, можно ручным запуском прогона.
+Сборки трёх платформ идут на теге `v*` и раз в неделю по расписанию, а не
+на каждом пуше. Проверить, что проект собирается, не выпуская версию, можно
+ручным запуском прогона.
 
 ## Как выпустить версию
 
@@ -42,8 +48,27 @@ flutter test
 1. Опишите версию в `CHANGELOG.md`: раздел `## [0.24.0] — дата` вверху файла
    и ссылка на тег вниз, в общий блок. Из этого раздела и берётся описание
    релиза, отдельно оно не пишется.
-2. Коммит.
-3. Тег и отправка:
+2. **Сверьте каждую строку раздела с `git diff v<прошлая>..HEAD`**, а не с
+   планом. Запись 0.36.0 обещала единый график скорости, которого в коде не
+   было, — её пришлось исправлять разделом следующей версии. Внутреннее —
+   прогоны, стражи, устройство кода — в историю для людей не пишут, а то,
+   что касается их адреса и данных (утечки мимо прокси, подлинность
+   обновления), идёт первым, разделом «Безопасность».
+3. **Десять минут руками — то, чего не видит ни один прогон.** Сборки CI
+   запускают приложение (`--smoke`) и репетируют обновление на macOS, но
+   сеть, чужие сейвы и настоящая установка остаются за ними. Если версия
+   трогает обновление, раскладку сохранений или движок загрузок — пройти
+   всё; иначе хотя бы первый пункт:
+   - обновление по нажатию с прошлого релиза на Windows — копия, поставленная
+     установщиком;
+   - малая легальная раздача по magnet через SOCKS5 — до «Играть»;
+   - выход из игры → автоснимок → восстановление поверх изменённых сейвов;
+   - `.evsave` с одной системы восстановлен на другой;
+   - недоступный прокси: запросы отказывают, а не уходят напрямую, и об
+     этом приходит сообщение;
+   - `.run` на Linux: поставить, обновить по нажатию, удалить.
+4. Коммит.
+5. Тег и отправка:
 
 ```bash
 git tag -a v0.24.0 -m "Evaporate 0.24.0"
@@ -146,18 +171,24 @@ Command Line Tools.
 
 ## What CI checks
 
+Everything CI checks on every change is one command:
+
 ```bash
-dart format --set-exit-if-changed lib test tool
-flutter analyze
-flutter test
+dart pub global activate bloc_tools 0.1.0-dev.24   # once
+dart tool/gate.dart
 ```
+
+That is formatting, the analyzer, the bloc rules, the plugin registrant check,
+the tests in random order and the coverage threshold. To run it before every
+`git push`, set `git config core.hooksPath .githooks`.
 
 **The analyzer treats infos as failures, not just errors.** Read its whole
 output rather than filtering for the word `error`, or the change will reach CI
 and come back red.
 
-The three platform builds run on a `v*` tag only. To check that the project
-builds without cutting a release, run the workflow by hand.
+The three platform builds run on a `v*` tag and once a week on a schedule,
+not on every push. To check that the project builds without cutting a release,
+run the workflow by hand.
 
 ## Cutting a release
 
@@ -167,8 +198,27 @@ The tag sets the version — there is nothing to bump in the code or in
 1. Describe the version in `CHANGELOG.md`: a `## [0.24.0] — date` section at
    the top of the file, and the tag link at the bottom, in the block with the
    rest. That section becomes the release notes; they are not written twice.
-2. Commit.
-3. Tag and push:
+2. **Check every line of the section against `git diff v<previous>..HEAD`**,
+   not against the plan. The 0.36.0 entry promised a single speed chart the
+   code never had, and the next version had to correct it. Internal work —
+   CI, guards, code structure — stays out of a history written for people;
+   what touches their address and data (leaks past the proxy, update
+   authenticity) goes first, under «Безопасность» (Security).
+3. **Ten minutes by hand — what no CI run sees.** The CI builds start the
+   app (`--smoke`) and rehearse the update on macOS, but the network, real
+   saves and a real installation stay out of their reach. If the version
+   touches updates, save layout or the download engine, go through all of
+   it; otherwise at least the first item:
+   - a one-click update from the previous release on Windows, on a copy set
+     up by the installer;
+   - a small legal torrent by magnet through SOCKS5, all the way to "Play";
+   - quit a game → automatic snapshot → restore over changed saves;
+   - an `.evsave` from one system restored on another;
+   - an unreachable proxy: requests fail instead of going direct, and a
+     message says so;
+   - the Linux `.run`: install, update in one click, remove.
+4. Commit.
+5. Tag and push:
 
 ```bash
 git tag -a v0.24.0 -m "Evaporate 0.24.0"

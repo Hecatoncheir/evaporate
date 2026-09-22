@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../bloc/restore_preview/restore_preview_bloc.dart';
-import '../../../../core/format.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../labels.dart';
 import '../../../theme.dart';
 
 /// Когда здешние сохранения менялись в последний раз.
@@ -30,7 +30,7 @@ class LocalFreshnessNote extends StatelessWidget {
         Text(
           changedAt == null
               ? l.localNeverChanged
-              : l.localChangedAt(formatDateTime(changedAt)),
+              : l.localChangedAt(dateTimeLabel(L.of(context), changedAt)),
           style: context.text.note.copyWith(
             color: preview.newer
                 ? context.colors.warning

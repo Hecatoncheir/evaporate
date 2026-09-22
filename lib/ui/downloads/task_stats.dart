@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../labels.dart';
@@ -25,7 +24,9 @@ class TaskStats extends StatelessWidget {
           // Отданное показываем всегда, когда оно есть: раздача — плата за
           // скачанное, и знать свой вклад пользователь вправе.
           if (task.uploadedBytes > 0) ...[
-            Text(l.uploadedTotal(formatBytes(task.uploadedBytes))),
+            Text(
+              l.uploadedTotal(bytesLabel(L.of(context), task.uploadedBytes)),
+            ),
             if (task.completedBytes > 0) ...[
               const SizedBox(width: 6),
               Text(l.ratioValue(_ratio)),

@@ -10,13 +10,11 @@ class RuleTile extends StatelessWidget {
   const RuleTile({
     super.key,
     required this.rule,
-    required this.gameDir,
     required this.exists,
     required this.onRemove,
   });
 
   final SavePathRule rule;
-  final String? gameDir;
 
   /// Лежит ли папка на диске. `null` — ещё не проверяли, и молчим: сказать
   /// «на диске нет» о непроверенном значило бы соврать там, где человек

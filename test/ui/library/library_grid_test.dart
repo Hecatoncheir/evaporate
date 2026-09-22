@@ -5,6 +5,9 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/featured_game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/library_body.dart';
+import 'package:evaporate/ui/library/library_grid.dart';
+import 'package:evaporate/ui/widgets/rise_in.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -76,6 +79,60 @@ void main() {
     expect(find.byType(GameCoverTile), findsNWidgets(2));
     expect(find.text('Альфа'), findsNothing);
   });
+
+  // Ленивая сетка узнаёт уже построенную плитку по ключу. Ключ уехал на
+  // `MouseRegion` внутри плитки, и после отбора плитки собирались заново:
+  // `RiseIn` всходил повторно, приподнятость терялась.
+  testWidgets('после отбора плитка остаётся той же, а не собирается заново', (
+    tester,
+  ) async {
+    await withGames(tester);
+    State riseOf(String title) => tester.state(
+      find.ancestor(of: find.text(title), matching: find.byType(RiseIn)),
+    );
+    final before = riseOf('Бета');
+
+    // «Альфа» стояла первой и уходит: «Бета» сдвигается на её место.
+    await tester.tap(find.text(l.tabNotInstalled));
+    await tester.pumpAndSettle();
+
+    expect(riseOf('Бета'), same(before));
+  });
+
+  // По этим числам страница догоняет фокусом ещё не построенную плитку.
+  // Своя арифметика замера расходилась с сеткой: при 1280 пять столбцов
+  // вместо шести, и возврат из игры в длинной библиотеке прыгал мимо.
+  for (final width in [1280.0, 1100.0, 1600.0]) {
+    testWidgets('замер сетки сходится с тем, как она разложена: $width', (
+      tester,
+    ) async {
+      final harness = TestHarness(tmp);
+      addTearDown(harness.dispose);
+      for (var i = 0; i < 14; i++) {
+        harness.addGame(title: 'Игра $i');
+      }
+      tester.view.physicalSize = Size(width, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await harness.pump(tester);
+
+      final grid = tester.getSize(find.byType(GridView)).width;
+      final tops = [
+        for (final tile in tester.widgetList(find.byType(GameCoverTile)))
+          tester.getTopLeft(find.byWidget(tile)).dy,
+      ];
+      final firstRow = tops.where((top) => top == tops.first).length;
+      final secondRow = tops.firstWhere((top) => top > tops.first);
+      final layout = LibraryGrid.layoutFor(grid, 1);
+
+      expect(layout.columns, firstRow, reason: 'столбцов при $width');
+      expect(
+        layout.rowStride,
+        moreOrLessEquals(secondRow - tops.first),
+        reason: 'шаг ряда при $width',
+      );
+    });
+  }
 
   testWidgets('нажатие на плитку открывает страницу игры', (tester) async {
     final harness = await withGames(tester);
@@ -206,8 +263,11 @@ void main() {
     final image = tester.widget<Image>(
       find.byKey(const ValueKey('featured-game-background')),
     );
-    expect(image.image, isA<FileImage>());
-    expect((image.image as FileImage).file.path, cover.path);
+    // Расшифровка — под ширину окна, а не в полный размер файла.
+    expect(image.image, isA<ResizeImage>());
+    final resized = image.image as ResizeImage;
+    expect((resized.imageProvider as FileImage).file.path, cover.path);
+    expect(resized.width, isNotNull);
   });
 
   testWidgets('исчезнувшая игра не оставляет открытой страницы', (
@@ -250,5 +310,43 @@ void main() {
     await mouse.moveTo(const Offset(4, 4));
     await tester.pumpAndSettle();
     expect(harness.nav.state.selectedGameId, third);
+  });
+
+  // Наведение перестраивало всю страницу — сетку, крупный кадр и свет, —
+  // а следом ещё раз от выбора игры. Плитка теперь сама знает, что она
+  // под курсором, и страница от наведения не перестраивается.
+  testWidgets('наведение на выбранную игру поднимает плитку, а не страницу', (
+    tester,
+  ) async {
+    await withGames(tester);
+    final body = tester.widget<LibraryBody>(find.byType(LibraryBody));
+    double lift(int index) => tester
+        .widget<AnimatedContainer>(
+          find
+              .ancestor(
+                of: find.byType(GameCoverTile).at(index),
+                matching: find.byType(AnimatedContainer),
+              )
+              .first,
+        )
+        .transform!
+        .getTranslation()
+        .y;
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    // Первая игра и так выбрана: выбор не сменится, и перестраиваться
+    // странице не от чего.
+    await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).first));
+    await tester.pumpAndSettle();
+
+    expect(lift(0), lessThan(0), reason: 'плитка под курсором поднята');
+    expect(lift(1), 0);
+    expect(
+      tester.widget<LibraryBody>(find.byType(LibraryBody)),
+      same(body),
+      reason: 'страница перестроилась от наведения',
+    );
   });
 }

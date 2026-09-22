@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
 import '../feedback/confirm.dart';
+import '../labels.dart';
 import '../theme.dart';
 import '../widgets/hover_builder.dart';
 import '../widgets/tile_icon_button.dart';
@@ -89,7 +90,7 @@ class SnapshotRow extends StatelessWidget {
       title: l.deleteSnapshotQuestion,
       message:
           '${game.title}\n'
-          '${l.deleteSnapshotNote(formatDateTime(snapshot.createdAt))}',
+          '${l.deleteSnapshotNote(dateTimeLabel(L.of(context), snapshot.createdAt))}',
       confirmLabel: l.delete,
       destructive: true,
     );

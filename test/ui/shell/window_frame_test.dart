@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:evaporate/l10n/app_localizations.dart';
-import 'package:evaporate/ui/shell.dart';
+import 'package:evaporate/ui/shell/shell_layout.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/window_chrome.dart';
 import 'package:evaporate/ui/widgets/window_frame.dart';
@@ -138,8 +138,11 @@ void main() {
     // окна дальше, чем полоса толста, — но числа эти живут в разных файлах
     // и сходятся только здесь.
     test('полоса у края не достаёт до верхней рейки', () {
-      expect(WindowChrome.edge, lessThan(AppShell.compactInset));
-      expect(AppShell.compactInset, lessThanOrEqualTo(AppShell.wideInset));
+      expect(WindowChrome.edge, lessThan(ShellLayout.compactInset));
+      expect(
+        ShellLayout.compactInset,
+        lessThanOrEqualTo(ShellLayout.wideInset),
+      );
     });
 
     test('все не толще заявленной толщины', () {

@@ -15,19 +15,11 @@ import 'package:flutter/material.dart';
 @immutable
 class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   const HardwareSurfaceTheme({
-    required this.fillOpacity,
-    required this.sheenTopOpacity,
-    required this.sheenBottomOpacity,
-    required this.rimOpacity,
     required this.shadow,
-    required this.counterLightOpacity,
-    required this.backdropCoolOpacity,
-    required this.backdropDeepOpacity,
-    required this.backdropWarmOpacity,
-    required this.grilleHole,
     required this.shellOpacity,
     required this.toolbarOpacity,
     required this.cardOpacity,
+    required this.materialCardOpacity,
     required this.readoutOpacity,
     required this.scrimOpacity,
     required this.ambientStrength,
@@ -39,31 +31,8 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     required this.frameShadowDrop,
   });
 
-  /// Непрозрачность стеклянной панели по умолчанию.
-  final double fillOpacity;
-
-  /// Отлив сверху слева; `null` — как заливка. Днём корпус светлее у кромки.
-  final double? sheenTopOpacity;
-
-  /// Отлив снизу справа — ближе к подложке.
-  final double sheenBottomOpacity;
-
-  /// Светлый кант по краю панели.
-  final double rimOpacity;
-
   /// Тень под стеклянной панелью.
   final Color shadow;
-
-  /// Встречный блик с верхнего левого угла.
-  final double counterLightOpacity;
-
-  /// Холодный, глубокий и тёплый свет подложки окна.
-  final double backdropCoolOpacity;
-  final double backdropDeepOpacity;
-  final double backdropWarmOpacity;
-
-  /// Отверстия декоративной решётки.
-  final Color grilleHole;
 
   /// Панель оболочки поверх света игр — нарочно неплотная: заливка в упор
   /// погасила бы единственный цвет в окне.
@@ -74,6 +43,11 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
 
   /// Карточка раздела.
   final double cardOpacity;
+
+  /// Заливка карточки Material (`Card`) — плотнее панели разделов: на ней
+  /// стоят строки очереди и снимков, и сквозь неё не должно читаться
+  /// окружение. Прежде это было ветвление `isDark ? 0.82 : 0.9` в теме.
+  final double materialCardOpacity;
 
   /// Панель показаний.
   final double readoutOpacity;
@@ -101,19 +75,11 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   final double frameShadowDrop;
 
   static const arclight = HardwareSurfaceTheme(
-    fillOpacity: 0.9,
-    sheenTopOpacity: null,
-    sheenBottomOpacity: 0.62,
-    rimOpacity: 0.15,
     shadow: Color(0x8C000000),
-    counterLightOpacity: 0.05,
-    backdropCoolOpacity: 0.14,
-    backdropDeepOpacity: 0.36,
-    backdropWarmOpacity: 0.16,
-    grilleHole: Color(0xB8000000),
     shellOpacity: 0.62,
     toolbarOpacity: 0.72,
     cardOpacity: 0.62,
+    materialCardOpacity: 0.82,
     readoutOpacity: 0.7,
     scrimOpacity: 0.72,
     ambientStrength: 1,
@@ -126,19 +92,11 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   );
 
   static const cartridge = HardwareSurfaceTheme(
-    fillOpacity: 0.94,
-    sheenTopOpacity: 0.98,
-    sheenBottomOpacity: 0.72,
-    rimOpacity: 0.32,
     shadow: Color(0x578A8574),
-    counterLightOpacity: 0.16,
-    backdropCoolOpacity: 0.32,
-    backdropDeepOpacity: 0.12,
-    backdropWarmOpacity: 0.12,
-    grilleHole: Color(0xC2333738),
     shellOpacity: 0.78,
     toolbarOpacity: 0.84,
     cardOpacity: 0.74,
+    materialCardOpacity: 0.9,
     readoutOpacity: 0.6,
     scrimOpacity: 0.82,
     ambientStrength: 0.4,
@@ -156,19 +114,11 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   /// Все поля по порядку — для сравнения и для проверки, что `lerp` и
   /// `copyWith` не забыли ни одного.
   List<Object?> get values => [
-    fillOpacity,
-    sheenTopOpacity,
-    sheenBottomOpacity,
-    rimOpacity,
     shadow,
-    counterLightOpacity,
-    backdropCoolOpacity,
-    backdropDeepOpacity,
-    backdropWarmOpacity,
-    grilleHole,
     shellOpacity,
     toolbarOpacity,
     cardOpacity,
+    materialCardOpacity,
     readoutOpacity,
     scrimOpacity,
     ambientStrength,
@@ -181,31 +131,22 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   ];
 
   @override
-  HardwareSurfaceTheme copyWith({double? fillOpacity, double? shellOpacity}) =>
-      HardwareSurfaceTheme(
-        fillOpacity: fillOpacity ?? this.fillOpacity,
-        sheenTopOpacity: sheenTopOpacity,
-        sheenBottomOpacity: sheenBottomOpacity,
-        rimOpacity: rimOpacity,
-        shadow: shadow,
-        counterLightOpacity: counterLightOpacity,
-        backdropCoolOpacity: backdropCoolOpacity,
-        backdropDeepOpacity: backdropDeepOpacity,
-        backdropWarmOpacity: backdropWarmOpacity,
-        grilleHole: grilleHole,
-        shellOpacity: shellOpacity ?? this.shellOpacity,
-        toolbarOpacity: toolbarOpacity,
-        cardOpacity: cardOpacity,
-        readoutOpacity: readoutOpacity,
-        scrimOpacity: scrimOpacity,
-        ambientStrength: ambientStrength,
-        vignetteOpacity: vignetteOpacity,
-        keySheen: keySheen,
-        railShadowBlur: railShadowBlur,
-        railShadowDrop: railShadowDrop,
-        frameShadowBlur: frameShadowBlur,
-        frameShadowDrop: frameShadowDrop,
-      );
+  HardwareSurfaceTheme copyWith({double? shellOpacity}) => HardwareSurfaceTheme(
+    shadow: shadow,
+    shellOpacity: shellOpacity ?? this.shellOpacity,
+    toolbarOpacity: toolbarOpacity,
+    cardOpacity: cardOpacity,
+    materialCardOpacity: materialCardOpacity,
+    readoutOpacity: readoutOpacity,
+    scrimOpacity: scrimOpacity,
+    ambientStrength: ambientStrength,
+    vignetteOpacity: vignetteOpacity,
+    keySheen: keySheen,
+    railShadowBlur: railShadowBlur,
+    railShadowDrop: railShadowDrop,
+    frameShadowBlur: frameShadowBlur,
+    frameShadowDrop: frameShadowDrop,
+  );
 
   @override
   HardwareSurfaceTheme lerp(
@@ -215,28 +156,11 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     if (other is! HardwareSurfaceTheme) return this;
     double mix(double a, double b) => lerpDouble(a, b, t)!;
     return HardwareSurfaceTheme(
-      fillOpacity: mix(fillOpacity, other.fillOpacity),
-      // Концы смешиваются как есть: на `t = 0` и `t = 1` получается ровно
-      // своя схема, в том числе «как заливка» у ночной.
-      sheenTopOpacity: t == 0
-          ? sheenTopOpacity
-          : t == 1
-          ? other.sheenTopOpacity
-          : mix(
-              sheenTopOpacity ?? fillOpacity,
-              other.sheenTopOpacity ?? other.fillOpacity,
-            ),
-      sheenBottomOpacity: mix(sheenBottomOpacity, other.sheenBottomOpacity),
-      rimOpacity: mix(rimOpacity, other.rimOpacity),
       shadow: Color.lerp(shadow, other.shadow, t)!,
-      counterLightOpacity: mix(counterLightOpacity, other.counterLightOpacity),
-      backdropCoolOpacity: mix(backdropCoolOpacity, other.backdropCoolOpacity),
-      backdropDeepOpacity: mix(backdropDeepOpacity, other.backdropDeepOpacity),
-      backdropWarmOpacity: mix(backdropWarmOpacity, other.backdropWarmOpacity),
-      grilleHole: Color.lerp(grilleHole, other.grilleHole, t)!,
       shellOpacity: mix(shellOpacity, other.shellOpacity),
       toolbarOpacity: mix(toolbarOpacity, other.toolbarOpacity),
       cardOpacity: mix(cardOpacity, other.cardOpacity),
+      materialCardOpacity: mix(materialCardOpacity, other.materialCardOpacity),
       readoutOpacity: mix(readoutOpacity, other.readoutOpacity),
       scrimOpacity: mix(scrimOpacity, other.scrimOpacity),
       ambientStrength: mix(ambientStrength, other.ambientStrength),

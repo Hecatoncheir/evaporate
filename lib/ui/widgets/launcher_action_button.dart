@@ -30,6 +30,11 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
   bool _hovered = false;
   bool _pressed = false;
 
+  /// В фокусе — с клавиатуры или геймпада. Прежде у главной клавиши не
+  /// было видно ничего, кроме бледной заливки поверх золота: дошедший до
+  /// неё стрелками не знал, что он на ней.
+  bool _focused = false;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -40,7 +45,7 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
     // проваливалась бы сквозь него.
     final travel = colors.depth.a == 0 ? 1.0 : 3.0;
     final sunk = _pressed && enabled;
-    final lit = _hovered && enabled;
+    final lit = (_hovered || _focused) && enabled;
 
     return Semantics(
       button: true,
@@ -60,12 +65,14 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
               travel: travel,
               sunk: sunk,
               lit: lit,
+              focused: _focused && enabled,
             ),
             child: Material(
               color: AppColors.transparent,
               child: InkWell(
                 onTap: widget.onPressed,
                 onHighlightChanged: (value) => setState(() => _pressed = value),
+                onFocusChange: (value) => setState(() => _focused = value),
                 borderRadius: radius,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
@@ -97,7 +104,11 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
     required double travel,
     required bool sunk,
     required bool lit,
+    required bool focused,
   }) => BoxDecoration(
+    // Кант того же цвета выбора, что у плиток и клавиш обоймы: фокус
+    // выглядит одинаково везде, куда до него дошли.
+    border: focused ? Border.all(color: colors.selection, width: 2) : null,
     gradient: LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,

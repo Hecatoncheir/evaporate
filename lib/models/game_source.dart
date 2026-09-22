@@ -13,7 +13,7 @@ class GameSource extends Equatable {
   final String value;
 
   /// Для журналов. В интерфейсе источник называют переводимыми ключами.
-  String get label => switch (kind) {
+  String get logLabel => switch (kind) {
     GameSourceKind.magnet => 'Magnet-ссылка',
     GameSourceKind.torrentFile => 'Torrent-файл',
     GameSourceKind.localFolder => 'Локальная папка',

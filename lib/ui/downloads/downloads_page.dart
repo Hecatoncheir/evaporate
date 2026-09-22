@@ -6,6 +6,7 @@ import '../../bloc/library/library_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../theme.dart';
 import '../widgets/game_drop_target.dart';
+import '../widgets/watch_while_shown.dart';
 import 'available_games.dart';
 import 'downloads_columns.dart';
 import 'downloads_heading.dart';
@@ -28,8 +29,8 @@ class DownloadsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final downloads = context.watch<DownloadsBloc>().state;
-    final library = context.watch<LibraryBloc>().state;
+    final downloads = context.watchWhileShown<DownloadsBloc, DownloadsState>();
+    final library = context.watchWhileShown<LibraryBloc, LibraryState>();
     final maxConcurrent = context.select<SettingsBloc, int>(
       (bloc) => bloc.state.maxConcurrent,
     );

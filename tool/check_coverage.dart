@@ -64,8 +64,8 @@ List<String> filesMissingFromReport(
 /// Первые три — код, которого не бывает в тестах: `main` и сборка блоков
 /// при запуске поднимают настоящее приложение, а системные уведомления —
 /// обёртка над плагином, которому в прогоне отвечать некому. Остальные
-/// четыре исполняемых строк не содержат вовсе: бочка экспортов,
-/// перечислимая, таблица констант и интерфейс-метка частых событий.
+/// пять исполняемых строк не содержат вовсе: бочка экспортов,
+/// перечислимая, две таблицы постоянных и интерфейс-метка частых событий.
 const _reportedNowhere = {
   'lib/main.dart',
   'lib/app_services.dart',
@@ -74,6 +74,7 @@ const _reportedNowhere = {
   'lib/models/app_theme_mode.dart',
   'lib/ui/theme/alpha.dart',
   'lib/bloc/frequent_event.dart',
+  'lib/ui/library/featured/shots_timing.dart',
 };
 
 /// Ниже какой доли файл считается почти непроверенным.
@@ -121,7 +122,6 @@ List<String> thinFileProblems(
 const thinFiles = <String, int>{
   'lib/ui/saves/bulk_report_view.dart': 0,
   'lib/ui/settings/pick_folder.dart': 0,
-  'lib/ui/settings/capture_button_dialog.dart': 0,
   'lib/ui/saves/sync_package_row.dart': 0,
   'lib/ui/library/detail/executable_picker_dialog.dart': 0,
   'lib/ui/theme/theme_mode.dart': 0,
@@ -133,7 +133,6 @@ const thinFiles = <String, int>{
   'lib/ui/downloads/engine_failure.dart': 0,
   'lib/ui/library/detail/game_error_note.dart': 0,
   'lib/ui/library/detail/cover_progress.dart': 0,
-  'lib/ui/widgets/hardware_grille.dart': 0,
   'lib/ui/library/detail/running_game_actions.dart': 0,
   'lib/ui/library/drop_frame.dart': 0,
   'lib/ui/library/drop_overlay.dart': 2,
@@ -154,12 +153,10 @@ const thinFiles = <String, int>{
   'lib/bloc/navigation/navigation_event.dart': 34,
   'lib/bloc/settings/settings_event.dart': 34,
   'lib/services/system/managed_window.dart': 35,
-  'lib/input/nav_action.dart': 35,
   'lib/services/system/update_transport.dart': 38,
   'lib/services/download/engine_queue.dart': 41,
   'lib/core/system_folders.dart': 42,
   'lib/bloc/update/update_event.dart': 43,
-  'lib/services/download/download_engine.dart': 43,
   'lib/ui/library/effects/cover_drops.dart': 44,
 };
 

@@ -35,6 +35,11 @@ Evaporate распространяется под лицензией MIT (см. 
 OFL допускает распространение шрифтов в составе программы и требует
 прикладывать текст лицензии — он приложен.
 
+Страница проекта (`site/`) раздаёт свои копии тех же трёх шрифтов и ещё
+Nunito Sans для набросков оформления, поэтому тексты лицензий лежат и в
+`site/assets/` — рядом с каждым файлом шрифта. Nunito Sans — тоже SIL Open
+Font License 1.1, `site/assets/OFL-NunitoSans.txt`.
+
 ### Шейдер капель
 
 `assets/shaders/drops.frag` — стекающие по обложке капли. Взят почти как
@@ -89,6 +94,11 @@ They live in `assets/fonts/`, with their license texts beside them.
 
 The OFL permits bundling fonts with a program and requires the license text to
 be included — it is.
+
+The project page (`site/`) serves its own copies of the same three fonts plus
+Nunito Sans for the design sketches, so the license texts sit in
+`site/assets/` too, beside each font file. Nunito Sans is also SIL Open Font
+License 1.1, `site/assets/OFL-NunitoSans.txt`.
 
 ### Raindrop shader
 

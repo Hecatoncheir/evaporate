@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'effects_palette.dart';
+import 'glass_surface_theme.dart';
 import 'hardware_surface_theme.dart';
 import 'motion.dart';
 import 'palette.dart';
@@ -31,7 +32,6 @@ class EvaporateTheme {
   /// Геометрия корпуса. Радиусы малые и одни на обе схемы: округлость —
   /// это про яркость не больше, чем толщина рамки, и разные углы в двух
   /// темах читались бы как два разных приложения.
-  static const radiusShell = 8.0;
   static const radiusPanel = 6.0;
   static const radiusControl = 4.0;
   static const radiusChip = 3.0;
@@ -48,12 +48,14 @@ class EvaporateTheme {
   static ThemeData dark() => _build(
     EvaporatePalette.dark,
     HardwareSurfaceTheme.arclight,
+    GlassSurfaceTheme.arclight,
     EffectsPalette.arclight,
   );
 
   static ThemeData light() => _build(
     EvaporatePalette.light,
     HardwareSurfaceTheme.cartridge,
+    GlassSurfaceTheme.cartridge,
     EffectsPalette.cartridge,
   );
 
@@ -62,6 +64,7 @@ class EvaporateTheme {
   static ThemeData _build(
     EvaporatePalette p,
     HardwareSurfaceTheme surface,
+    GlassSurfaceTheme glass,
     EffectsPalette effects,
   ) {
     final base = p.isDark
@@ -69,12 +72,12 @@ class EvaporateTheme {
         : ThemeData.light(useMaterial3: true);
 
     return base.copyWith(
-      extensions: [p, EvaporateMotion.standard, surface, effects],
+      extensions: [p, EvaporateMotion.standard, surface, glass, effects],
       scaffoldBackgroundColor: p.background,
       colorScheme: _colorScheme(p),
       dividerTheme: DividerThemeData(color: p.outline, space: 1, thickness: 1),
       textTheme: _textTheme(base.textTheme, p),
-      cardTheme: _cardTheme(p),
+      cardTheme: _cardTheme(p, surface),
       inputDecorationTheme: _inputTheme(p),
       filledButtonTheme: _filledButtonTheme(),
       textButtonTheme: _textButtonTheme(),
@@ -149,8 +152,11 @@ class EvaporateTheme {
     letterSpacing: tracking,
   );
 
-  static CardThemeData _cardTheme(EvaporatePalette p) => CardThemeData(
-    color: p.surface.withValues(alpha: p.isDark ? 0.82 : 0.9),
+  static CardThemeData _cardTheme(
+    EvaporatePalette p,
+    HardwareSurfaceTheme surface,
+  ) => CardThemeData(
+    color: p.surface.withValues(alpha: surface.materialCardOpacity),
     elevation: 0,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radiusPanel),

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -64,25 +65,18 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void initState() {
     super.initState();
-    // Наведение меняет и крупный кадр наверху, и свет вокруг сетки:
-    // перестраивается вся страница, а не одна плитка.
-    _grid.addListener(_onGridChanged);
-    // Блок свой, и провайдера над страницей у него нет: подписываемся
-    // прямо здесь — так же, как на наведение в сетке.
+    // Блок свой: страница заводит его и раздаёт вниз, а сама читает его
+    // состояние подпиской — провайдер лежит ниже неё.
     _viewChanges = _view.stream.listen((_) {
       if (mounted) setState(() {});
     });
   }
 
-  void _onGridChanged() => setState(() {});
-
   @override
   void dispose() {
     unawaited(_viewChanges.cancel());
     unawaited(_view.close());
-    _grid
-      ..removeListener(_onGridChanged)
-      ..dispose();
+    _grid.dispose();
     _searchFocus.dispose();
     super.dispose();
   }
@@ -132,7 +126,7 @@ class _LibraryPageState extends State<LibraryPage> {
     final scale = context.select<SettingsBloc, double>(
       (b) => b.state.appearance.libraryScale,
     );
-    _grid.forgetGone(all.map((game) => game.id).toSet());
+    _forgetGone(all);
 
     final view = _view.state;
     final found = view.found(all);
@@ -146,25 +140,45 @@ class _LibraryPageState extends State<LibraryPage> {
 
     if (opened != null) return GamePage(game: opened);
 
-    return LibraryBody(
-      grid: _grid,
-      games: games,
-      found: found,
-      libraryIsEmpty: all.isEmpty,
-      shelf: view.shelf,
-      selectedId: navState.selectedGameId,
-      effects: effects,
-      scale: scale,
-      scanning: _scanning,
-      searchFocus: _searchFocus,
-      onShelf: (value) => _view.add(LibraryShelfSelected(value)),
-      onQuery: (value) => _view.add(LibraryQueryChanged(value)),
-      onReturnToGames: () => _returnToGames(games, nav),
-      onScan: () => _scanFolder(context),
-      onAdd: () => _addGame(context),
-      onSelect: (id) => nav.add(GameSelected(id)),
-      onOpen: (id) => nav.add(GameOpened(id)),
+    // Блок экрана — в дерево: вкладки полок и поле поиска читают и
+    // меняют его сами, а не через колбэки четырёх виджетов над ними.
+    return BlocProvider.value(
+      value: _view,
+      child: LibraryBody(
+        grid: _grid,
+        games: games,
+        found: found,
+        libraryIsEmpty: all.isEmpty,
+        selectedId: navState.selectedGameId,
+        effects: effects,
+        scale: scale,
+        scanning: _scanning,
+        searchFocus: _searchFocus,
+        onReturnToGames: () => _returnToGames(games, nav),
+        onScan: () => _scanFolder(context),
+        onAdd: () => _addGame(context),
+        onSelect: (id) => nav.add(GameSelected(id)),
+        onOpen: (id) => nav.add(GameOpened(id)),
+      ),
     );
+  }
+
+  /// Какие игры были в библиотеке на прошлой сборке.
+  Set<String> _idsBefore = const {};
+
+  /// Отпускает фокусы и ключи ушедших игр — после кадра, а не в `build`.
+  ///
+  /// Освобождённый во время сборки `FocusNode` ещё висит на плитке, которую
+  /// эта же сборка только собирается убрать: побочное действие в `build`
+  /// работало лишь потому, что порядок совпадал. И только когда набор
+  /// игр изменился: сборок на каждую перелистку много, а игры уходят редко.
+  void _forgetGone(List<Game> games) {
+    final ids = {for (final game in games) game.id};
+    if (setEquals(ids, _idsBefore)) return;
+    _idsBefore = ids;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _grid.forgetGone(ids);
+    });
   }
 
   /// Возвращает выбор в осмысленное состояние, если он повис в воздухе.

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/download_task.dart';
 import '../../services/download/download_engine.dart';
 import '../downloads/engine_state_color.dart';
 import '../labels.dart';
@@ -20,9 +21,12 @@ class EngineReadout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final downloads = context.watch<DownloadsBloc>().state;
-    final status = downloads.engine;
-    final stats = downloads.stats;
+    // Только движок и показания: снимок задач приходит каждую секунду, а
+    // этой строке до задач дела нет.
+    final (status, stats) = context
+        .select<DownloadsBloc, (EngineStatus, EngineStats)>(
+          (b) => (b.state.engine, b.state.stats),
+        );
     final l = L.of(context);
 
     final color = colors.engine(status.state);

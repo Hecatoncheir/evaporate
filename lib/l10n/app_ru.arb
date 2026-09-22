@@ -870,25 +870,6 @@
   "gamesAdded": "Добавлено игр: {count}",
   "gamesFolder": "Папка для игр",
   "gamesInFolder": "Игры в папке",
-  "rootApplications": "Программы",
-  "rootAppDownloads": "Загрузки Evaporate",
-  "rootHomeGames": "Домашняя папка Games",
-  "rootVolume": "Том «{name}»",
-  "rootDrive": "Диск {name}:",
-  "@rootVolume": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "@rootDrive": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "hintBack": "Назад",
   "hintNavigate": "Навигация",
   "hintPlay": "Играть",
@@ -1087,6 +1068,12 @@
   "playtime": "Наиграно {duration}",
   "playtimeLabel": "Наиграно",
   "pressAnyButton": "Нажмите нужную кнопку на геймпаде.",
+  "captureCancelHint": "{button} — отменить, не назначая.",
+  "@captureCancelHint": {
+    "placeholders": {
+      "button": {"type": "String"}
+    }
+  },
   "proxy": "Прокси",
   "proxyApply": "Применить",
   "proxyEnable": "Загружать через прокси",
@@ -1108,6 +1095,8 @@
   "refreshFromSteam": "Обновить из Steam",
   "removeFilesNote": "Файлы игры лежат в:\n{dir}",
   "removeFromLibrary": "Удалить из библиотеки",
+  "queueMoveUp": "Выше в очереди",
+  "queueMoveDown": "Ниже в очереди",
   "removeFromQueue": "Убрать из очереди",
   "removeFromQueueQuestion": "Убрать из очереди?",
   "removeFromQueueNote": "Задача уйдёт из очереди и перестанет ждать своего часа. Скачанное, если оно есть, останется на диске.",
@@ -1190,6 +1179,11 @@
   "sourceTorrent": "Torrent-файл",
   "sourceTitle": "поиска по названию",
   "sourceWatch": "наблюдения",
+  "unitB": "Б",
+  "unitKB": "КБ",
+  "unitMB": "МБ",
+  "unitGB": "ГБ",
+  "unitTB": "ТБ",
   "speedPerSecond": "{value}/с",
   "startDownloadNow": "Начать загрузку сразу",
   "stateCompleted": "Готово",

@@ -10,6 +10,7 @@ export 'theme/button_styles.dart';
 export 'theme/decor_colors.dart';
 export 'theme/effects_palette.dart';
 export 'theme/evaporate_theme.dart';
+export 'theme/glass_surface_theme.dart';
 export 'theme/hardware_surface_theme.dart';
 export 'theme/layout.dart';
 export 'theme/motion.dart';

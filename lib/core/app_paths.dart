@@ -34,13 +34,19 @@ class AppPaths {
     required String defaultInstallDir,
   }) => AppPaths._(dataDir: dataDir, defaultInstallDir: defaultInstallDir);
 
-  static Future<AppPaths> init() async {
-    final support = await getApplicationSupportDirectory();
-    final home = _homeDir();
-    final paths = AppPaths._(
-      dataDir: support.path,
-      defaultInstallDir: p.join(home, 'Games', 'Evaporate'),
-    );
+  /// [home] — свой дом вместо системного: дымовой запуск собранного
+  /// приложения (`--smoke`) не должен ни трогать данные человека, ни
+  /// спорить с запущенной копией за замок экземпляра.
+  static Future<AppPaths> init({String? home}) async {
+    final paths = home == null
+        ? AppPaths._(
+            dataDir: (await getApplicationSupportDirectory()).path,
+            defaultInstallDir: p.join(_homeDir(), 'Games', 'Evaporate'),
+          )
+        : AppPaths._(
+            dataDir: p.join(home, 'data'),
+            defaultInstallDir: p.join(home, 'games'),
+          );
     await Directory(paths.savesDir).create(recursive: true);
     await Directory(paths.blobsDir).create(recursive: true);
     await Directory(paths.coversDir).create(recursive: true);

@@ -13,6 +13,7 @@ import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../support/snapshot_store_text.dart';
 import '../support/temp_dir.dart';
 
 /// Снимки живут в своём файле, но до 0.33 лежали в library.json
@@ -168,8 +169,7 @@ void main() {
   // бесполезной: ссылаться ей стало не на что.
   group('список снимков прочитан не целиком', () {
     Future<SnapshotBlob> blobOf(String text) =>
-        SnapshotStore(root: paths.blobsDir)
-            .putBytes('slot.sav', utf8.encode(text));
+        SnapshotStore(root: paths.blobsDir).putText('slot.sav', text);
 
     SaveSnapshot withBlob(String id, SnapshotBlob blob) => SaveSnapshot(
       id: id,
@@ -321,7 +321,7 @@ void main() {
   // версию после смены схемы — сценарий, который обновление предусматривает.
   test('список снимков от сборки новее не затирается', () async {
     final blob = await SnapshotStore(root: paths.blobsDir)
-        .putBytes('slot.sav', utf8.encode('прогресс из будущего'));
+        .putText('slot.sav', 'прогресс из будущего');
     await Directory(paths.dataDir).create(recursive: true);
     final written = jsonEncode({
       'version': 2,

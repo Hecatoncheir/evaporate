@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../bloc/library_view/library_view_bloc.dart';
 
 import '../../../input/input_scope.dart';
 import '../../../l10n/app_localizations.dart';
@@ -13,12 +16,10 @@ class LibrarySearchField extends StatelessWidget {
   const LibrarySearchField({
     super.key,
     required this.focusNode,
-    required this.onQuery,
     required this.onReturnToGames,
   });
 
   final FocusNode focusNode;
-  final ValueChanged<String> onQuery;
   final VoidCallback onReturnToGames;
 
   @override
@@ -51,7 +52,11 @@ class LibrarySearchField extends StatelessWidget {
             },
             child: TextField(
               focusNode: focusNode,
-              onChanged: onQuery,
+              // Запрос — прямо в блок экрана, а не колбэком через четыре
+              // виджета, которым он ни к чему.
+              onChanged: (value) => context.read<LibraryViewBloc>().add(
+                LibraryQueryChanged(value),
+              ),
               onSubmitted: (_) => onReturnToGames(),
               decoration: InputDecoration(
                 hintText: L.of(context).searchHint,

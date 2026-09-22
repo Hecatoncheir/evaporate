@@ -191,6 +191,22 @@ void main() {
     expect(backup.readAsBytesSync(), before);
   });
 
+  // Копия была одна и переписывалась каждой записью: вторая правка клала
+  // туда уже наш список, и список человека, каким он был до Evaporate,
+  // пропадал насовсем.
+  test('список, каким он был до нас, переживает вторую правку', () async {
+    await writeExisting([foreignEntry()]);
+    final untouched = File(shortcutsFile).readAsBytesSync();
+    final service = shortcuts();
+
+    await service.addGame(gameWith(title: 'Первое имя'));
+    final afterFirst = File(shortcutsFile).readAsBytesSync();
+    await service.addGame(gameWith(title: 'Второе имя'));
+
+    expect(File('$shortcutsFile.evaporate.orig').readAsBytesSync(), untouched);
+    expect(File('$shortcutsFile.evaporate.bak').readAsBytesSync(), afterFirst);
+  });
+
   test('список без файла заводится с нуля', () async {
     expect(File(shortcutsFile).existsSync(), isFalse);
 

@@ -1,6 +1,7 @@
 import 'package:evaporate/core/format.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/save_snapshot.dart';
+import 'package:evaporate/ui/labels.dart';
 import 'package:evaporate/ui/library/saves/snapshot_tile.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,11 +54,11 @@ void main() {
   ) async {
     await show(tester);
 
-    expect(find.text(formatDateTime(snapshot.createdAt)), findsOneWidget);
+    expect(find.text(dateTimeLabel(l, snapshot.createdAt)), findsOneWidget);
     expect(find.text(l.originManual), findsOneWidget);
     expect(find.textContaining('Cougar'), findsOneWidget);
     expect(find.textContaining('128 файлов'), findsOneWidget);
-    expect(find.textContaining('140.0 MB'), findsOneWidget);
+    expect(find.textContaining('140,0 МБ'), findsOneWidget);
   });
 
   testWidgets('все три действия на месте и подписаны', (tester) async {

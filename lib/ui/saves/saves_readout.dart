@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
+import '../labels.dart';
 import '../widgets/readout_cell.dart';
 import '../widgets/readout_panel.dart';
 import 'snapshot_history.dart';
@@ -28,11 +28,16 @@ class SavesReadout extends StatelessWidget {
     return ReadoutPanel(
       cells: [
         ReadoutCell(label: l.savesStatSnapshots, value: '${entries.length}'),
-        ReadoutCell(label: l.savesStatSize, value: formatBytes(stored)),
+        ReadoutCell(
+          label: l.savesStatSize,
+          value: bytesLabel(L.of(context), stored),
+        ),
         ReadoutCell(label: l.savesStatGames, value: '$configured'),
         ReadoutCell(
           label: l.savesStatLast,
-          value: last == null ? l.savesStatNever : formatDateTime(last),
+          value: last == null
+              ? l.savesStatNever
+              : dateTimeLabel(L.of(context), last),
           // Дата длиннее числа и в тот же кегль не влезает.
           compact: true,
           dim: last == null,

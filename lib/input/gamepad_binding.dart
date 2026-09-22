@@ -69,11 +69,6 @@ class GamepadBinding extends Equatable {
     return copyWith(buttons: next);
   }
 
-  GamepadBinding unassign(GamepadButton button) {
-    final next = Map<GamepadButton, NavAction>.from(buttons)..remove(button);
-    return copyWith(buttons: next);
-  }
-
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
     'deadzone': deadzone,

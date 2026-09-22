@@ -10,6 +10,8 @@ on:
       - .github/workflows/pages.yml
   workflow_dispatch:
 
+# Экшены закреплены по коммиту, как в `ci.yml`: тег у стороннего экшена
+# можно переставить, а этот поток выкладывает сайт с правом на запись.
 permissions:
   contents: read
   pages: write
@@ -25,9 +27,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    # Выкладка статики занимает минуту; зависший шаг не должен держать
+    # раннер шесть часов по умолчанию.
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/configure-pages@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Prepare site and UI concepts
         run: |
           mkdir -p _pages/concept-v2 _pages/concept-v3/assets
@@ -43,9 +48,9 @@ jobs:
           sed -i 's#../../assets/branding/app_icon.png#../assets/app-icon.png#g' _pages/concept-v2/index.html
           sed -i 's#../../assets/fonts/#../assets/#g' _pages/concept-v3/styles.css
           sed -i 's#../../assets/branding/app_icon.png#../assets/app-icon.png#g' _pages/concept-v3/index.html
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
         with:
           path: _pages
       - name: Publish
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

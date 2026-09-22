@@ -24,15 +24,6 @@ class EngineStatus extends Equatable {
 
   @override
   List<Object?> get props => [state, message];
-
-  /// Для журналов. Пользователю состояние показывают словами через
-  /// `engineStateLabel` в `lib/l10n/labels.dart` — здесь языка нет.
-  String get label => switch (state) {
-    EngineState.stopped => 'stopped',
-    EngineState.starting => 'starting',
-    EngineState.ready => 'ready',
-    EngineState.failed => 'failed',
-  };
 }
 
 /// Контракт движка загрузок. Единственная реализация — [DtorrentEngine],

@@ -183,6 +183,20 @@ void main() {
     );
   });
 
+  // Журнальные подписи моделей русские всегда — на то они и журнальные.
+  // Страж кириллицы их не видит: литерал лежит в `lib/models`, а в
+  // интерфейс он попадал чтением `.label` — «Source: Локальная папка».
+  // Поэтому они названы `logLabel`, и интерфейсу это имя запрещено.
+  test('интерфейс не показывает журнальных подписей моделей', () {
+    final offenders = [
+      for (final file in dartSources('lib/ui'))
+        for (final match in _logLabel.allMatches(file.code))
+          '${file.path}:${'\n'.allMatches(file.code.substring(0, match.start)).length + 1}',
+    ];
+    expect(offenders, isEmpty, reason: 'подпись для показа — в ui/labels.dart');
+    expect(_logLabel.hasMatch('Text(source.logLabel)'), isTrue);
+  });
+
   // Сломанная проверка — вечная зелень. Прежняя искала только одинарные
   // кавычки построчно: строка в двойных, в тройных кавычках или
   // разбитая на две строки проходила, а хвостовой комментарий с
@@ -246,3 +260,5 @@ Set<String> placeholdersIn(String text) => {
   ).allMatches(text))
     match.group(1)!,
 };
+
+final _logLabel = RegExp(r'\.logLabel\b');

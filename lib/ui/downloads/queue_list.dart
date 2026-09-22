@@ -41,9 +41,25 @@ class QueueList extends StatelessWidget {
             task: task,
             position: index + 1,
             game: library.gameForTask(task.id),
+            onMoveUp: index > 0 ? () => _move(context, index, -1) : null,
+            onMoveDown: index < queued.length - 1
+                ? () => _move(context, index, 1)
+                : null,
           ),
         );
       },
+    );
+  }
+
+  /// На шаг выше или ниже — тем же поручением, что и перетаскивание: встать
+  /// перед соседом, а не на номер места.
+  void _move(BuildContext context, int index, int delta) {
+    final moved = queued[index];
+    final rest = [...queued]..removeAt(index);
+    final place = index + delta;
+    final before = place < rest.length ? rest[place].id : null;
+    context.read<DownloadsBloc>().add(
+      DownloadReordered(id: moved.id, beforeId: before),
     );
   }
 }

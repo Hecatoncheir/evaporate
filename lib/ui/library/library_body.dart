@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
-import '../../models/shelf.dart';
 import '../widgets/game_drop_target.dart';
 import 'effects/library_atmosphere.dart';
 import 'library_empty_state.dart';
@@ -11,7 +10,7 @@ import 'library_featured_slot.dart';
 import 'library_grid.dart';
 import 'library_grid_controller.dart';
 import 'library_heading_bar.dart';
-import 'library_shelf_bar.dart';
+import 'toolbar.dart';
 
 /// Сама страница библиотеки: заголовок, крупный кадр, полки и сетка.
 ///
@@ -24,14 +23,11 @@ class LibraryBody extends StatelessWidget {
     required this.games,
     required this.found,
     required this.libraryIsEmpty,
-    required this.shelf,
     required this.selectedId,
     required this.effects,
     required this.scale,
     required this.scanning,
     required this.searchFocus,
-    required this.onShelf,
-    required this.onQuery,
     required this.onReturnToGames,
     required this.onScan,
     required this.onAdd,
@@ -51,7 +47,6 @@ class LibraryBody extends StatelessWidget {
   /// нашлось на этой полке».
   final bool libraryIsEmpty;
 
-  final Shelf shelf;
   final String? selectedId;
   final Appearance effects;
   final double scale;
@@ -61,8 +56,6 @@ class LibraryBody extends StatelessWidget {
   final bool scanning;
 
   final FocusNode searchFocus;
-  final ValueChanged<Shelf> onShelf;
-  final ValueChanged<String> onQuery;
   final VoidCallback onReturnToGames;
   final VoidCallback onScan;
   final VoidCallback onAdd;
@@ -91,12 +84,9 @@ class LibraryBody extends StatelessWidget {
                 effects: effects,
                 height: height,
               ),
-              LibraryShelfBar(
-                shelf: shelf,
+              LibraryToolbar(
                 found: found,
                 searchFocus: searchFocus,
-                onShelf: onShelf,
-                onQuery: onQuery,
                 onReturnToGames: onReturnToGames,
                 onScan: onScan,
                 onAdd: onAdd,

@@ -213,17 +213,6 @@ class SnapshotStore {
     return SnapshotBlob(name: name, hash: written.hash, size: written.size);
   }
 
-  /// Кладёт готовое содержимое, уже прочитанное в память.
-  Future<SnapshotBlob> putBytes(String name, List<int> bytes) async {
-    final hash = sha256.convert(bytes).toString();
-    if (!await _isKept(hash)) {
-      await _writeHashed(
-        (tmp) => _compressTo(Stream<List<int>>.value(bytes), tmp),
-      );
-    }
-    return SnapshotBlob(name: name, hash: hash, size: bytes.length);
-  }
-
   static Future<_Hashed> Function() _hashJob(String path) =>
       () => _hashOf(File(path).openRead());
 

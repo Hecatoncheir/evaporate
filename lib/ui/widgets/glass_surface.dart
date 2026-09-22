@@ -26,7 +26,8 @@ class GlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final surface = HardwareSurfaceTheme.of(context);
-    final effectiveOpacity = opacity ?? surface.fillOpacity;
+    final glass = GlassSurfaceTheme.of(context);
+    final effectiveOpacity = opacity ?? glass.fillOpacity;
     final borderRadius = BorderRadius.circular(radius);
 
     return ClipRRect(
@@ -41,16 +42,14 @@ class GlassSurface extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 colors.surface.withValues(
-                  alpha: surface.sheenTopOpacity ?? effectiveOpacity,
+                  alpha: glass.sheenTopOpacity ?? effectiveOpacity,
                 ),
-                colors.surfaceHigh.withValues(
-                  alpha: surface.sheenBottomOpacity,
-                ),
+                colors.surfaceHigh.withValues(alpha: glass.sheenBottomOpacity),
               ],
             ),
             borderRadius: borderRadius,
             border: Border.all(
-              color: colors.textPrimary.withValues(alpha: surface.rimOpacity),
+              color: colors.textPrimary.withValues(alpha: glass.rimOpacity),
             ),
             boxShadow: shadow
                 ? [
@@ -61,7 +60,7 @@ class GlassSurface extends StatelessWidget {
                     ),
                     BoxShadow(
                       color: colors.textPrimary.withValues(
-                        alpha: surface.counterLightOpacity,
+                        alpha: glass.counterLightOpacity,
                       ),
                       blurRadius: 12,
                       offset: const Offset(-5, -5),

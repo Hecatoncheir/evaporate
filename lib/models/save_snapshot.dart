@@ -172,14 +172,3 @@ class SaveSnapshot extends Equatable {
 }
 
 enum SnapshotOrigin { manual, autoOnExit, autoOnLaunch, imported, preRestore }
-
-extension SnapshotOriginLabel on SnapshotOrigin {
-  /// Для журналов. В интерфейсе — `snapshotOriginLabel`.
-  String get label => switch (this) {
-    SnapshotOrigin.manual => 'Вручную',
-    SnapshotOrigin.autoOnExit => 'Авто после игры',
-    SnapshotOrigin.autoOnLaunch => 'Авто перед запуском',
-    SnapshotOrigin.imported => 'Импорт',
-    SnapshotOrigin.preRestore => 'Бэкап перед откатом',
-  };
-}

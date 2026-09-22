@@ -1,0 +1,24 @@
+# Настройки редактора — то же, что `.gitattributes` и `dart format`, но
+# до сохранения файла, а не после. Без него редактор на Windows писал CRLF,
+# а форматтер и `pub get` возвращали LF, и файл навсегда оставался
+# «изменённым» с пустым `git diff`.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Двойной пробел в конце строки — разрыв строки в Markdown.
+[*.md]
+trim_trailing_whitespace = false
+
+# Эти три Windows читает только с CRLF (`.gitattributes`).
+[*.{ps1,iss,rc}]
+end_of_line = crlf
+
+[*.py]
+indent_size = 4

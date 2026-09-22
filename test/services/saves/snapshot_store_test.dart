@@ -9,6 +9,7 @@ import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import '../../support/snapshot_store_text.dart';
 import '../../support/temp_dir.dart';
 
 void main() {
@@ -28,14 +29,14 @@ void main() {
     final store = SnapshotStore(root: root(), listFiles: (_) => listing.stream);
     await Directory(root()).create(recursive: true);
 
-    final garbage = await store.putBytes('мусор', utf8.encode('старое'));
+    final garbage = await store.putText('мусор', 'старое');
     final collecting = store.collect(const {});
     listing.add(store.fileFor(garbage.hash));
     await pumpEventQueue();
 
     // Посреди обхода снимок целиком снят и закончен.
     final fresh = await store.guard(
-      () => store.putBytes('свежее', utf8.encode('новый прогресс')),
+      () => store.putText('свежее', 'новый прогресс'),
     );
     listing.add(store.fileFor(fresh.hash));
     await listing.close();
@@ -50,8 +51,8 @@ void main() {
 
   test('уборка без работы выносит бесхозное, а живое оставляет', () async {
     final store = SnapshotStore(root: root());
-    final kept = await store.putBytes('a', utf8.encode('нужное'));
-    final dropped = await store.putBytes('b', utf8.encode('ненужное'));
+    final kept = await store.putText('a', 'нужное');
+    final dropped = await store.putText('b', 'ненужное');
 
     final (:moved, purged: _) = await store.collect({kept.hash});
 
@@ -66,7 +67,7 @@ void main() {
   group('вынесенное уборкой', () {
     test('возвращается, когда снимок на него сошлётся', () async {
       final store = SnapshotStore(root: root());
-      final blob = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      final blob = await store.putText('slot.sav', 'прогресс');
       await store.collect(const {});
       expect(store.fileFor(blob.hash).existsSync(), isFalse);
 
@@ -80,10 +81,10 @@ void main() {
 
     test('то же содержимое заново не пишется, а возвращается', () async {
       final store = SnapshotStore(root: root());
-      final first = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      final first = await store.putText('slot.sav', 'прогресс');
       await store.collect(const {});
 
-      final again = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      final again = await store.putText('slot.sav', 'прогресс');
 
       expect(again.hash, first.hash);
       expect(store.fileFor(first.hash).existsSync(), isTrue);
@@ -93,7 +94,7 @@ void main() {
     test('удаляется насовсем только по сроку', () async {
       var now = DateTime(2026, 9, 21);
       final store = SnapshotStore(root: root(), clock: () => now);
-      final blob = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      final blob = await store.putText('slot.sav', 'прогресс');
       await store.collect(const {});
 
       now = now.add(store.trashKeep - const Duration(hours: 1));
@@ -115,10 +116,10 @@ void main() {
   group('испорченное содержимое', () {
     test('пустой файл под хешем считается отсутствующим', () async {
       final store = SnapshotStore(root: root());
-      final blob = await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      final blob = await store.putText('slot.sav', 'прогресс');
       await store.fileFor(blob.hash).writeAsBytes(const []);
 
-      await store.putBytes('slot.sav', utf8.encode('прогресс'));
+      await store.putText('slot.sav', 'прогресс');
 
       final target = p.join(tmp.path, 'назад.sav');
       await store.extractTo(blob.hash, target);
@@ -130,8 +131,9 @@ void main() {
     // содержимого его переписал, а не ответил «уже лежит».
     test('обрезанный блоб, сорвавший раскладку, переписывается', () async {
       final store = SnapshotStore(root: root());
-      final content = utf8.encode('прогресс ' * 200);
-      final blob = await store.putBytes('slot.sav', content);
+      final text = 'прогресс ' * 200;
+      final content = utf8.encode(text);
+      final blob = await store.putText('slot.sav', text);
       final stored = store.fileFor(blob.hash);
       final whole = await stored.readAsBytes();
       await stored.writeAsBytes(whole.sublist(0, whole.length ~/ 2));
@@ -146,7 +148,7 @@ void main() {
         throwsA(isA<SaveException>()),
       );
 
-      await store.putBytes('slot.sav', content);
+      await store.putText('slot.sav', text);
       await source.writeTo(p.join(tmp.path, 'второй.sav'));
       expect(File(p.join(tmp.path, 'второй.sav')).readAsBytesSync(), content);
     });

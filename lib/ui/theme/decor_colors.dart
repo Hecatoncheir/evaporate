@@ -49,19 +49,10 @@ abstract final class AppColors {
   /// обложке само: она и отличает живой кадр от вклеенной картинки.
   static final artSweep = Colors.white.withValues(alpha: 0.09);
 
-  static const frostDark = Color(0xB306080B);
-  static const frostLight = Color(0x9EF7F6F2);
-
   // Портал горит своим огнём, а не цветом темы: он один и тот же на светлой
   // и на тёмной подложке — как искры и должны выглядеть.
   static const portalSpark = Color(0xFFFFE79A);
   static const portalRim = Color(0xFFFF8A1F);
-
-  // Рассеянный свет и металл под панелями. Это часть оформления корпуса,
-  // а не семантические цвета текста, поэтому значения общие для темы.
-  static const ambientWarm = Color(0xFFE9C877);
-  static const ambientCool = Color(0xFF49B7E0);
-  static const ambientDeep = Color(0xFF0D1116);
 }
 
 /// Запасные цвета обложки, выведенные из названия игры.

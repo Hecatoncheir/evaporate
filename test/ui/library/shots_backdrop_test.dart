@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:evaporate/ui/library/featured/shots_timing.dart';
 import 'package:evaporate/ui/library/shots_backdrop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -95,7 +96,7 @@ void main() {
     expect(shown(), shots.first);
 
     // Черёд кадра плюс перетекание: к этому времени первый уже уступил.
-    const turn = ShotsBackdrop.hold + ShotsBackdrop.fade;
+    const turn = ShotsTiming.hold + ShotsTiming.fade;
     await advance(tester, turn);
     expect(shown(), shots[1]);
 
@@ -115,7 +116,7 @@ void main() {
     await tester.pump();
 
     // Досюда кадр один: перетекание начинается в хвосте черёда.
-    await advance(tester, ShotsBackdrop.hold + 0.3);
+    await advance(tester, ShotsTiming.hold + 0.3);
     expect(find.byType(Image), findsNWidgets(2));
 
     // Пока предыдущий ещё виден, следующий обязан уже ехать. Прежде он
@@ -149,7 +150,7 @@ void main() {
     String shown() => _pathOf(tester.widget<Image>(find.byType(Image).first));
 
     final first = shown();
-    const turn = ShotsBackdrop.hold + ShotsBackdrop.fade;
+    const turn = ShotsTiming.hold + ShotsTiming.fade;
     await advance(tester, turn * 2);
 
     // Часы остановлены — значит, и кадр остался тем же: движущийся фон

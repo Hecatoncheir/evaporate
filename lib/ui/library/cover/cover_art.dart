@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../models/game.dart';
 import '../../theme.dart';
 import 'cover_title_plate.dart';
+import 'decode_width.dart';
 
 /// Обложка читается только с диска: открытие библиотеки не обращается к Steam.
 class CoverArt extends StatelessWidget {
@@ -28,18 +29,21 @@ class CoverArt extends StatelessWidget {
         // Подложка лежит под картинкой всегда: пока обложка грузится, плитка
         // не должна быть пустой дырой.
         fallback,
-        Image.file(
-          File(path),
-          fit: BoxFit.cover,
-          // Не прочиталась — остаётся подложка под ней: пустая дыра на
-          // месте плитки хуже, чем плитка без картинки.
-          errorBuilder: (context, error, stack) => const SizedBox.shrink(),
-          // Проявление вместо рывка: обложки приходят вразнобой, и сетка
-          // иначе моргает пятнами по мере их прихода.
-          frameBuilder: (context, child, frame, wasCached) => AnimatedOpacity(
-            opacity: frame == null && !wasCached ? 0 : 1,
-            duration: context.motion.fast,
-            child: child,
+        LayoutBuilder(
+          builder: (context, box) => Image.file(
+            File(path),
+            fit: BoxFit.cover,
+            cacheWidth: decodeWidth(context, box.maxWidth),
+            // Не прочиталась — остаётся подложка под ней: пустая дыра на
+            // месте плитки хуже, чем плитка без картинки.
+            errorBuilder: (context, error, stack) => const SizedBox.shrink(),
+            // Проявление вместо рывка: обложки приходят вразнобой, и сетка
+            // иначе моргает пятнами по мере их прихода.
+            frameBuilder: (context, child, frame, wasCached) => AnimatedOpacity(
+              opacity: frame == null && !wasCached ? 0 : 1,
+              duration: context.motion.fast,
+              child: child,
+            ),
           ),
         ),
       ],

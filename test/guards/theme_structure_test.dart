@@ -23,7 +23,8 @@ import '../support/guards.dart';
 ///   берётся ступенью `EvaporateAlpha`.
 ///
 /// Списки ниже — известные нарушители на момент введения правила (этап 2
-/// в `TODO.md`), с числом вхождений. Пополнять их нельзя; вынесенное —
+/// первого разбора, `docs/reviews/2026-09-19.md`), с числом вхождений.
+/// Пополнять их нельзя; вынесенное —
 /// вычёркивать или уменьшать число.
 void main() {
   bool isThemeFile(String path) =>
@@ -232,8 +233,13 @@ const _durations = [
   // системной просьбе не двигаться набор длительностей обнуляется, а
   // шаг часов обнулять нельзя — делить на него.
   'lib/ui/widgets/frame_step.dart: 1',
-  'lib/ui/widgets/animated_progress.dart: 1',
+  // Путь капли выделения, 460 — между `base` и `slow`, подобран по месту.
+  // Просьбу не двигаться капля проверяет сама (`_sync` ставит её на место),
+  // поэтому нулевой набор ей не нужен; перевод на ступень поменял бы облик
+  // и решается как облик, а не уборкой.
   'lib/ui/widgets/liquid/liquid_selection.dart: 1',
+  // Не длительность, а метка: нулевая означает «всход ещё не начинался»,
+  // и `_start` по ней отличает первый заход от пересборки.
   'lib/ui/widgets/rise_in.dart: 1',
 ];
 
@@ -241,7 +247,6 @@ const _radii = <String>[];
 
 const _alphas = [
   'lib/ui/downloads/download_chart.dart: 2',
-  'lib/ui/feedback/snack.dart: 1',
   'lib/ui/library/featured/featured_actions.dart: 1',
   'lib/ui/library/featured/playtime_readout.dart: 1',
   'lib/ui/library/effects/foil/foil_surface.dart: 2',

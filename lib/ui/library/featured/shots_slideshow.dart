@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../featured/shot_frame.dart';
-import '../shots_backdrop.dart';
+import 'shots_timing.dart';
 
 class ShotsSlideshow extends StatelessWidget {
   const ShotsSlideshow({
@@ -21,18 +21,18 @@ class ShotsSlideshow extends StatelessWidget {
     child: ValueListenableBuilder<double>(
       valueListenable: clock,
       builder: (context, time, _) {
-        const period = ShotsBackdrop.hold + ShotsBackdrop.fade;
+        const period = ShotsTiming.hold + ShotsTiming.fade;
         final turn = time / period;
         final index = turn.floor();
         final phase = turn - index;
 
         // Перетекание занимает хвост черёда, поэтому следующий кадр нужен
         // только под конец: остальное время он не рисуется вовсе.
-        final blend = phase <= ShotsBackdrop.hold / period
+        final blend = phase <= ShotsTiming.hold / period
             ? 0.0
             : Curves.easeInOut.transform(
-                (phase - ShotsBackdrop.hold / period) /
-                    (ShotsBackdrop.fade / period),
+                (phase - ShotsTiming.hold / period) /
+                    (ShotsTiming.fade / period),
               );
 
         return Stack(

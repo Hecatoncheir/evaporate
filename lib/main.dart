@@ -30,6 +30,7 @@ import 'services/system/app_tray.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/proxy_http_overrides.dart';
 import 'services/system/single_instance.dart';
+import 'services/system/smoke_run.dart';
 import 'services/system/update_check.dart';
 import 'services/system/update_installer.dart';
 import 'services/system/window_mode_watch.dart';
@@ -44,10 +45,11 @@ import 'ui/widgets/window_frame.dart';
 /// Порядок здесь значим почти везде, и каждый шаг объясняет свой: журнал
 /// заводится раньше всего, настройки читаются до блоков, окно ставится до
 /// показа, значок в трее ставится всегда.
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final paths = await AppPaths.init();
+  final smoke = SmokeRun.requested(args) ? await SmokeRun.prepare() : null;
+  final paths = await AppPaths.init(home: smoke?.home.path);
   final instance = await _claimInstance(paths);
   await _startLog(paths);
 
@@ -71,7 +73,7 @@ Future<void> main() async {
   // его порядке; журнал дописывается последним — после всех, кто в него
   // пишет, включая сбои самих шагов.
   final shutdownSteps = <ShutdownStep>[stopProxyRouting];
-  final closeHandler = await _handleClose(shutdownSteps);
+  final (closeHandler, shutdown) = await _handleClose(shutdownSteps);
 
   final tray = await _installTray(localizations, closeHandler.quit);
 
@@ -100,6 +102,25 @@ Future<void> main() async {
       tray: tray,
     ),
   );
+  if (smoke != null) unawaited(_smokeTest(smoke, paths, shutdown));
+}
+
+/// Дымовой запуск: проверки после первого кадра и выход с их итогом.
+///
+/// Выход своими руками, а не закрытием окна: код возврата — весь ответ
+/// прогону, а штатное закрытие на macOS и Linux кончается нулём всегда.
+Future<void> _smokeTest(
+  SmokeRun smoke,
+  AppPaths paths,
+  AppShutdown shutdown,
+) async {
+  final code = await smoke.check(
+    firstFrame: WidgetsBinding.instance.waitUntilFirstFrameRasterized,
+    shutdown: shutdown.run,
+    dataDir: paths.dataDir,
+    logFile: paths.logFile,
+  );
+  exit(code);
 }
 
 /// Заводит журнал и сводит в него чужие жалобы.
@@ -210,15 +231,16 @@ Future<WindowState> _prepareWindow(AppPaths paths, AppSettings settings) async {
 ///
 /// Сорвавшийся шаг уходит в журнал: показать его уже некому — окно
 /// закрывается, — а без журнала от него не осталось бы и следа.
-Future<WindowCloseHandler> _handleClose(List<ShutdownStep> steps) async {
-  final handler = WindowCloseHandler(
-    AppShutdown(
-      steps,
-      onError: (error) => AppLog.instance.write('завершение', error),
-    ),
+Future<(WindowCloseHandler, AppShutdown)> _handleClose(
+  List<ShutdownStep> steps,
+) async {
+  final shutdown = AppShutdown(
+    steps,
+    onError: (error) => AppLog.instance.write('завершение', error),
   );
+  final handler = WindowCloseHandler(shutdown);
   await handler.attach();
-  return handler;
+  return (handler, shutdown);
 }
 
 /// Ставит значок в трее — всегда, при любом режиме запуска.

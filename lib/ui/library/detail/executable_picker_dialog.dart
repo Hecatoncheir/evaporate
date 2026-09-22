@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/launch/executable_finder.dart';
+import '../../labels.dart';
 import '../../theme.dart';
 
 /// Что запускать: список найденных в папке игры исполняемых файлов.
@@ -38,7 +38,7 @@ class ExecutablePickerDialog extends StatelessWidget {
               title: Text(candidate.name, style: context.text.body),
               subtitle: Text(
                 '${p.relative(candidate.path, from: installDir)} · '
-                '${formatBytes(candidate.sizeBytes)}',
+                '${bytesLabel(L.of(context), candidate.sizeBytes)}',
                 style: context.text.small,
               ),
               onTap: () => Navigator.pop(context, candidate),

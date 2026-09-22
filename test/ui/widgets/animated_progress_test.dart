@@ -81,6 +81,30 @@ void main() {
     return (filled: columnAt(0.1), empty: columnAt(0.9));
   }
 
+  // Длительность стояла числом в виджете и шла мимо системной просьбы не
+  // двигаться: полоса ехала почти секунду и у того, кому движение мешает.
+  testWidgets('при просьбе не двигаться полоса сразу на месте', (tester) async {
+    Widget bar(double value) => MaterialApp(
+      theme: EvaporateTheme.dark(),
+      home: MediaQuery(
+        data: const MediaQueryData(disableAnimations: true),
+        child: Scaffold(
+          body: SizedBox(width: 400, child: AnimatedProgress(value: value)),
+        ),
+      ),
+    );
+    double shown() => tester
+        .widget<FractionallySizedBox>(find.byType(FractionallySizedBox))
+        .widthFactor!;
+
+    await tester.pumpWidget(bar(0.2));
+    await tester.pump();
+    await tester.pumpWidget(bar(0.8));
+    await tester.pump();
+
+    expect(shown(), 0.8);
+  });
+
   for (final dark in [true, false]) {
     final scheme = dark ? 'Арклайт' : 'Картридж';
 

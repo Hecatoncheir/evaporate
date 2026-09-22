@@ -16,6 +16,7 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
     required this.fast,
     required this.base,
     required this.slow,
+    required this.track,
     required this.stagger,
     required this.staggerLimit,
   });
@@ -32,6 +33,12 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
 
   /// Появление крупного: обложка героя, всход полки, переход раздела.
   final Duration slow;
+
+  /// Ход полосы, которую двигают сообщения извне: прогресс загрузки. Чуть
+  /// дольше, чем приходят сообщения о ходе, — полоса едет непрерывно, не
+  /// успевая замереть между ними. Ступенью, а не числом в виджете: число
+  /// шло мимо системной просьбы не двигаться.
+  final Duration track;
 
   /// Шаг задержки между соседними плитками при всходе полки.
   final Duration stagger;
@@ -51,16 +58,12 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
   /// Уход с экрана. Обратная [enter]: разгоняется и обрывается.
   static const exit = Cubic(0.4, 0, 0.9, 0.4);
 
-  /// Небольшой перелёт для того, что «встаёт на место»: плашка выбранного
-  /// раздела, значок в фокусе. Перелёт слабый — на золоте и прямых углах
-  /// пружина читается как брак, а не как живость.
-  static const settle = Cubic(0.34, 1.28, 0.64, 1);
-
   static const standard = EvaporateMotion(
     instant: Duration(milliseconds: 120),
     fast: Duration(milliseconds: 200),
     base: Duration(milliseconds: 380),
     slow: Duration(milliseconds: 760),
+    track: Duration(milliseconds: 900),
     stagger: Duration(milliseconds: 55),
     staggerLimit: 12,
   );
@@ -71,6 +74,7 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
     fast: Duration.zero,
     base: Duration.zero,
     slow: Duration.zero,
+    track: Duration.zero,
     stagger: Duration.zero,
     staggerLimit: 0,
   );
@@ -85,6 +89,7 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
     Duration? fast,
     Duration? base,
     Duration? slow,
+    Duration? track,
     Duration? stagger,
     int? staggerLimit,
   }) => EvaporateMotion(
@@ -92,6 +97,7 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
     fast: fast ?? this.fast,
     base: base ?? this.base,
     slow: slow ?? this.slow,
+    track: track ?? this.track,
     stagger: stagger ?? this.stagger,
     staggerLimit: staggerLimit ?? this.staggerLimit,
   );
@@ -110,6 +116,7 @@ class EvaporateMotion extends ThemeExtension<EvaporateMotion> {
       fast: mix(fast, other.fast),
       base: mix(base, other.base),
       slow: mix(slow, other.slow),
+      track: mix(track, other.track),
       stagger: mix(stagger, other.stagger),
       staggerLimit: t < 0.5 ? staggerLimit : other.staggerLimit,
     );

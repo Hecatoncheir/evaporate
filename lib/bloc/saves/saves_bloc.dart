@@ -10,6 +10,7 @@ import '../../core/format.dart';
 import '../../core/json_store.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import '../../l10n/labels.dart';
 import '../../models/bulk_report.dart';
 import '../../models/game.dart';
 import '../../models/save_profile.dart';
@@ -26,11 +27,11 @@ import '../library/library_bloc.dart';
 import '../notice.dart';
 import '../settings/settings_bloc.dart';
 
-part 'saves_event.dart';
-part 'saves_state.dart';
-part 'saves_snapshots.dart';
-part 'saves_hints.dart';
 part 'saves_bulk.dart';
+part 'saves_event.dart';
+part 'saves_hints.dart';
+part 'saves_snapshots.dart';
+part 'saves_state.dart';
 
 /// Снимки сохранений: снятие, разворачивание, ротация и перенос всей
 /// библиотеки разом.

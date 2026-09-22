@@ -24,6 +24,7 @@ void main() {
         'HardwareSurfaceTheme',
         'EffectsPalette',
         'EvaporateMotion',
+        'GlassSurfaceTheme',
       ]),
     );
   });

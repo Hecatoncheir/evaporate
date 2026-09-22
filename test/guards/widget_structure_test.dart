@@ -23,7 +23,8 @@ const maxClosureLines = 25;
 /// обходил, и правило там держалось на честном слове.
 ///
 /// Списки ниже — известные нарушители на момент введения правила (см.
-/// этап 3 в `TODO.md`). Пополнять их нельзя; вынесенное — вычёркивать.
+/// этап 3 первого разбора, `docs/reviews/2026-09-19.md`). Пополнять их
+/// нельзя; вынесенное — вычёркивать.
 void main() {
   final sources = [
     ...dartSources('lib/ui'),
@@ -119,6 +120,25 @@ class A extends StatelessWidget {
       expect(found.map((c) => c.lines), [1]);
     });
 
+    // Стрелка аргументом прежде тянулась до конца вызова и забирала
+    // соседний `child` со всей разметкой: у `CoverBackdrop` «замыкание»
+    // в одну строку выходило на тридцать две.
+    test('стрелка-аргумент кончается запятой', () {
+      final lines = List.filled(maxClosureLines, '        Text("x"),');
+      final source =
+          '''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) => ShaderMask(
+    shaderCallback: (bounds) => gradient.createShader(bounds),
+    child: Column(children: [
+${lines.join('\n')}
+    ]),
+  );
+}
+''';
+      expect(buildClosures('lib/ui/x.dart', source).map((c) => c.lines), [1]);
+    });
+
     test('широкий виджет', () {
       final params = [for (var i = 0; i < 8; i++) 'required this.p$i'];
       final code = SourceFile('lib/ui/x.dart', '''
@@ -204,37 +224,26 @@ const _crowdedFiles = <String>[];
 /// же пятьдесят строк разметки без имени. Выросло число — новое нарушение;
 /// укоротили — число правят следом.
 const _longClosures = [
-  'lib/main.dart: _EvaporateAppState.build: 27',
-  'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 37',
-  'lib/ui/downloads/game_chip.dart: GameChip.build: 43',
+  'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 36',
+  'lib/ui/downloads/game_chip.dart: GameChip.build: 42',
   'lib/ui/downloads/queue_column.dart: QueueColumn.build: 38',
-  'lib/ui/library/detail/cover_backdrop.dart: CoverBackdrop.build: 31',
-  'lib/ui/library/detail/files_section.dart: FilesSection.build: 53',
   'lib/ui/library/effects/game_wave.dart: _GameWaveState.build: 43',
-  'lib/ui/library/effects/library_atmosphere.dart: LibraryAtmosphereState.build: 47',
-  'lib/ui/library/effects/portal/portal_sparks.dart: PortalSparksState.build: 31',
+  'lib/ui/library/effects/library_atmosphere.dart: LibraryAtmosphereState.build: 40',
+  'lib/ui/library/effects/portal/portal_sparks.dart: PortalSparksState.build: 30',
   'lib/ui/library/featured/shots_slideshow.dart: ShotsSlideshow.build: 40',
-  'lib/ui/library/featured_game.dart: FeaturedGame.build: 31',
-  'lib/ui/library/library_body.dart: LibraryBody.build: 49',
-  'lib/ui/library/library_grid.dart: LibraryGrid.build: 50',
-  'lib/ui/library/library_grid_tile.dart: LibraryGridTile.build: 47',
-  'lib/ui/library/saves/find_paths_button.dart: FindPathsButton.build: 28',
-  'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 45',
-  'lib/ui/library/saves/rule_dialog.dart: _RuleDialogState.build: 29',
-  'lib/ui/library/saves/snapshots_section.dart: SnapshotsSection.build: 50',
-  'lib/ui/library/scan/scan_drop_area.dart: ScanDropArea.build: 48',
-  'lib/ui/library/toolbar/add_game_menu_button.dart: AddGameMenuButton.build: 33',
+  'lib/ui/library/featured_game.dart: FeaturedGame.build: 30',
+  'lib/ui/library/library_body.dart: LibraryBody.build: 46',
+  'lib/ui/library/library_grid.dart: LibraryGrid.build: 36',
+  'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 35',
   'lib/ui/library/toolbar/toolbar_layout.dart: ToolbarLayout.build: 35',
   'lib/ui/saves/saves_page.dart: SavesPage.build: 44',
-  'lib/ui/saves/snapshot_row.dart: SnapshotRow.build: 36',
-  'lib/ui/settings/about_body.dart: AboutBody.build: 46',
-  'lib/ui/settings/log_card.dart: LogCard.build: 45',
-  'lib/ui/settings/proxy_form_body.dart: ProxyFormBody.build: 41',
-  'lib/ui/shell/navigation_key.dart: NavigationKey.build: 40',
+  'lib/ui/saves/snapshot_row.dart: SnapshotRow.build: 35',
+  'lib/ui/settings/about_body.dart: AboutBody.build: 45',
+  'lib/ui/settings/log_card.dart: LogCard.build: 41',
+  'lib/ui/settings/proxy_form_body.dart: ProxyFormBody.build: 40',
   'lib/ui/shell/navigation_rack.dart: NavigationRack.build: 49',
-  'lib/ui/shell/top_action.dart: TopAction.build: 30',
+  'lib/ui/shell/top_action.dart: TopAction.build: 29',
   'lib/ui/widgets/interface_scale.dart: InterfaceScale.build: 28',
-  'lib/ui/widgets/launcher_action_button.dart: _LauncherActionButtonState.build: 37',
 ];
 
 /// Виджеты больше чем с семью параметрами, кроме `key`: `путь: Имя: число`.
@@ -244,10 +253,8 @@ const _wideWidgets = [
   'lib/main.dart: EvaporateApp: 9',
   'lib/ui/library/add/add_game_fields.dart: AddGameFields: 14',
   'lib/ui/library/game_cover.dart: GameCoverTile: 8',
-  'lib/ui/library/library_body.dart: LibraryBody: 17',
-  'lib/ui/library/library_grid_tile.dart: LibraryGridTile: 11',
-  'lib/ui/library/library_shelf_bar.dart: LibraryShelfBar: 8',
-  'lib/ui/library/toolbar.dart: LibraryToolbar: 8',
+  'lib/ui/library/library_body.dart: LibraryBody: 14',
+  'lib/ui/library/library_grid_tile.dart: LibraryGridTile: 8',
   'lib/ui/settings/proxy_address_fields.dart: ProxyAddressFields: 10',
   'lib/ui/widgets/nav_tile.dart: NavTile: 12',
 ];

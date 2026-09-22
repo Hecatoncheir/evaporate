@@ -4,6 +4,7 @@ import '../../../../bloc/restore_preview/restore_preview_bloc.dart';
 import '../../../../core/format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../models/save_snapshot.dart';
+import '../../../labels.dart';
 import '../../../theme.dart';
 import 'local_freshness_note.dart';
 import 'restore_options_form.dart';
@@ -43,7 +44,7 @@ class RestoreDialogBody extends StatelessWidget {
         children: [
           Text(
             l.snapshotFrom(
-              formatDateTime(snapshot.createdAt),
+              dateTimeLabel(L.of(context), snapshot.createdAt),
               snapshot.deviceName,
               platformLabel(snapshot.platform),
             ),

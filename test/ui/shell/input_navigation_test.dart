@@ -216,6 +216,35 @@ void main() {
       expect(searchHasFocus(tester), isTrue);
     });
 
+    // «/» — ещё и символ: перехваченная всегда, она не набиралась ни в
+    // пароле прокси, ни в самом поиске — «Fate/stay» было не найти.
+    // Необработанное оболочкой нажатие система отдаёт полю как символ.
+    testWidgets('в текстовом поле слэш остаётся символом', (tester) async {
+      final harness = await withGames(tester);
+      harness.nav.add(const SearchFocusRequested());
+      await tester.pumpAndSettle();
+      expect(searchHasFocus(tester), isTrue);
+
+      final handled = await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+      await tester.pumpAndSettle();
+
+      expect(handled, isFalse, reason: 'оболочка съела символ');
+      expect(searchHasFocus(tester), isTrue);
+    });
+
+    testWidgets('Ctrl+F уводит в поиск и из текстового поля', (tester) async {
+      await withGames(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+      final handled = await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+
+      expect(handled, isTrue);
+      expect(searchHasFocus(tester), isTrue);
+    });
+
     testWidgets('стрелки перемещают фокус', (tester) async {
       await withGames(tester);
       final before = primaryFocus;
