@@ -54,6 +54,18 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
 
+# Трей (tray_manager 0.7 → nativeapi) зовёт `G_APPLICATION_DEFAULT_FLAGS`,
+# а это имя появилось только в GLib 2.74. Сборка же нарочно идёт на
+# ubuntu-22.04 с GLib 2.72: от её glibc зависит, на каких системах
+# запустится `.deb` и `.run`, и поднимать этот порог ради одного имени
+# незачем. Флаг тот же, что старый `G_APPLICATION_FLAGS_NONE` (ноль), —
+# подставляем его, но только на старой GLib: на новой макрос с этим именем
+# столкнулся бы с самим объявлением в заголовке.
+pkg_check_modules(GLIB_FOR_TRAY REQUIRED glib-2.0)
+if(GLIB_FOR_TRAY_VERSION VERSION_LESS "2.74")
+  add_compile_definitions(G_APPLICATION_DEFAULT_FLAGS=G_APPLICATION_FLAGS_NONE)
+endif()
+
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
