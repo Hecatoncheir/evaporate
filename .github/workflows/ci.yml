@@ -179,12 +179,19 @@ jobs:
             exit 1
           }
 
+      # Итог — и в сводку, и в журнал шага: одна сводка не читается ни
+      # `gh run view --log-failed`, ни API, и упавший порог говорил лишь
+      # «тонкий файл», не называя какой. `shell: bash` — ради pipefail:
+      # без него провал проверки съедал бы `tee`.
       - name: Порог покрытия без сгенерированного кода
         if: matrix.os == 'ubuntu-latest'
-        run: dart tool/check_coverage.dart >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: dart tool/check_coverage.dart | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # И при упавшем пороге: разбирать недобор нужнее всего именно тогда,
+      # а числа тонких файлов сверяют по этому отчёту.
       - name: Приложить отчёт о покрытии
-        if: matrix.os == 'ubuntu-latest'
+        if: always() && matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-${{ github.sha }}
