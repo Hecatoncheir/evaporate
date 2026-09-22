@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/notifications/notification_service.dart';
+import '../theme.dart';
 import '../widgets/inline_warning.dart';
 import '../widgets/section_card.dart';
 import 'notification_actions.dart';
@@ -43,15 +44,15 @@ class NotificationSettingsCard extends StatelessWidget {
           // Система может не уметь показывать уведомления вовсе — тогда
           // включённый переключатель обещал бы то, чего не будет.
           if (!notifications.isAvailable) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: EvaporateSpacing.tight),
             InlineWarning(l.notificationsUnavailableNote),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           NotificationActions(notifications: notifications, enabled: enabled),
           // Разрешение у системы просит сам человек: диалог, выскочивший
           // при первом запуске, отклоняют не глядя.
           if (Platform.isMacOS) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: EvaporateSpacing.gap),
             SettingNote(l.permissionNote),
           ],
         ],

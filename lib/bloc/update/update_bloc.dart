@@ -61,7 +61,11 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
       installer ?? UpdateInstaller(workDir: AppPaths.instance.dataDir);
 
   UpdateDownload get _download =>
-      download ?? UpdateDownload(workDir: AppPaths.instance.dataDir);
+      download ??
+      UpdateDownload(
+        workDir: AppPaths.instance.dataDir,
+        localizations: _localizations,
+      );
   final Future<bool> Function(Uri uri) _openLink;
   final Future<void> Function() _onRestart;
   final L Function() _localizations;

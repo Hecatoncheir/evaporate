@@ -7,6 +7,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
+import 'package:evaporate/ui/saves/saves_readout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
@@ -116,6 +117,28 @@ void main() {
     expect(find.text('СНИМКОВ'), findsOneWidget);
     expect(find.text('ЗАНЯТО'), findsOneWidget);
     expect(find.text('Тихая гавань'), findsWidgets);
+  });
+
+  // Экран выбирает из состояний только игры и снимки. Остальное —
+  // занятость, сообщения, запущенные игры — меняется часто, и прежде
+  // каждая такая перемена пересобирала экран и заново сортировала все
+  // снимки библиотеки.
+  testWidgets('перемена, не касающаяся игр и снимков, экран не пересобирает', (
+    tester,
+  ) async {
+    final (harness, id) = await openWithSnapshot(tester);
+    final before = tester.widget<SavesReadout>(find.byType(SavesReadout));
+
+    harness.library.add(RunningGamesChanged({id}));
+    // Первый кадр доставляет событие, перестройка — на следующем: одного
+    // `pump` мало, и тест проходил бы при любой подписке.
+    await tester.pumpAndSettle();
+
+    expect(harness.library.state.runningIds, {id});
+    expect(
+      identical(tester.widget<SavesReadout>(find.byType(SavesReadout)), before),
+      isTrue,
+    );
   });
 
   // Удаление необратимо, а список общий: снимки разных игр лежат подряд, и

@@ -31,11 +31,13 @@ class BulkOutcomeGroup extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 6, bottom: 2),
+          padding: const EdgeInsets.only(
+            top: EvaporateSpacing.tight,
+            bottom: EvaporateSpacing.hair,
+          ),
           child: Text(
             '${_title(L.of(context), outcome)} — ${report.count(outcome)}',
-            style: context.text.caption.copyWith(
-              fontWeight: FontWeight.w600,
+            style: context.text.captionStrong.copyWith(
               color: switch (outcome) {
                 BulkOutcome.applied => colors.accent,
                 BulkOutcome.skipped => colors.textSecondary,
@@ -46,7 +48,10 @@ class BulkOutcomeGroup extends StatelessWidget {
         ),
         for (final entry in report.withOutcome(outcome))
           Padding(
-            padding: const EdgeInsets.only(left: 10, top: 1),
+            padding: const EdgeInsets.only(
+              left: EvaporateSpacing.cluster,
+              top: EvaporateSpacing.hair,
+            ),
             child: Text(
               entry.detail == null
                   ? entry.title

@@ -127,11 +127,8 @@ class SaveActivityWatch {
     }
 
     for (final entry in entries) {
-      if (entry is! Directory) continue;
+      if (entry is! Directory || !_worthVisiting(entry.path, out)) continue;
       final name = p.basename(entry.path);
-      if (name.startsWith('.')) continue;
-      if (_noise.contains(name.toLowerCase())) continue;
-      if (out.containsKey(entry.path)) continue;
 
       final touched = await _touchedFiles(entry, since);
       if (touched.count == 0) continue;
@@ -154,6 +151,19 @@ class SaveActivityWatch {
         fileCount: touched.count,
       );
     }
+  }
+
+  /// Стоит ли обходить папку: скрытые и известные кэши с логами о
+  /// сохранениях не говорят ничего, а найденную через другой корень
+  /// обходить второй раз незачем.
+  static bool _worthVisiting(
+    String path,
+    Map<String, SavePathSuggestion> found,
+  ) {
+    final name = p.basename(path);
+    return !name.startsWith('.') &&
+        !_noise.contains(name.toLowerCase()) &&
+        !found.containsKey(path);
   }
 
   /// Сколько файлов в папке тронуто после [since] и похожи ли они на сейвы.

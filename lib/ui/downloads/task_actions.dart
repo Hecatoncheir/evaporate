@@ -5,6 +5,7 @@ import '../../bloc/downloads/downloads_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
+import '../theme.dart';
 import '../widgets/icon_action.dart';
 import 'cancel_dialog.dart';
 
@@ -32,7 +33,7 @@ class TaskActions extends StatelessWidget {
           icon: paused ? Icons.play_arrow : Icons.pause,
           tooltip: paused ? l.resume : l.pause,
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: EvaporateSpacing.tight),
         IconAction(
           onPressed: () => _cancel(context),
           icon: Icons.close,

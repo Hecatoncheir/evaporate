@@ -22,6 +22,10 @@ class CoverTitlePlate extends StatelessWidget {
   final Game game;
   final bool underStrip;
 
+  /// Поле снизу, когда поверх обложки идёт полоса хода загрузки: высота
+  /// полосы и воздух над ней. Это размер соседа, а не ступень шкалы.
+  static const _aboveStrip = 52.0;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -32,7 +36,12 @@ class CoverTitlePlate extends StatelessWidget {
           colors: gameCoverColors(game.title),
         ),
       ),
-      padding: EdgeInsets.fromLTRB(12, 12, 12, underStrip ? 52 : 12),
+      padding: EdgeInsets.fromLTRB(
+        EvaporateSpacing.field,
+        EvaporateSpacing.field,
+        EvaporateSpacing.field,
+        underStrip ? _aboveStrip : EvaporateSpacing.field,
+      ),
       alignment: Alignment.bottomLeft,
       child: Text(
         game.title,

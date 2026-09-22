@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
 import 'theme_cycle_action.dart';
 import 'top_action.dart';
 import 'window_actions.dart';
@@ -26,9 +27,9 @@ class TopBarActions extends StatelessWidget {
           onPressed: () =>
               context.read<NavigationBloc>().add(const SearchFocusRequested()),
         ),
-        const SizedBox(width: 7),
+        const SizedBox(width: EvaporateSpacing.tight),
         const ThemeCycleAction(),
-        const SizedBox(width: 7),
+        const SizedBox(width: EvaporateSpacing.tight),
         const WindowActions(),
         TopAction(
           key: const ValueKey('rail-quit'),

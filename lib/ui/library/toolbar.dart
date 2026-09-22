@@ -55,12 +55,20 @@ class LibraryToolbar extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 4),
+      padding: const EdgeInsets.fromLTRB(
+        EvaporateSpacing.card,
+        EvaporateSpacing.panel,
+        EvaporateSpacing.card,
+        EvaporateSpacing.line,
+      ),
       child: GlassSurface(
         radius: EvaporateTheme.radiusPanel,
         opacity: HardwareSurfaceTheme.of(context).toolbarOpacity,
         shadow: false,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: EvaporateSpacing.block,
+          vertical: EvaporateSpacing.cluster,
+        ),
         child: ToolbarLayout(
           filters: filters,
           actions: actions,

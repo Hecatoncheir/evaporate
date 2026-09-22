@@ -20,8 +20,8 @@ class LauncherActionFace extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(icon, size: 18, color: color),
-      const SizedBox(width: 8),
+      Icon(icon, size: EvaporateIconSize.panel, color: color),
+      const SizedBox(width: EvaporateSpacing.gap),
       Text(label, style: context.text.keycap.copyWith(color: color)),
     ],
   );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/download_task.dart';
 import '../labels.dart';
+import '../theme.dart';
 import '../widgets/animated_progress.dart';
 import 'download_amounts.dart';
 import 'download_chart.dart';
@@ -35,12 +36,12 @@ class DownloadActivity extends StatelessWidget {
       children: [
         DownloadMetrics(task: task),
         if (showChart) ...[
-          const SizedBox(height: 14),
+          const SizedBox(height: EvaporateSpacing.block),
           DownloadChart(task: task),
         ],
-        const SizedBox(height: 14),
+        const SizedBox(height: EvaporateSpacing.block),
         DownloadAmounts(task: task, indeterminate: indeterminate),
-        const SizedBox(height: 7),
+        const SizedBox(height: EvaporateSpacing.tight),
         Semantics(
           value: indeterminate
               ? l.fetchingMetadata

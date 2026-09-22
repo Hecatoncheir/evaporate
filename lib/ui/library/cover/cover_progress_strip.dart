@@ -20,7 +20,12 @@ class CoverProgressStrip extends StatelessWidget {
       alignment: Alignment.bottomCenter,
       child: Container(
         color: AppColors.coverOverlay,
-        padding: const EdgeInsets.fromLTRB(8, 5, 8, 6),
+        padding: const EdgeInsets.fromLTRB(
+          EvaporateSpacing.gap,
+          EvaporateSpacing.tight,
+          EvaporateSpacing.gap,
+          EvaporateSpacing.tight,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,7 +35,7 @@ class CoverProgressStrip extends StatelessWidget {
               textAlign: TextAlign.center,
               style: context.text.chip.copyWith(color: AppColors.coverText),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: EvaporateSpacing.line),
             ClipRRect(
               borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
               child: LinearProgressIndicator(

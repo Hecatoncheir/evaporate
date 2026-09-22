@@ -34,18 +34,25 @@ class PathPickerField extends StatelessWidget {
       borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
       child: InsetTile(
         margin: EdgeInsets.zero,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(
+          horizontal: EvaporateSpacing.block,
+          vertical: EvaporateSpacing.block,
+        ),
         radius: EvaporateTheme.radiusPanel,
         child: Row(
           children: [
-            Icon(icon, size: 18, color: colors.textSecondary),
-            const SizedBox(width: 10),
+            Icon(
+              icon,
+              size: EvaporateIconSize.panel,
+              color: colors.textSecondary,
+            ),
+            const SizedBox(width: EvaporateSpacing.cluster),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label, style: context.text.captionMuted),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: EvaporateSpacing.hair),
                   Text(
                     value ?? L.of(context).tapToChoose,
                     maxLines: 1,
@@ -59,7 +66,7 @@ class PathPickerField extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.more_horiz, size: 18),
+            const Icon(Icons.more_horiz, size: EvaporateIconSize.panel),
           ],
         ),
       ),

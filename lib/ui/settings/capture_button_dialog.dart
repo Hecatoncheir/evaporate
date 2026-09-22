@@ -66,10 +66,10 @@ class CaptureButtonDialogState extends State<CaptureButtonDialog> {
           children: [
             Icon(
               Icons.sports_esports_outlined,
-              size: 44,
+              size: EvaporateIconSize.hero,
               color: context.colors.primary,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: EvaporateSpacing.block),
             Text(
               L.of(context).pressAnyButton,
               style: context.text.prose,
@@ -84,7 +84,7 @@ class CaptureButtonDialogState extends State<CaptureButtonDialog> {
               style: context.text.caption,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: EvaporateSpacing.tight),
             ValueListenableBuilder<GamepadStatus>(
               valueListenable: widget.gamepad.status,
               builder: (context, status, _) => Text(

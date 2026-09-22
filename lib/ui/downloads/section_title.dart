@@ -14,12 +14,12 @@ class SectionTitle extends StatelessWidget {
     // Подпись на корпусе, а не заголовок абзаца: моноширинная, заглавными,
     // а число рядом — фирменным цветом, чтобы читалось как показание.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: EvaporateSpacing.field),
       child: Row(
         children: [
           Text(text.toUpperCase(), style: context.text.label),
           if (trailing != null) ...[
-            const SizedBox(width: 9),
+            const SizedBox(width: EvaporateSpacing.gap),
             Text(
               trailing!,
               style: context.text.label.copyWith(color: context.colors.primary),

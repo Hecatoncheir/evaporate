@@ -43,7 +43,10 @@ class ScanDropArea extends StatelessWidget {
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          padding: const EdgeInsets.symmetric(
+            horizontal: EvaporateSpacing.panel,
+            vertical: EvaporateSpacing.card,
+          ),
           decoration: BoxDecoration(
             color: dragging ? colors.surfaceHigh : null,
             borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
@@ -53,16 +56,16 @@ class ScanDropArea extends StatelessWidget {
             children: [
               Icon(
                 Icons.drive_folder_upload_outlined,
-                size: 22,
+                size: EvaporateIconSize.large,
                 color: dragging ? colors.primary : colors.textSecondary,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: EvaporateSpacing.gap),
               Text(
                 l.scanDropHere,
                 textAlign: TextAlign.center,
                 style: context.text.body,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: EvaporateSpacing.hair),
               Text(
                 l.scanPickFolder,
                 textAlign: TextAlign.center,
@@ -71,7 +74,7 @@ class ScanDropArea extends StatelessWidget {
                 ),
               ),
               if (wrongDrop) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: EvaporateSpacing.gap),
                 Text(
                   l.scanNotAFolder,
                   textAlign: TextAlign.center,

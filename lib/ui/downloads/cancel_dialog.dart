@@ -74,7 +74,7 @@ Future<CancelChoice?> _ask(
         hasDownloadedFiles(task)
             ? '$message\n\n${L.of(context).cancelFilesNote}'
             : message,
-        style: const TextStyle(height: 1.5),
+        style: context.text.prose,
       ),
       actions: [
         // Значки здесь не украшение: три ответа подряд различаются одними
@@ -82,7 +82,7 @@ Future<CancelChoice?> _ask(
         // Глазу нужна зацепка помимо чтения.
         TextButton.icon(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_rounded, size: 17),
+          icon: const Icon(Icons.arrow_back_rounded),
           label: Text(L.of(context).keepDownload),
         ),
         // Только когда стирать и правда есть что: у задачи, не начавшей
@@ -91,12 +91,15 @@ Future<CancelChoice?> _ask(
           TextButton.icon(
             onPressed: () => Navigator.pop(context, CancelChoice.withFiles),
             style: context.buttons.dangerText,
-            icon: const Icon(Icons.delete_forever_rounded, size: 18),
+            icon: const Icon(
+              Icons.delete_forever_rounded,
+              size: EvaporateIconSize.panel,
+            ),
             label: Text(L.of(context).cancelWithFiles),
           ),
         FilledButton.icon(
           onPressed: () => Navigator.pop(context, CancelChoice.task),
-          icon: Icon(confirmIcon, size: 18),
+          icon: Icon(confirmIcon, size: EvaporateIconSize.panel),
           label: Text(confirmLabel),
         ),
       ],

@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
 import 'http_fetch.dart';
 import 'proxy_http_overrides.dart';
+import 'update_signature.dart';
 
 /// Версия приложения.
 ///
@@ -140,9 +141,15 @@ class Release extends Equatable {
   ///
   /// Канал защищён TLS, но оборванная загрузка выглядит как целый файл, и
   /// распаковывать её поверх установки нельзя.
-  ReleaseAsset? get checksums {
+  ReleaseAsset? get checksums => _asset('SHA256SUMS');
+
+  /// Подпись под файлом сумм — без неё обновление не ставится
+  /// (`UpdateSignature`).
+  ReleaseAsset? get signature => _asset(UpdateSignature.fileName);
+
+  ReleaseAsset? _asset(String name) {
     for (final asset in assets) {
-      if (asset.name == 'SHA256SUMS') return asset;
+      if (asset.name == name) return asset;
     }
     return null;
   }

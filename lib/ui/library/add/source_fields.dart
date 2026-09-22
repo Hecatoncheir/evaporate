@@ -55,7 +55,7 @@ class SourceFields extends StatelessWidget {
             icon: Icons.folder_outlined,
             onPick: onPickFolder,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           Text(l.localFolderNote, style: context.text.paragraph),
         ],
       ),

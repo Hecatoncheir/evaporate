@@ -41,7 +41,7 @@ class TopAction extends StatelessWidget {
           icon: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(icon, size: 18),
+              Icon(icon, size: EvaporateIconSize.panel),
               if (hiddenLabel case final label?)
                 SizedBox.shrink(child: ExcludeSemantics(child: Text(label))),
             ],

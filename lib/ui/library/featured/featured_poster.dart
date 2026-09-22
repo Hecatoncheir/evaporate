@@ -60,7 +60,7 @@ class FeaturedPoster extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: EvaporateSpacing.cluster),
           Text(
             game.details.description?.trim().isNotEmpty == true
                 ? game.details.description!
@@ -72,7 +72,7 @@ class FeaturedPoster extends StatelessWidget {
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: EvaporateSpacing.block),
           FeaturedActions(game: game, onOpen: onOpen, onPrimary: onPrimary),
         ],
       ),

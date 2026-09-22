@@ -21,7 +21,7 @@ class SyncFolderPrompt extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(L.of(context).syncFolderNote, style: context.text.paragraph),
-        const SizedBox(height: 14),
+        const SizedBox(height: EvaporateSpacing.block),
         OutlinedButton.icon(
           onPressed: () async {
             final dir = await getDirectoryPath();
@@ -32,7 +32,7 @@ class SyncFolderPrompt extends StatelessWidget {
               ),
             );
           },
-          icon: const Icon(Icons.folder_outlined, size: 16),
+          icon: const Icon(Icons.folder_outlined),
           label: Text(L.of(context).chooseFolder),
         ),
       ],

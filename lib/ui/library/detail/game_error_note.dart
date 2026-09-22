@@ -15,8 +15,8 @@ class GameErrorNote extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.error_outline, size: 16, color: danger),
-        const SizedBox(width: 8),
+        Icon(Icons.error_outline, size: EvaporateIconSize.key, color: danger),
+        const SizedBox(width: EvaporateSpacing.gap),
         Expanded(
           child: Text(
             message,

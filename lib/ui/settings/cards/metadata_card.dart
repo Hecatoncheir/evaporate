@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/library/library_bloc.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
 import '../../widgets/section_card.dart';
 import '../setting_note.dart';
 
@@ -23,12 +24,12 @@ class MetadataCard extends StatelessWidget {
         children: [
           OutlinedButton.icon(
             onPressed: () => library.add(const MetadataRetryRequested()),
-            icon: const Icon(Icons.refresh, size: 16),
+            icon: const Icon(Icons.refresh),
             label: Text(l.metadataRetryAction),
           ),
           OutlinedButton.icon(
             onPressed: () => library.add(const MetadataRefreshRequested()),
-            icon: const Icon(Icons.autorenew, size: 16),
+            icon: const Icon(Icons.autorenew),
             label: Text(l.metadataRefreshAction),
           ),
         ],
@@ -37,7 +38,7 @@ class MetadataCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SettingNote(l.metadataRetryNote),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           SettingNote(l.metadataRefreshNote),
         ],
       ),

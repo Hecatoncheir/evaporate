@@ -34,7 +34,10 @@ class ExecutablePickerDialog extends StatelessWidget {
             final candidate = candidates[index];
             return ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.play_circle_outline, size: 18),
+              leading: const Icon(
+                Icons.play_circle_outline,
+                size: EvaporateIconSize.panel,
+              ),
               title: Text(candidate.name, style: context.text.body),
               subtitle: Text(
                 '${p.relative(candidate.path, from: installDir)} · '

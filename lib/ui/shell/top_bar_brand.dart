@@ -19,7 +19,7 @@ class TopBarBrand extends StatelessWidget {
         // Знак в собственной оправе с волосяным кантом: на чернильном фоне
         // без канта он выглядит вырезанным из другой картинки.
         Container(
-          padding: const EdgeInsets.all(3),
+          padding: const EdgeInsets.all(EvaporateLayout.wellInset),
           decoration: BoxDecoration(
             border: Border.all(
               color: colors.primary.withValues(alpha: EvaporateAlpha.rim),
@@ -29,7 +29,7 @@ class TopBarBrand extends StatelessWidget {
           child: const AppMark(size: 30),
         ),
         if (!compact) ...[
-          const SizedBox(width: 11),
+          const SizedBox(width: EvaporateSpacing.cluster),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -44,7 +44,7 @@ class TopBarBrand extends StatelessWidget {
                   letterSpacing: 2.2,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: EvaporateSpacing.line),
               // Короткий золотой штрих под словом — подпись на корпусе,
               // а не украшение: он же задаёт фирменный цвет всей рейке.
               Container(width: 26, height: 2, color: colors.primary),

@@ -20,7 +20,12 @@ class FeaturedCompactBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(22, 16, 20, 16),
+    padding: const EdgeInsets.fromLTRB(
+      EvaporateSpacing.section,
+      EvaporateSpacing.panel,
+      EvaporateSpacing.section,
+      EvaporateSpacing.panel,
+    ),
     child: Row(
       children: [
         Expanded(
@@ -31,7 +36,7 @@ class FeaturedCompactBar extends StatelessWidget {
               // Наигранное время уходит в надстрочную метку: отдельному
               // показанию в полосе места нет, а знать его человек хочет.
               FeaturedEyebrow(game: game, withPlaytime: true),
-              const SizedBox(height: 8),
+              const SizedBox(height: EvaporateSpacing.gap),
               Text(
                 game.title.toUpperCase(),
                 maxLines: 1,
@@ -51,7 +56,7 @@ class FeaturedCompactBar extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 18),
+        const SizedBox(width: EvaporateSpacing.card),
         FeaturedActions(game: game, onOpen: onOpen, onPrimary: onPrimary),
       ],
     ),

@@ -27,6 +27,10 @@ class LauncherActionButton extends StatefulWidget {
 }
 
 class _LauncherActionButtonState extends State<LauncherActionButton> {
+  static const _facePadding = EdgeInsets.symmetric(
+    horizontal: EvaporateSpacing.panel,
+  );
+
   bool _hovered = false;
   bool _pressed = false;
 
@@ -80,7 +84,7 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
                     minHeight: 48,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: _facePadding,
                     child: LauncherActionFace(
                       label: widget.label,
                       icon: widget.icon,

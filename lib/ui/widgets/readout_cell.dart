@@ -29,7 +29,12 @@ class ReadoutCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+      padding: const EdgeInsets.fromLTRB(
+        EvaporateSpacing.panel,
+        EvaporateSpacing.block,
+        EvaporateSpacing.panel,
+        EvaporateSpacing.block,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -40,7 +45,7 @@ class ReadoutCell extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: context.text.label,
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: EvaporateSpacing.tight),
           Text(
             value,
             maxLines: 1,

@@ -17,7 +17,7 @@ class LogView extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(maxHeight: 260),
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(EvaporateSpacing.field),
       decoration: BoxDecoration(
         color: context.colors.surfaceHigh,
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
@@ -29,10 +29,7 @@ class LogView extends StatelessWidget {
         shrinkWrap: true,
         children: [
           for (final line in lines.reversed)
-            SelectableText(
-              line,
-              style: context.text.pathSmall.copyWith(height: 1.5),
-            ),
+            SelectableText(line, style: context.text.log),
         ],
       ),
     );

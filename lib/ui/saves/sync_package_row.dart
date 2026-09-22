@@ -31,7 +31,7 @@ class SyncPackageRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(snapshot.gameTitle, style: context.text.bodyStrong),
-                const SizedBox(height: 3),
+                const SizedBox(height: EvaporateSpacing.line),
                 Text(
                   '${dateTimeLabel(L.of(context), snapshot.createdAt)} · '
                   '${snapshot.deviceName} · '
@@ -47,11 +47,11 @@ class SyncPackageRow extends StatelessWidget {
               message: L.of(context).noPathsForPlatform,
               child: Icon(
                 Icons.warning_amber_rounded,
-                size: 17,
+                size: EvaporateIconSize.key,
                 color: context.colors.warning,
               ),
             ),
-          const SizedBox(width: 8),
+          const SizedBox(width: EvaporateSpacing.gap),
           FilledButton(
             onPressed: () => _apply(context),
             style: context.buttons.compactFilled,

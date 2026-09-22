@@ -15,8 +15,14 @@ class NavTile extends StatefulWidget {
     this.selected = false,
     this.autofocus = false,
     this.focusNode,
-    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-    this.margin = const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: EvaporateSpacing.cluster,
+      vertical: EvaporateSpacing.gap,
+    ),
+    this.margin = const EdgeInsets.symmetric(
+      horizontal: EvaporateSpacing.gap,
+      vertical: EvaporateSpacing.hair,
+    ),
     this.borderRadius = 8,
     this.borderWidth = 1.5,
     this.focusedScale = 1,

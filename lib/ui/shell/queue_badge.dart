@@ -19,16 +19,15 @@ class QueueBadge extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 17),
       height: 17,
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 5),
+      padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.line),
       decoration: BoxDecoration(
         color: selected ? colors.onSelection : colors.primaryFill,
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
       ),
       child: Text(
         '$count',
-        style: context.text.label.copyWith(
+        style: context.text.badge.copyWith(
           color: selected ? colors.selection : colors.onPrimary,
-          letterSpacing: 0,
         ),
       ),
     );

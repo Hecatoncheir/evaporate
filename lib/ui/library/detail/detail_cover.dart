@@ -61,7 +61,7 @@ class DetailCover extends StatelessWidget {
               // Обложка — украшение: не грузится, значит её просто нет.
               errorBuilder: (context, error, stack) => Icon(
                 Icons.image_not_supported_outlined,
-                size: 20,
+                size: EvaporateIconSize.large,
                 color: context.colors.textSecondary,
               ),
             ),

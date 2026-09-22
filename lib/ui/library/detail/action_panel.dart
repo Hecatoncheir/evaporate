@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../downloads/download_activity.dart';
+import '../../theme.dart';
 import '../primary_action.dart';
 import 'download_summary.dart';
 import 'game_error_note.dart';
@@ -25,7 +26,7 @@ class ActionPanel extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(EvaporateSpacing.card),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -55,16 +56,16 @@ class ActionPanel extends StatelessWidget {
               ],
             ),
             if (task != null && !task!.isFinished) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: EvaporateSpacing.panel),
               // Без графика: он уехал подложкой под заголовок страницы, и
               // рисовать его здесь второй раз незачем. История у них общая
               // — `DownloadHistoryBloc` один на приложение.
               DownloadActivity(task: task!, showChart: false),
-              const SizedBox(height: 10),
+              const SizedBox(height: EvaporateSpacing.cluster),
               DownloadSummary(task: task!),
             ],
             if (game.status == GameStatus.error && game.lastError != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: EvaporateSpacing.block),
               GameErrorNote(message: game.lastError!),
             ],
           ],

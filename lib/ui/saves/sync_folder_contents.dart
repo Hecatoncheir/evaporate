@@ -30,7 +30,7 @@ class SyncFolderContents extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SelectableText(folder, style: context.text.path),
-        const SizedBox(height: 14),
+        const SizedBox(height: EvaporateSpacing.block),
         if (packages.isEmpty)
           Text(
             scannedOnce

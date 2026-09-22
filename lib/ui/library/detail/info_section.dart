@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../labels.dart';
+import '../../theme.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/section_card.dart';
 import 'game_file_actions.dart';
@@ -43,7 +44,7 @@ class InfoSection extends StatelessWidget {
             ),
           if (game.details.steamAppId != null)
             InfoRow(label: 'Steam', value: 'appid ${game.details.steamAppId}'),
-          const SizedBox(height: 10),
+          const SizedBox(height: EvaporateSpacing.cluster),
           GameFileActions(game: game),
           if (source != null)
             InfoRow(

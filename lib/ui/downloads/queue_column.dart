@@ -25,6 +25,15 @@ class QueueColumn extends StatelessWidget {
   final List<DownloadTask> queued;
   final LibraryState library;
 
+  /// Поле колонки: сверху впритык к заголовку, по бокам и снизу — как у
+  /// страницы.
+  static const _padding = EdgeInsets.fromLTRB(
+    EvaporateSpacing.wide,
+    EvaporateSpacing.line,
+    EvaporateSpacing.wide,
+    EvaporateSpacing.wide,
+  );
+
   @override
   Widget build(BuildContext context) {
     return DragTarget<Game>(
@@ -51,7 +60,7 @@ class QueueColumn extends StatelessWidget {
             ),
           ),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+            padding: _padding,
             children: [
               SectionTitle(
                 L.of(context).nowDownloading,
@@ -62,7 +71,7 @@ class QueueColumn extends StatelessWidget {
               else
                 for (final task in active)
                   TaskCard(task: task, game: library.gameForTask(task.id)),
-              const SizedBox(height: 18),
+              const SizedBox(height: EvaporateSpacing.card),
               SectionTitle(
                 L.of(context).nextInQueue,
                 trailing: '${queued.length}',

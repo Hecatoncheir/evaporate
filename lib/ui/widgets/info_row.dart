@@ -22,7 +22,7 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: EvaporateSpacing.line),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -33,10 +33,10 @@ class InfoRow extends StatelessWidget {
           Expanded(
             child: SelectableText(
               value,
-              style: context.text.body.copyWith(
-                color: valueColor,
-                fontFamily: monospace ? EvaporateTheme.monoFontFamily : null,
-              ),
+              // Путь — ролью пути, как везде; но значение, а не
+              // пояснение, поэтому цвет основной, а не приглушённый.
+              style: (monospace ? context.text.path : context.text.body)
+                  .copyWith(color: valueColor ?? context.colors.textPrimary),
             ),
           ),
           ?trailing,

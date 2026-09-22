@@ -39,9 +39,7 @@ class SyncFolderCard extends StatelessWidget {
                   : () => context.read<SavesBloc>().add(
                       const SyncFolderScanRequested(),
                     ),
-              icon: scanning
-                  ? const BusySpinner()
-                  : const Icon(Icons.refresh, size: 16),
+              icon: scanning ? const BusySpinner() : const Icon(Icons.refresh),
               label: Text(L.of(context).check),
             ),
       child: folder == null

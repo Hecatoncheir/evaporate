@@ -41,7 +41,7 @@ class EngineInfoCard extends StatelessWidget {
                 : context.colors.warning,
           ),
           InfoRow(label: l.engineImplementation, value: l.engineBuiltIn),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           SettingNote(l.engineNote),
         ],
       ),

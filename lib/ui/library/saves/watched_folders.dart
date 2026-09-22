@@ -38,8 +38,13 @@ class WatchedFolders extends StatelessWidget {
     final watched = hints.first.origin == SavePathOrigin.watch;
 
     return InsetTile(
-      margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      margin: const EdgeInsets.only(top: EvaporateSpacing.field),
+      padding: const EdgeInsets.fromLTRB(
+        EvaporateSpacing.block,
+        EvaporateSpacing.field,
+        EvaporateSpacing.block,
+        EvaporateSpacing.field,
+      ),
       radius: EvaporateTheme.radiusPanel,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,22 +53,22 @@ class WatchedFolders extends StatelessWidget {
             children: [
               Icon(
                 watched ? Icons.visibility_outlined : Icons.travel_explore,
-                size: 16,
+                size: EvaporateIconSize.key,
                 color: colors.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: EvaporateSpacing.gap),
               Text(
                 watched ? l.watchedFolders : l.guessedFolders,
                 style: context.text.bodyStrong,
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: EvaporateSpacing.tight),
           Text(
             watched ? l.watchedFoldersNote : l.guessedFoldersNote,
             style: context.text.paragraph,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: EvaporateSpacing.cluster),
           for (final hint in hints) WatchedFolderRow(game: game, hint: hint),
           WatchedFoldersActions(game: game, hints: hints),
         ],

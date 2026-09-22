@@ -30,7 +30,7 @@ class AppFooter extends StatelessWidget {
     return Container(
       height: EvaporateLayout.footerHeight,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.card),
       decoration: BoxDecoration(
         color: context.colors.railBackground.withValues(
           alpha: EvaporateAlpha.veil,
@@ -57,7 +57,7 @@ class AppFooter extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: EvaporateSpacing.panel),
           const EngineReadout(),
         ],
       ),

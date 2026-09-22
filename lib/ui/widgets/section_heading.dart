@@ -26,9 +26,9 @@ class SectionHeading extends StatelessWidget {
     this.trailing,
     this.padding = const EdgeInsets.fromLTRB(
       EvaporateLayout.gutter,
-      20,
+      EvaporateSpacing.section,
       EvaporateLayout.gutter,
-      10,
+      EvaporateSpacing.cluster,
     ),
   });
 
@@ -58,7 +58,7 @@ class SectionHeading extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: context.text.eyebrow.copyWith(
+                style: context.text.label.copyWith(
                   color: context.colors.primary,
                 ),
               ),
@@ -66,7 +66,7 @@ class SectionHeading extends StatelessWidget {
           ),
         ),
         if (trailing case final trailing?) ...[
-          const SizedBox(width: 16),
+          const SizedBox(width: EvaporateSpacing.panel),
           trailing,
         ],
       ],

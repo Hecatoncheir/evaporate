@@ -55,7 +55,7 @@ class LibraryGrid extends StatelessWidget {
           enabled: effects.shows(LibraryEffect.liquidSelection),
           color: context.colors.selection,
           radius: EvaporateTheme.radiusPanel,
-          padding: const EdgeInsets.all(7),
+          padding: const EdgeInsets.all(EvaporateSpacing.gap),
           child: GridView.builder(
             controller: controller.scroll,
             findChildIndexCallback: (key) =>
@@ -87,7 +87,10 @@ class LibraryGrid extends StatelessWidget {
   }
 
   /// Поля сетки: по бокам — поле страницы, воздух сверху и снизу.
-  static final padding = EvaporateLayout.inset(top: 24, bottom: 34);
+  static final padding = EvaporateLayout.inset(
+    top: EvaporateSpacing.wide,
+    bottom: EvaporateSpacing.vast,
+  );
 
   /// Раскладка сетки при крупности [scale].
   ///

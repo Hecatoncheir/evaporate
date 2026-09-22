@@ -23,10 +23,10 @@ class RunningGameActions extends StatelessWidget {
       children: [
         OutlinedButton.icon(
           onPressed: onPressed,
-          icon: Icon(icon, size: 18),
+          icon: Icon(icon, size: EvaporateIconSize.panel),
           label: Text(label),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: EvaporateSpacing.block),
         Text(
           L.of(context).gameRunning,
           style: context.text.body.copyWith(color: context.colors.accent),

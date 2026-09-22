@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/guards.dart';
+import '../support/text_roles.dart';
 
 /// Облик задаёт тема, а не виджет.
 ///
@@ -19,6 +20,9 @@ import '../support/guards.dart';
 /// - `Radius.circular(<число>)` — радиус берётся из `EvaporateTheme`;
 /// - поле страницы 28, предельная ширина 1340, подпись настройки 220 и
 ///   ширины диалогов 460 и 560 — из `EvaporateLayout`;
+/// - промежуток (`SizedBox` с одной шириной или высотой) и поле
+///   (`EdgeInsets`) числом — ступенью шкалы `EvaporateSpacing`;
+/// - размер значка числом — ступенью `EvaporateIconSize`;
 /// - `withValues(alpha: <число>)` и `opacity: <дробь>` — прозрачность
 ///   берётся ступенью `EvaporateAlpha`.
 ///
@@ -86,6 +90,49 @@ void main() {
       found: count(_layoutHere),
       known: const [],
       rule: 'поля, ширины и высоты полос — постоянные EvaporateLayout',
+    );
+  });
+
+  // Промежуток — `SizedBox` только с шириной или высотой; поле — число в
+  // `EdgeInsets`. `SizedBox` с содержимым задаёт размер, а не отступ, и
+  // сюда не попадает.
+  test('промежутки и поля — ступени шкалы, а не числа по месту', () {
+    expectRatchet(
+      found: count(_gapHere),
+      known: const [],
+      rule: 'промежуток — ступень EvaporateSpacing',
+    );
+    expectRatchet(
+      found: count(_insetsHere),
+      known: const [],
+      rule: 'поле — ступени EvaporateSpacing в EdgeInsets',
+    );
+  });
+
+  // Жирность, разрядка и межстрочие по месту — это и было расползание,
+  // от которого роли заводили: у подписи «жирнее обычного» набиралось три
+  // разных набора. Нужен другой облик — другая роль в `typography.dart`.
+  test('роль текста по месту правят только цветом', () {
+    expectRatchet(
+      found: sources.expand(roleTweaks),
+      known: _roleTweaks,
+      rule: 'другой облик текста — другая роль в typography.dart',
+    );
+  });
+
+  test('стиль текста не собирается по месту', () {
+    expectRatchet(
+      found: sources.expand(inlineTextStyles),
+      known: _textStyles,
+      rule: 'стиль текста — роль context.text, по месту только цвет',
+    );
+  });
+
+  test('размер значка — ступень, а не число по месту', () {
+    expectRatchet(
+      found: count(_iconSizeHere),
+      known: _iconSizes,
+      rule: 'размер значка — ступень EvaporateIconSize',
     );
   });
 
@@ -162,6 +209,40 @@ void main() {
         catches: ['c.withValues(alpha: 0.4)', 'c.withValues(alpha: .4)'],
         passes: ['c.withValues(alpha: EvaporateAlpha.rim)'],
       ),
+      _gapHere: (
+        catches: [
+          'const SizedBox(height: 8)',
+          'SizedBox(width: 7,)',
+          'SizedBox(\n  height: 12.5,\n)',
+        ],
+        passes: [
+          'const SizedBox(height: EvaporateSpacing.gap)',
+          'SizedBox(width: 250, child: chip)',
+          'SizedBox(height: 0)',
+        ],
+      ),
+      _insetsHere: (
+        catches: [
+          'EdgeInsets.all(18)',
+          'EdgeInsets.fromLTRB(EvaporateLayout.gutter, 20, 0, 0)',
+          'EdgeInsets.symmetric(\n  horizontal: EvaporateSpacing.gap,\n  vertical: 9,\n)',
+          'EvaporateLayout.inset(top: 24)',
+        ],
+        passes: [
+          'EdgeInsets.all(EvaporateSpacing.card)',
+          'EdgeInsets.only(top: 0)',
+          'EdgeInsets.zero',
+          'EdgeInsets.all(EvaporateLayout.wellInset)',
+        ],
+      ),
+      _iconSizeHere: (
+        catches: ['Icon(icon, size: 17)', 'iconSize: 20', 'size:16'],
+        passes: [
+          'Icon(icon, size: EvaporateIconSize.key)',
+          'fontSize: 12',
+          'const Size(10, 10)',
+        ],
+      ),
       _opacityHere: (
         catches: ['Opacity(opacity: 0.35)', 'opacity: .5'],
         passes: [
@@ -183,6 +264,41 @@ void main() {
         }
       });
     }
+  });
+
+  group('страж ролей ловит нарушение', () {
+    SourceFile file(String code) => SourceFile('lib/ui/x.dart', code);
+
+    test('правку роли не цветом', () {
+      for (final code in [
+        'context.text.caption.copyWith(fontWeight: FontWeight.w600)',
+        'text.label.copyWith(\n  color: c,\n  letterSpacing: 0,\n)',
+        '(a ? context.text.chip : context.text.caption).copyWith(height: 1)',
+      ]) {
+        expect(roleTweaks(file(code)), isNotEmpty, reason: 'пропустил: $code');
+      }
+      for (final code in [
+        'context.text.caption.copyWith(color: c)',
+        'context.text.note.copyWith(\n  color: a ? b : c,\n)',
+        'context.text.caption',
+        'decoration.copyWith(border: b)',
+      ]) {
+        expect(roleTweaks(file(code)), isEmpty, reason: 'поймал: $code');
+      }
+    });
+
+    test('стиль, собранный по месту', () {
+      expect(inlineTextStyles(file('TextStyle(height: 1.5)')), isNotEmpty);
+      expect(
+        inlineTextStyles(file('const TextStyle(\n  fontSize: 15,\n)')),
+        isNotEmpty,
+      );
+      expect(inlineTextStyles(file('TextStyle(color: c)')), isEmpty);
+      expect(
+        inlineTextStyles(file('DefaultTextStyle(style: s, child: c)')),
+        isEmpty,
+      );
+    });
   });
 
   // Расширение, которое есть у одной схемы и нет у другой, молча отдаёт
@@ -232,6 +348,27 @@ final _layoutHere = RegExp(
 
 final _alphaHere = RegExp(r'withValues\(\s*alpha:\s*[\d.]');
 
+/// Ненулевое число само по себе, а не часть имени: `12`, `.5`, `12.5`.
+const _number = r'(?<![\w.$])(?:0*[1-9]\d*(?:\.\d+)?|0*\.\d*[1-9]\d*)(?![\w.])';
+
+/// Промежуток числом: `SizedBox` только с шириной или только с высотой.
+final _gapHere = RegExp(
+  [r'SizedBox\(\s*(?:width|height)\s*:\s*', _number, r'\s*,?\s*\)'].join(),
+);
+
+/// Поле числом: число внутри `EdgeInsets.…(…)` или `EvaporateLayout.inset`.
+/// Ноль — «поля нет», облика в нём нет.
+final _insetsHere = RegExp(
+  [
+    r'(?:EdgeInsets\.(?:all|symmetric|only|fromLTRB)|EvaporateLayout\.inset)',
+    r'\([^)]*?',
+    _number,
+  ].join(),
+);
+
+/// Размер значка числом.
+final _iconSizeHere = RegExp([r'\b(?:size|iconSize)\s*:\s*', _number].join());
+
 /// `opacity:` дробным числом; 0 и 1 — «скрыто» и «видно», облика в них нет.
 final _opacityHere = RegExp(r'\bopacity:\s*0?\.\d*[1-9]');
 
@@ -263,6 +400,26 @@ const _durations = [
 ];
 
 const _radii = <String>[];
+
+/// Типографика картинки, а не роль — те же места, что в [_fontSize]:
+/// надписи поверх обложки и крупного кадра, знак приложения.
+const _textStyles = [
+  'lib/ui/library/cover/cover_title_plate.dart: 1',
+  'lib/ui/library/detail/detail_cover.dart: 1',
+  'lib/ui/library/featured/featured_compact_bar.dart: 1',
+  'lib/ui/library/featured/featured_poster.dart: 1',
+  'lib/ui/shell/top_bar_brand.dart: 1',
+];
+
+/// Описание игры поверх крупного кадра — та же типографика картинки:
+/// межстрочие у него своё, под затемнённый кадр.
+const _roleTweaks = ['lib/ui/library/featured/featured_poster.dart: 1'];
+
+const _iconSizes = [
+  // Знак приложения — картинка, а не значок: его размер — часть подписи
+  // на корпусе, как и её кегль (см. `_fontSize`).
+  'lib/ui/shell/top_bar_brand.dart: 1',
+];
 
 // Не переходы интерфейса, а геометрия украшений: форма капли выбора,
 // пробег света и фольга считают положение кривой, а не анимируют переход.

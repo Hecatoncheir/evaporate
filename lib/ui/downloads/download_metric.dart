@@ -24,13 +24,13 @@ class DownloadMetric extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 7),
+          Icon(icon, size: EvaporateIconSize.key, color: color),
+          const SizedBox(width: EvaporateSpacing.gap),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label.toUpperCase(), style: context.text.label),
-              const SizedBox(height: 1),
+              const SizedBox(height: EvaporateSpacing.hair),
               Text(value, style: context.text.figure),
             ],
           ),

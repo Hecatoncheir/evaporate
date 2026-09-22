@@ -26,7 +26,7 @@ class BusyOutlinedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
       onPressed: busy ? null : onPressed,
-      icon: busy ? const BusySpinner() : Icon(icon, size: 16),
+      icon: busy ? const BusySpinner() : Icon(icon),
       label: Text(label),
     );
   }

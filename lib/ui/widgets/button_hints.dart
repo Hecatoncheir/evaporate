@@ -4,6 +4,7 @@ import '../../input/gamepad_binding.dart';
 import '../../input/nav_action.dart';
 import '../../l10n/app_localizations.dart';
 import '../labels.dart';
+import '../theme.dart';
 import 'hint_chip.dart';
 
 /// Подсказки управления в нижней строке — как на консольных экранах.
@@ -46,7 +47,7 @@ class ButtonHints extends StatelessWidget {
       children: [
         for (final hint in hints) ...[
           HintChip(glyph: hint.$1, label: hint.$2),
-          const SizedBox(width: 10),
+          const SizedBox(width: EvaporateSpacing.cluster),
         ],
       ],
     );

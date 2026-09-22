@@ -31,7 +31,7 @@ class AboutBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InfoRow(label: l.version, value: AppVersion.current),
-          const SizedBox(height: 6),
+          const SizedBox(height: EvaporateSpacing.tight),
           AboutActions(
             busy: update.checking,
             updating: update.installing,
@@ -44,7 +44,7 @@ class AboutBody extends StatelessWidget {
                 bloc.add(UpdateLinkRequested(update.found!.url)),
           ),
           if (update.message case final message?) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: EvaporateSpacing.gap),
             Text(
               message,
               style: context.text.note.copyWith(

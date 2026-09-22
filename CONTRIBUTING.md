@@ -32,6 +32,10 @@ dart tool/gate.dart
 случайном порядке и порог покрытия. Хотите, чтобы она шла перед каждым
 `git push`, — `git config core.hooksPath .githooks`.
 
+Покрытие ворота меряют по отчёту своей системы, а CI — по слитому отчёту
+трёх: тесты там пропускают разное. Поэтому список почти не проверенных
+файлов локально только показывается, а решает задание «Покрытие».
+
 **Анализатор считает провалом и подсказки, не только ошибки.** Смотрите весь
 его вывод, а не отфильтрованный по слову `error`, — иначе правка доедет до CI
 и вернётся оттуда красной.
@@ -77,9 +81,11 @@ git push origin v0.24.0
 
 Дальше всё делает CI: сверяет, что раздел для тега на месте — до сборок, а не
 после, — гоняет тесты на трёх системах, собирает установщики, считает
-`SHA256SUMS`, заводит релиз черновиком, выкладывает файлы и только потом
-публикует, иначе подписчики получают письмо о версии, скачать которую ещё
-нечего.
+`SHA256SUMS` и подписывает его ключом из секрета `UPDATE_SIGNING_KEY`,
+заводит релиз черновиком, выкладывает файлы и только потом публикует, иначе
+подписчики получают письмо о версии, скачать которую ещё нечего. Без
+секрета выпуск падает до публикации: неподписанный релиз обновление не
+примет.
 
 Номер попадает в сборку оттуда же, из тега: `--build-name` в свойства файла и
 `--dart-define` в само приложение, откуда его читает проверка обновлений.
@@ -180,6 +186,10 @@ That is formatting, the analyzer, the bloc rules, the plugin registrant check,
 the tests in random order and the coverage threshold. To run it before every
 `git push`, set `git config core.hooksPath .githooks`.
 
+The gate measures coverage from your own system's report, CI from the merged
+report of all three: the tests skip different things on each. So locally the
+list of barely tested files is only shown; the Coverage job decides.
+
 **The analyzer treats infos as failures, not just errors.** Read its whole
 output rather than filtering for the word `error`, or the change will reach CI
 and come back red.
@@ -226,9 +236,11 @@ git push origin v0.24.0
 
 CI does the rest: it checks the tag's section is there — before the builds,
 not after — runs the tests on three systems, builds the installers, computes
-`SHA256SUMS`, opens the release as a draft, uploads the files and only then
-publishes it, so that subscribers never get an email about a version with
-nothing to download yet.
+`SHA256SUMS` and signs it with the key from the `UPDATE_SIGNING_KEY` secret,
+opens the release as a draft, uploads the files and only then publishes it,
+so that subscribers never get an email about a version with nothing to
+download yet. Without the secret the release fails before publishing: an
+unsigned release would not be accepted as an update.
 
 The number reaches the build from the same tag: `--build-name` for the file's
 properties and `--dart-define` for the app itself, where the update check

@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../tool/check_complexity.dart';
-
 /// Исходники Dart под [root], путями через `/` от корня репозитория —
 /// так записи в списках стражей одинаковы на всех трёх системах.
 List<SourceFile> dartSources(String root, {bool Function(String)? skip}) {
@@ -28,6 +26,58 @@ class SourceFile {
   /// кода, а слово «isDark» в комментарии или «Widget» в строке — не они.
   /// Длина и переводы строк сохраняются, чтобы номера строк не съезжали.
   late final String code = stripCommentsAndStrings(text);
+}
+
+/// Заменяет комментарии и содержимое строк пробелами, не трогая переводы
+/// строк, — чтобы ключевое слово в комментарии или скобка в строке не
+/// сбивали поиск, а номера строк не съезжали. Сырые строки и тройные
+/// кавычки учтены; строки внутри подстановок `${…}` — нет, и в этом коде
+/// они на поиск не влияют.
+///
+/// Стражам хватает текста: они ищут конструкции по образцу. Там, где нужен
+/// разбор, — длина и сложность функций, — работает дерево
+/// `package:analyzer` (`tool/check_complexity.dart`).
+String stripCommentsAndStrings(String source) {
+  final out = StringBuffer();
+  String blank(String s) => s.replaceAll(RegExp(r'[^\n]'), ' ');
+  final quote = RegExp('(r?)(\'\'\'|"""|\'|")');
+  var i = 0;
+  while (i < source.length) {
+    if (source.startsWith('//', i)) {
+      final end = source.indexOf('\n', i);
+      final stop = end == -1 ? source.length : end;
+      out.write(blank(source.substring(i, stop)));
+      i = stop;
+      continue;
+    }
+    if (source.startsWith('/*', i)) {
+      final end = source.indexOf('*/', i + 2);
+      final stop = end == -1 ? source.length : end + 2;
+      out.write(blank(source.substring(i, stop)));
+      i = stop;
+      continue;
+    }
+    final match = quote.matchAsPrefix(source, i);
+    if (match != null) {
+      final raw = match.group(1)!.isNotEmpty;
+      final delimiter = match.group(2)!;
+      var j = match.end;
+      while (j < source.length && !source.startsWith(delimiter, j)) {
+        if (!raw && source[j] == r'\') j++;
+        j++;
+      }
+      final contentEnd = j.clamp(0, source.length);
+      out
+        ..write(delimiter)
+        ..write(blank(source.substring(match.end, contentEnd)))
+        ..write(delimiter);
+      i = (j + delimiter.length).clamp(0, source.length);
+      continue;
+    }
+    out.write(source[i]);
+    i++;
+  }
+  return out.toString();
 }
 
 /// Храповик: найденное сверяется со списком известных нарушителей.

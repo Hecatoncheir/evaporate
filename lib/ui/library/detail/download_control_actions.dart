@@ -4,6 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../downloads/cancel_dialog.dart';
+import '../../theme.dart';
 
 /// Загрузка идёт или стоит на паузе: пауза или продолжение и отмена.
 class DownloadControlActions extends StatelessWidget {
@@ -29,13 +30,13 @@ class DownloadControlActions extends StatelessWidget {
       children: [
         FilledButton.icon(
           onPressed: onPressed,
-          icon: Icon(icon, size: 18),
+          icon: Icon(icon, size: EvaporateIconSize.panel),
           label: Text(label),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: EvaporateSpacing.cluster),
         OutlinedButton.icon(
           onPressed: () => _cancel(context),
-          icon: const Icon(Icons.close, size: 17),
+          icon: const Icon(Icons.close),
           label: Text(L.of(context).cancelDownload),
         ),
       ],

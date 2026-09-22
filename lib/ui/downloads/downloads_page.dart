@@ -66,7 +66,7 @@ class DownloadsPage extends StatelessWidget {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 16),
+                    padding: const EdgeInsets.only(top: EvaporateSpacing.panel),
                     child: DownloadsColumns(
                       page: box,
                       sources: sources,

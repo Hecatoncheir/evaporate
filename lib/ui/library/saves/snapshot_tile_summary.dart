@@ -25,7 +25,7 @@ class SnapshotTileSummary extends StatelessWidget {
               dateTimeLabel(L.of(context), snapshot.createdAt),
               style: context.text.bodyStrong,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: EvaporateSpacing.gap),
             SaveTag(
               text: snapshotOriginLabel(l, snapshot.origin),
               color: snapshot.origin == SnapshotOrigin.imported
@@ -34,7 +34,7 @@ class SnapshotTileSummary extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: EvaporateSpacing.line),
         Text(
           '${snapshot.deviceName} · '
           '${platformLabel(snapshot.platform)} · '

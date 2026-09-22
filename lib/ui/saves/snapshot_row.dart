@@ -24,6 +24,14 @@ class SnapshotRow extends StatelessWidget {
   final Game game;
   final SaveSnapshot snapshot;
 
+  /// Справа уже: там клавиши со своим полем вокруг значка.
+  static const _padding = EdgeInsets.fromLTRB(
+    EvaporateSpacing.field,
+    EvaporateSpacing.gap,
+    EvaporateSpacing.tight,
+    EvaporateSpacing.gap,
+  );
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -34,8 +42,8 @@ class SnapshotRow extends StatelessWidget {
       builder: (context, hovered, summary) => AnimatedContainer(
         duration: context.motion.fast,
         curve: EvaporateMotion.ease,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.fromLTRB(12, 9, 6, 9),
+        margin: const EdgeInsets.only(bottom: EvaporateSpacing.gap),
+        padding: _padding,
         decoration: BoxDecoration(
           color: hovered
               ? Color.lerp(colors.surfaceHigh, colors.primary, 0.08)

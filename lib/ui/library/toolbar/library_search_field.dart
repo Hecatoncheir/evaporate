@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/library_view/library_view_bloc.dart';
-
 import '../../../input/input_scope.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
 import 'toolbar_well.dart';
 
 /// Поле поиска по библиотеке.
@@ -29,7 +29,11 @@ class LibrarySearchField extends StatelessWidget {
       width: 144,
       height: 48,
       child: ToolbarWell(
-        padding: const EdgeInsets.only(top: 3, right: 3, left: 3),
+        padding: const EdgeInsets.only(
+          top: EvaporateLayout.wellInset,
+          right: EvaporateLayout.wellInset,
+          left: EvaporateLayout.wellInset,
+        ),
         child: Actions(
           actions: {
             ReturnToLibraryIntent: CallbackAction<ReturnToLibraryIntent>(
@@ -60,13 +64,18 @@ class LibrarySearchField extends StatelessWidget {
               onSubmitted: (_) => onReturnToGames(),
               decoration: InputDecoration(
                 hintText: L.of(context).searchHint,
-                prefixIcon: const Icon(Icons.search, size: 18),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  size: EvaporateIconSize.panel,
+                ),
                 filled: false,
                 isDense: true,
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: EvaporateSpacing.field,
+                ),
               ),
             ),
           ),

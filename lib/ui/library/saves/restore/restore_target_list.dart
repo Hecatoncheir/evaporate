@@ -23,7 +23,7 @@ class RestoreTargetList extends StatelessWidget {
       children: [
         for (final entry in targets.entries)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: EvaporateSpacing.line),
             child: Text(
               '${entry.key}: ${entry.value}',
               style: context.text.path,

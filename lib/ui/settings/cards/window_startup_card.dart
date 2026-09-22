@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
 import '../../widgets/section_card.dart';
 import '../setting_switch.dart';
 import '../window_start_picker.dart';
@@ -32,7 +33,7 @@ class WindowStartupCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: EvaporateSpacing.line),
           SettingSwitch(
             value: settings.startup.launchAtStartup,
             onChanged: (value) => store.add(

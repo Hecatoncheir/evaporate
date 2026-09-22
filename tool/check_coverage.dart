@@ -1,5 +1,17 @@
 import 'dart:io';
 
+/// Флаг: на входе отчёты всех систем прогона, и картина полная.
+///
+/// Тесты на трёх системах пропускают разное — реестр идёт только на
+/// Windows, `.app` — только на macOS, меню приложений — только на Linux, —
+/// и отчёт одной системы неполон. Храповик тонких файлов валит прогон
+/// только на полной картине: на неполной файл выходит тоньше, чем он есть.
+const allSystemsFlag = '--all-systems';
+
+/// Сколько систем в матрице тестов CI — столько отчётов и ждём с
+/// [allSystemsFlag].
+const systemCount = 3;
+
 /// LCOV объединяется по файлу и номеру строки: повторные записи одного
 /// исходника не должны искусственно увеличивать знаменатель.
 Map<String, Map<int, int>> parseCoverage(String lcov) {
@@ -30,6 +42,13 @@ Map<String, Map<int, int>> parseCoverage(String lcov) {
   }
   return files;
 }
+
+/// Отчёты нескольких прогонов одним: строка выполнена, если её выполнил
+/// хоть один. Прежде покрытие снималось с одной ubuntu, и тест, который
+/// идёт только на Windows или macOS, можно было удалить — порог бы не
+/// заметил.
+Map<String, Map<int, int>> mergeCoverage(Iterable<String> reports) =>
+    parseCoverage(reports.join('\n'));
 
 ({int hit, int found, double percent}) summarizeCoverage(
   Map<String, Map<int, int>> files,
@@ -66,8 +85,9 @@ List<String> filesMissingFromReport(
 /// обёртка над плагином, которому в прогоне отвечать некому. Выполняются
 /// они всё же в каждой сборке: дымовой запуск (`--smoke`) поднимает и
 /// гасит приложение целиком на трёх системах. Остальные
-/// пять исполняемых строк не содержат вовсе: бочка экспортов,
-/// перечислимая, две таблицы постоянных и интерфейс-метка частых событий.
+/// семь исполняемых строк не содержат вовсе: бочка экспортов,
+/// перечислимая, четыре таблицы постоянных (прозрачности, ступени
+/// отступов и значков, тайминги кадров) и интерфейс-метка частых событий.
 const _reportedNowhere = {
   'lib/main.dart',
   'lib/app_services.dart',
@@ -76,6 +96,8 @@ const _reportedNowhere = {
   'lib/ui/theme.dart',
   'lib/models/app_theme_mode.dart',
   'lib/ui/theme/alpha.dart',
+  'lib/ui/theme/icon_size.dart',
+  'lib/ui/theme/spacing.dart',
   'lib/bloc/frequent_event.dart',
   'lib/ui/library/featured/shots_timing.dart',
 };
@@ -114,43 +136,46 @@ List<String> thinFileProblems(
 }
 
 /// Файлы тоньше [thinBelow] процентов на момент введения правила. Число —
-/// доля по прогону на ubuntu (там снимается покрытие и выполняется всё,
-/// что пропускают другие системы), **на три пункта ниже достигнутой**: по
-/// тому же правилу, что и общие пороги, — вровень придвинутое число валит
-/// прогон на любой мелочи. Пополнять нельзя; добавили тестов — число
-/// поднимают, дорос до порога — запись вычёркивают.
+/// доля по слитому отчёту трёх систем (артефакт `coverage-<sha>`, три
+/// `lcov.info`: `dart tool/check_coverage.dart --all-systems …`), **на три
+/// пункта ниже достигнутой**: по тому же правилу, что и общие пороги, —
+/// вровень придвинутое число валит прогон на любой мелочи. Пополнять
+/// нельзя; добавили тестов — число поднимают, дорос до порога — запись
+/// вычёркивают.
 ///
 /// Файлы событий тонки по понятной причине: их `props` читает только
-/// сравнение двух одинаковых событий, а его не бывает.
+/// сравнение двух одинаковых событий, а его не бывает. Строки
+/// `const`-конструкторов VM на Windows засчитывает выполненными, а на
+/// Linux нет — отсюда у событий слитая доля выше, чем по одной ubuntu.
 const thinFiles = <String, int>{
-  'lib/ui/saves/bulk_report_view.dart': 0,
-  'lib/ui/settings/pick_folder.dart': 0,
-  'lib/ui/saves/sync_package_row.dart': 0,
-  'lib/ui/library/detail/executable_picker_dialog.dart': 0,
-  'lib/ui/theme/theme_mode.dart': 0,
-  'lib/ui/saves/sync_folder_contents.dart': 0,
-  'lib/ui/saves/pick_game_dialog.dart': 0,
-  'lib/ui/library/saves/restore_options.dart': 0,
-  'lib/ui/saves/bulk_outcome_group.dart': 0,
-  'lib/ui/library/saves/find_paths_progress.dart': 0,
   'lib/ui/downloads/engine_failure.dart': 0,
-  'lib/ui/library/detail/game_error_note.dart': 0,
   'lib/ui/library/detail/cover_progress.dart': 0,
+  'lib/ui/library/detail/executable_picker_dialog.dart': 0,
+  'lib/ui/library/detail/game_error_note.dart': 0,
   'lib/ui/library/detail/running_game_actions.dart': 0,
   'lib/ui/library/drop_frame.dart': 0,
+  'lib/ui/library/saves/find_paths_progress.dart': 0,
+  'lib/ui/library/saves/restore_options.dart': 0,
+  'lib/ui/saves/bulk_outcome_group.dart': 0,
+  'lib/ui/saves/bulk_report_view.dart': 0,
+  'lib/ui/saves/pick_game_dialog.dart': 0,
+  'lib/ui/saves/sync_folder_contents.dart': 0,
+  'lib/ui/saves/sync_package_row.dart': 0,
+  'lib/ui/settings/pick_folder.dart': 0,
+  'lib/ui/theme/theme_mode.dart': 0,
   'lib/ui/library/drop_overlay.dart': 2,
-  'lib/bloc/proxy_form/proxy_form_event.dart': 8,
   'lib/ui/widgets/busy_spinner.dart': 17,
   'lib/bloc/library/library_event.dart': 21,
-  'lib/bloc/rule_form/rule_form_event.dart': 22,
   'lib/ui/library/saves/snapshots_section.dart': 22,
   'lib/bloc/add_game/add_game_event.dart': 24,
-  'lib/bloc/saves/saves_event.dart': 25,
-  'lib/bloc/downloads/downloads_event.dart': 27,
-  'lib/services/system/update_exception.dart': 30,
-  'lib/bloc/restore_preview/restore_preview_event.dart': 30,
+  'lib/bloc/proxy_form/proxy_form_event.dart': 24,
+  'lib/bloc/saves/saves_event.dart': 26,
   'lib/bloc/download_history/download_history_event.dart': 30,
+  'lib/bloc/downloads/downloads_event.dart': 30,
   'lib/bloc/library_view/library_view_event.dart': 30,
+  'lib/bloc/restore_preview/restore_preview_event.dart': 30,
+  'lib/bloc/rule_form/rule_form_event.dart': 30,
+  'lib/services/system/update_exception.dart': 30,
   'lib/ui/settings/notification_actions.dart': 31,
   'lib/bloc/scan/scan_event.dart': 32,
   'lib/bloc/navigation/navigation_event.dart': 34,
@@ -183,9 +208,35 @@ bool _measured(String path) =>
     !path.endsWith('.g.dart') &&
     !path.endsWith('.freezed.dart');
 
+/// Что не так с набором отчётов, или `null`.
+///
+/// Полная картина, собранная не со всех систем, хуже неполной: храповик
+/// тонких файлов судил бы по ней всерьёз. Пропавший отчёт системы должен
+/// ронять прогон словами, а не тихо ослаблять правило.
+String? reportsProblem(int count, {required bool allSystems}) {
+  if (!allSystems || count == systemCount) return null;
+  return 'С $allSystemsFlag ждём $systemCount отчёта — по одному с каждой '
+      'системы, — а пришло $count.';
+}
+
+/// `dart tool/check_coverage.dart [--all-systems] [отчёт…]` — без отчётов
+/// берётся `coverage/lcov.info` местного прогона.
 void main(List<String> arguments) {
-  final path = arguments.isEmpty ? 'coverage/lcov.info' : arguments.single;
-  final files = parseCoverage(File(path).readAsStringSync());
+  final allSystems = arguments.contains(allSystemsFlag);
+  final given = [
+    for (final argument in arguments)
+      if (argument != allSystemsFlag) argument,
+  ];
+  final reports = given.isEmpty ? const ['coverage/lcov.info'] : given;
+  final problem = reportsProblem(reports.length, allSystems: allSystems);
+  if (problem != null) {
+    stderr.writeln(problem);
+    exitCode = 1;
+    return;
+  }
+  final files = mergeCoverage([
+    for (final report in reports) File(report).readAsStringSync(),
+  ]);
   // Пороги стоят на два-три пункта ниже достигнутого, а не вровень с ним:
   // вплотную придвинутый порог валит прогон на любой мелочи — добавленной
   // ветке, новом файле чуть жиже остальных, — и кончается это тем, что его
@@ -196,10 +247,9 @@ void main(List<String> arguments) {
   // оказывается, что порог вдвое ниже того, что есть, и можно выкинуть
   // треть тестов, не заметив этого на прогоне.
   //
-  // Сверяют их по прогону на ubuntu — по тому самому, где покрытие и
-  // снимается. Там выполняется и то, что пропускается на Windows и macOS,
-  // поэтому местный запуск на другой системе показывает меньше: у него
-  // своя, неполная картина, и порог по ней был бы занижен.
+  // Сверяют их по слитому отчёту трёх систем — его проверяет задание
+  // «Покрытие» в CI. Местный запуск на одной системе показывает меньше: у
+  // него своя, неполная картина, и порог по ней был бы занижен.
   final scopes =
       <({String label, double minimum, bool Function(String) includes})>[
         (label: 'Весь код (без генерации)', minimum: 82, includes: (_) => true),
@@ -239,20 +289,20 @@ void main(List<String> arguments) {
     for (final problem in thin) {
       stdout.writeln('- $problem');
     }
-    // Храповик на файл держит только прогон на Linux: на другой системе
+    // Храповик на файл держит только слитый отчёт: в отчёте одной системы
     // пропущенные ею тесты делают файлы тоньше, а строка меню приложений,
-    // которая бывает только на Linux, выходит нулём. Там список
+    // которая бывает только на Linux, на Windows выходит нулём. Там список
     // показывается, но прогон не валит.
-    if (Platform.isLinux) {
+    if (allSystems) {
       stderr.writeln(
         'Тонкий файл: заведите ему тест или, если он дорос, уберите из '
-        'thinFiles. Числа сверяют по прогону на ubuntu.',
+        'thinFiles. Числа сверяют по слитому отчёту трёх систем.',
       );
       exitCode = 1;
     } else {
       stdout.writeln(
-        '(на этой системе картина неполная — список не валит прогон; '
-        'решает прогон на ubuntu)',
+        '(отчёт одной системы — картина неполная, список не валит прогон; '
+        'решает слитый отчёт трёх систем в CI)',
       );
     }
   }

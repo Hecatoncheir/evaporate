@@ -28,12 +28,10 @@ class StatusChip extends StatelessWidget {
     return TonedChip(
       text: label,
       color: color,
-      style: (compact ? context.text.chip : context.text.caption).copyWith(
-        fontWeight: FontWeight.w600,
-      ),
+      style: compact ? context.text.chip : context.text.captionStrong,
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 6 : 10,
-        vertical: compact ? 2 : 4,
+        horizontal: compact ? EvaporateSpacing.tight : EvaporateSpacing.cluster,
+        vertical: compact ? EvaporateSpacing.hair : EvaporateSpacing.line,
       ),
     );
   }

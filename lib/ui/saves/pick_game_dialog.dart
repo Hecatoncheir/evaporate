@@ -37,7 +37,7 @@ class PickGameDialog extends StatelessWidget {
                 matches
                     ? Icons.check_circle_outline
                     : Icons.videogame_asset_outlined,
-                size: 18,
+                size: EvaporateIconSize.panel,
                 color: matches ? context.colors.accent : null,
               ),
               title: Text(game.title),

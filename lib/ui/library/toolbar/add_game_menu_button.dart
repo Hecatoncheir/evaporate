@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
 
 /// «Добавить игру» — одна клавиша с меню на два способа.
 ///
@@ -31,9 +32,12 @@ class AddGameMenuButton extends StatelessWidget {
             controller.isOpen ? controller.close() : controller.open(),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 48),
-          padding: const EdgeInsets.only(left: 12, right: 8),
+          padding: const EdgeInsets.only(
+            left: EvaporateSpacing.field,
+            right: EvaporateSpacing.gap,
+          ),
         ),
-        icon: const Icon(Icons.add, size: 19),
+        icon: const Icon(Icons.add, size: EvaporateIconSize.panel),
         // Подпись гибкая: в узком окне на неё остаётся шестьдесят точек, и
         // жёсткий ряд из слова и уголка рисовал там полосатую ленту
         // переполнения. Штатная подпись клавиши переносится по словам —
@@ -42,19 +46,22 @@ class AddGameMenuButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Flexible(child: Text(l.addGame)),
-            const Icon(Icons.arrow_drop_down, size: 18),
+            const Icon(Icons.arrow_drop_down, size: EvaporateIconSize.panel),
           ],
         ),
       ),
       menuChildren: [
         MenuItemButton(
           onPressed: onAdd,
-          leadingIcon: const Icon(Icons.link, size: 18),
+          leadingIcon: const Icon(Icons.link, size: EvaporateIconSize.panel),
           child: Text(l.addGameSource),
         ),
         MenuItemButton(
           onPressed: onScan,
-          leadingIcon: const Icon(Icons.folder_open_outlined, size: 18),
+          leadingIcon: const Icon(
+            Icons.folder_open_outlined,
+            size: EvaporateIconSize.panel,
+          ),
           child: Text(l.findInstalledGames),
         ),
       ],

@@ -24,7 +24,7 @@ class RemoveGameButton extends StatelessWidget {
       child: TextButton.icon(
         onPressed: () => _remove(context),
         style: context.buttons.dangerText,
-        icon: const Icon(Icons.delete_outline, size: 17),
+        icon: const Icon(Icons.delete_outline),
         label: Text(L.of(context).removeFromLibrary),
       ),
     );

@@ -42,7 +42,7 @@ class ScanDialogBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ScanProgress(session: session),
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           ScanDropArea(
             dragging: dragging,
             wrongDrop: scan.wrongDrop,
@@ -59,7 +59,7 @@ class ScanDialogBody extends StatelessWidget {
             },
           ),
           if (scan.found.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: EvaporateSpacing.field),
             Flexible(
               child: ScannedGamesList(
                 games: scan.found,
@@ -69,7 +69,7 @@ class ScanDialogBody extends StatelessWidget {
               ),
             ),
           ] else if (!scan.running && scan.complete) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: EvaporateSpacing.field),
             Text(
               l.scanNothingFound,
               style: TextStyle(color: context.colors.textSecondary),

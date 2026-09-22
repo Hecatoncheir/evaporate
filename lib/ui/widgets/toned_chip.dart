@@ -14,7 +14,10 @@ class TonedChip extends StatelessWidget {
     required this.text,
     required this.color,
     required this.style,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: EvaporateSpacing.gap,
+      vertical: EvaporateSpacing.hair,
+    ),
     this.radius = EvaporateTheme.radiusChip,
   });
 

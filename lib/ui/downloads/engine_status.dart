@@ -29,7 +29,7 @@ class EngineStatusChip extends StatelessWidget {
 
     return Container(
       constraints: const BoxConstraints(minHeight: 38, maxWidth: 270),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.field),
       decoration: BoxDecoration(
         color: color.withValues(alpha: EvaporateAlpha.subtle),
         border: Border.all(color: color.withValues(alpha: EvaporateAlpha.rim)),
@@ -42,14 +42,14 @@ class EngineStatusChip extends StatelessWidget {
           // ровно горящая точка рядом со словом «готов» ничего не добавляет.
           PulseDot(
             color: color,
-            size: 6,
+            size: EvaporateIconSize.dot,
             alive:
                 status.state == EngineState.starting ||
                 status.state == EngineState.failed,
           ),
-          const SizedBox(width: 3),
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 7),
+          const SizedBox(width: EvaporateSpacing.hair),
+          Icon(icon, size: EvaporateIconSize.key, color: color),
+          const SizedBox(width: EvaporateSpacing.gap),
           Flexible(
             child: Text(
               label,

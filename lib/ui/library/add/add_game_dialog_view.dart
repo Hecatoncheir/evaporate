@@ -59,7 +59,9 @@ class AddGameDialogView extends StatelessWidget {
           onPressed: form.busy
               ? null
               : () => bloc.add(const AddGameSubmitted()),
-          child: form.busy ? const BusySpinner(size: 16) : Text(l.add),
+          child: form.busy
+              ? const BusySpinner(size: EvaporateIconSize.key)
+              : Text(l.add),
         ),
       ],
     );

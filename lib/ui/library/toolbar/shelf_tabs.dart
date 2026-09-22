@@ -30,7 +30,7 @@ class _ShelfTabsState extends State<ShelfTabs> {
   Widget build(BuildContext context) {
     final shelf = context.select<LibraryViewBloc, Shelf>((b) => b.state.shelf);
     return ToolbarWell(
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(EvaporateLayout.wellInset),
       child: LiquidSelection(
         key: const ValueKey('shelf-liquid'),
         targetKey: () => _targets[shelf],

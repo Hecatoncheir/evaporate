@@ -54,7 +54,7 @@ class AddGameFields extends StatelessWidget {
           kind: kind,
           onChanged: (value) => bloc.add(AddGameKindChanged(value)),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: EvaporateSpacing.section),
         SourceFields(
           kind: kind,
           magnetController: magnetController,
@@ -64,7 +64,7 @@ class AddGameFields extends StatelessWidget {
           onPickTorrent: onPickTorrent,
           onPickFolder: onPickFolder,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: EvaporateSpacing.panel),
         TextField(
           controller: titleController,
           onChanged: (value) => bloc.add(AddGameTitleChanged(value)),
@@ -75,7 +75,7 @@ class AddGameFields extends StatelessWidget {
         ),
         // У папки на диске качать нечего: она уже установлена.
         if (kind != GameSourceKind.localFolder) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           StartNowTile(
             value: form.startImmediately,
             ready: engine.isReady,
@@ -85,7 +85,7 @@ class AddGameFields extends StatelessWidget {
           ),
         ],
         if (form.error case final message?) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           Text(
             message,
             style: context.text.body.copyWith(color: context.colors.danger),

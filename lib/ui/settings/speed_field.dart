@@ -75,14 +75,14 @@ class _SpeedFieldState extends State<SpeedField> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: EvaporateSpacing.line),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: EvaporateLayout.settingLabelWidth,
             child: Padding(
-              padding: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.only(top: EvaporateSpacing.field),
               child: Text(widget.label, style: context.text.body),
             ),
           ),
@@ -105,7 +105,10 @@ class _SpeedFieldState extends State<SpeedField> {
           if (widget.hint != null)
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(left: 12, top: 12),
+                padding: const EdgeInsets.only(
+                  left: EvaporateSpacing.field,
+                  top: EvaporateSpacing.field,
+                ),
                 child: Text(widget.hint!, style: context.text.captionMuted),
               ),
             ),

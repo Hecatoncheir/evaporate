@@ -34,7 +34,7 @@ class FeaturedActions extends StatelessWidget {
           icon: primaryActionIcon(action),
           label: primaryActionLabel(L.of(context), action),
         ),
-        const SizedBox(width: 9),
+        const SizedBox(width: EvaporateSpacing.cluster),
         OutlinedButton(
           onPressed: onOpen,
           style: OutlinedButton.styleFrom(

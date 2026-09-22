@@ -18,10 +18,10 @@ class InlineWarning extends StatelessWidget {
       children: [
         Icon(
           Icons.warning_amber_rounded,
-          size: 15,
+          size: EvaporateIconSize.key,
           color: context.colors.warning,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: EvaporateSpacing.gap),
         Expanded(child: Text(text, style: context.text.warning)),
       ],
     );

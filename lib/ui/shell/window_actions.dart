@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
 import '../widgets/window_action.dart';
 import '../widgets/window_control.dart';
 import 'top_action.dart';
@@ -31,14 +32,14 @@ class WindowActions extends StatelessWidget {
           onPressed: () =>
               unawaited(runWindowAction(context, windowManager.minimize)),
         ),
-        const SizedBox(width: 7),
+        const SizedBox(width: EvaporateSpacing.tight),
         TopAction(
           key: const ValueKey('rail-maximize'),
           tooltip: control.expanded ? l.restoreWindow : l.maximizeWindow,
           icon: control.expanded ? Icons.filter_none : Icons.crop_square,
           onPressed: () => unawaited(control.toggleSize()),
         ),
-        const SizedBox(width: 7),
+        const SizedBox(width: EvaporateSpacing.tight),
       ],
     );
   }

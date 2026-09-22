@@ -16,6 +16,8 @@
 | [0003](0003-no-game-repository.md) | Репозитория игр нет |
 | [0004](0004-no-capture-and-window-blocs.md) | Ни блока захвата кнопки, ни блока окна |
 | [0005](0005-no-bloc-test-freezed-dcm.md) | Без `bloc_test`, `freezed` и DCM |
+| [0006](0006-complexity-on-analyzer.md) | Замер сложности — на дереве `package:analyzer` |
+| [0007](0007-signed-updates.md) | Обновление ставится только под подписью |
 
 Откуда они взялись — первый разбор проекта, его оценка лежит в
 [`docs/reviews/2026-09-19.md`](../reviews/2026-09-19.md), весь текст плана —

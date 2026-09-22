@@ -154,22 +154,11 @@ jobs:
       # порядок иначе приходилось выкапывать из лога, а без него плавающий
       # тест не повторить. При падении зерно уходит в сводку готовой
       # командой. `bash` — явно: на Windows шаги идут в PowerShell.
-      - name: Тесты
-        if: matrix.os != 'ubuntu-latest'
-        shell: bash
-        run: |
-          seed=$RANDOM$RANDOM
-          flutter test --reporter failures-only --test-randomize-ordering-seed $seed || {
-            # shellcheck disable=SC2016 # обратные кавычки — разметка сводки
-            printf 'Повторить порядок: `flutter test --test-randomize-ordering-seed %s`\n' "$seed" >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          }
-
-      # Покрытие снимаем один раз — оно от системы не зависит, а lcov.info
-      # нужен один. Заодно это единственный прогон, чей результат виден
-      # числом, а не только зелёной галочкой.
+      #
+      # Покрытие снимает каждая система, а не одна ubuntu: тест, который
+      # идёт только на Windows или macOS, прежде можно было удалить, и
+      # порог бы этого не заметил. Сливает отчёты задание «Покрытие».
       - name: Тесты с покрытием
-        if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
           seed=$RANDOM$RANDOM
@@ -179,30 +168,65 @@ jobs:
             exit 1
           }
 
-      # Итог — и в сводку, и в журнал шага: одна сводка не читается ни
-      # `gh run view --log-failed`, ни API, и упавший порог говорил лишь
-      # «тонкий файл», не называя какой. `shell: bash` — ради pipefail:
-      # без него провал проверки съедал бы `tee`.
+      # Промежуточный файл: его забирает задание «Покрытие», а людям
+      # остаётся слитый отчёт, поэтому хранится он день.
+      - name: Приложить покрытие системы
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lcov-${{ matrix.os }}-${{ github.sha }}
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 1
+
+  coverage:
+    name: Покрытие
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Ради одного `dart`: проверка покрытия пакетов не читает, но Dart —
+      # тот же, что у остального прогона.
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # Каждый отчёт — в своей папке `coverage/lcov-<система>-<sha>/`.
+      - name: Отчёты трёх систем
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: lcov-*-${{ github.sha }}
+          path: coverage
+
+      # Строка выполнена, если её выполнила хоть одна система. Флаг
+      # `--all-systems` включает храповик тонких файлов и сам проверяет, что
+      # отчётов три: пропавший отчёт ронял бы прогон словами, а не тихо
+      # ослаблял правило. Итог — и в сводку, и в журнал шага: одна сводка
+      # не читается ни `gh run view --log-failed`, ни API, и упавший порог
+      # говорил лишь «тонкий файл», не называя какой. `shell: bash` — ради
+      # pipefail: без него провал проверки съедал бы `tee`.
       - name: Порог покрытия без сгенерированного кода
-        if: matrix.os == 'ubuntu-latest'
         shell: bash
-        run: dart tool/check_coverage.dart | tee -a "$GITHUB_STEP_SUMMARY"
+        run: dart tool/check_coverage.dart --all-systems coverage/*/lcov.info | tee -a "$GITHUB_STEP_SUMMARY"
 
       # И при упавшем пороге: разбирать недобор нужнее всего именно тогда,
-      # а числа тонких файлов сверяют по этому отчёту.
+      # а числа тонких файлов сверяют по этим трём отчётам.
       - name: Приложить отчёт о покрытии
-        if: always() && matrix.os == 'ubuntu-latest'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-${{ github.sha }}
-          path: coverage/lcov.info
+          path: coverage
           retention-days: 14
 
   build-macos:
     name: Сборка macOS
     runs-on: macos-latest
     timeout-minutes: 30
-    needs: [analyze, test]
+    needs: [analyze, test, coverage]
     # На теге, вручную и раз в неделю по расписанию: на каждом пуше в main
     # три сборки выясняли бы то же, что и тесты, вчетверо дольше — сборка
     # macOS занимает минуты, а ответ «тесты прошли» нужен сразу.
@@ -282,7 +306,7 @@ jobs:
     # перестали бы запускать сборку, и узнали бы мы об этом от них.
     runs-on: ubuntu-22.04
     timeout-minutes: 30
-    needs: [analyze, test]
+    needs: [analyze, test, coverage]
     # На теге, вручную и по расписанию — см. сборку macOS.
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
@@ -360,7 +384,7 @@ jobs:
     name: Сборка Windows
     runs-on: windows-latest
     timeout-minutes: 30
-    needs: [analyze, test]
+    needs: [analyze, test, coverage]
     # На теге, вручную и по расписанию — см. сборку macOS.
     if: >-
       startsWith(github.ref, 'refs/tags/v') ||
@@ -450,6 +474,14 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Из репозитория здесь нужен один файл — открытый ключ подписи
+      # обновлений, которым подпись проверяется сразу после того, как
+      # поставлена.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: tool/update_signing_key.pub.pem
+          sparse-checkout-cone-mode: false
+
       # Описание релиза приходит артефактом: считать его здесь заново
       # значило бы поставить весь Flutter ради одного `dart run`, уже
       # выполненного в анализе.
@@ -469,6 +501,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
         run: |
           set -eu
           TAG="${GITHUB_REF_NAME}"
@@ -481,6 +514,27 @@ jobs:
           # распаковывать её поверх установки нельзя.
           ( cd dist && sha256sum evaporate-*.* > SHA256SUMS )
           cat dist/SHA256SUMS
+
+          # Подпись под суммами — то, что отличает наш релиз от выложенного
+          # от нашего имени: суммы считает это же задание, и тот, кто сумел
+          # бы выложить релиз, выложил бы и их. Приложение без подписи
+          # обновление не ставит, поэтому без секрета выпуск падает здесь,
+          # до публикации, а не у людей. Ключ ложится во временный файл с
+          # правами только для владельца и сразу убирается.
+          if [ -z "${UPDATE_SIGNING_KEY:-}" ]; then
+            echo 'Нет секрета UPDATE_SIGNING_KEY: неподписанный релиз обновление не примет.' >&2
+            exit 1
+          fi
+          key="$RUNNER_TEMP/update-signing.pem"
+          ( umask 077 && printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key" )
+          openssl pkeyutl -sign -inkey "$key" -rawin \
+            -in dist/SHA256SUMS -out dist/SHA256SUMS.sig
+          rm -f "$key"
+          # Проверка тем открытым ключом, что вшит в приложение: секрет, не
+          # парный ему, дал бы релиз, который не примет ни одна установленная
+          # копия. `update_signature_test` сверяет файл с приложением.
+          openssl pkeyutl -verify -pubin -inkey tool/update_signing_key.pub.pem \
+            -rawin -in dist/SHA256SUMS -sigfile dist/SHA256SUMS.sig
 
           # Описание релиза и запись в истории изменений — один и тот же
           # текст; писать его дважды значит однажды разойтись. Готовит его

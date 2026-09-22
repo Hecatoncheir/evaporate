@@ -30,12 +30,8 @@ class EngineReadout extends StatelessWidget {
     final l = L.of(context);
 
     final color = colors.engine(status.state);
-    // Разрядка уже, чем у метки: в строке состояния тесно. Цифры
-    // табличные — показания меняются на глазах.
-    final style = context.text.label.copyWith(
-      letterSpacing: 0.7,
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
+    // Моноширинный: показания меняются на глазах, а строка не дёргается.
+    final style = context.text.statusLabel;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -44,24 +40,32 @@ class EngineReadout extends StatelessWidget {
         // светодиод рядом со словом «готов» ничего не добавляет.
         PulseDot(
           color: color,
-          size: 6,
+          size: EvaporateIconSize.dot,
           alive:
               status.state == EngineState.starting ||
               status.state == EngineState.failed,
         ),
-        const SizedBox(width: 2),
+        const SizedBox(width: EvaporateSpacing.hair),
         Text(
           engineStateLabel(l, status.state).toUpperCase(),
           style: style.copyWith(color: color),
         ),
         if (stats.activeCount > 0) ...[
-          const SizedBox(width: 14),
-          Icon(Icons.arrow_downward_rounded, size: 11, color: colors.primary),
-          const SizedBox(width: 2),
+          const SizedBox(width: EvaporateSpacing.block),
+          Icon(
+            Icons.arrow_downward_rounded,
+            size: EvaporateIconSize.tiny,
+            color: colors.primary,
+          ),
+          const SizedBox(width: EvaporateSpacing.hair),
           Text(speedLabel(l, stats.downloadSpeed), style: style),
-          const SizedBox(width: 10),
-          Icon(Icons.arrow_upward_rounded, size: 11, color: colors.accent),
-          const SizedBox(width: 2),
+          const SizedBox(width: EvaporateSpacing.cluster),
+          Icon(
+            Icons.arrow_upward_rounded,
+            size: EvaporateIconSize.tiny,
+            color: colors.accent,
+          ),
+          const SizedBox(width: EvaporateSpacing.hair),
           Text(speedLabel(l, stats.uploadSpeed), style: style),
         ],
       ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
 
 class ScaleControl extends StatelessWidget {
   const ScaleControl({
@@ -30,7 +31,7 @@ class ScaleControl extends StatelessWidget {
             onPressed: value > min
                 ? () => change((value - step).clamp(min, max))
                 : null,
-            icon: const Icon(Icons.remove, size: 18),
+            icon: const Icon(Icons.remove, size: EvaporateIconSize.panel),
           ),
           Tooltip(
             message: l.resetScale,
@@ -44,7 +45,7 @@ class ScaleControl extends StatelessWidget {
             onPressed: value < max
                 ? () => change((value + step).clamp(min, max))
                 : null,
-            icon: const Icon(Icons.add, size: 18),
+            icon: const Icon(Icons.add, size: EvaporateIconSize.panel),
           ),
         ],
       ),

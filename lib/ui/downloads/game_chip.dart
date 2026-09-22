@@ -14,6 +14,11 @@ class GameChip extends StatelessWidget {
 
   final Game game;
 
+  static const _padding = EdgeInsets.symmetric(
+    horizontal: EvaporateSpacing.field,
+    vertical: EvaporateSpacing.cluster,
+  );
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -22,7 +27,7 @@ class GameChip extends StatelessWidget {
         duration: context.motion.fast,
         curve: EvaporateMotion.ease,
         transform: Matrix4.translationValues(0, hovered ? -2 : 0, 0),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: _padding,
         decoration: BoxDecoration(
           color: hovered
               ? Color.lerp(colors.surface, colors.primary, 0.08)
@@ -38,10 +43,10 @@ class GameChip extends StatelessWidget {
           children: [
             Icon(
               Icons.drag_indicator,
-              size: 16,
+              size: EvaporateIconSize.key,
               color: hovered ? colors.primary : colors.textSecondary,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: EvaporateSpacing.gap),
             Expanded(
               child: Text(
                 game.title,
@@ -55,7 +60,7 @@ class GameChip extends StatelessWidget {
             // гонять за удалением на её страницу незачем. Клавиша видна
             // всегда, а не по наведению: спрятанное под курсором не
             // существует для того, кто о нём не знает.
-            const SizedBox(width: 4),
+            const SizedBox(width: EvaporateSpacing.line),
             RemoveFromLibraryButton(game: game),
           ],
         ),

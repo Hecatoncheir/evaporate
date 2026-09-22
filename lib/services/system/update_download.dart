@@ -4,9 +4,12 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/format.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_ru.dart';
 import 'app_log.dart';
 import 'update_check.dart';
 import 'update_exception.dart';
+import 'update_signature.dart';
 import 'update_transport.dart';
 import 'update_unpack.dart';
 
@@ -42,7 +45,8 @@ class UpdateProgress {
 /// Проверка не формальность. Канал защищён TLS, но оборванная загрузка
 /// выглядит как целый файл, и распаковывать её поверх установки — верный
 /// способ оставить человека без работающего приложения. Поэтому сначала
-/// размер, потом sha256 из `SHA256SUMS`, и только потом распаковка.
+/// размер, потом подпись под `SHA256SUMS`, потом sha256 из него, и только
+/// потом распаковка.
 ///
 /// На Windows результат — готовый Inno Setup. На macOS и Linux архив
 /// распаковывается в папку, которую заменит POSIX-помощник после
@@ -61,10 +65,13 @@ class UpdateDownload {
     )?
     download,
     AppLog Function()? log,
+    this._signature = const UpdateSignature(),
+    L Function()? localizations,
   }) : _platform = platform ?? currentPlatformKey(),
        _fetch = fetch ?? UpdateTransport.fetch,
        _download = download ?? UpdateTransport.download,
-       _log = log ?? _appLog;
+       _log = log ?? _appLog,
+       _localizations = localizations ?? _defaultLocalizations;
 
   /// Куда складывать скачанное — папка данных приложения.
   final String workDir;
@@ -75,6 +82,17 @@ class UpdateDownload {
 
   static AppLog _appLog() => AppLog.instance;
   final String _platform;
+
+  /// Чьей подписи верим — подменяется в прогоне своим ключом.
+  final UpdateSignature _signature;
+
+  /// Сообщения отсюда человек читает в карточке обновления, а
+  /// `BuildContext` здесь взять неоткуда.
+  final L Function() _localizations;
+
+  L get _l => _localizations();
+
+  static L _defaultLocalizations() => LRu();
 
   /// Мелочь вроде `SHA256SUMS` — её проще прочитать целиком.
   final Future<List<int>> Function(
@@ -112,9 +130,7 @@ class UpdateDownload {
     void Function(UpdateProgress)? onProgress,
   }) async {
     final asset = release.updateFor(_platform);
-    if (asset == null) {
-      throw const UpdateException('Для этой системы файла в релизе нет');
-    }
+    if (asset == null) throw UpdateException(_l.updateNoFile);
     void report(UpdatePhase phase) =>
         onProgress?.call(UpdateProgress(phase: phase));
 
@@ -187,10 +203,13 @@ class UpdateDownload {
     await part.rename(target.path);
   }
 
-  /// Размер и контрольная сумма.
+  /// Размер, подпись под суммами и сама сумма.
   ///
-  /// Сумма не защищает от подменённого источника — она приходит оттуда же,
-  /// — но ловит оборванную и побитую загрузку, а это самое частое.
+  /// Сумма ловит оборванную и побитую загрузку, подлинность держит
+  /// подпись: суммы кладёт в релиз то же задание, что и сборки, и тот, кто
+  /// сумел выложить релиз, выложил бы и их. Проверить нечем — нет подписи,
+  /// нет сумм, нет в них своего файла — значит не ставить: на Windows
+  /// скачанный установщик запускается молча.
   Future<void> _verify(Release release, ReleaseAsset archive, File file) async {
     // Не сошлось — недокачанное выбрасываем. Иначе следующая попытка
     // продолжила бы с середины испорченного файла и не сошлась бы уже
@@ -198,33 +217,47 @@ class UpdateDownload {
     final size = await file.length();
     if (archive.sizeBytes > 0 && size != archive.sizeBytes) {
       await file.delete();
-      throw UpdateException('Скачано $size байт вместо ${archive.sizeBytes}');
+      _log().write(
+        'обновление: скачано $size байт вместо ${archive.sizeBytes}',
+      );
+      throw UpdateException(_l.updateIncomplete);
     }
 
-    final sums = release.checksums;
-    if (sums == null) return;
-
-    final List<int> raw;
-    try {
-      raw = await _fetch(Uri.parse(sums.url), (_, _) {});
-    } on Object catch (error) {
-      // Файла сумм может не быть у старых релизов — размера уже достаточно.
-      // Но пропуск сверки — не мелочь, и след его должен остаться.
-      _log().write('обновление: суммы не получены, сверка пропущена', error);
-      return;
+    final expected = _sumFor(await _signedSums(release), archive.name);
+    if (expected == null) {
+      throw UpdateException(_l.updateNotListed(archive.name));
     }
-
-    final expected = _sumFor(String.fromCharCodes(raw), archive.name);
-    if (expected == null) return;
     // Считаем по потоку: сборка весит десятки мегабайт, и держать её в
     // памяти целиком незачем.
     final actual = (await sha256.bind(file.openRead()).first).toString();
     if (actual != expected) {
       await file.delete();
-      throw const UpdateException(
-        'Контрольная сумма не сошлась: файл скачался повреждённым',
-      );
+      throw UpdateException(_l.updateChecksumMismatch);
     }
+  }
+
+  /// Файл сумм релиза, если под ним стоит подпись того, кому верим.
+  Future<String> _signedSums(Release release) async {
+    final sums = release.checksums;
+    final signature = release.signature;
+    if (sums == null || signature == null) {
+      _log().write('обновление ${release.version}: в релизе нет подписи');
+      throw UpdateException(_l.updateUnsigned);
+    }
+    final List<int> text;
+    final List<int> signed;
+    try {
+      text = await _fetch(Uri.parse(sums.url), (_, _) {});
+      signed = await _fetch(Uri.parse(signature.url), (_, _) {});
+    } on Object catch (error) {
+      _log().write('обновление: суммы или подпись не получены', error);
+      throw UpdateException(_l.updateSignatureUnavailable);
+    }
+    if (!await _signature.verify(text, signed)) {
+      _log().write('обновление ${release.version}: подпись не сошлась');
+      throw UpdateException(_l.updateSignatureInvalid);
+    }
+    return String.fromCharCodes(text);
   }
 
   /// Строка вида `<sha256>  <имя файла>` — формат `sha256sum`.

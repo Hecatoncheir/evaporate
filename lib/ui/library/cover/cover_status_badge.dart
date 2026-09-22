@@ -24,7 +24,7 @@ class CoverStatusBadge extends StatelessWidget {
     return Align(
       alignment: Alignment.topRight,
       child: Padding(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(EvaporateSpacing.tight),
         child: Container(
           width: 22,
           height: 22,
@@ -35,7 +35,7 @@ class CoverStatusBadge extends StatelessWidget {
             color: AppColors.coverOverlay,
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 15, color: color),
+          child: Icon(icon, size: EvaporateIconSize.key, color: color),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'glass_surface.dart';
+import 'section_card_header.dart';
 
 class SectionCard extends StatelessWidget {
   const SectionCard({
@@ -20,26 +21,15 @@ class SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: EvaporateSpacing.panel),
       child: GlassSurface(
         radius: EvaporateTheme.radiusPanel,
         opacity: HardwareSurfaceTheme.of(context).cardOpacity,
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(EvaporateSpacing.card),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 18, color: context.colors.textSecondary),
-                  const SizedBox(width: 8),
-                ],
-
-                Expanded(child: Text(title, style: context.text.subtitle)),
-                ?trailing,
-              ],
-            ),
-            const SizedBox(height: 14),
+            SectionCardHeader(title: title, icon: icon, trailing: trailing),
             child,
           ],
         ),

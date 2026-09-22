@@ -52,22 +52,22 @@ class FilesSection extends StatelessWidget {
                   ? context.colors.textSecondary
                   : null,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: EvaporateSpacing.field),
             Row(
               children: [
                 OutlinedButton.icon(
                   onPressed: () => _pickExecutable(context),
-                  icon: const Icon(Icons.description_outlined, size: 16),
+                  icon: const Icon(Icons.description_outlined),
                   label: Text(L.of(context).chooseFile),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: EvaporateSpacing.cluster),
                 OutlinedButton.icon(
                   onPressed: game.installDir == null
                       ? null
                       : () => context.read<LibraryBloc>().add(
                           GameExecutableDetectRequested(game.id),
                         ),
-                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  icon: const Icon(Icons.auto_awesome),
                   label: Text(L.of(context).findAutomatically),
                 ),
               ],

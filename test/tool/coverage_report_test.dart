@@ -33,6 +33,40 @@ end_of_record
     expect(core.percent, 100);
   });
 
+  // Тесты на трёх системах пропускают разное: реестр идёт только на
+  // Windows, `.app` — только на macOS. Прежде покрытие снималось с одной
+  // ubuntu, и такой тест можно было удалить — порог бы не заметил.
+  test('отчёты систем сливаются: строка выполнена, если хоть одной', () {
+    const ubuntu = '''
+SF:lib/services/registry.dart
+DA:1,1
+DA:2,0
+DA:3,0
+end_of_record
+''';
+    const windows = r'''
+SF:D:\a\evaporate\lib\services\registry.dart
+DA:1,0
+DA:2,4
+DA:3,0
+end_of_record
+''';
+
+    final merged = mergeCoverage([ubuntu, windows]);
+    final registry = summarizeCoverage(merged, (_) => true);
+
+    expect(merged.keys, ['lib/services/registry.dart']);
+    expect(registry.found, 3, reason: 'строки не удваиваются');
+    expect(registry.hit, 2);
+  });
+
+  test('слитый отчёт без одной из систем — не полная картина', () {
+    expect(reportsProblem(systemCount, allSystems: true), isNull);
+    expect(reportsProblem(systemCount - 1, allSystems: true), isNotNull);
+    // Местный прогон — одна система, и полной картиной он не притворяется.
+    expect(reportsProblem(1, allSystems: false), isNull);
+  });
+
   test('пустой отчёт не считается полным покрытием', () {
     expect(summarizeCoverage(parseCoverage(''), (_) => true).percent, 0);
   });

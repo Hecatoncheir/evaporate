@@ -34,7 +34,7 @@ class IconAction extends StatelessWidget {
     final color = danger ? context.colors.danger : context.colors.primary;
     return IconButton(
       onPressed: onPressed,
-      icon: Icon(icon, size: 16),
+      icon: Icon(icon, size: EvaporateIconSize.key),
       tooltip: tooltip,
       visualDensity: VisualDensity.compact,
       style: IconButton.styleFrom(

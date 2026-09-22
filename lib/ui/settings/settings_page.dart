@@ -56,7 +56,7 @@ class SettingsPage extends StatelessWidget {
                 semanticsLabel: L.of(context).settings,
                 padding: EdgeInsets.zero,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: EvaporateSpacing.card),
               // Каждая карточка сама берёт из блоков то, что показывает:
               // страница не подписана ни на что, и правка одной настройки
               // не перестраивает соседние карточки.

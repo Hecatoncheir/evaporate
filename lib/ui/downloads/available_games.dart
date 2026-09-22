@@ -22,7 +22,12 @@ class AvailableGames extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 16, 0),
+          padding: const EdgeInsets.fromLTRB(
+            EvaporateSpacing.wide,
+            EvaporateSpacing.line,
+            EvaporateSpacing.panel,
+            0,
+          ),
           child: SectionTitle(
             L.of(context).availableToDownload,
             trailing: '${available.length}',
@@ -31,14 +36,24 @@ class AvailableGames extends StatelessWidget {
         Expanded(
           child: available.isEmpty
               ? Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    EvaporateSpacing.wide,
+                    0,
+                    EvaporateSpacing.panel,
+                    EvaporateSpacing.panel,
+                  ),
                   child: Text(
                     L.of(context).allGamesQueued,
                     style: context.text.paragraph,
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    EvaporateSpacing.wide,
+                    0,
+                    EvaporateSpacing.panel,
+                    EvaporateSpacing.panel,
+                  ),
                   itemCount: available.length,
                   itemBuilder: (context, index) =>
                       DraggableGame(game: available[index]),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
+
 /// Клавиша со значком с краю плитки — восстановить, выгрузить, удалить.
 ///
 /// От [IconAction] отличается нарочно: у той подложка с кантом, потому что
@@ -26,7 +28,7 @@ class TileIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => IconButton(
     onPressed: onPressed,
-    icon: Icon(icon, size: 17),
+    icon: Icon(icon, size: EvaporateIconSize.key),
     tooltip: tooltip,
     color: color,
     visualDensity: VisualDensity.compact,

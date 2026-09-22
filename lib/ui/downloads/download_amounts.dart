@@ -29,19 +29,11 @@ class DownloadAmounts extends StatelessWidget {
                 ? l.fetchingMetadata
                 : '${bytesLabel(L.of(context), task.completedBytes)} / '
                       '${bytesLabel(L.of(context), task.totalBytes)}',
-            style: context.text.captionMuted.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            style: context.text.captionMuted,
           ),
         ),
         if (!indeterminate)
-          Text(
-            '${(task.progress * 100).round()}%',
-            style: context.text.bodyStrong.copyWith(
-              fontWeight: FontWeight.w700,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
+          Text('${(task.progress * 100).round()}%', style: context.text.figure),
       ],
     );
   }

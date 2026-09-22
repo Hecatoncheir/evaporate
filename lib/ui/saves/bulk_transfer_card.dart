@@ -30,24 +30,24 @@ class BulkTransferCard extends StatelessWidget {
       icon: Icons.swap_horiz,
       // Сколько игр с путями — теперь в показаниях сверху, и повторять это
       // число в углу карточки незачем.
-      trailing: busy ? const BusySpinner(size: 16) : null,
+      trailing: busy ? const BusySpinner(size: EvaporateIconSize.key) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(L.of(context).bulkTransferNote, style: context.text.paragraph),
-          const SizedBox(height: 14),
+          const SizedBox(height: EvaporateSpacing.block),
           Wrap(
             spacing: 10,
             runSpacing: 8,
             children: [
               FilledButton.icon(
                 onPressed: busy ? null : () => _export(context),
-                icon: const Icon(Icons.upload_outlined, size: 16),
+                icon: const Icon(Icons.upload_outlined),
                 label: Text(L.of(context).exportAll),
               ),
               OutlinedButton.icon(
                 onPressed: busy ? null : () => _import(context),
-                icon: const Icon(Icons.download_outlined, size: 16),
+                icon: const Icon(Icons.download_outlined),
                 label: Text(L.of(context).importAll),
               ),
             ],

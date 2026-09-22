@@ -23,17 +23,17 @@ class ThemePicker extends StatelessWidget {
       segments: [
         ButtonSegment(
           value: AppThemeMode.system,
-          icon: const Icon(Icons.brightness_auto_outlined, size: 17),
+          icon: const Icon(Icons.brightness_auto_outlined),
           label: Text(l.themeSystem),
         ),
         ButtonSegment(
           value: AppThemeMode.light,
-          icon: const Icon(Icons.light_mode_outlined, size: 17),
+          icon: const Icon(Icons.light_mode_outlined),
           label: Text(l.themeLight),
         ),
         ButtonSegment(
           value: AppThemeMode.dark,
-          icon: const Icon(Icons.dark_mode_outlined, size: 17),
+          icon: const Icon(Icons.dark_mode_outlined),
           label: Text(l.themeDark),
         ),
       ],

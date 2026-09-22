@@ -33,7 +33,7 @@ class ScanProgress extends StatelessWidget {
                 // тот же обход, только дважды.
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: EvaporateSpacing.cluster),
               Expanded(
                 child: Text(
                   directory == null

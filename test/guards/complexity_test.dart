@@ -21,12 +21,15 @@ const maxLines = 60;
 const maxNesting = 3;
 
 void main() {
-  final functions = [
+  final sources = [
     for (final entity in Directory('lib').listSync(recursive: true))
       if (entity is File && entity.path.endsWith('.dart'))
         if (entity.path.replaceAll(r'\', '/') case final path
             when !isGenerated(path))
-          ...measure(path, entity.readAsStringSync()),
+          (path: path, text: entity.readAsStringSync()),
+  ];
+  final functions = [
+    for (final (:path, :text) in sources) ...measure(path, text),
   ];
 
   Iterable<String> over(int Function(FunctionMetrics) metric, int limit) sync* {
@@ -62,28 +65,21 @@ void main() {
     });
   });
 
-  // Замер ищет функции по заголовку, перепись — по телу. Разошлись —
-  // значит, какую-то функцию замер не узнал, и её длина со сложностью
-  // идут мимо ворот. Так незамеченными ходили конструктор `LibraryBloc`
-  // на девяносто пять строк, все фабрики `fromJson` и `operator ==`.
-  test('замер видит каждое тело функции', () {
-    final missed = [
-      for (final entity in Directory('lib').listSync(recursive: true))
-        if (entity is File && entity.path.endsWith('.dart'))
-          if (entity.path.replaceAll(r'\', '/') case final path
-              when !isGenerated(path))
-            if ((
-                  bodies: bodiesIn(entity.readAsStringSync()),
-                  found: measure(path, entity.readAsStringSync()).length,
-                )
-                case (:final bodies, :final found) when bodies != found)
-              '$path: тел $bodies, замер нашёл $found',
-    ];
-    expect(missed, isEmpty, reason: 'замер не узнал объявление');
+  // Замер читает дерево разбора, и дерево с ошибками он прочёл бы молча,
+  // мимо нераспознанного. Анализатор приложения такой файл не пропустил
+  // бы — значит, ошибка здесь говорит, что язык опередил пакет `analyzer`
+  // в dev-зависимостях и его пора поднять.
+  test('замер разбирает каждый файл без ошибок', () {
+    expect([
+      for (final (:path, :text) in sources)
+        for (final error in parseErrors(text)) '$path: $error',
+    ], isEmpty);
+    expect(functions.length, greaterThan(1000), reason: 'замер ослеп');
   });
 
-  // Замер грубый, но обязан быть предсказуемым: иначе храповик роняет
-  // прогон на ровном месте или молчит там, где стоило бы сказать.
+  // Замер обязан быть предсказуемым: иначе храповик роняет прогон на
+  // ровном месте или молчит там, где стоило бы сказать. Числа — по
+  // спецификации когнитивной сложности SonarSource.
   group('замер', () {
     FunctionMetrics only(String source) => measure('x.dart', source).single;
 
@@ -99,6 +95,75 @@ void main() {
     test('смена логического оператора стоит единицу, повтор — нет', () {
       expect(only('bool f(a, b, c) => a && b && c;').complexity, 1);
       expect(only('bool f(a, b, c) => a && b || c;').complexity, 2);
+      expect(only('bool f(a, b, c) => a && (b && c);').complexity, 1);
+      // Отрицание последовательность рвёт: внутри скобок своя.
+      expect(only('bool f(a, b, c) => a && !(b && c);').complexity, 2);
+    });
+
+    // Прежде вторая последовательность в соседнем элементе списка сливалась
+    // с первой: между ними не было ни `;`, ни скобки блока.
+    test('последовательности в соседних элементах коллекции — разные', () {
+      final f = only(
+        'List<int> f(a, b, c, d) => [if (a && b) 1, if (c && d) 2];',
+      );
+      expect(f.complexity, 4);
+    });
+
+    test('else и else if стоят единицу без надбавки за глубину', () {
+      final f = only('''
+void f(int x) {
+  if (x > 0) {
+  } else if (x < 0) {
+  } else {
+  }
+}
+''');
+      expect(f.complexity, 3);
+    });
+
+    test('ветви тернарника вложены в него', () {
+      expect(only('int f(a, b) => a ? 1 : b ? 2 : 3;').complexity, 3);
+    });
+
+    test('условие when у образца стоит единицу, а switch — один раз', () {
+      final f = only('''
+int f(Object x) => switch (x) {
+  int n when n > 0 => 1,
+  int() => 2,
+  _ => 0,
+};
+''');
+      expect(f.complexity, 2);
+    });
+
+    // Сокращения, заменяющие ветвление, читаются легче него — SonarSource
+    // их не считает, и мы тоже.
+    test('?? и ?. не считаются', () {
+      expect(only('int f(A? a) => a?.b?.c ?? 0;').complexity, 0);
+    });
+
+    test('catch и переход к метке считаются', () {
+      final caught = only('''
+void f() {
+  try {
+  } on FormatException catch (_) {
+  } catch (_) {
+  }
+}
+''');
+      expect(caught.complexity, 2);
+
+      final labelled = only('''
+void f() {
+  outer:
+  for (;;) {
+    for (;;) {
+      break outer;
+    }
+  }
+}
+''');
+      expect(labelled.complexity, 4);
     });
 
     test('слова в строках и комментариях не считаются', () {
@@ -123,6 +188,23 @@ class A {
 ''');
       expect(all.map((f) => f.name), ['A.run']);
       expect(all.single.complexity, 2);
+      expect(all.single.nesting, 2);
+    });
+
+    test('замыкание-стрелка тоже повышает вложенность', () {
+      final f = only('void f(List<int> xs) => xs.map((x) => x > 0 ? x : 0);');
+      expect(f.complexity, 2);
+      expect(f.nesting, 0, reason: 'блоков в нём нет');
+    });
+
+    test('локальная функция — часть той, где объявлена', () {
+      final f = only('void f() { void g(bool a) { if (a) {} } }');
+      expect(f.complexity, 2);
+    });
+
+    test('литерал коллекции вложенностью не считается', () {
+      final f = only("Map<String, Object> f() => {'a': {'b': {'c': 1}}};");
+      expect(f.nesting, 0);
     });
 
     test('методы называются вместе с классом, а стрелки считаются', () {
@@ -138,7 +220,7 @@ int top(int x) => x > 0 ? x : -x;
     });
 
     // Каждая форма ниже прежде проходила мимо замера — и мимо ворот.
-    group('объявления, которые замер не видел', () {
+    group('объявления, которые разбор текстом не видел', () {
       const shapes = {
         'конструктор со списком инициализации': (
           '''
@@ -149,11 +231,15 @@ class A {
   final int _x;
 }
 ''',
-          'A.A',
+          'A.new',
+        ),
+        'список инициализации без тела': (
+          'class A { A(int x) : _x = x > 0 ? x : 0; final int _x; }',
+          'A.new',
         ),
         'именованный конструктор': (
           'class A { A.empty() { if (true) {} } }',
-          'A.A.empty',
+          'A.empty',
         ),
         'фабрика стрелкой': (
           '''
@@ -162,7 +248,7 @@ class A {
       json.isEmpty ? A.empty() : A.empty();
 }
 ''',
-          'A.A.fromJson',
+          'A.fromJson',
         ),
         'оператор равенства': (
           'class A { bool operator ==(Object other) => other is A; }',
@@ -176,28 +262,30 @@ class A {
           'void Function() later() => () {};',
           'later',
         ),
+        'член расширения': (
+          'extension on int { bool get even => this % 2 == 0; }',
+          '.even',
+        ),
       };
       for (final MapEntry(key: shape, value: (source, name))
           in shapes.entries) {
         test(shape, () {
           expect(measure('x.dart', source).map((f) => f.name), [name]);
-          expect(bodiesIn(source), 1);
         });
       }
 
-      test('конструктор без тела функцией не считается', () {
-        const source =
-            'class A { const A(this.x) : assert(x > 0); final int x; }';
+      test('конструктору без тела и списка инициализации мерить нечего', () {
+        const source = '''
+class A {
+  const A(this.x);
+  factory A.other() = B;
+  final int x;
+}
+''';
         expect(measure('x.dart', source), isEmpty);
-        expect(bodiesIn(source), 0);
       });
 
-      test('условие перед вызовом не принимается за тип возврата', () {
-        const source = 'void f(bool a) { if (a) g(1); }\nvoid g(int x) {}';
-        expect(measure('x.dart', source).map((f) => f.name), ['f', 'g']);
-      });
-
-      test('поле со значением-замыканием — не тело', () {
+      test('поле со значением-замыканием — не функция', () {
         const source = '''
 class A {
   final void Function(int) onTap = (x) {};
@@ -205,9 +293,13 @@ class A {
   int get size => table.length;
 }
 ''';
-        expect(bodiesIn(source), 1);
         expect(measure('x.dart', source).map((f) => f.name), ['A.size']);
       });
+    });
+
+    test('ошибку разбора замер называет, а не проглатывает', () {
+      expect(parseErrors('void f() { if (x }'), isNotEmpty);
+      expect(parseErrors('void f() {}'), isEmpty);
     });
   });
 }

@@ -11,8 +11,11 @@ class InsetTile extends StatelessWidget {
   const InsetTile({
     super.key,
     required this.child,
-    this.margin = const EdgeInsets.only(bottom: 8),
-    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    this.margin = const EdgeInsets.only(bottom: EvaporateSpacing.gap),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: EvaporateSpacing.field,
+      vertical: EvaporateSpacing.cluster,
+    ),
     this.radius = EvaporateTheme.radiusControl,
   });
 

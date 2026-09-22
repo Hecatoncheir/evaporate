@@ -33,14 +33,14 @@ class GameDetailBody extends StatelessWidget {
           DownloadingHeader(game: game, task: task!)
         else
           DetailHeader(game: game),
-        const SizedBox(height: 20),
+        const SizedBox(height: EvaporateSpacing.section),
         ActionPanel(game: game, task: task),
-        const SizedBox(height: 24),
+        const SizedBox(height: EvaporateSpacing.wide),
         SavePathsSection(game: game),
         SnapshotsSection(game: game),
         FilesSection(game: game),
         InfoSection(game: game),
-        const SizedBox(height: 8),
+        const SizedBox(height: EvaporateSpacing.gap),
         RemoveGameButton(game: game),
       ],
     );

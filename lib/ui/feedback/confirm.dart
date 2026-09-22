@@ -18,7 +18,7 @@ Future<bool> confirm(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
-      content: Text(message, style: const TextStyle(height: 1.5)),
+      content: Text(message, style: context.text.prose),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),

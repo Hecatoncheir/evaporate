@@ -24,7 +24,7 @@ class RemoveFromLibraryButton extends StatelessWidget {
     return HoverBuilder(
       builder: (context, hovered, _) => IconButton(
         onPressed: () => _remove(context),
-        icon: const Icon(Icons.close_rounded, size: 15),
+        icon: const Icon(Icons.close_rounded, size: EvaporateIconSize.key),
         tooltip: L.of(context).removeFromLibrary,
         visualDensity: VisualDensity.compact,
         padding: EdgeInsets.zero,

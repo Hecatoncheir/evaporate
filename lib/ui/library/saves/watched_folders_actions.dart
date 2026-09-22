@@ -5,6 +5,7 @@ import '../../../bloc/saves/saves_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/saves/save_path_finder.dart';
+import '../../theme.dart';
 
 /// Отказ от всех подсказок и, когда их несколько, согласие со всеми.
 class WatchedFoldersActions extends StatelessWidget {
@@ -28,7 +29,7 @@ class WatchedFoldersActions extends StatelessWidget {
           onPressed: () => saves.add(SaveHintsDismissed(game.id)),
           child: Text(l.notThis),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: EvaporateSpacing.tight),
         if (hints.length > 1)
           FilledButton(
             onPressed: () =>

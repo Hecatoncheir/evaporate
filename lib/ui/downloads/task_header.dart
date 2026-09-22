@@ -29,7 +29,7 @@ class TaskHeader extends StatelessWidget {
         ),
         // Названия релизов длинные и обрезаются по месту: без просвета
         // многоточие упиралось бы прямо в состояние.
-        const SizedBox(width: 12),
+        const SizedBox(width: EvaporateSpacing.field),
         Text(
           task.isMetadata ? l.stateMetadata : downloadStateLabel(l, task.state),
           style: context.text.caption.copyWith(
@@ -41,7 +41,7 @@ class TaskHeader extends StatelessWidget {
         // Клавиши есть только у задачи, за которой стоит игра: чужую
         // раздачу движка ни паузить, ни отменять отсюда нечем.
         if (game case final game?) ...[
-          const SizedBox(width: 8),
+          const SizedBox(width: EvaporateSpacing.gap),
           TaskActions(task: task, game: game),
         ],
       ],

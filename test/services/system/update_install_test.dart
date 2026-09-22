@@ -3,11 +3,15 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart';
+import 'package:cryptography/dart.dart';
+import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/services/system/app_log.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/services/system/update_download.dart';
 import 'package:evaporate/services/system/update_install.dart';
 import 'package:evaporate/services/system/update_installer.dart';
+import 'package:evaporate/services/system/update_signature.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -19,6 +23,22 @@ import '../../support/temp_dir.dart';
 /// архив не просит записать наружу и что откатиться есть куда.
 void main() {
   late Directory tmp;
+
+  // Ключ прогона: настоящий закрытый лежит только в секрете CI.
+  final ed25519 = DartEd25519();
+  late SimpleKeyPair ownKey;
+  late SimpleKeyPair strangerKey;
+  late UpdateSignature trustsOwnKey;
+
+  setUpAll(() async {
+    ownKey = await ed25519.newKeyPairFromSeed(List.filled(32, 7));
+    strangerKey = await ed25519.newKeyPairFromSeed(List.filled(32, 9));
+    final public = await ownKey.extractPublicKey();
+    trustsOwnKey = UpdateSignature(trustedKeys: [base64Encode(public.bytes)]);
+  });
+
+  Future<List<int>> signed(List<int> sums, SimpleKeyPair key) async =>
+      (await ed25519.sign(sums, keyPair: key)).bytes;
 
   setUp(() async {
     tmp = await Directory.systemTemp.createTemp('evaporate_update_');
@@ -88,7 +108,7 @@ void main() {
     required String name,
     required List<int> bytes,
     bool withSums = true,
-    String? sumsOverride,
+    bool withSignature = true,
   }) => Release(
     version: '9.9.9',
     url: 'https://example.invalid/release',
@@ -104,16 +124,28 @@ void main() {
           url: 'https://example.invalid/SHA256SUMS',
           sizeBytes: 0,
         ),
+      if (withSignature)
+        const ReleaseAsset(
+          name: UpdateSignature.fileName,
+          url: 'https://example.invalid/${UpdateSignature.fileName}',
+          sizeBytes: 64,
+        ),
     ],
   );
 
   String archivePlatform() => Platform.isLinux ? 'linux' : 'macos';
 
-  /// Подделка сети: отдаёт архив и суммы, ничего никуда не отправляя.
+  /// Подделка сети: отдаёт архив, суммы и подпись под ними, ничего никуда
+  /// не отправляя.
+  ///
+  /// [signedSums] — под чем стоит подпись, если не под самими суммами: так
+  /// выглядит подмена сумм при прежней подписи.
   UpdateDownload downloadOf({
     required String name,
     required List<int> bytes,
     String? sums,
+    String? signedSums,
+    SimpleKeyPair? signer,
     bool sumsFail = false,
     String? platform,
     List<int>? askedFrom,
@@ -121,13 +153,20 @@ void main() {
   }) => UpdateDownload(
     workDir: tmp.path,
     platform: platform ?? archivePlatform(),
+    signature: trustsOwnKey,
     fetch: (uri, onProgress) async {
-      // Целиком читаются только суммы: сборка идёт мимо памяти, на диск.
+      final served = utf8.encode(sums ?? '${sha256.convert(bytes)}  $name\n');
+      if (sumsFail) throw const SocketException('нет связи');
+      // Целиком читаются только суммы и подпись: сборка идёт мимо памяти,
+      // на диск.
+      if (uri.path.endsWith(UpdateSignature.fileName)) {
+        final under = signedSums == null ? served : utf8.encode(signedSums);
+        return signed(under, signer ?? ownKey);
+      }
       if (!uri.path.endsWith('SHA256SUMS')) {
         throw StateError('в память запрошено лишнее: $uri');
       }
-      if (sumsFail) throw const SocketException('нет связи');
-      return utf8.encode(sums ?? '${sha256.convert(bytes)}  $name\n');
+      return served;
     },
     download: (uri, target, from, onProgress) async {
       askedFrom?.add(from);
@@ -440,20 +479,113 @@ void main() {
       );
     });
 
-    // У старых релизов файла сумм нет вовсе, и это не повод отказываться:
-    // размер уже проверен.
-    test('недоступные суммы не отменяют обновление', () async {
-      final name = archiveName();
-      final bytes = zipOf({'Evaporate.app/Contents/MacOS/evaporate': 'б'});
+    // Прежде недоступные суммы обновление не отменяли — «размер уже
+    // проверен». Но размер подмену не ловит, а Windows запускает скачанный
+    // установщик молча: проверить нечем — значит не ставить.
+    test('недоступные суммы отменяют обновление', () async {
+      const name = 'evaporate-9.9.9-windows-setup.exe';
+      final bytes = utf8.encode('setup');
 
-      final root = await downloadOf(
-        name: name,
-        bytes: bytes,
-        sumsFail: true,
-      ).prepare(releaseWith(name: name, bytes: bytes));
+      await expectLater(
+        downloadOf(
+          name: name,
+          bytes: bytes,
+          platform: 'windows',
+          sumsFail: true,
+        ).prepare(releaseWith(name: name, bytes: bytes)),
+        throwsA(isA<UpdateException>()),
+      );
+    });
 
-      expect(Directory(root).existsSync(), isTrue);
-    }, skip: Platform.isLinux ? 'проверяется на zip' : null);
+    group('подпись под суммами', () {
+      const name = 'evaporate-9.9.9-windows-setup.exe';
+      final bytes = utf8.encode('setup');
+
+      Future<void> refused(UpdateDownload download, Release release) =>
+          expectLater(
+            download.prepare(release),
+            throwsA(isA<UpdateException>()),
+          );
+
+      // Суммы кладёт то же задание, что и сборки: кто выложил релиз, тот
+      // выложил бы и суммы. Подлинность держит только подпись.
+      test('релиз без подписи не ставится', () async {
+        await refused(
+          downloadOf(name: name, bytes: bytes, platform: 'windows'),
+          releaseWith(name: name, bytes: bytes, withSignature: false),
+        );
+      });
+
+      test('релиз без сумм не ставится', () async {
+        await refused(
+          downloadOf(name: name, bytes: bytes, platform: 'windows'),
+          releaseWith(name: name, bytes: bytes, withSums: false),
+        );
+      });
+
+      test('подпись чужим ключом не принимается', () async {
+        await refused(
+          downloadOf(
+            name: name,
+            bytes: bytes,
+            platform: 'windows',
+            signer: strangerKey,
+          ),
+          releaseWith(name: name, bytes: bytes),
+        );
+      });
+
+      // Подменили установщик и переписали под него суммы, а подпись
+      // оставили прежнюю: сумма сойдётся, подпись — нет.
+      test('подменённые суммы при прежней подписи не принимаются', () async {
+        await refused(
+          downloadOf(
+            name: name,
+            bytes: bytes,
+            platform: 'windows',
+            signedSums: '${sha256.convert(utf8.encode('прежний'))}  $name\n',
+          ),
+          releaseWith(name: name, bytes: bytes),
+        );
+      });
+
+      test('файл, которого нет в подписанных суммах, не ставится', () async {
+        await refused(
+          downloadOf(
+            name: name,
+            bytes: bytes,
+            platform: 'windows',
+            sums: '${sha256.convert(bytes)}  другой-файл.exe\n',
+          ),
+          releaseWith(name: name, bytes: bytes),
+        );
+      });
+
+      test('отказ говорит на языке интерфейса', () async {
+        final download = UpdateDownload(
+          workDir: tmp.path,
+          platform: 'windows',
+          localizations: LEn.new,
+          fetch: (uri, onProgress) async => const [],
+          download: (uri, target, from, onProgress) async {
+            await target.writeAsBytes(bytes, flush: true);
+          },
+        );
+
+        await expectLater(
+          download.prepare(
+            releaseWith(name: name, bytes: bytes, withSignature: false),
+          ),
+          throwsA(
+            isA<UpdateException>().having(
+              (e) => e.message,
+              'message',
+              LEn().updateUnsigned,
+            ),
+          ),
+        );
+      });
+    });
   });
 
   group('куда ставить', () {

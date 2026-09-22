@@ -28,12 +28,12 @@ class NotificationActions extends StatelessWidget {
         if (Platform.isMacOS)
           OutlinedButton.icon(
             onPressed: enabled ? () => _requestPermission(context) : null,
-            icon: const Icon(Icons.lock_open_outlined, size: 16),
+            icon: const Icon(Icons.lock_open_outlined),
             label: Text(l.requestPermission),
           ),
         OutlinedButton.icon(
           onPressed: enabled ? () => _sendTest(context) : null,
-          icon: const Icon(Icons.send_outlined, size: 16),
+          icon: const Icon(Icons.send_outlined),
           label: Text(l.test),
         ),
       ],

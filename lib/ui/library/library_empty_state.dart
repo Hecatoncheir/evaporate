@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../theme.dart';
 import '../widgets/empty_state.dart';
 
 /// Пустая полка. Два случая, и путать их нельзя: в библиотеке нет ни одной
@@ -31,7 +32,7 @@ class LibraryEmptyState extends StatelessWidget {
       description: l.libraryEmptyNote,
       action: FilledButton.icon(
         onPressed: onAdd,
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add, size: EvaporateIconSize.panel),
         label: Text(l.addGame),
       ),
     );

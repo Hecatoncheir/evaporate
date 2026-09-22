@@ -19,14 +19,14 @@ class DetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DetailCover(game: game),
-        const SizedBox(width: 16),
+        const SizedBox(width: EvaporateSpacing.panel),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SelectableText(game.title, style: context.text.pageTitle),
               if (game.details.description != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: EvaporateSpacing.gap),
                 Text(
                   game.details.description!,
                   maxLines: 3,
@@ -35,14 +35,14 @@ class DetailHeader extends StatelessWidget {
                 ),
               ],
               if (game.details.rating?.hasAnything ?? false) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: EvaporateSpacing.gap),
                 RatingRow(rating: game.details.rating!),
               ],
-              const SizedBox(height: 8),
+              const SizedBox(height: EvaporateSpacing.gap),
               Row(
                 children: [
                   StatusChip(status: game.status),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: EvaporateSpacing.cluster),
                   if (game.play.playtime.inMinutes > 0)
                     Text(
                       L

@@ -21,7 +21,10 @@ class BackToLibraryButton extends StatelessWidget {
       child: GlassSurface(
         radius: EvaporateTheme.radiusSelection,
         shadow: false,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: EvaporateSpacing.tight,
+          vertical: EvaporateSpacing.line,
+        ),
         child: TextButton.icon(
           onPressed: () =>
               context.read<NavigationBloc>().add(const GameOpened(null)),
@@ -35,7 +38,7 @@ class BackToLibraryButton extends StatelessWidget {
               ),
             ),
           ),
-          icon: const Icon(Icons.arrow_back, size: 18),
+          icon: const Icon(Icons.arrow_back, size: EvaporateIconSize.panel),
           label: Text(L.of(context).backToLibrary),
         ),
       ),

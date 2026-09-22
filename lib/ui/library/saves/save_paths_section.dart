@@ -71,7 +71,7 @@ class _SavePathsSectionState extends State<SavePathsSection> {
           FindPathsButton(game: game),
           TextButton.icon(
             onPressed: () => _addRule(context),
-            icon: const Icon(Icons.add, size: 16),
+            icon: const Icon(Icons.add),
             label: Text(L.of(context).add),
           ),
         ],
@@ -90,7 +90,9 @@ class _SavePathsSectionState extends State<SavePathsSection> {
             ),
           if (rules.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                vertical: EvaporateSpacing.tight,
+              ),
               child: Text(
                 L.of(context).noPathsSet,
                 style: context.text.paragraph,
@@ -108,7 +110,7 @@ class _SavePathsSectionState extends State<SavePathsSection> {
           ],
           if (rules.isNotEmpty ||
               game.saveDiscovery.ludusaviTemplates.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: EvaporateSpacing.cluster),
             AutoSnapshotToggle(game: game),
           ],
           WatchedFolders(game: game),

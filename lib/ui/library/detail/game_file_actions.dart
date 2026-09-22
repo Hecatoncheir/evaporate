@@ -32,14 +32,14 @@ class GameFileActions extends StatelessWidget {
               onPressed: () => context.read<LibraryBloc>().add(
                 GameFolderOpenRequested(game.id),
               ),
-              icon: const Icon(Icons.folder_open, size: 16),
+              icon: const Icon(Icons.folder_open),
               label: Text(l.gameFolder2),
             ),
           // Игру принёс торрент — значит, есть что унести обратно.
           if (TorrentExport.isTorrent(game))
             OutlinedButton.icon(
               onPressed: () => _exportTorrent(context),
-              icon: const Icon(Icons.save_alt, size: 16),
+              icon: const Icon(Icons.save_alt),
               label: Text(l.exportTorrent),
             ),
         ],

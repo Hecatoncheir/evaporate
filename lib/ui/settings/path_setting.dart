@@ -30,7 +30,7 @@ class PathSetting extends StatelessWidget {
         if (onClear != null)
           IconButton(
             onPressed: onClear,
-            icon: const Icon(Icons.close, size: 16),
+            icon: const Icon(Icons.close, size: EvaporateIconSize.key),
             tooltip: L.of(context).clear,
             visualDensity: VisualDensity.compact,
           ),

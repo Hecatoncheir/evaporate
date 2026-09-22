@@ -29,7 +29,10 @@ class ConceptLibraryHeading extends StatelessWidget {
   Widget build(BuildContext context) => SectionHeading(
     label: L.of(context).conceptLibraryLabel,
     semanticsLabel: L.of(context).library,
-    padding: EvaporateLayout.inset(top: 18, bottom: 8),
+    padding: EvaporateLayout.inset(
+      top: EvaporateSpacing.card,
+      bottom: EvaporateSpacing.gap,
+    ),
     trailing: ScaleControl(
       key: const ValueKey('library-scale'),
       label: L.of(context).coverScale,

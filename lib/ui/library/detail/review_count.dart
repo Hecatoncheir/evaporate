@@ -31,14 +31,11 @@ class ReviewCount extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: color),
-            const SizedBox(width: 4),
+            Icon(icon, size: EvaporateIconSize.tiny, color: color),
+            const SizedBox(width: EvaporateSpacing.line),
             Text(
               countLabel(L.of(context), value),
-              style: context.text.figure.copyWith(
-                fontWeight: FontWeight.w400,
-                color: color,
-              ),
+              style: context.text.captionMuted,
             ),
           ],
         ),

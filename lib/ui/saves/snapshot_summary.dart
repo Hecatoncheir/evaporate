@@ -34,7 +34,7 @@ class SnapshotSummary extends StatelessWidget {
                 style: context.text.bodyStrong,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: EvaporateSpacing.gap),
             SaveTag(
               text: snapshotOriginLabel(L.of(context), snapshot.origin),
               color: snapshot.origin == SnapshotOrigin.imported
@@ -43,7 +43,7 @@ class SnapshotSummary extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: EvaporateSpacing.line),
         Text(
           '${dateTimeLabel(L.of(context), snapshot.createdAt)} · '
           '${snapshot.deviceName} · '
@@ -52,9 +52,7 @@ class SnapshotSummary extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           // Моноширинный с табличными цифрами: иначе строка дёргалась бы
           // на каждом обновлении списка.
-          style: context.text.pathSmall.copyWith(
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: context.text.pathSmall,
         ),
       ],
     );

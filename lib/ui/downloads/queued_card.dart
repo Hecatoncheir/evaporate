@@ -28,20 +28,25 @@ class QueuedCard extends StatelessWidget {
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
 
+  static const _padding = EdgeInsets.symmetric(
+    horizontal: EvaporateSpacing.block,
+    vertical: EvaporateSpacing.field,
+  );
+
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: EvaporateSpacing.gap),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: _padding,
         child: Row(
           children: [
             Icon(
               Icons.drag_indicator,
-              size: 17,
+              size: EvaporateIconSize.key,
               color: context.colors.textSecondary,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: EvaporateSpacing.cluster),
             SizedBox(
               width: 24,
               child: Text(

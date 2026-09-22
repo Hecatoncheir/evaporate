@@ -25,19 +25,22 @@ class CoverProgress extends StatelessWidget {
         // уходить: подложка — обложка игры, а не фон приложения, и на
         // светлой теме она остаётся такой же тёмной.
         color: AppColors.detailOverlay,
-        padding: const EdgeInsets.fromLTRB(6, 3, 6, 4),
+        padding: const EdgeInsets.fromLTRB(
+          EvaporateSpacing.tight,
+          EvaporateSpacing.line,
+          EvaporateSpacing.tight,
+          EvaporateSpacing.line,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
-              style: context.text.tag.copyWith(
-                fontWeight: FontWeight.w700,
+              style: context.text.tagStrong.copyWith(
                 color: AppColors.coverText,
-                height: 1.2,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: EvaporateSpacing.line),
             AnimatedProgress(
               value: indeterminate ? null : task.progress,
               height: 3,

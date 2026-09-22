@@ -17,19 +17,19 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 12),
+    margin: const EdgeInsets.only(bottom: EvaporateSpacing.field),
     child: Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(EvaporateSpacing.panel),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TaskHeader(task: task, game: game),
-          const SizedBox(height: 14),
+          const SizedBox(height: EvaporateSpacing.block),
           DownloadActivity(task: task),
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           TaskStats(task: task),
           if (task.errorMessage != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: EvaporateSpacing.cluster),
             Text(
               task.errorMessage!,
               style: context.text.caption.copyWith(

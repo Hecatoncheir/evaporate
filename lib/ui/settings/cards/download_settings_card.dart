@@ -36,7 +36,7 @@ class DownloadSettingsCard extends StatelessWidget {
               (s, dir) => s.copyWith(installDir: dir),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: EvaporateSpacing.panel),
           Row(
             children: [
               SizedBox(
@@ -57,7 +57,7 @@ class DownloadSettingsCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: EvaporateSpacing.block),
           const SpeedLimitsSettings(),
         ],
       ),

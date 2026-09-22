@@ -5,6 +5,7 @@ import '../../bloc/proxy_form/proxy_form_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/proxy_settings.dart';
+import '../theme.dart';
 import 'proxy_address_fields.dart';
 import 'proxy_apply_row.dart';
 import 'proxy_kind_picker.dart';
@@ -60,19 +61,19 @@ class ProxyFormBody extends StatelessWidget {
                 _update(context, saved.copyWith(enabled: value)),
             title: l.proxyEnable,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           ProxyKindPicker(
             proxy: saved,
             onChanged: (next) => _update(context, next),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           ProxyAddressFields(
             host: host,
             port: port,
             user: user,
             password: password,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: EvaporateSpacing.cluster),
           ProxyApplyRow(
             draft: form.draft,
             canApply: form.canApply,

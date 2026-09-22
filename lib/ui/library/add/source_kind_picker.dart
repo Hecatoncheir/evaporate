@@ -20,17 +20,17 @@ class SourceKindPicker extends StatelessWidget {
       segments: [
         const ButtonSegment(
           value: GameSourceKind.magnet,
-          icon: Icon(Icons.link, size: 16),
+          icon: Icon(Icons.link),
           label: Text('Magnet'),
         ),
         const ButtonSegment(
           value: GameSourceKind.torrentFile,
-          icon: Icon(Icons.description_outlined, size: 16),
+          icon: Icon(Icons.description_outlined),
           label: Text('.torrent'),
         ),
         ButtonSegment(
           value: GameSourceKind.localFolder,
-          icon: const Icon(Icons.folder_outlined, size: 16),
+          icon: const Icon(Icons.folder_outlined),
           label: Text(L.of(context).sourceFolder),
         ),
       ],

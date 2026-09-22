@@ -6,6 +6,7 @@ import '../../../bloc/saves/saves_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/catalog_progress.dart';
 import '../../../models/game.dart';
+import '../../theme.dart';
 import 'find_paths_progress.dart';
 
 /// «Найти пути» — одна клавиша с меню на два способа поиска.
@@ -44,12 +45,12 @@ class FindPathsButton extends StatelessWidget {
       builder: (context, controller, _) => TextButton.icon(
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
-        icon: const Icon(Icons.travel_explore, size: 16),
+        icon: const Icon(Icons.travel_explore),
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(l.findPaths),
-            const Icon(Icons.arrow_drop_down, size: 18),
+            const Icon(Icons.arrow_drop_down, size: EvaporateIconSize.panel),
           ],
         ),
       ),
@@ -58,13 +59,19 @@ class FindPathsButton extends StatelessWidget {
           onPressed: () => context.read<LibraryBloc>().add(
             SavePathsLookupRequested(game, refresh: true),
           ),
-          leadingIcon: const Icon(Icons.storage_outlined, size: 18),
+          leadingIcon: const Icon(
+            Icons.storage_outlined,
+            size: EvaporateIconSize.panel,
+          ),
           child: Text(l.fromDatabase),
         ),
         MenuItemButton(
           onPressed: () =>
               context.read<SavesBloc>().add(SavePathSuggestionsRequested(game)),
-          leadingIcon: const Icon(Icons.auto_awesome, size: 18),
+          leadingIcon: const Icon(
+            Icons.auto_awesome,
+            size: EvaporateIconSize.panel,
+          ),
           child: Text(l.findFolderByTitle),
         ),
       ],

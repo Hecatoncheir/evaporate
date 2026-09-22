@@ -38,12 +38,12 @@ class AppearanceCard extends StatelessWidget {
             value: look.locale,
             onChanged: (code) => update((a) => a.copyWith(locale: code)),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           ThemePicker(
             value: look.themeMode,
             onChanged: (mode) => update((a) => a.copyWith(themeMode: mode)),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: EvaporateSpacing.block),
           // Крупность обложек отсюда убрана: она стоит в самой библиотеке,
           // рядом с тем, на что влияет. Два ползунка с одинаковой подписью
           // в двух местах — это выбор, какой из них настоящий.
@@ -67,7 +67,7 @@ class AppearanceCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: EvaporateSpacing.line),
           SettingNote(l.interfaceScaleNote),
         ],
       ),

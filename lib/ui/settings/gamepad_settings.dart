@@ -48,36 +48,36 @@ class GamepadSettingsCard extends StatelessWidget {
       icon: Icons.sports_esports_outlined,
       trailing: TextButton.icon(
         onPressed: gamepad.refreshDevices,
-        icon: const Icon(Icons.refresh, size: 16),
+        icon: const Icon(Icons.refresh),
         label: Text(l.refresh),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GamepadStatusRow(gamepad: gamepad),
-          const SizedBox(height: 4),
+          const SizedBox(height: EvaporateSpacing.line),
           SettingSwitch(
             value: binding.enabled,
             onChanged: (value) => save(binding.copyWith(enabled: value)),
             title: l.gamepadControls,
             note: l.gamepadNavigationNote,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           DeadzoneSlider(binding: binding, onChanged: save),
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           Text(l.bindings, style: context.text.bodyStrong),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           for (final action in _assignable)
             GamepadBindingRow(
               action: action,
               buttons: binding.buttonsFor(action),
               onAssign: () => _assign(context, action),
             ),
-          const SizedBox(height: 6),
+          const SizedBox(height: EvaporateSpacing.tight),
           TextButton.icon(
             onPressed: () =>
                 save(binding.copyWith(buttons: GamepadBinding.defaultButtons)),
-            icon: const Icon(Icons.restart_alt, size: 16),
+            icon: const Icon(Icons.restart_alt),
             label: Text(l.defaultBinding),
           ),
         ],

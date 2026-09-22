@@ -6,6 +6,7 @@ import '../../bloc/log/log_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/system/app_log.dart';
 import '../feedback/snack.dart';
+import '../theme.dart';
 import '../widgets/section_card.dart';
 import 'log_view.dart';
 import 'setting_note.dart';
@@ -50,12 +51,12 @@ class LogCard extends StatelessWidget {
                 if (lines != null && lines.isNotEmpty) ...[
                   TextButton.icon(
                     onPressed: () => _copy(context, lines),
-                    icon: const Icon(Icons.copy_all_outlined, size: 16),
+                    icon: const Icon(Icons.copy_all_outlined),
                     label: Text(l.logCopy),
                   ),
                   TextButton.icon(
                     onPressed: () => bloc.add(const LogClearRequested()),
-                    icon: const Icon(Icons.delete_outline, size: 16),
+                    icon: const Icon(Icons.delete_outline),
                     label: Text(l.logClear),
                   ),
                 ],
@@ -63,7 +64,7 @@ class LogCard extends StatelessWidget {
                   onPressed: state.busy
                       ? null
                       : () => bloc.add(const LogShowRequested()),
-                  icon: const Icon(Icons.visibility_outlined, size: 16),
+                  icon: const Icon(Icons.visibility_outlined),
                   label: Text(l.logShow),
                 ),
               ],
@@ -73,7 +74,7 @@ class LogCard extends StatelessWidget {
               children: [
                 SettingNote(l.logNote),
                 if (lines != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: EvaporateSpacing.field),
                   LogView(lines: lines),
                 ],
               ],

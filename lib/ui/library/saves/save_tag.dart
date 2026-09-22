@@ -15,7 +15,10 @@ class SaveTag extends StatelessWidget {
       text: text,
       color: color,
       style: context.text.tag,
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: EvaporateSpacing.tight,
+        vertical: EvaporateSpacing.hair,
+      ),
       radius: EvaporateTheme.radiusControl,
     );
   }

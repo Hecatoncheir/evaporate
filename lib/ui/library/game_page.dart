@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
+import '../theme.dart';
 import 'back_to_library_button.dart';
 import 'detail/cover_backdrop.dart';
 import 'game_detail.dart';
@@ -29,7 +30,12 @@ class GamePage extends StatelessWidget {
         Column(
           children: [
             const Padding(
-              padding: EdgeInsets.fromLTRB(18, 16, 18, 4),
+              padding: EdgeInsets.fromLTRB(
+                EvaporateSpacing.card,
+                EvaporateSpacing.panel,
+                EvaporateSpacing.card,
+                EvaporateSpacing.line,
+              ),
               child: BackToLibraryButton(),
             ),
             Expanded(

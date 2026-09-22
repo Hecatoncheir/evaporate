@@ -28,13 +28,13 @@ class FeaturedEyebrow extends StatelessWidget {
     return Row(
       children: [
         Container(width: 22, height: 1.5, color: AppColors.heroEyebrow),
-        const SizedBox(width: 9),
+        const SizedBox(width: EvaporateSpacing.gap),
         Expanded(
           child: Text(
             text.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: context.text.eyebrow.copyWith(color: AppColors.heroEyebrow),
+            style: context.text.label.copyWith(color: AppColors.heroEyebrow),
           ),
         ),
       ],

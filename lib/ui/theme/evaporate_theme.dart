@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'effects_palette.dart';
 import 'glass_surface_theme.dart';
 import 'hardware_surface_theme.dart';
+import 'icon_size.dart';
 import 'motion.dart';
 import 'palette.dart';
 
@@ -183,8 +184,12 @@ class EvaporateTheme {
     );
   }
 
+  // Значок на клавише — ступень `key` у всех четырёх видов клавиш: прежде
+  // размер выписывался у каждого значка по месту (16, а где и 17), а
+  // забытый давал материаловские 18.
   static FilledButtonThemeData _filledButtonTheme() => FilledButtonThemeData(
     style: FilledButton.styleFrom(
+      iconSize: EvaporateIconSize.key,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radiusControl),
@@ -203,6 +208,7 @@ class EvaporateTheme {
   // наведении выглядела чужой. Прежде угол выписывали по месту.
   static TextButtonThemeData _textButtonTheme() => TextButtonThemeData(
     style: TextButton.styleFrom(
+      iconSize: EvaporateIconSize.key,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(radiusControl),
       ),
@@ -220,6 +226,7 @@ class EvaporateTheme {
   static OutlinedButtonThemeData _outlinedButtonTheme(EvaporatePalette p) =>
       OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          iconSize: EvaporateIconSize.key,
           foregroundColor: p.textPrimary,
           side: BorderSide(color: p.outline),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -262,6 +269,7 @@ class EvaporateTheme {
         textStyle: const WidgetStatePropertyAll(
           TextStyle(fontSize: 12.5, fontFamily: fontFamily),
         ),
+        iconSize: const WidgetStatePropertyAll(EvaporateIconSize.key),
         backgroundColor: WidgetStateProperty.resolveWith(
           (states) => chosen(states) ? p.selection : null,
         ),

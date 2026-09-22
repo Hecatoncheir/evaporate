@@ -33,10 +33,10 @@ class BulkReportView extends StatelessWidget {
     if (groups.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.only(top: EvaporateSpacing.block),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(bottom: 8),
+        childrenPadding: const EdgeInsets.only(bottom: EvaporateSpacing.gap),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         // Раскрыт сразу, если есть о чём беспокоиться: спрятанное
         // предупреждение — почти то же самое, что его отсутствие.

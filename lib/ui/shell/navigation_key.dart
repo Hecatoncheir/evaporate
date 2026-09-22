@@ -57,10 +57,10 @@ class NavigationKey extends StatelessWidget {
                   LiquidSelectionInk(
                     normalColor: colors.textSecondary,
                     selectedColor: colors.onSelection,
-                    child: Icon(icon, size: 16),
+                    child: Icon(icon, size: EvaporateIconSize.key),
                   ),
                   if (fit.showLabels) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: EvaporateSpacing.gap),
                     // Заглавными: короткая подпись на корпусе, а не слово
                     // в предложении. Диктору достаётся обычное слово —
                     // часть читалок разбирает капс по буквам, как
@@ -75,7 +75,7 @@ class NavigationKey extends StatelessWidget {
                     ),
                   ],
                   if (fit.showBadge && queued > 0) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(width: EvaporateSpacing.tight),
                     QueueBadge(count: queued, selected: selected),
                   ],
                 ],
@@ -89,7 +89,7 @@ class NavigationKey extends StatelessWidget {
 
   ButtonStyle _style(EvaporatePalette colors) => TextButton.styleFrom(
     minimumSize: Size(fit.width, 42),
-    padding: const EdgeInsets.symmetric(horizontal: 8),
+    padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.gap),
     foregroundColor: selected ? colors.onSelection : colors.textSecondary,
     backgroundColor: AppColors.transparent,
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,

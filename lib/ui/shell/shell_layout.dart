@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
 import 'shell_footer_strip.dart';
 import 'shell_panel.dart';
 import 'top_bar.dart';
@@ -37,10 +38,10 @@ class ShellLayout extends StatelessWidget {
           child: Column(
             children: [
               ConceptTopBar(compact: compact),
-              const SizedBox(height: 10),
+              const SizedBox(height: EvaporateSpacing.cluster),
               const Expanded(child: ShellPanel()),
               if (box.maxHeight >= _shortHeight) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: EvaporateSpacing.tight),
                 ShellFooterStrip(width: box.maxWidth),
               ],
             ],

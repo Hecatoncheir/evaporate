@@ -28,7 +28,7 @@ class TaskStats extends StatelessWidget {
               l.uploadedTotal(bytesLabel(L.of(context), task.uploadedBytes)),
             ),
             if (task.completedBytes > 0) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: EvaporateSpacing.tight),
               Text(l.ratioValue(_ratio)),
             ],
           ],

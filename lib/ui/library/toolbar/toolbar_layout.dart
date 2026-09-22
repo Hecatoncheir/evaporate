@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../theme.dart';
+
 /// Расставляет три органа панели по ширине окна.
 ///
 /// Выше [_wide] все три встают в строку с просветами, ниже — плотнее, а в
@@ -43,9 +45,9 @@ class ToolbarLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               filters,
-              const SizedBox(width: 6),
+              const SizedBox(width: EvaporateSpacing.tight),
               Expanded(child: actions),
-              const SizedBox(width: 6),
+              const SizedBox(width: EvaporateSpacing.tight),
               search,
             ],
           );
@@ -54,9 +56,9 @@ class ToolbarLayout extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Align(alignment: Alignment.centerLeft, child: filters),
-            const SizedBox(height: 8),
+            const SizedBox(height: EvaporateSpacing.gap),
             SizedBox(width: double.infinity, child: search),
-            const SizedBox(height: 8),
+            const SizedBox(height: EvaporateSpacing.gap),
             Align(child: actions),
           ],
         );

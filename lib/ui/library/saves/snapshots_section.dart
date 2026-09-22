@@ -51,10 +51,10 @@ class SnapshotsSection extends StatelessWidget {
           children: [
             TextButton.icon(
               onPressed: busy ? null : () => _import(context),
-              icon: const Icon(Icons.file_download_outlined, size: 16),
+              icon: const Icon(Icons.file_download_outlined),
               label: Text(L.of(context).importShort),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: EvaporateSpacing.line),
             FilledButton.icon(
               onPressed:
                   busy ||
@@ -66,7 +66,7 @@ class SnapshotsSection extends StatelessWidget {
               style: context.buttons.compactFilled,
               icon: busy
                   ? const BusySpinner()
-                  : const Icon(Icons.add_a_photo_outlined, size: 16),
+                  : const Icon(Icons.add_a_photo_outlined),
               label: Text(L.of(context).takeSnapshot),
             ),
           ],

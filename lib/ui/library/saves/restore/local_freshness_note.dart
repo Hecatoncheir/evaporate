@@ -26,7 +26,7 @@ class LocalFreshnessNote extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 6),
+        const SizedBox(height: EvaporateSpacing.tight),
         Text(
           changedAt == null
               ? l.localNeverChanged
@@ -38,11 +38,8 @@ class LocalFreshnessNote extends StatelessWidget {
           ),
         ),
         if (preview.newer) ...[
-          const SizedBox(height: 4),
-          Text(
-            l.localNewerWarning,
-            style: context.text.warning.copyWith(fontWeight: FontWeight.w600),
-          ),
+          const SizedBox(height: EvaporateSpacing.line),
+          Text(l.localNewerWarning, style: context.text.alert),
         ],
       ],
     );

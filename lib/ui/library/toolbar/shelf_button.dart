@@ -22,14 +22,16 @@ class ShelfButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(right: 4),
+      padding: const EdgeInsets.only(right: EvaporateSpacing.line),
       child: TextButton(
         onPressed: onTap,
         style: TextButton.styleFrom(
           backgroundColor: AppColors.transparent,
           foregroundColor: active ? colors.onSelection : colors.textSecondary,
           minimumSize: const Size(0, 42),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: EvaporateSpacing.cluster,
+          ),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
@@ -43,18 +45,10 @@ class ShelfButton extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: context.text.body.copyWith(
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                  letterSpacing: 0.2,
-                ),
+                style: active ? context.text.tabActive : context.text.tab,
               ),
-              const SizedBox(width: 7),
-              Text(
-                '$count',
-                style: context.text.caption.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              const SizedBox(width: EvaporateSpacing.tight),
+              Text('$count', style: context.text.captionStrong),
             ],
           ),
         ),

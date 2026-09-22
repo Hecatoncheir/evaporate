@@ -18,7 +18,7 @@ class WatchedFolderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: EvaporateSpacing.gap),
       child: Row(
         children: [
           Expanded(
@@ -33,7 +33,7 @@ class WatchedFolderRow extends StatelessWidget {
                     color: context.colors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: EvaporateSpacing.hair),
                 Text(
                   // У наблюдения число говорит «столько изменилось за игру»,
                   // у поиска по имени — просто «столько лежит».
@@ -47,7 +47,7 @@ class WatchedFolderRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: EvaporateSpacing.cluster),
           TextButton(
             onPressed: () => context.read<SavesBloc>().add(
               SaveHintsAccepted(game: game, suggestions: [hint]),

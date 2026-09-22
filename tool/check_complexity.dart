@@ -1,22 +1,40 @@
 import 'dart:io';
 
-/// Замер длины, вложенности и когнитивной сложности функций — без
-/// зависимостей, на разборе текста.
+import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/analysis/utilities.dart';
+import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/token.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/source/line_info.dart';
+
+/// Замер длины, вложенности и когнитивной сложности функций — по
+/// синтаксическому дереву `package:analyzer`.
 ///
-/// Разбор грубый и точным анализатором не притворяется: функции ищутся по
-/// скобкам, ветвления — по ключевым словам. Для ранжирования «где болит» и
-/// для храповика этого хватает, а `package:analyzer` в зависимостях — новая
-/// тяжёлая зависимость, которая обсуждается отдельно.
+/// Прежде замер разбирал текст скобками и регулярками и не видел
+/// конструкторов со списком инициализации, фабрик и `operator ==`, пока его
+/// не научили им по одному и не приставили к нему перепись тел. Дерево
+/// видит каждое объявление по построению. Пакет уже лежал в
+/// `pubspec.lock` транзитивно (через `dart_style`), и прямой
+/// dev-зависимостью новых пакетов в сборку он не принёс.
 ///
-/// Сложность считается по мотивам когнитивной сложности SonarSource:
+/// Сложность — когнитивная, по спецификации SonarSource:
 ///
-/// - +1 за `if`, `else`, `for`, `while`, `do`, `switch`, `catch` и
-///   тернарник, и ещё столько, на какой глубине вложенности они стоят;
-/// - +1 за каждую смену логического оператора в выражении: `a && b && c` —
-///   один, `a && b || c` — два.
+/// - +1 за `if`, тернарник, `switch`, `for`, `while`, `do` и `catch` и ещё
+///   столько, на какой глубине вложенности они стоят;
+/// - +1 без надбавки за глубину за `else`, `else if`, условие `when` у
+///   образца и `break`/`continue` к метке;
+/// - +1 за каждую последовательность одинаковых логических операторов:
+///   `a && b && c` — один, `a && b || c` — два;
+/// - вложенность повышают ветви всего перечисленного, замыкания и
+///   локальные функции.
 ///
-/// Вложенность — наибольшая глубина фигурных скобок внутри тела: блоки
-/// ветвлений, циклов и замыканий.
+/// `??`, `?.` и `??=` не считаются намеренно — как и в SonarSource: это
+/// сокращения, которые заменяют ветвление и читаются легче его. Рекурсия
+/// не считается: её видно только по разрешённым именам, а разбор здесь
+/// синтаксический.
+///
+/// Вложенность — наибольшая глубина блоков внутри тела: ветвлений, циклов,
+/// `try`, `switch` и замыканий. Литералы коллекций в неё не входят.
 ///
 /// Запуск: `dart tool/check_complexity.dart [папка]` — выводит самые тяжёлые
 /// функции. Ворота держит `test/guards/complexity_test.dart`.
@@ -58,7 +76,8 @@ class FunctionMetrics {
 
   final String path;
 
-  /// `Класс.метод` или имя функции верхнего уровня.
+  /// `Класс.метод`, `Класс.new` для безымянного конструктора или имя
+  /// функции верхнего уровня.
   final String name;
   final int line;
   final int lines;
@@ -66,453 +85,27 @@ class FunctionMetrics {
   final int complexity;
 }
 
+/// Ошибки разбора файла.
+///
+/// Дерево с ошибками замер прочёл бы молча и мимо нераспознанного: так
+/// бывает, когда язык опередил пакет `analyzer`, и тогда его обновляют.
+List<String> parseErrors(String source) => [
+  for (final error in _parse(source).errors) error.message,
+];
+
 /// Все функции файла с их показателями.
 ///
 /// Вложенные функции и замыкания засчитываются той, в которой объявлены:
 /// когнитивно это одна и та же функция, которую надо прочесть целиком.
 List<FunctionMetrics> measure(String path, String source) {
-  final code = stripCommentsAndStrings(source);
-  final result = <FunctionMetrics>[];
-  final names = <String, int>{};
-  final classes = <({String name, int end})>[];
-
-  var i = 0;
-  while (i < code.length) {
-    classes.removeWhere((c) => c.end <= i);
-
-    final type = _typeHeader.matchAsPrefix(code, i);
-    if (type != null && _startsWord(code, i)) {
-      final open = code.indexOf('{', type.end - 1);
-      final close = _matching(code, open);
-      if (close != -1) {
-        classes.add((name: type.group(1)!, end: close));
-        i = open + 1;
-        continue;
-      }
-    }
-
-    final header = _functionAt(code, i);
-    if (header != null) {
-      final owner = classes.isEmpty ? '' : '${classes.last.name}.';
-      var name = '$owner${header.name}';
-      final seen = names[name] = (names[name] ?? 0) + 1;
-      if (seen > 1) name = '$name#$seen';
-      final body = code.substring(header.bodyStart, header.end);
-      result.add(
-        FunctionMetrics(
-          path: path,
-          name: name,
-          line: _lineOf(code, header.start),
-          lines: _lineOf(code, header.end) - _lineOf(code, header.start) + 1,
-          nesting: _maxDepth(body),
-          complexity: _complexity(body),
-        ),
-      );
-      i = header.end;
-      continue;
-    }
-    i++;
-  }
-  return result;
+  final parsed = _parse(source);
+  final declarations = _Declarations(path, parsed.lineInfo);
+  parsed.unit.accept(declarations);
+  return declarations.result;
 }
 
-final _typeHeader = RegExp(
-  r'(?:abstract\s+|base\s+|final\s+|sealed\s+|interface\s+)*'
-  r'(?:class|mixin|enum|extension(?:\s+type)?)\s+(\w*)[^{;]*\{',
-);
-
-const _notFunctions = {
-  'if',
-  'for',
-  'while',
-  'switch',
-  'catch',
-  'return',
-  'assert',
-  'super',
-  'this',
-  'await',
-  'throw',
-  'on',
-  'when',
-  'else',
-};
-
-/// Функция, которая начинается в позиции [i]: имя, скобки параметров и
-/// тело — блоком или стрелкой.
-({int start, String name, int bodyStart, int end})? _functionAt(
-  String code,
-  int i,
-) {
-  if (!_startsWord(code, i)) return null;
-  final head = RegExp(
-    // Имя — простое, именованного конструктора или фабрики (`Foo.fromJson`)
-    // или оператор: без двух последних мимо ворот шли все `fromJson` и
-    // `operator ==`.
-    r'(get\s+)?(operator\s*(?:==|\[\]=?|<<|>>>?|[<>]=?|[-+*/%~^&|])'
-    r'|[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\s*'
-    r'(?:<[^<>(){};=]*(?:<[^<>]*>[^<>(){};=]*)*>)?\s*',
-  ).matchAsPrefix(code, i);
-  if (head == null) return null;
-  final name = head.group(2)!;
-  if (_notFunctions.contains(name)) return null;
-  final isGetter = head.group(1) != null;
-
-  var j = head.end;
-  if (!isGetter) {
-    if (j >= code.length || code[j] != '(') return null;
-    j = _matching(code, j);
-    if (j == -1) return null;
-    j++;
-    j = _skipInitializers(code, j);
-    if (j == -1) return null;
-  }
-  final tail = RegExp(r'\s*(?:async\*?|sync\*)?\s*(\{|=>)')
-      .matchAsPrefix(code, j);
-  if (tail == null) return null;
-  // Перед именем должен стоять тип, модификатор или начало объявления, а
-  // не выражение: иначе вызов `foo(a) {…}` не отличить от объявления. Вызов
-  // с блоком после скобок в Dart не встречается, а вот `=>` бывает у
-  // аргумента-замыкания — `map((x) => …)` — и его имя не предшествует.
-  if (!_declarationContext(code, i)) return null;
-
-  final bodyStart = tail.end;
-  final int end;
-  if (tail.group(1) == '{') {
-    final close = _matching(code, tail.end - 1);
-    if (close == -1) return null;
-    end = close + 1;
-  } else {
-    end = _arrowEnd(code, tail.end);
-  }
-  return (start: i, name: name, bodyStart: bodyStart, end: end);
-}
-
-/// Пропускает список инициализации конструктора — `: _x = x, super(y)` —
-/// до тела. Без этого мимо ворот шёл конструктор каждого блока: у
-/// `LibraryBloc` в нём девяносто строк подписок и обработчиков.
-///
-/// Возвращает позицию тела или `-1`, если тела нет (`: super(x);`).
-int _skipInitializers(String code, int from) {
-  var k = from;
-  while (k < code.length && (code[k] == ' ' || code[k] == '\n')) {
-    k++;
-  }
-  if (k >= code.length || code[k] != ':') return from;
-  var depth = 0;
-  for (k++; k < code.length; k++) {
-    final c = code[k];
-    if (depth == 0 && (c == '{' || code.startsWith('=>', k))) return k;
-    if (depth == 0 && c == ';') return -1;
-    if (c == '(' || c == '[' || c == '{') depth++;
-    if (c == ')' || c == ']' || c == '}') depth--;
-  }
-  return -1;
-}
-
-/// Перед объявлением стоит тип, модификатор, аннотация или граница
-/// предыдущего члена, а не оператор выражения.
-bool _declarationContext(String code, int i) {
-  var k = i - 1;
-  while (k >= 0 && (code[k] == ' ' || code[k] == '\t')) {
-    k--;
-  }
-  if (k < 0) return true;
-  final c = code[k];
-  if (c == '\n' || c == ';' || c == '{' || c == '}') return true;
-  if (c == ')') return _typeInParens(code, k);
-  // Тип возвращаемого значения: `Widget build(`, `List<Widget> _x(`,
-  // `Future<void>? load(`.
-  if (RegExp(r'[\w>?\]]').hasMatch(c)) {
-    var start = k;
-    while (start > 0 && _wordChar.hasMatch(code[start - 1])) {
-      start--;
-    }
-    final previous = code.substring(start, k + 1);
-    return previous.isEmpty ||
-        !const {
-          'return',
-          'await',
-          'throw',
-          'else',
-          'yield',
-          'new',
-          'const',
-          'case',
-          'in',
-          'is',
-          'as',
-        }.contains(previous);
-  }
-  return false;
-}
-
-final _wordChar = RegExp(r'\w');
-
-/// Скобки перед именем — тип возврата, а не условие: запись
-/// `({int a, int b}) f()` в начале объявления или тип-функция
-/// `void Function() f()`. Условие `if (x) f()` отличает слово перед
-/// скобкой.
-bool _typeInParens(String code, int close) {
-  var depth = 0;
-  var open = close;
-  for (; open >= 0; open--) {
-    if (code[open] == ')') depth++;
-    if (code[open] == '(') depth--;
-    if (depth == 0) break;
-  }
-  if (open < 0) return false;
-  var k = open - 1;
-  while (k >= 0 && (code[k] == ' ' || code[k] == '\t')) {
-    k--;
-  }
-  if (k < 0) return true;
-  if ('\n;{}'.contains(code[k])) return true;
-  var start = k;
-  while (start > 0 && _wordChar.hasMatch(code[start - 1])) {
-    start--;
-  }
-  final word = code.substring(start, k + 1);
-  return const {'Function', 'static', 'external', 'late'}.contains(word) ||
-      code[k] == '?' ||
-      code[k] == '>';
-}
-
-bool _startsWord(String code, int i) =>
-    i == 0 || !RegExp(r'[\w$.]').hasMatch(code[i - 1]);
-
-/// Парная скобка для `(`, `[` или `{` в позиции [open]; `-1`, если её нет.
-int _matching(String code, int open) {
-  const pairs = {'(': ')', '[': ']', '{': '}'};
-  final stack = <String>[];
-  for (var k = open; k < code.length; k++) {
-    final c = code[k];
-    if (pairs.containsKey(c)) {
-      stack.add(pairs[c]!);
-    } else if (stack.isNotEmpty && c == stack.last) {
-      stack.removeLast();
-      if (stack.isEmpty) return k;
-    }
-  }
-  return -1;
-}
-
-/// Конец тела-стрелки: `;` или `,`/закрывающая скобка на нулевой глубине.
-int _arrowEnd(String code, int from) {
-  var depth = 0;
-  for (var k = from; k < code.length; k++) {
-    final c = code[k];
-    if (c == '(' || c == '[' || c == '{') depth++;
-    if (c == ')' || c == ']' || c == '}') {
-      if (depth == 0) return k;
-      depth--;
-    }
-    if (depth == 0 && c == ';') return k + 1;
-    // Стрелка аргументом кончается запятой: `onTap: () => go(), child: …`.
-    // Без этого замыкание в замере тянулось до конца вызова и забирало
-    // соседние аргументы — весь `child` со всей разметкой под ним.
-    if (depth == 0 && c == ',') return k;
-  }
-  return code.length;
-}
-
-int _lineOf(String code, int offset) =>
-    '\n'.allMatches(code.substring(0, offset.clamp(0, code.length))).length + 1;
-
-int _maxDepth(String body) {
-  var depth = 0;
-  var deepest = 0;
-  for (var k = 0; k < body.length; k++) {
-    if (body[k] == '{') {
-      depth++;
-      if (depth > deepest) deepest = depth;
-    } else if (body[k] == '}') {
-      depth--;
-    }
-  }
-  // Собственные скобки тела-блока глубиной не считаются.
-  return body.trimLeft().startsWith('{') ? deepest - 1 : deepest;
-}
-
-final _structure = RegExp(
-  r'\b(else\s+if|if|else|for|while|do|switch|catch)\b|(\s\?\s)|(&&|\|\|)|([;{}])',
-);
-
-int _complexity(String body) {
-  var score = 0;
-  var depth = 0;
-  String? lastLogical;
-  var ownBrace = body.trimLeft().startsWith('{');
-  for (final match in _structure.allMatches(body)) {
-    final keyword = match.group(1);
-    final ternary = match.group(2);
-    final logical = match.group(3);
-    final boundary = match.group(4);
-    if (boundary != null) {
-      lastLogical = null;
-      if (boundary == '{') {
-        if (ownBrace) {
-          ownBrace = false;
-        } else {
-          depth++;
-        }
-      } else if (boundary == '}') {
-        depth = depth > 0 ? depth - 1 : 0;
-      }
-      continue;
-    }
-    if (logical != null) {
-      if (logical != lastLogical) score++;
-      lastLogical = logical;
-      continue;
-    }
-    if (ternary != null) {
-      score += 1 + depth;
-      continue;
-    }
-    // `else` и `else if` вложенностью не утяжеляются: это продолжение того
-    // же ветвления, а не новое внутри него.
-    if (keyword!.startsWith('else')) {
-      score++;
-    } else {
-      score += 1 + depth;
-    }
-  }
-  return score;
-}
-
-/// Заменяет комментарии и содержимое строк пробелами, не трогая переводы
-/// строк, — чтобы ключевое слово в комментарии или скобка в строке не
-/// сбивали разбор, а номера строк не съезжали. Сырые строки, тройные
-/// кавычки учтены; строки внутри подстановок `${…}` — нет, и в этом коде
-/// они на разбор не влияют.
-String stripCommentsAndStrings(String source) {
-  final out = StringBuffer();
-  String blank(String s) => s.replaceAll(RegExp(r'[^\n]'), ' ');
-  final quote = RegExp('(r?)(\'\'\'|"""|\'|")');
-  var i = 0;
-  while (i < source.length) {
-    if (source.startsWith('//', i)) {
-      final end = source.indexOf('\n', i);
-      final stop = end == -1 ? source.length : end;
-      out.write(blank(source.substring(i, stop)));
-      i = stop;
-      continue;
-    }
-    if (source.startsWith('/*', i)) {
-      final end = source.indexOf('*/', i + 2);
-      final stop = end == -1 ? source.length : end + 2;
-      out.write(blank(source.substring(i, stop)));
-      i = stop;
-      continue;
-    }
-    final match = quote.matchAsPrefix(source, i);
-    if (match != null) {
-      final raw = match.group(1)!.isNotEmpty;
-      final delimiter = match.group(2)!;
-      var j = match.end;
-      while (j < source.length && !source.startsWith(delimiter, j)) {
-        if (!raw && source[j] == r'\') j++;
-        j++;
-      }
-      final contentEnd = j.clamp(0, source.length);
-      out
-        ..write(delimiter)
-        ..write(blank(source.substring(match.end, contentEnd)))
-        ..write(delimiter);
-      i = (j + delimiter.length).clamp(0, source.length);
-      continue;
-    }
-    out.write(source[i]);
-    i++;
-  }
-  return out.toString();
-}
-
-/// Перепись: сколько тел функций в файле на уровне объявлений — у
-/// верхнего уровня и у членов классов, перечислений, расширений.
-///
-/// Считается иначе, чем [measure], — не по заголовку, а по телу: `{` или
-/// `=>` там, где объявляют члены, и не после `=` (это значение поля, а не
-/// тело). Разойдутся два счёта — значит, [measure] пропустил функцию, и
-/// её длина со сложностью мимо ворот: так незамеченными ходили
-/// конструкторы блоков со списком инициализации, фабрики `fromJson` и
-/// `operator ==`.
-int bodiesIn(String source) {
-  final code = stripCommentsAndStrings(source);
-  final members = <int>{0};
-  var depth = 0;
-  var segment = 0;
-  var count = 0;
-  var k = 0;
-  while (k < code.length) {
-    final c = code[k];
-    if (members.contains(depth)) {
-      if (c == ';') {
-        segment = k + 1;
-      } else if (c == '{' || code.startsWith('=>', k)) {
-        final head = code.substring(segment, k);
-        if (c == '{' && _typeHeader.hasMatch('$head{')) {
-          members.add(depth + 1);
-          depth++;
-          segment = k + 1;
-          k++;
-          continue;
-        }
-        if (!_isValue(head)) {
-          count++;
-          k = c == '{' ? _matching(code, k) + 1 : _arrowEnd(code, k + 2);
-          if (k <= 0) return count;
-          segment = k;
-          continue;
-        }
-      }
-    }
-    if (c == '(' || c == '[' || c == '{') {
-      depth++;
-    } else if (c == ')' || c == ']' || c == '}') {
-      if (c == '}' && members.remove(depth)) segment = k + 1;
-      depth--;
-    }
-    k++;
-  }
-  return count;
-}
-
-/// Объявление — значение, а не функция: `=` стоит раньше списка
-/// параметров. У конструктора `=` бывает только после скобок, в списке
-/// инициализации.
-bool _isValue(String head) {
-  var depth = 0;
-  for (var k = 0; k < head.length; k++) {
-    final c = head[k];
-    // Скобки тип-функции (`void Function(int) onTap = …`) — ещё тип, а не
-    // параметры.
-    if (depth == 0 && c == '(' && !head.substring(0, k).endsWith('Function')) {
-      return false;
-    }
-    if (c == '(' || c == '[' || c == '{' || c == '<') depth++;
-    if (c == ')' || c == ']' || c == '}' || c == '>') depth--;
-    if (depth != 0) continue;
-    if (c == '(') return false;
-    if (c == '=' && !_partOfOperator(head, k)) return true;
-  }
-  return false;
-}
-
-bool _partOfOperator(String s, int k) {
-  final before = k > 0 ? s[k - 1] : '';
-  final after = k + 1 < s.length ? s[k + 1] : '';
-  return after == '=' ||
-      after == '>' ||
-      before == '=' ||
-      before == '!' ||
-      before == '<' ||
-      before == '>';
-}
-
-/// Замыкания внутри `build` и их длина в строках: `builder: (context,
-/// state) { … }`, `itemBuilder: (_, i) => …`.
+/// Замыкания-аргументы внутри `build` и их длина в строках: `builder:
+/// (context, state) { … }`, `itemBuilder: (_, i) => …`.
 ///
 /// Метод-виджет страж запрещает, и его обходят замыканием-строителем: те
 /// же пятьдесят строк разметки, только без имени и не отдельным виджетом.
@@ -521,40 +114,343 @@ List<({String name, int line, int lines})> buildClosures(
   String path,
   String source,
 ) {
-  final code = stripCommentsAndStrings(source);
+  final parsed = _parse(source);
+  final builds = _Declarations(path, parsed.lineInfo);
+  parsed.unit.accept(builds);
   final found = <({String name, int line, int lines})>[];
-  for (final function in measure(path, source)) {
-    if (!function.name.endsWith('.build')) continue;
-    final start = _offsetOfLine(code, function.line);
-    final end = _offsetOfLine(code, function.line + function.lines);
-    // Собственные скобки параметров `build` под правило не попадают: перед
-    // ними стоит имя, а не `(`, `,` или `:`.
-    for (final match in _closure.allMatches(code.substring(start, end))) {
-      final at = start + match.start;
-      final open = at + match.group(0)!.length - 1;
-      final close = code[open] == '{'
-          ? _matching(code, open)
-          : _arrowEnd(code, open + 1);
-      if (close < 0) continue;
-      found.add((
-        name: function.name,
-        line: _lineOf(code, at),
-        lines: _lineOf(code, close) - _lineOf(code, at) + 1,
-      ));
-    }
+  for (final (name, node) in builds.nodes) {
+    if (!name.endsWith('.build') || node is! MethodDeclaration) continue;
+    node.body.accept(
+      _ArgumentClosures((closure) {
+        final line = _lineOf(parsed.lineInfo, closure.offset);
+        found.add((
+          name: name,
+          line: line,
+          lines: _lineOf(parsed.lineInfo, closure.end) - line + 1,
+        ));
+      }),
+    );
   }
   return found;
 }
 
-/// Литерал функции аргументом: `(a, b) {` или `(a) =>` после `(`, `,` или
-/// `:` — там, где стоит значение, а не объявление.
-final _closure = RegExp(r'(?<=[(,:]\s*)\([\w\s,?]*\)\s*(?:async\s*)?(?:\{|=>)');
+ParseStringResult _parse(String source) =>
+    parseString(content: source, throwIfDiagnostics: false);
 
-int _offsetOfLine(String code, int line) {
-  var offset = 0;
-  for (var n = 1; n < line && offset >= 0; n++) {
-    offset = code.indexOf('\n', offset) + 1;
-    if (offset == 0) return code.length;
+int _lineOf(LineInfo lines, int offset) => lines.getLocation(offset).lineNumber;
+
+/// Объявления с телом: функции верхнего уровня, методы, геттеры,
+/// операторы и конструкторы — с именем владельца.
+class _Declarations extends RecursiveAstVisitor<void> {
+  _Declarations(this.path, this.lines);
+
+  final String path;
+  final LineInfo lines;
+  final result = <FunctionMetrics>[];
+
+  /// Сами узлы — для тех, кому мало чисел (`buildClosures`).
+  final nodes = <(String, AstNode)>[];
+
+  final _owners = <String>[];
+  final _seen = <String, int>{};
+
+  @override
+  void visitClassDeclaration(ClassDeclaration node) =>
+      _inside(node.namePart.typeName.lexeme, node);
+
+  @override
+  void visitMixinDeclaration(MixinDeclaration node) =>
+      _inside(node.name.lexeme, node);
+
+  @override
+  void visitEnumDeclaration(EnumDeclaration node) =>
+      _inside(node.namePart.typeName.lexeme, node);
+
+  @override
+  void visitExtensionDeclaration(ExtensionDeclaration node) =>
+      _inside(node.name?.lexeme ?? '', node);
+
+  @override
+  void visitExtensionTypeDeclaration(ExtensionTypeDeclaration node) =>
+      _inside(node.namePart.typeName.lexeme, node);
+
+  void _inside(String owner, AstNode node) {
+    _owners.add(owner);
+    node.visitChildren(this);
+    _owners.removeLast();
   }
-  return offset;
+
+  @override
+  void visitFunctionDeclaration(FunctionDeclaration node) {
+    // Локальная функция — часть той, где объявлена, и мерится вместе с ней.
+    if (node.parent is! CompilationUnit) return;
+    _record(node.name.lexeme, node, [node.functionExpression.body]);
+  }
+
+  @override
+  void visitMethodDeclaration(MethodDeclaration node) {
+    if (node.body is EmptyFunctionBody) return;
+    final name = node.isOperator
+        ? 'operator ${node.name.lexeme}'
+        : node.name.lexeme;
+    _record(name, node, [node.body]);
+  }
+
+  @override
+  void visitConstructorDeclaration(ConstructorDeclaration node) {
+    // Без тела и без списка инициализации мерить нечего: `const A(this.x);`
+    // и перенаправляющая фабрика `factory A() = B;`.
+    if (node.body is EmptyFunctionBody && node.initializers.isEmpty) return;
+    _record(node.name?.lexeme ?? 'new', node, [
+      ...node.initializers,
+      node.body,
+    ]);
+  }
+
+  void _record(String name, AnnotatedNode node, List<AstNode> parts) {
+    var full = _owners.isEmpty ? name : '${_owners.last}.$name';
+    final seen = _seen[full] = (_seen[full] ?? 0) + 1;
+    if (seen > 1) full = '$full#$seen';
+
+    final cognitive = _Cognitive();
+    for (final part in parts) {
+      cognitive.measure(part);
+    }
+    final start = _lineOf(lines, node.firstTokenAfterCommentAndMetadata.offset);
+    result.add(
+      FunctionMetrics(
+        path: path,
+        name: full,
+        line: start,
+        lines: _lineOf(lines, node.end) - start + 1,
+        nesting: cognitive.deepest,
+        complexity: cognitive.score,
+      ),
+    );
+    nodes.add((full, node));
+  }
+}
+
+/// Когнитивная сложность и вложенность одного тела.
+class _Cognitive extends RecursiveAstVisitor<void> {
+  int score = 0;
+
+  /// Наибольшая глубина блоков.
+  int deepest = 0;
+
+  /// Глубина вложенности по SonarSource: от неё надбавка к ветвлению.
+  int _nesting = 0;
+
+  /// Глубина блоков в фигурных скобках.
+  int _depth = 0;
+
+  /// Собственные скобки тела вложенностью не считаются: у функции в одну
+  /// строку и у функции в блоке глубина одна и та же.
+  void measure(AstNode part) {
+    if (part is BlockFunctionBody) {
+      part.block.visitChildren(this);
+    } else {
+      part.accept(this);
+    }
+  }
+
+  void _nested(AstNode? node) {
+    if (node == null) return;
+    _nesting++;
+    node.accept(this);
+    _nesting--;
+  }
+
+  /// Ветвление: единица и надбавка за глубину.
+  void _branch() => score += 1 + _nesting;
+
+  void _inBraces(void Function() visit) {
+    _depth++;
+    if (_depth > deepest) deepest = _depth;
+    visit();
+    _depth--;
+  }
+
+  @override
+  void visitBlock(Block node) => _inBraces(() => super.visitBlock(node));
+
+  @override
+  void visitIfStatement(IfStatement node) {
+    if (!_isElseIf(node)) _branch();
+    node.expression.accept(this);
+    node.caseClause?.accept(this);
+    _nested(node.thenStatement);
+    switch (node.elseStatement) {
+      case final IfStatement elseIf:
+        score++;
+        elseIf.accept(this);
+      case final Statement otherwise:
+        score++;
+        _nested(otherwise);
+      case null:
+    }
+  }
+
+  static bool _isElseIf(IfStatement node) => switch (node.parent) {
+    final IfStatement parent => identical(parent.elseStatement, node),
+    _ => false,
+  };
+
+  @override
+  void visitIfElement(IfElement node) {
+    if (!_isElseIfElement(node)) _branch();
+    node.expression.accept(this);
+    node.caseClause?.accept(this);
+    _nested(node.thenElement);
+    switch (node.elseElement) {
+      case final IfElement elseIf:
+        score++;
+        elseIf.accept(this);
+      case final CollectionElement otherwise:
+        score++;
+        _nested(otherwise);
+      case null:
+    }
+  }
+
+  static bool _isElseIfElement(IfElement node) => switch (node.parent) {
+    final IfElement parent => identical(parent.elseElement, node),
+    _ => false,
+  };
+
+  @override
+  void visitConditionalExpression(ConditionalExpression node) {
+    _branch();
+    node.condition.accept(this);
+    _nested(node.thenExpression);
+    _nested(node.elseExpression);
+  }
+
+  @override
+  void visitSwitchStatement(SwitchStatement node) {
+    _branch();
+    node.expression.accept(this);
+    _inBraces(() {
+      _nesting++;
+      node.members.accept(this);
+      _nesting--;
+    });
+  }
+
+  @override
+  void visitSwitchExpression(SwitchExpression node) {
+    _branch();
+    node.expression.accept(this);
+    _inBraces(() {
+      _nesting++;
+      node.cases.accept(this);
+      _nesting--;
+    });
+  }
+
+  @override
+  void visitWhenClause(WhenClause node) {
+    score++;
+    super.visitWhenClause(node);
+  }
+
+  @override
+  void visitForStatement(ForStatement node) {
+    _branch();
+    node.forLoopParts.accept(this);
+    _nested(node.body);
+  }
+
+  @override
+  void visitForElement(ForElement node) {
+    _branch();
+    node.forLoopParts.accept(this);
+    _nested(node.body);
+  }
+
+  @override
+  void visitWhileStatement(WhileStatement node) {
+    _branch();
+    node.condition.accept(this);
+    _nested(node.body);
+  }
+
+  @override
+  void visitDoStatement(DoStatement node) {
+    _branch();
+    _nested(node.body);
+    node.condition.accept(this);
+  }
+
+  @override
+  void visitCatchClause(CatchClause node) {
+    _branch();
+    _nested(node.body);
+  }
+
+  @override
+  void visitBreakStatement(BreakStatement node) {
+    if (node.label != null) score++;
+  }
+
+  @override
+  void visitContinueStatement(ContinueStatement node) {
+    if (node.label != null) score++;
+  }
+
+  /// Замыкание и локальная функция повышают вложенность того, что внутри,
+  /// но сами ничего не стоят.
+  @override
+  void visitFunctionExpression(FunctionExpression node) => _nested(node.body);
+
+  @override
+  void visitBinaryExpression(BinaryExpression node) {
+    if (_isLogical(node) && !_continuesSequence(node)) {
+      final operators = <TokenType>[];
+      _logicalOperators(node, operators);
+      score++;
+      for (var i = 1; i < operators.length; i++) {
+        if (operators[i] != operators[i - 1]) score++;
+      }
+    }
+    super.visitBinaryExpression(node);
+  }
+
+  static bool _isLogical(Expression node) =>
+      node is BinaryExpression &&
+      (node.operator.type == TokenType.AMPERSAND_AMPERSAND ||
+          node.operator.type == TokenType.BAR_BAR);
+
+  /// Выражение — часть последовательности снаружи: над ним, сквозь
+  /// скобки, стоит тот же логический оператор. Отрицание последовательность
+  /// рвёт: `a && !(b && c)` — две.
+  static bool _continuesSequence(BinaryExpression node) {
+    AstNode? parent = node.parent;
+    while (parent is ParenthesizedExpression) {
+      parent = parent.parent;
+    }
+    return parent is BinaryExpression && _isLogical(parent);
+  }
+
+  static void _logicalOperators(Expression node, List<TokenType> out) {
+    final inner = node.unParenthesized;
+    if (inner is! BinaryExpression || !_isLogical(inner)) return;
+    _logicalOperators(inner.leftOperand, out);
+    out.add(inner.operator.type);
+    _logicalOperators(inner.rightOperand, out);
+  }
+}
+
+/// Литералы функций, переданные аргументом: позиционным или именованным.
+class _ArgumentClosures extends RecursiveAstVisitor<void> {
+  _ArgumentClosures(this.found);
+
+  final void Function(FunctionExpression) found;
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {
+    final parent = node.parent;
+    if (parent is ArgumentList || parent is NamedArgument) found(node);
+    super.visitFunctionExpression(node);
+  }
 }

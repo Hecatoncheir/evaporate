@@ -20,28 +20,34 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(EvaporateSpacing.vast),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 46, color: context.colors.accent),
-            const SizedBox(height: 16),
+            Icon(
+              icon,
+              size: EvaporateIconSize.hero,
+              color: context.colors.accent,
+            ),
+            const SizedBox(height: EvaporateSpacing.panel),
             Text(title, textAlign: TextAlign.center, style: context.text.title),
             if (description != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: EvaporateSpacing.gap),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Text(
                   description!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: context.text.prose.copyWith(
                     color: context.colors.textSecondary,
-                    height: 1.5,
                   ),
                 ),
               ),
             ],
-            if (action != null) ...[const SizedBox(height: 20), action!],
+            if (action != null) ...[
+              const SizedBox(height: EvaporateSpacing.section),
+              action!,
+            ],
           ],
         ),
       ),

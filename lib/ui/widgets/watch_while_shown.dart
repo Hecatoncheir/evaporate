@@ -11,9 +11,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// не от чего. Показался — перестройку вызывает смена `TickerMode`, и
 /// раздел читает свежее.
 extension WatchWhileShown on BuildContext {
-  S watchWhileShown<B extends StateStreamable<S>, S>() {
+  S watchWhileShown<B extends StateStreamable<S>, S>() =>
+      selectWhileShown<B, S, S>((state) => state);
+
+  /// То же, но только часть состояния: раздел перестраивается, когда
+  /// меняется она, а не любое поле рядом.
+  T selectWhileShown<B extends StateStreamable<S>, S, T>(
+    T Function(S state) selector,
+  ) {
     final shown = TickerMode.valuesOf(this).enabled;
-    return select<B, S?>((bloc) => shown ? bloc.state : null) ??
-        read<B>().state;
+    return select<B, T?>((bloc) => shown ? selector(bloc.state) : null) ??
+        selector(read<B>().state);
   }
 }

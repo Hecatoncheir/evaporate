@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import 'spacing.dart';
+
 /// Размеры раскладки: поля страницы, предельная ширина, высоты полос
 /// оболочки.
 ///
@@ -14,7 +16,12 @@ abstract final class EvaporateLayout {
   static const gutter = 28.0;
 
   /// Отступ прокручиваемой страницы: поле по бокам и воздух сверху и снизу.
-  static const pagePadding = EdgeInsets.fromLTRB(gutter, 24, gutter, 32);
+  static const pagePadding = EdgeInsets.fromLTRB(
+    gutter,
+    EvaporateSpacing.wide,
+    gutter,
+    EvaporateSpacing.vast,
+  );
 
   /// Поле страницы по бокам и свой отступ сверху и снизу.
   static EdgeInsets inset({double top = 0, double bottom = 0}) =>
@@ -25,6 +32,17 @@ abstract final class EvaporateLayout {
   /// в обои.
   static const contentMaxWidth = 1340.0;
   static const contentConstraints = BoxConstraints(maxWidth: contentMaxWidth);
+
+  /// Отступ страницы из сливеров шириной [width]: то же, что [pagePadding]
+  /// вокруг содержимого, зажатого [contentMaxWidth] и отцентрованного.
+  ///
+  /// Сливеры не коробки, в `Center` и `ConstrainedBox` их не обернуть:
+  /// ширину и середину им задаёт боковой отступ.
+  static EdgeInsets pagePaddingFor(double width) {
+    final spare = width - 2 * gutter - contentMaxWidth;
+    final side = gutter + (spare > 0 ? spare / 2 : 0);
+    return EdgeInsets.fromLTRB(side, pagePadding.top, side, pagePadding.bottom);
+  }
 
   /// Ширина подписи слева от органа настройки: органы всех карточек
   /// настроек встают в один столбец.
@@ -40,6 +58,12 @@ abstract final class EvaporateLayout {
   /// Узкий диалог — выбор одного пункта из короткого списка: в широкой
   /// рамке строка висела бы посреди пустоты.
   static const dialogWidthNarrow = 460.0;
+
+  /// Поле утопленной ниши: обойма разделов, полки, поле поиска, знак в
+  /// верхней панели. Это толщина стенки материала, а не отступ шкалы —
+  /// поэтому три точки, а не ступень: на нём держится и расчёт места под
+  /// клавиши обоймы (`RackFit.chrome`).
+  static const wellInset = 3.0;
 
   /// Высоты полос оболочки: верхняя панель, обойма разделов и строка
   /// состояния внизу.

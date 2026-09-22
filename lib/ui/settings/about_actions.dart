@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/system/update_check.dart';
+import '../theme.dart';
 import '../widgets/busy_spinner.dart';
 
 /// Клавиши карточки «О программе». Две последние появляются, только когда
@@ -49,7 +50,9 @@ class AboutActions extends StatelessWidget {
       children: [
         FilledButton.tonalIcon(
           onPressed: busy ? null : onCheck,
-          icon: busy ? _spinner : const Icon(Icons.refresh, size: 18),
+          icon: busy
+              ? _spinner
+              : const Icon(Icons.refresh, size: EvaporateIconSize.panel),
           label: Text(l.checkForUpdates),
         ),
         // Ссылка переехала сюда из нижней строки окна: там она занимала
@@ -57,21 +60,19 @@ class AboutActions extends StatelessWidget {
         // сборку — версия, обновления — и так здесь.
         FilledButton.tonalIcon(
           onPressed: onSourceCode,
-          icon: const Icon(Icons.open_in_new, size: 16),
+          icon: const Icon(Icons.open_in_new),
           label: Text(l.sourceCode),
         ),
         if (release != null) ...[
           if (release.updateForThisPlatform != null)
             FilledButton.icon(
               onPressed: updating ? null : onInstall,
-              icon: updating
-                  ? _spinner
-                  : const Icon(Icons.system_update_alt, size: 16),
+              icon: updating ? _spinner : const Icon(Icons.system_update_alt),
               label: Text(l.updateInstall),
             ),
           FilledButton.tonalIcon(
             onPressed: onReleasePage,
-            icon: const Icon(Icons.open_in_new, size: 16),
+            icon: const Icon(Icons.open_in_new),
             label: Text(l.openReleasePage),
           ),
         ],

@@ -33,25 +33,25 @@ class RuleTile extends StatelessWidget {
         children: [
           Icon(
             missing ? Icons.folder_off_outlined : Icons.folder_outlined,
-            size: 17,
+            size: EvaporateIconSize.key,
             color: missing
                 ? context.colors.textSecondary
                 : context.colors.accent,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: EvaporateSpacing.cluster),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 RuleLabelRow(rule: rule, missing: missing),
-                const SizedBox(height: 3),
+                const SizedBox(height: EvaporateSpacing.line),
                 SelectableText(rule.template, style: context.text.path),
               ],
             ),
           ),
           IconButton(
             onPressed: onRemove,
-            icon: const Icon(Icons.close, size: 16),
+            icon: const Icon(Icons.close, size: EvaporateIconSize.key),
             tooltip: L.of(context).removePath,
             visualDensity: VisualDensity.compact,
           ),

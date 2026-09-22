@@ -13,8 +13,8 @@ class EngineFailure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: EvaporateSpacing.field),
+      padding: const EdgeInsets.all(EvaporateSpacing.block),
       decoration: BoxDecoration(
         color: context.colors.danger.withValues(alpha: EvaporateAlpha.subtle),
         borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
@@ -24,8 +24,12 @@ class EngineFailure extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 18, color: context.colors.danger),
-          const SizedBox(width: 10),
+          Icon(
+            Icons.error_outline,
+            size: EvaporateIconSize.panel,
+            color: context.colors.danger,
+          ),
+          const SizedBox(width: EvaporateSpacing.cluster),
           Expanded(
             child: Text(
               message ?? L.of(context).engineStopped,

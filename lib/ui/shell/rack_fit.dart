@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../theme.dart';
+
 /// Что помещается на клавише обоймы при нынешней её ширине.
 class RackFit {
   const RackFit({
@@ -18,7 +20,10 @@ class RackFit {
   static const badgeWidth = 58.0;
 
   /// Собственные поле и кант обоймы: место под клавиши меньше на столько.
-  static const chrome = 8.0;
+  static const chrome = 2 * (EvaporateLayout.wellInset + _rim);
+
+  /// Кант обоймы — `Border.all` по умолчанию.
+  static const _rim = 1.0;
 
   /// Сколько места досталось одной клавише.
   ///

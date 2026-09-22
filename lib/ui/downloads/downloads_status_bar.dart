@@ -32,7 +32,7 @@ class DownloadsStatusBar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: EvaporateLayout.inset(top: 14),
+          padding: EvaporateLayout.inset(top: EvaporateSpacing.block),
           child: DownloadsReadout(
             stats: downloads.stats,
             active: downloads.holdingSlots.length,
@@ -42,7 +42,7 @@ class DownloadsStatusBar extends StatelessWidget {
         ),
         if (engine.state == EngineState.failed)
           Padding(
-            padding: EvaporateLayout.inset(top: 14),
+            padding: EvaporateLayout.inset(top: EvaporateSpacing.block),
             child: EngineFailure(message: engine.message),
           ),
       ],

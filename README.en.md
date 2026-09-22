@@ -110,8 +110,10 @@ manual installation and diagnostics.
 
 Neither the Windows installer nor the macOS bundle is signed — certificates
 cost money. So the first run brings up SmartScreen ("Windows protected your
-PC" → More info → Run anyway) and, on macOS, Gatekeeper: open the app from
-its context menu once.
+PC" → More info → Run anyway), and on macOS Gatekeeper refuses to open the
+app. Since macOS 15 the context-menu bypass is gone: try to open the app
+once, then go to System Settings → Privacy & Security and click "Open
+Anyway" in the Security section.
 
 The `.run` is a plain self-extracting installer: it puts the app in
 `~/.local/share/evaporate`, adds a menu entry and an `evaporate` command, and
@@ -120,7 +122,10 @@ and save snapshots stay. It also takes `--prefix DIR` and `--extract DIR` if
 installing is not what you want.
 
 The app can update itself: a button in the settings downloads the new
-version, checks its checksum and replaces the installation. The `.deb` is the
+version, checks the release signature and its checksum and replaces the
+installation. The signature is Ed25519 over the `SHA256SUMS` file, and only
+the project holds the private key; a release with no signature, or someone
+else's, is not installed. The `.deb` is the
 deliberate exception — it lands in `/opt`, which needs root to write, and
 what a package manager installed a package manager should update. A `.run`
 install lives in the user's own directory, where updating works.
@@ -352,12 +357,13 @@ python3 tool/make_icon.py
 
 ## CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — six jobs:
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — seven jobs:
 
 | Job | Runner | What it does |
 |-----|--------|--------------|
 | Format and analyse | ubuntu | `dart format`, `flutter analyze`, `bloc lint`, the plugin registrant check, the `CHANGELOG` section on a tag |
-| Tests | ubuntu, macOS, Windows | `flutter test` in random order; on ubuntu with coverage and its threshold |
+| Tests | ubuntu, macOS, Windows | `flutter test` in random order, with coverage on every system |
+| Coverage | ubuntu | merges the coverage of the three systems and checks the thresholds |
 | Build macOS | macos | the `.app`: a `ditto` archive and a `.dmg` image |
 | Build Linux | ubuntu | a bundle with every dependency: a `.tar.gz`, a `.deb` and a `.run` |
 | Build Windows | windows | the Release directory: a `.zip` and an Inno Setup installer |
@@ -384,9 +390,9 @@ take four times as long doing it: the macOS build runs for minutes, while
 
 To check a build without cutting a release, run the workflow by hand
 (`workflow_dispatch`) — the builds run there too. They still wait for the
-analysis and the tests to pass (`needs: [analyze, test]`). Everything the
-analysis and test jobs check on every change runs locally as
-`dart tool/gate.dart`.
+analysis, the tests and the coverage threshold to pass (`needs: [analyze,
+test, coverage]`). Everything these jobs check on every change runs locally
+as `dart tool/gate.dart`.
 
 Most tests need neither Xcode, nor the network, nor a gamepad: the engine is
 created with `autoStart: false` and the queue is exercised without a single

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/settings/settings_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/app_settings.dart';
+import '../../theme.dart';
 import '../../widgets/section_card.dart';
 import '../path_setting.dart';
 import '../pick_folder.dart';
@@ -39,14 +40,14 @@ class SaveSettingsCard extends StatelessWidget {
                 ? null
                 : () => update((a) => a.copyWith(syncFolder: null)),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: EvaporateSpacing.tight),
           SettingSwitch(
             value: saves.autoExportToSync,
             onChanged: (value) =>
                 update((a) => a.copyWith(autoExportToSync: value)),
             title: l.copyToSyncFolder,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: EvaporateSpacing.tight),
           SettingSwitch(
             value: saves.autoSnapshotOnExit,
             onChanged: (value) =>

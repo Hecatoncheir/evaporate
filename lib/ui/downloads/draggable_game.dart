@@ -15,7 +15,7 @@ class DraggableGame extends StatelessWidget {
     final tile = GameChip(game: game);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: EvaporateSpacing.gap),
       child: Draggable<Game>(
         data: game,
         feedback: Material(

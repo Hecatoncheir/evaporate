@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../bloc/saves/saves_bloc.dart';
 import '../../l10n/app_localizations.dart';
+import '../../models/game.dart';
+import '../../models/save_snapshot.dart';
 import '../theme.dart';
 import '../widgets/section_heading.dart';
+import '../widgets/sliver_side_by_side.dart';
 import '../widgets/watch_while_shown.dart';
 import 'bulk_transfer_card.dart';
 import 'saves_readout.dart';
@@ -23,67 +26,76 @@ import 'sync_folder_card.dart';
 /// синхронизации — слева, список снимков — справа. В одну колонку они
 /// выстраиваются только в узком окне: растянутый на всю ширину список из
 /// трёх строк выглядит пустым экраном.
+///
+/// Страница собрана сливерами: хронология бывает в сотни строк, и строить
+/// их надо по мере прокрутки, а не все разом.
 class SavesPage extends StatelessWidget {
   const SavesPage({super.key});
 
+  /// С этой ширины действия и хронология встают рядом.
+  static const _twoColumns = 1080.0;
+
+  /// Ширина колонки действий рядом с хронологией.
+  static const _actionsWidth = 430.0;
+
   @override
   Widget build(BuildContext context) {
-    final library = context.watchWhileShown<LibraryBloc, LibraryState>();
-    final saves = context.watchWhileShown<SavesBloc, SavesState>();
+    final games = context
+        .selectWhileShown<LibraryBloc, LibraryState, List<Game>>(
+          (state) => state.games,
+        );
+    final snapshots = context
+        .selectWhileShown<
+          SavesBloc,
+          SavesState,
+          Map<String, List<SaveSnapshot>>
+        >((state) => state.snapshots);
 
-    final entries = saves.entriesFor(library.games);
-    final configured = library.games
-        .where((g) => g.saveProfile.isConfigured)
-        .length;
+    final entries = SavesState.entriesOf(games, snapshots);
+    final configured = games.where((g) => g.saveProfile.isConfigured).length;
 
-    const actions = Column(children: [BulkTransferCard(), SyncFolderCard()]);
-    final history = SnapshotsCard(entries: entries);
+    // Абзац про то, что такое .evsave, здесь не стоит: то же, только по
+    // делу, написано в самих карточках, а три объяснения подряд человек не
+    // читает ни одного.
+    final overview = SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeading(
+            label: L.of(context).conceptSavesLabel,
+            semanticsLabel: L.of(context).saves,
+            padding: const EdgeInsets.only(bottom: EvaporateSpacing.section),
+          ),
+          SavesReadout(entries: entries, configured: configured),
+          const SizedBox(height: EvaporateSpacing.card),
+        ],
+      ),
+    );
 
     return LayoutBuilder(
-      builder: (context, box) {
-        final wide = box.maxWidth >= 1080;
-        return ListView(
-          padding: EvaporateLayout.pagePadding,
-          children: [
-            Center(
-              // Шире некуда: строка описания за этой границей перестаёт
-              // читаться, а карточки превращаются в полосы.
-              child: ConstrainedBox(
-                constraints: EvaporateLayout.contentConstraints,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Абзац про то, что такое .evsave, здесь не стоит: то
-                    // же, только по делу, написано в самих карточках, а три
-                    // объяснения подряд человек не читает ни одного.
-                    SectionHeading(
-                      label: L.of(context).conceptSavesLabel,
-                      semanticsLabel: L.of(context).saves,
-                      padding: EdgeInsets.zero,
+      builder: (context, box) => CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EvaporateLayout.pagePaddingFor(box.maxWidth),
+            sliver: SliverMainAxisGroup(
+              slivers: [
+                overview,
+                SliverSideBySide(
+                  wide: box.maxWidth >= _twoColumns,
+                  leftWidth: _actionsWidth,
+                  gap: 18,
+                  left: const SliverToBoxAdapter(
+                    child: Column(
+                      children: [BulkTransferCard(), SyncFolderCard()],
                     ),
-                    const SizedBox(height: 20),
-                    SavesReadout(entries: entries, configured: configured),
-                    const SizedBox(height: 18),
-                    if (wide)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(width: 430, child: actions),
-                          const SizedBox(width: 18),
-                          Expanded(child: history),
-                        ],
-                      )
-                    else ...[
-                      actions,
-                      history,
-                    ],
-                  ],
+                  ),
+                  right: SnapshotHistory(entries: entries),
                 ),
-              ),
+              ],
             ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -46,7 +46,7 @@ class ScanDialogView extends StatelessWidget {
           TextButton.icon(
             onPressed: () =>
                 context.read<ScanBloc>().add(const ScanStopRequested()),
-            icon: const Icon(Icons.stop_circle_outlined, size: 16),
+            icon: const Icon(Icons.stop_circle_outlined),
             label: Text(l.scanStop),
           ),
         TextButton(

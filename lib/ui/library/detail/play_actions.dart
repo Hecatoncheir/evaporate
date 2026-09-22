@@ -34,7 +34,7 @@ class PlayActions extends StatelessWidget {
           label: label,
         ),
         if (!game.canLaunch) ...[
-          const SizedBox(width: 10),
+          const SizedBox(width: EvaporateSpacing.cluster),
           Flexible(
             child: Text(
               L.of(context).pickExecutableNote,

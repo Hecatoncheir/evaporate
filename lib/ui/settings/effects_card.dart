@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/effect_preset.dart';
+import '../theme.dart';
 import '../widgets/section_card.dart';
 import 'effect_details.dart';
 import 'effect_preset_picker.dart';
@@ -37,7 +38,7 @@ class LibraryEffectsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const EffectPresetPicker(),
-          const SizedBox(height: 10),
+          const SizedBox(height: EvaporateSpacing.cluster),
           SettingNote(
             settings.appearance.effectPreset == null
                 ? l.effectPresetCustom

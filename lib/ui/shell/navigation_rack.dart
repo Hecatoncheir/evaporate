@@ -39,7 +39,7 @@ class NavigationRack extends StatelessWidget {
         return Container(
           key: const ValueKey('concept-navigation'),
           height: EvaporateLayout.railHeight,
-          padding: const EdgeInsets.all(3),
+          padding: const EdgeInsets.all(EvaporateLayout.wellInset),
           decoration: BoxDecoration(
             color: colors.railBackground,
             border: Border.all(color: colors.outline),

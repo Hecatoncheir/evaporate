@@ -15,7 +15,12 @@ class PlaytimeReadout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: 186,
-    padding: const EdgeInsets.fromLTRB(14, 11, 14, 12),
+    padding: const EdgeInsets.fromLTRB(
+      EvaporateSpacing.block,
+      EvaporateSpacing.field,
+      EvaporateSpacing.block,
+      EvaporateSpacing.field,
+    ),
     decoration: BoxDecoration(
       color: AppColors.heroPanel,
       border: Border.all(color: AppColors.coverProgressTrack),
@@ -30,7 +35,7 @@ class PlaytimeReadout extends StatelessWidget {
             color: AppColors.coverText.withValues(alpha: 0.56),
           ),
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: EvaporateSpacing.line),
         Text(
           formatDurationLabel(L.of(context), game.play.playtime),
           style: context.text.readout.copyWith(color: AppColors.coverText),

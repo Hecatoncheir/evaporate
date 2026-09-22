@@ -28,7 +28,7 @@ class DownloadsHeading extends StatelessWidget {
     return SectionHeading(
       label: L.of(context).conceptDownloadsLabel,
       semanticsLabel: L.of(context).downloads,
-      padding: EvaporateLayout.inset(top: 20),
+      padding: EvaporateLayout.inset(top: EvaporateSpacing.section),
       trailing: Wrap(
         spacing: 10,
         runSpacing: 8,
@@ -40,7 +40,7 @@ class DownloadsHeading extends StatelessWidget {
               onPressed: () => context.read<DownloadsBloc>().add(
                 const DownloadEngineRestartRequested(),
               ),
-              icon: const Icon(Icons.refresh, size: 16),
+              icon: const Icon(Icons.refresh),
               label: Text(L.of(context).restartEngine),
             ),
         ],

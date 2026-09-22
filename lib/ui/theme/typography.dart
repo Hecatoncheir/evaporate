@@ -15,6 +15,12 @@ import 'palette.dart';
 /// цвет надписи на заливке, и роль с жёстким цветом перекрасила бы такие
 /// подписи.
 ///
+/// **Роль по месту правят только цветом.** Из ста тридцати трёх
+/// употреблений ролей два десятка добавляли по месту жирность, разрядку
+/// и межстрочие, и роль расползалась так же, как прежде числа: у подписи
+/// «жирнее обычного» было три разных набора. Нужен другой облик — это
+/// другая роль здесь, и страж темы следит за этим.
+///
 /// Не `ThemeExtension`, а производное от палитры: при плавной смене схемы
 /// роли идут за уже смешанной палитрой сами, и отдельного `lerp` на каждое
 /// поле им не нужно.
@@ -38,8 +44,18 @@ class EvaporateTypography {
   TextStyle get caption => const TextStyle(fontSize: 12);
 
   /// Мелкая приглушённая подпись: размер, время, путь рядом с названием.
-  TextStyle get captionMuted =>
-      TextStyle(fontSize: 12, color: _colors.textSecondary);
+  /// Цифры табличные — здесь почти всегда числа, и соседние строки
+  /// списка должны стоять ими в столбик.
+  TextStyle get captionMuted => TextStyle(
+    fontSize: 12,
+    color: _colors.textSecondary,
+    fontFeatures: const [FontFeature.tabularFigures()],
+  );
+
+  /// Мелкая подпись с упором: исход переноса, число на вкладке полки,
+  /// вердикт обзоров.
+  TextStyle get captionStrong =>
+      const TextStyle(fontSize: 12, fontWeight: FontWeight.w600);
 
   /// Короткое пояснение в одну-две строки под органом управления.
   TextStyle get note => TextStyle(fontSize: 12.5, color: _colors.textSecondary);
@@ -55,9 +71,16 @@ class EvaporateTypography {
   TextStyle get warning =>
       TextStyle(fontSize: 12, height: 1.4, color: _colors.warning);
 
+  /// Предупреждение, которое нельзя пропустить: о том, что затрёт прогресс.
+  TextStyle get alert => warning.copyWith(fontWeight: FontWeight.w600);
+
   /// Метка на корпусе: моно, капс, с разрядкой — как подпись на панели
   /// прибора. До роли она разошлась сама собой: 8.5, 9, 9.5 и 10 точек,
-  /// разрядка от 0.6 до 1.6, в двух местах и вовсе не моно.
+  /// разрядка от 0.6 до 1.6, в двух местах и вовсе не моно. Она же —
+  /// надстрочник раздела и крупного кадра: прежде тот был своей ролью на
+  /// полточки крупнее и на ступень жирнее, то есть тем самым расхождением,
+  /// ради которого роли и заводили. Цвет над показанием приглушённый, над
+  /// разделом его задаёт место: фирменный в обойме, золото на кадре.
   TextStyle get label => TextStyle(
     fontFamily: EvaporateTheme.monoFontFamily,
     fontSize: 9,
@@ -66,14 +89,12 @@ class EvaporateTypography {
     color: _colors.textSecondary,
   );
 
-  /// Надстрочник раздела и крупного кадра — метка покрупнее и плотнее.
-  /// Цвет задаёт место: фирменный в обойме, золото на кадре.
-  TextStyle get eyebrow => const TextStyle(
-    fontFamily: EvaporateTheme.monoFontFamily,
-    fontSize: 9.5,
-    fontWeight: FontWeight.w800,
-    letterSpacing: 1.6,
-  );
+  /// Метка в строке состояния: разрядка вдвое уже — там тесно.
+  TextStyle get statusLabel => label.copyWith(letterSpacing: 0.7);
+
+  /// Число на метке очереди: кегль метки, но без разрядки — это число, а
+  /// не надпись капсом, и разрядка развела бы цифры двузначного.
+  TextStyle get badge => label.copyWith(letterSpacing: 0);
 
   /// Показание: моно с табличными цифрами — иначе строка дёргается, когда
   /// меняется одна цифра.
@@ -95,8 +116,12 @@ class EvaporateTypography {
     color: _colors.textSecondary,
   );
 
-  /// Путь во второй строке плотного списка и строки журнала.
+  /// Путь во второй строке плотного списка.
   TextStyle get pathSmall => path.copyWith(fontSize: 11.5);
+
+  /// Строки журнала: мелкий моно с воздухом между строками — журнал
+  /// читают подряд, а не выхватывают одну строку.
+  TextStyle get log => pathSmall.copyWith(height: 1.5);
 
   /// Пояснение основным кеглем, абзацем: текст диалога, а не подпись к
   /// органу. Цвет наследует — это то, что человек читает, а не оглядывает.
@@ -117,6 +142,20 @@ class EvaporateTypography {
 
   /// Самое мелкое: метка правила, подпись клавиши геймпада.
   TextStyle get tag => const TextStyle(fontSize: 10.5, height: 1.3);
+
+  /// Самое мелкое с упором: знак кнопки геймпада на плашке, надпись
+  /// поверх обложки.
+  TextStyle get tagStrong => tag.copyWith(fontWeight: FontWeight.w600);
+
+  /// Вкладка полки: кегль строки, чуть разряжен, выбранная — жирнее.
+  TextStyle get tab => const TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.2,
+  );
+
+  /// Выбранная вкладка полки.
+  TextStyle get tabActive => tab.copyWith(fontWeight: FontWeight.w700);
 
   /// Надпись на главной клавише — широким шрифтом корпуса.
   TextStyle get keycap => const TextStyle(

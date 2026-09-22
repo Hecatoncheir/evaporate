@@ -23,17 +23,17 @@ class WindowStartPicker extends StatelessWidget {
       segments: [
         ButtonSegment(
           value: WindowStartMode.remembered,
-          icon: const Icon(Icons.crop_din, size: 17),
+          icon: const Icon(Icons.crop_din),
           label: Text(l.windowRemembered),
         ),
         ButtonSegment(
           value: WindowStartMode.maximized,
-          icon: const Icon(Icons.fullscreen, size: 17),
+          icon: const Icon(Icons.fullscreen),
           label: Text(l.windowMaximized),
         ),
         ButtonSegment(
           value: WindowStartMode.minimized,
-          icon: const Icon(Icons.expand_more, size: 17),
+          icon: const Icon(Icons.expand_more),
           label: Text(l.windowMinimized),
         ),
       ],

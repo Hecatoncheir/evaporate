@@ -28,7 +28,7 @@ class ProxyApplyRow extends StatelessWidget {
           onPressed: canApply ? onApply : null,
           child: Text(l.proxyApply),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: EvaporateSpacing.field),
         Expanded(
           child: Text(
             draft.isUsable ? draft.uri : l.proxyNoAddress,

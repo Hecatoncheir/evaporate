@@ -37,9 +37,9 @@ class ConceptTopBar extends StatelessWidget {
               // обойма сама прячет подписи и сжимается по месту. Прежде она
               // переезжала под содержимое и налезала на подсказки
               // управления в нижней строке.
-              const SizedBox(width: 10),
+              const SizedBox(width: EvaporateSpacing.cluster),
               const Expanded(child: Center(child: ConceptNavigation())),
-              const SizedBox(width: 10),
+              const SizedBox(width: EvaporateSpacing.cluster),
             ] else
               const Spacer(),
             const TopBarActions(),

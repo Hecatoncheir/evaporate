@@ -44,10 +44,7 @@ class RatingRow extends StatelessWidget {
         if (summary != null && summary.isNotEmpty)
           Text(
             summary,
-            style: context.text.note.copyWith(
-              fontWeight: FontWeight.w600,
-              color: verdict,
-            ),
+            style: context.text.captionStrong.copyWith(color: verdict),
           ),
         if (rating.total > 0) ...[
           Tooltip(

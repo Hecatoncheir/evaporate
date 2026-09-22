@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/services/system/update_install.dart';
+import 'package:evaporate/services/system/update_signature.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/temp_dir.dart';
@@ -120,6 +121,19 @@ void main() {
         contains('OutputBaseFilename=evaporate-{#AppVersion}-windows-setup'),
       );
     });
+
+    // Без подписи под суммами приложение обновление не ставит: разойдись
+    // имя файла подписи, и ни одна копия не обновится, а выпуск пройдёт
+    // зелёным.
+    test(
+      'подпись под суммами кладётся под тем именем, что ищет приложение',
+      () {
+        expect(commands, contains('-out dist/${UpdateSignature.fileName}'));
+        // И проверяется до публикации тем ключом, что вшит в приложение.
+        expect(commands, contains('-inkey tool/update_signing_key.pub.pem'));
+        expect(commands, contains('-sigfile dist/${UpdateSignature.fileName}'));
+      },
+    );
 
     // Задача выпуска забирает артефакты по маске `evaporate-*` и по ней же
     // считает контрольные суммы. Файл с другим именем не попадёт ни в

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/library/library_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
+import '../../theme.dart';
 import '../../widgets/launcher_action_button.dart';
 
 /// Игра ещё не скачана: начать загрузку или сперва выбрать, куда её класть.
@@ -28,10 +29,10 @@ class DownloadStartActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         LauncherActionButton(onPressed: onPressed, icon: icon, label: label),
-        const SizedBox(width: 10),
+        const SizedBox(width: EvaporateSpacing.cluster),
         OutlinedButton.icon(
           onPressed: () => _pickInstallDir(context),
-          icon: const Icon(Icons.folder_outlined, size: 17),
+          icon: const Icon(Icons.folder_outlined),
           label: Text(L.of(context).setFolder),
         ),
       ],

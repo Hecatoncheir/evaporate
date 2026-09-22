@@ -21,7 +21,7 @@ class LabeledSwitchRow extends StatelessWidget {
     return Row(
       children: [
         Switch(value: value, onChanged: onChanged),
-        const SizedBox(width: 10),
+        const SizedBox(width: EvaporateSpacing.cluster),
         Expanded(child: Text(label, style: context.text.body)),
       ],
     );

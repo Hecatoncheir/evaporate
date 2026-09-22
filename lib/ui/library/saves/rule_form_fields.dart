@@ -52,7 +52,7 @@ class RuleFormFields extends StatelessWidget {
               errorMaxLines: 2,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: EvaporateSpacing.panel),
           TextField(
             controller: templateController,
             onChanged: (value) => bloc.add(RuleTemplateChanged(value)),
@@ -65,15 +65,15 @@ class RuleFormFields extends StatelessWidget {
               errorMaxLines: 3,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: EvaporateSpacing.gap),
           Text(l.expandsTo(form.expanded), style: context.text.captionMuted),
           // Путь без плейсхолдера на другом устройстве не развернётся
           // ни во что осмысленное — об этом предупреждают сразу.
           if (!form.portable) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: EvaporateSpacing.cluster),
             InlineWarning(l.absolutePathWarning),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: EvaporateSpacing.field),
           CheckboxListTile(
             value: form.currentPlatformOnly,
             onChanged: (value) =>

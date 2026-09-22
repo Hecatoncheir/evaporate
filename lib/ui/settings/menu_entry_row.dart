@@ -18,7 +18,7 @@ class MenuEntryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: EvaporateSpacing.tight),
       child: Row(
         children: [
           Expanded(

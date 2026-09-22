@@ -15,7 +15,10 @@ class HintChip extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+          padding: const EdgeInsets.symmetric(
+            horizontal: EvaporateSpacing.line,
+            vertical: EvaporateSpacing.hair,
+          ),
           decoration: BoxDecoration(
             color: context.colors.surfaceHigh,
             borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
@@ -23,13 +26,12 @@ class HintChip extends StatelessWidget {
           ),
           child: Text(
             glyph,
-            style: context.text.tag.copyWith(
-              fontWeight: FontWeight.w600,
+            style: context.text.tagStrong.copyWith(
               color: context.colors.textPrimary,
             ),
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: EvaporateSpacing.line),
         Text(
           label,
           style: context.text.small.copyWith(
