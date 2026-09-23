@@ -44,13 +44,14 @@ class SnapshotStore {
   /// Куда складывать содержимое — `AppPaths.blobsDir`.
   final String root;
 
-  /// Куда уборка выносит бесхозное содержимое, прежде чем удалить.
+  /// Куда уходит содержимое, прежде чем удалиться насовсем: бесхозное —
+  /// уборкой, не развернувшееся — [discard].
   ///
   /// Второй рубеж, а не корзина для человека. Уборка верит списку живых
   /// снимков, а список бывал неполным так, как никто не предусмотрел: однажды
-  /// испорченный файл списка отдал ей содержимое всех снимков разом. Лежащее
-  /// здесь возвращается само, стоит снимку на него сослаться, — при
-  /// раскладке или при следующем снимке того же содержимого. Рядом с
+  /// испорченный файл списка отдал ей содержимое всех снимков разом.
+  /// Вынесенное уборкой возвращается само, стоит снимку на него сослаться, —
+  /// при раскладке или при следующем снимке того же содержимого. Рядом с
   /// хранилищем, а не внутри: обход хранилища сюда не заходит.
   final String trash;
 
@@ -162,9 +163,16 @@ class SnapshotStore {
   /// Обрезанный gzip по имени и длине от целого не отличить — ловит его
   /// только раскладка. Тогда он уходит, чтобы следующий снимок того же
   /// содержимого его переписал, а не ответил «уже лежит».
+  ///
+  /// Уходит в [trash], а не насовсем: приговор выносит раскладка, а ошибка
+  /// в нём стоит содержимого всем снимкам с тем же хешем
+  /// ([StoredBlobSource.writeTo]). Но под своим именем, а не под хешем:
+  /// вынесенное под хешем вернул бы первый же снимок того же сейва, и
+  /// битое так и осталось бы на месте. Слово — то же, что у испорченного
+  /// файла данных в `JsonStore`.
   Future<void> discard(String hash) async {
     try {
-      await fileFor(hash).delete();
+      await _moveToTrash(fileFor(hash), name: '$hash.corrupt');
     } on FileSystemException {
       // Уже нет — и хорошо.
     }
@@ -477,9 +485,11 @@ class SnapshotStore {
     }
   }
 
-  Future<void> _moveToTrash(File file) async {
+  Future<void> _moveToTrash(File file, {String? name}) async {
     await Directory(trash).create(recursive: true);
-    final moved = await file.rename(p.join(trash, p.basename(file.path)));
+    final moved = await file.rename(
+      p.join(trash, name ?? p.basename(file.path)),
+    );
     // Срок считается от выноса, а не от записи: переименование времени не
     // меняет, и содержимое, лежавшее год, ушло бы насовсем в тот же миг.
     try {
@@ -537,15 +547,27 @@ class StoredBlobSource implements RestoreSource {
   /// следующий снимок того же сейва его перепишет, а не ответит «уже
   /// лежит». Отказ при этом приходит словами, а не сырым исключением
   /// разборщика gzip.
+  ///
+  /// Приговор — только тому, что выдало себя само: gzip не разбирается или
+  /// развернулся не той длины. Отказ ввода-вывода о содержимом не говорит
+  /// ничего — место кончилось, файл держит антивирус, на месте файла папка,
+  /// — а содержимое общее для всех снимков с тем же хешем, и раскладка,
+  /// ловившая всё подряд, из-за чужого диска уносила его у всех разом.
   @override
   Future<void> writeTo(String path) async {
     try {
       await _store.extractTo(_blob.hash, path, size: _blob.size);
       if (await File(path).length() == _blob.size) return;
-    } on SaveException {
-      rethrow;
-    } on Object {
-      // Обрезанный gzip — `FormatException` или ошибка ввода-вывода.
+    } on FormatException {
+      // Не разбирается — битое, как и обрезанное.
+    } on FileSystemException catch (error) {
+      // Чей отказ, видно по пути: не открылось само содержимое — это
+      // чтение снимка, всё прочее — запись в цель.
+      throw SaveException(
+        error.path == _store.pathFor(_blob.hash)
+            ? _l.saveArchiveReadFailed(_blob.name)
+            : _l.saveWriteFailed('$error'),
+      );
     }
     await _store.discard(_blob.hash);
     throw SaveException(_l.saveArchiveReadFailed(_blob.name));

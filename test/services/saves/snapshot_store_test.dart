@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/services/saves/offload.dart';
 import 'package:evaporate/services/saves/save_exception.dart';
 import 'package:evaporate/services/saves/snapshot_store.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +20,9 @@ void main() {
   tearDown(() => deleteTempDir(tmp));
 
   String root() => p.join(tmp.path, 'blobs');
+
+  StoredBlobSource sourceOf(SnapshotStore store, SnapshotBlob blob) =>
+      StoredBlobSource(blob, store: store, localizations: LRu.new);
 
   // Работа начинается и кончается, пока уборка идёт по диску: конец работы
   // снимал с её содержимого защиту, а список живых у уборки был собран до
@@ -138,11 +142,7 @@ void main() {
       final whole = await stored.readAsBytes();
       await stored.writeAsBytes(whole.sublist(0, whole.length ~/ 2));
 
-      final source = StoredBlobSource(
-        blob,
-        store: store,
-        localizations: LRu.new,
-      );
+      final source = sourceOf(store, blob);
       await expectLater(
         source.writeTo(p.join(tmp.path, 'первый.sav')),
         throwsA(isA<SaveException>()),
@@ -151,6 +151,112 @@ void main() {
       await store.putText('slot.sav', text);
       await source.writeTo(p.join(tmp.path, 'второй.sav'));
       expect(File(p.join(tmp.path, 'второй.sav')).readAsBytesSync(), content);
+    });
+
+    // Порча посередине — не обрыв: gzip на ней не разжимается короче, а
+    // отказывает сам. Это отказ разборщика, а не ввода-вывода, и приговор
+    // тот же.
+    test('не gzip вовсе — такое же битое и так же переписывается', () async {
+      final store = SnapshotStore(root: root());
+      final blob = await store.putText('slot.sav', 'прогресс');
+      await store.fileFor(blob.hash).writeAsString('не gzip');
+      final source = sourceOf(store, blob);
+
+      await expectLater(
+        source.writeTo(p.join(tmp.path, 'первый.sav')),
+        throwsA(isA<SaveException>()),
+      );
+
+      await store.putText('slot.sav', 'прогресс');
+      await source.writeTo(p.join(tmp.path, 'второй.sav'));
+      expect(
+        File(p.join(tmp.path, 'второй.sav')).readAsStringSync(),
+        'прогресс',
+      );
+    });
+
+    // Приговор выносит раскладка, а она уже ошибалась: сбой цели принимала
+    // за порчу. Удаление насовсем превращало такую ошибку в потерю.
+    test('битое уходит в корзину, а не насовсем', () async {
+      var now = DateTime(2026, 9, 23);
+      final store = SnapshotStore(root: root(), clock: () => now);
+      final blob = await store.putText('slot.sav', 'прогресс ' * 200);
+      final stored = store.fileFor(blob.hash);
+      final whole = await stored.readAsBytes();
+      final damaged = whole.sublist(0, whole.length ~/ 2);
+      await stored.writeAsBytes(damaged);
+
+      await expectLater(
+        sourceOf(store, blob).writeTo(p.join(tmp.path, 'назад.sav')),
+        throwsA(isA<SaveException>()),
+      );
+
+      final trashed = Directory(store.trash).listSync().whereType<File>();
+      expect(trashed.single.readAsBytesSync(), damaged);
+      // Но само оттуда не возвращается, как вынесенное уборкой: ссылка на
+      // него вернула бы на место битое.
+      expect(await store.contains(blob.hash), isFalse);
+
+      now = now.add(store.trashKeep + const Duration(hours: 1));
+      final (moved: _, :purged) = await store.collect(const {});
+      expect(purged, damaged.length);
+    });
+  });
+
+  // Сбой записи в цель — место кончилось, файл держит антивирус, на месте
+  // файла папка — о содержимом не говорит ничего. Раскладка ловила всё
+  // подряд и убирала исправное содержимое, общее для всех снимков с тем же
+  // хешем, насовсем: одна сорвавшаяся раскладка — и вернуть его нечем.
+  group('отказ цели', () {
+    Future<void> survives(String text) async {
+      final store = SnapshotStore(root: root());
+      final blob = await store.putText('slot.sav', text);
+      final source = sourceOf(store, blob);
+      // На месте файла папка: на запись её не открыть ни на одной системе.
+      final occupied = Directory(p.join(tmp.path, 'занято'))..createSync();
+
+      await expectLater(
+        source.writeTo(occupied.path),
+        throwsA(
+          isA<SaveException>().having(
+            (error) => error.message,
+            'слова',
+            startsWith(LRu().saveWriteFailed('')),
+          ),
+        ),
+      );
+
+      final target = p.join(tmp.path, 'назад.sav');
+      await source.writeTo(target);
+      expect(File(target).readAsStringSync(), text);
+    }
+
+    test('исправное содержимое не уносит', () => survives('живой прогресс'));
+
+    // Крупное разжимается в изоляте, и отказ приезжает оттуда: тип его
+    // обязан доехать, иначе раскладке не по чему отличить цель от порчи.
+    test(
+      'и крупное, разжатое в изоляте, — тоже',
+      () => survives('ж' * offloadFromBytes),
+    );
+
+    // Отказ на самом содержимом — дело снимка, а не цели, и называть его
+    // записью значило бы послать человека не туда.
+    test('пропавшее содержимое — отказ чтения, а не записи', () async {
+      final store = SnapshotStore(root: root());
+      final blob = await store.putText('slot.sav', 'прогресс');
+      await store.fileFor(blob.hash).delete();
+
+      await expectLater(
+        sourceOf(store, blob).writeTo(p.join(tmp.path, 'назад.sav')),
+        throwsA(
+          isA<SaveException>().having(
+            (error) => error.message,
+            'слова',
+            LRu().saveArchiveReadFailed('slot.sav'),
+          ),
+        ),
+      );
     });
   });
 

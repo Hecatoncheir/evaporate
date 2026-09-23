@@ -440,6 +440,7 @@
   "save": "Save",
   "saveArchiveMissing": "The snapshot archive is missing: {path}",
   "saveArchiveReadFailed": "Could not read the archive: {error}",
+  "saveWriteFailed": "Could not write the save file: {error}",
   "saveRollbackStranded": "The previous saves could not be put back — they are here: {paths}",
   "saveRulesOverlap": "The paths of rules “{first}” and “{second}” overlap: one lies inside the other. Remove one of them on the game page — otherwise a snapshot would take the files twice.",
   "noticeRestoreLeftovers": "An interrupted restore left previous copies next to the saves. If the saves are fine, the copies can be deleted: {paths}",

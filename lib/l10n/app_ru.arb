@@ -573,6 +573,13 @@
       }
     }
   },
+  "@saveWriteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "@saveRollbackStranded": {
     "placeholders": {
       "paths": {
@@ -1116,6 +1123,7 @@
   "save": "Сохранить",
   "saveArchiveMissing": "Архив снимка не найден: {path}",
   "saveArchiveReadFailed": "Не удалось прочитать архив: {error}",
+  "saveWriteFailed": "Не удалось записать файл сохранений: {error}",
   "saveRollbackStranded": "Вернуть прежние сохранения на место не удалось — они лежат здесь: {paths}",
   "saveRulesOverlap": "Пути правил «{first}» и «{second}» пересекаются: один лежит внутри другого. Уберите одно из них в карточке игры — иначе снимок взял бы файлы дважды.",
   "noticeRestoreLeftovers": "После прерванного восстановления рядом с сохранениями остались прежние копии. Если сохранения в порядке, копии можно удалить: {paths}",
