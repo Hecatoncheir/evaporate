@@ -83,14 +83,104 @@ Iterable<String> _widgetsIn(SourceFile file, Set<String> types) sync* {
   }
 }
 
-/// Приватные виджеты: `class _Foo extends StatelessWidget`.
+/// Порог длины приватного виджета — класса целиком, от `class` до
+/// закрывающей скобки.
+const maxPrivateWidgetLines = 40;
+
+/// Приватные виджеты, которым больше не место в файле потребителя:
+/// длиннее [maxLines] строк, со своим `State`, держащим ресурсы, или
+/// нужные двум и больше классам файла.
+///
+/// Сам приватный виджет законен (`docs/decisions/0009`): у него есть свой
+/// `Element`, `const` и граница перестроения, а лежит он там же, где его
+/// единственный потребитель. Своим файлом ему быть, когда он перестаёт быть
+/// частью одного виджета.
 Iterable<String> privateWidgets(
   SourceFile file, {
   Set<String> types = flutterWidgets,
+  int maxLines = maxPrivateWidgetLines,
 }) sync* {
+  final spans = _classSpans(file.code);
   for (final name in _widgetsIn(file, types)) {
-    if (name.startsWith('_')) yield '${file.path}: $name';
+    final span = spans[name];
+    if (!name.startsWith('_') || span == null) continue;
+    final lines = '\n'.allMatches(file.code.substring(span.start, span.end));
+    if (lines.length + 1 > maxLines) {
+      yield '${file.path}: $name: ${lines.length + 1} строк';
+      continue;
+    }
+    final state = _stateOf(name, file.code);
+    final stateSpan = state == null ? null : spans[state];
+    if (stateSpan != null && _disposes(file.code, stateSpan)) {
+      yield '${file.path}: $name: State с ресурсами';
+      continue;
+    }
+    final users = _usersOf(name, file.code, spans, own: {name, ?state});
+    if (users.length > 1) {
+      yield '${file.path}: $name: нужен ${users.join(', ')}';
+    }
   }
+}
+
+typedef _Span = ({int start, int end});
+
+/// Где в разборе лежит каждый класс: от слова `class` до закрывающей
+/// скобки. Строки и комментарии в разборе затёрты, и скобка внутри них
+/// счёт не собьёт.
+Map<String, _Span> _classSpans(String code) {
+  final spans = <String, _Span>{};
+  for (final match in _classHead.allMatches(code)) {
+    final open = code.indexOf('{', match.end);
+    if (open < 0) continue;
+    var depth = 0;
+    var end = open;
+    for (; end < code.length; end++) {
+      if (code[end] == '{') depth++;
+      if (code[end] == '}' && --depth == 0) break;
+    }
+    spans[match.group(2)!] = (
+      start: match.start + match.group(1)!.length,
+      end: end,
+    );
+  }
+  return spans;
+}
+
+final _classHead = RegExp(
+  r'^(\s*(?:abstract\s+)?(?:final\s+)?(?:base\s+)?)class\s+(\w+)',
+  multiLine: true,
+);
+
+/// Класс состояния виджета [widget], если он есть: `extends State<_Foo>`.
+String? _stateOf(String widget, String code) => RegExp(
+  'class\\s+(\\w+)[^{]*?\\bextends\\s+State<\\s*${RegExp.escape(widget)}\\s*>',
+).firstMatch(code)?.group(1);
+
+/// Держит ли класс ресурсы — то, что освобождают в `dispose`.
+bool _disposes(String code, _Span span) =>
+    RegExp(r'\bdispose\s*\(').hasMatch(code.substring(span.start, span.end));
+
+/// Классы файла, которые пользуются [name], — кроме [own]: сам виджет и его
+/// состояние. Упоминание вне всякого класса считается отдельным
+/// потребителем.
+List<String> _usersOf(
+  String name,
+  String code,
+  Map<String, _Span> spans, {
+  required Set<String> own,
+}) {
+  final users = <String>{};
+  for (final match in RegExp('\\b${RegExp.escape(name)}\\b').allMatches(code)) {
+    final holder = spans.entries
+        .where(
+          (e) => e.value.start <= match.start && match.start <= e.value.end,
+        )
+        .map((e) => e.key)
+        .firstOrNull;
+    if (holder != null && own.contains(holder)) continue;
+    users.add(holder ?? 'верхний уровень');
+  }
+  return users.toList()..sort();
 }
 
 /// Функции, методы и геттеры, собирающие виджеты, — кроме `build`: он и
@@ -173,11 +263,15 @@ List<String> _topLevelParts(String params) {
   ];
 }
 
-/// Файл, где объявлено больше одного виджета.
+/// Файл, где объявлено больше одного публичного виджета. Приватные — часть
+/// своего потребителя (`docs/decisions/0009`) и файла не теснят.
 Iterable<String> crowdedFiles(
   SourceFile file, {
   Set<String> types = flutterWidgets,
 }) sync* {
-  final count = _widgetsIn(file, types).length;
+  final count = _widgetsIn(
+    file,
+    types,
+  ).where((name) => !name.startsWith('_')).length;
   if (count > 1) yield '${file.path}: $count';
 }

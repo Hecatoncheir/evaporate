@@ -9,14 +9,14 @@ import '../support/widget_structure.dart';
 /// Порог длины замыкания-строителя в `build`.
 const maxClosureLines = 25;
 
-/// Один файл — один публичный виджет; ни приватных виджетов, ни методов,
-/// собирающих виджеты.
+/// Один файл — один публичный виджет, и ни методов, собирающих виджеты.
 ///
-/// Приватный виджет и метод-виджет прячут часть экрана там, где её не
-/// найти по имени, не переиспользовать и не проверить отдельно; метод к
-/// тому же лишён своего `Element`: у него нет границы перестроения и
-/// `const`, и в инспекторе его не видно. Законны `_FooState` — это идиома
-/// Flutter, а не виджет, — и `build`.
+/// Метод-виджет лишён своего `Element`: у него нет границы перестроения и
+/// `const`, и в инспекторе его не видно. Приватный виджет — законная часть
+/// своего единственного потребителя (`docs/decisions/0009`): у него всё
+/// это есть, а лежит он там, где его и читают. Своим файлом ему быть, когда
+/// он вырос, завёл ресурсы или понадобился второму. Законны и `_FooState` —
+/// это идиома Flutter, а не виджет, — и `build`.
 ///
 /// Виджеты живут не только в `lib/ui`: оболочка приложения — в
 /// `lib/main.dart`, ввод (`InputScope`) — в `lib/input`. Прежде страж их не
@@ -33,11 +33,13 @@ void main() {
   ];
   final types = widgetTypes(dartSources('lib'));
 
-  test('новых приватных виджетов нет', () {
+  test('приватный виджет — часть одного виджета, а не второй экран', () {
     expectRatchet(
       found: sources.expand((f) => privateWidgets(f, types: types)),
       known: _privateWidgets,
-      rule: 'приватный виджет — в свой файл под публичным именем',
+      rule:
+          'вырос за $maxPrivateWidgetLines строк, завёл ресурсы или нужен '
+          'второму — в свой файл под публичным именем',
     );
   });
 
@@ -49,14 +51,14 @@ void main() {
     );
   });
 
-  // Число после двоеточия — сколько виджетов в файле сейчас. Вынесли
-  // один — число в списке уменьшается, вынесли все, кроме одного, —
-  // запись уходит.
-  test('новых файлов с несколькими виджетами нет', () {
+  // Число после двоеточия — сколько публичных виджетов в файле сейчас.
+  // Вынесли один — число в списке уменьшается, вынесли все, кроме одного,
+  // — запись уходит.
+  test('новых файлов с несколькими публичными виджетами нет', () {
     expectRatchet(
       found: sources.expand((f) => crowdedFiles(f, types: types)),
       known: _crowdedFiles,
-      rule: 'один файл — один виджет',
+      rule: 'один файл — один публичный виджет',
     );
   });
 
@@ -183,12 +185,84 @@ final Widget child;
       expect(widgetFunctions(file(code), types: types), isEmpty);
     });
 
-    test('приватный наследник своего виджета', () {
-      final found = privateWidgets(
-        file('class _Fancy extends FancyCard {}'),
-        types: types,
-      );
-      expect(found, ['lib/ui/x.dart: _Fancy']);
+    // Приватный виджет законен у единственного потребителя; своим файлом
+    // ему быть, когда он вырос, завёл ресурсы или понадобился второму.
+    test('короткий приватный виджет у одного потребителя законен', () {
+      final code = file('''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) => const _Part();
+}
+class _Part extends FancyCard {
+  const _Part();
+}
+''');
+      expect(privateWidgets(code, types: types), isEmpty);
+    });
+
+    test('приватный наследник своего виджета длиннее порога', () {
+      final body = List.filled(maxPrivateWidgetLines, '  final x = 0;');
+      final code = file('''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) => const _Long();
+}
+class _Long extends FancyCard {
+${body.join('\n')}
+}
+''');
+      expect(privateWidgets(code, types: types), [
+        'lib/ui/x.dart: _Long: ${maxPrivateWidgetLines + 2} строк',
+      ]);
+    });
+
+    test('приватный виджет со своим State, держащим ресурсы', () {
+      final code = file('''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) => const _Ticking();
+}
+class _Ticking extends StatefulWidget {
+  State<_Ticking> createState() => _TickingState();
+}
+class _TickingState extends State<_Ticking> {
+  final scroll = ScrollController();
+  void dispose() {
+    scroll.dispose();
+    super.dispose();
+  }
+}
+''');
+      expect(privateWidgets(code, types: types), [
+        'lib/ui/x.dart: _Ticking: State с ресурсами',
+      ]);
+    });
+
+    test('приватный State без ресурсов законен', () {
+      final code = file('''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) => const _Toggle();
+}
+class _Toggle extends StatefulWidget {
+  State<_Toggle> createState() => _ToggleState();
+}
+class _ToggleState extends State<_Toggle> {
+  var on = false;
+}
+''');
+      expect(privateWidgets(code, types: types), isEmpty);
+    });
+
+    test('приватный виджет, нужный двоим', () {
+      final code = file('''
+class A extends StatelessWidget {
+  Widget build(BuildContext context) => const Row(children: [_Line(), _Mark()]);
+}
+class _Line extends StatelessWidget {
+  Widget build(BuildContext context) => const _Mark();
+}
+class _Mark extends StatelessWidget {}
+''');
+      expect(privateWidgets(code, types: types), [
+        'lib/ui/x.dart: _Mark: нужен A, _Line',
+      ]);
     });
 
     test('поиск унаследованного виджета — не сборка', () {
@@ -203,12 +277,20 @@ final Widget child;
       expect(privateWidgets(code, types: types), isEmpty);
     });
 
-    test('два виджета в файле', () {
+    test('два публичных виджета в файле', () {
       final code = file('''
 class A extends StatelessWidget {}
 class B extends FancyCard {}
 ''');
       expect(crowdedFiles(code, types: types), ['lib/ui/x.dart: 2']);
+    });
+
+    test('приватный виджет рядом с публичным файл не теснит', () {
+      final code = file('''
+class A extends StatelessWidget {}
+class _B extends FancyCard {}
+''');
+      expect(crowdedFiles(code, types: types), isEmpty);
     });
   });
 }
