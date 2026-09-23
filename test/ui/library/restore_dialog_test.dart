@@ -6,10 +6,12 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/core/format.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/ui/library/saves/restore_dialog.dart';
+import 'package:evaporate/ui/library/saves/restore_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,10 +54,13 @@ void main() {
     fileCount: 1,
   );
 
+  /// Окно восстановления. С [onClosed] оно открывается настоящим окном
+  /// поверх страницы, и выбранное в нём приходит в [onClosed].
   Future<void> show(
     WidgetTester tester, {
     required Game game,
     required SaveSnapshot snapshot,
+    ValueChanged<RestoreOptions?>? onClosed,
   }) async {
     final paths = AppPaths.custom(
       dataDir: p.join(tmp.path, 'data'),
@@ -90,12 +95,43 @@ void main() {
           localizationsDelegates: L.localizationsDelegates,
           supportedLocales: L.supportedLocales,
           locale: const Locale('ru'),
-          home: RestoreDialog(snapshot: snapshot, game: game),
+          home: onClosed == null
+              ? RestoreDialog(snapshot: snapshot, game: game)
+              : Builder(
+                  builder: (context) => TextButton(
+                    onPressed: () async => onClosed(
+                      await showDialog<RestoreOptions>(
+                        context: context,
+                        builder: (_) =>
+                            RestoreDialog(snapshot: snapshot, game: game),
+                      ),
+                    ),
+                    child: const Text('открыть'),
+                  ),
+                ),
         ),
       ),
     );
     await tester.pumpAndSettle();
+    if (onClosed == null) return;
+    await tester.tap(find.text('открыть'));
+    await tester.pumpAndSettle();
   }
+
+  Game withLocalRule(String template) => Game(
+    id: 'g1',
+    title: 'Игра',
+    addedAt: DateTime.now(),
+    saveProfile: SaveProfile(
+      rules: [
+        SavePathRule(
+          id: 'местное',
+          label: SavePathRule.defaultLabel,
+          template: template,
+        ),
+      ],
+    ),
+  );
 
   // Диалог подставлял сюда правило из снимка и показывал путь с чужой
   // машины — тот, куда здесь не запишут никогда, — да ещё и оставлял
@@ -125,20 +161,7 @@ void main() {
     final local = p.join(tmp.path, 'здешние-сейвы');
     await show(
       tester,
-      game: Game(
-        id: 'g1',
-        title: 'Игра',
-        addedAt: DateTime.now(),
-        saveProfile: SaveProfile(
-          rules: [
-            SavePathRule(
-              id: 'местное',
-              label: SavePathRule.defaultLabel,
-              template: local,
-            ),
-          ],
-        ),
-      ),
+      game: withLocalRule(local),
       snapshot: snapshotWith(p.join(tmp.path, 'путь-с-чужой-машины')),
     );
 
@@ -147,5 +170,27 @@ void main() {
       tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
       isNotNull,
     );
+  });
+
+  // Галочки — последнее слово человека перед перезаписью: что он отметил,
+  // то и уходит в раскладку, а не то, что стояло по умолчанию.
+  testWidgets('отмеченное в окне уходит в раскладку как есть', (tester) async {
+    final l = LRu();
+    RestoreOptions? chosen;
+    await show(
+      tester,
+      game: withLocalRule(p.join(tmp.path, 'здешние-сейвы')),
+      snapshot: snapshotWith(p.join(tmp.path, 'путь-с-чужой-машины')),
+      onClosed: (options) => chosen = options,
+    );
+
+    await tester.tap(find.text(l.wipeBeforeUnpack));
+    await tester.tap(find.text(l.backupFirst));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, l.restore));
+    await tester.pumpAndSettle();
+
+    expect(chosen?.wipeTarget, isTrue);
+    expect(chosen?.backupCurrent, isFalse);
   });
 }

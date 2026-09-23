@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/downloads/downloads_bloc.dart';
+import '../../bloc/navigation/navigation_bloc.dart';
+import '../../models/app_settings.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
-import '../theme.dart';
+import '../../models/library_effect.dart';
 import 'cover/cover_frame.dart';
 import 'nav_tile.dart';
 
@@ -13,16 +15,15 @@ import 'nav_tile.dart';
 /// Обложка тут не украшение, а единственная подпись: сетку читают по
 /// картинкам, а не по названиям. Поэтому название показывается только там,
 /// где картинки нет, — и во всю плитку, чтобы игру всё равно было видно.
+///
+/// Открывает игру и выбирает её плитка сама: нажатие и фокус случаются
+/// здесь, и везти их наверх колбэками через сетку незачем.
 class GameCoverTile extends StatelessWidget {
   const GameCoverTile({
     super.key,
     required this.game,
     required this.selected,
-    this.dropsEnabled = false,
-    this.portalEnabled = false,
-    this.frameEnabled = true,
-    required this.onOpen,
-    required this.onFocused,
+    required this.effects,
     this.focusNode,
   });
 
@@ -31,18 +32,10 @@ class GameCoverTile extends StatelessWidget {
   /// Игра, к которой возвращаются, закрыв её страницу.
   final bool selected;
 
-  /// Капли на обложке выбранной игры. Приходит сверху вместе с остальными
-  /// эффектами: плитка о настройках не спрашивает.
-  final bool dropsEnabled;
+  /// Облик библиотеки: капли, искры и рамка. Приходит сверху: плитка о
+  /// настройках не спрашивает.
+  final Appearance effects;
 
-  /// Искры по краю выбранной обложки.
-  final bool portalEnabled;
-
-  /// Рамка вокруг обложки под фокусом. Выключается отдельно от эффектов:
-  /// без неё место в сетке показывает только рост обложки.
-  final bool frameEnabled;
-  final VoidCallback onOpen;
-  final VoidCallback onFocused;
   final FocusNode? focusNode;
 
   @override
@@ -57,31 +50,31 @@ class GameCoverTile extends StatelessWidget {
     // действие нажатия, и плитка перестаёт нажиматься с клавиатуры. А
     // `MergeSemantics` сводит кнопку и подпись в одно объявление — иначе
     // диктор читает их подряд двумя.
+    final nav = context.read<NavigationBloc>();
     return MergeSemantics(
       child: NavTile(
         focusNode: focusNode,
-        onTap: onOpen,
+        onTap: () => nav.add(GameOpened(game.id)),
         // Фокус восстанавливается на той игре, с которой ушли на её страницу:
         // иначе после «назад» сетка теряла бы место, и искать пришлось бы
         // заново.
         autofocus: selected,
+        // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть» должна
+        // работать по той игре, на которую смотришь, не заходя внутрь.
         onFocusChange: (has) {
-          if (has) onFocused();
+          if (has) nav.add(GameSelected(game.id));
         },
-        padding: EdgeInsets.zero,
-        margin: EdgeInsets.zero,
-        borderRadius: EvaporateTheme.radiusControl,
-        borderWidth: 2.5,
-        showFocusBorder: frameEnabled,
-        focusedScale: 1.06,
+        // Рамка живёт мимо общего выключателя эффектов: она показывает, где
+        // ты в сетке, а не украшает её.
+        showFocusBorder: effects.isOn(LibraryEffect.selectionFrame),
         // Контур растёт вместе с фокусом, но остаётся снаружи ClipRRect.
         // Иначе увеличенная обложка закрывает самые яркие искры у кромки.
         child: CoverFrame(
           game: game,
           task: task,
           selected: selected,
-          dropsEnabled: dropsEnabled,
-          portalEnabled: portalEnabled,
+          dropsEnabled: effects.shows(LibraryEffect.drops),
+          portalEnabled: effects.shows(LibraryEffect.portal),
         ),
       ),
     );

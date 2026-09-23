@@ -6,30 +6,18 @@ import '../../../l10n/app_localizations.dart';
 import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
 import 'add_game_fields.dart';
+import 'source_fields.dart';
 
 /// Окно «Добавить игру» изнутри: поля и клавиши под ними.
 class AddGameDialogView extends StatelessWidget {
   const AddGameDialogView({
     super.key,
     required this.form,
-    required this.magnetController,
-    required this.titleController,
-    required this.onMagnetChanged,
-    required this.onPickTorrent,
-    required this.onPickFolder,
+    required this.inputs,
   });
 
   final AddGameForm form;
-  final TextEditingController magnetController;
-  final TextEditingController titleController;
-
-  /// Ссылку разбирает окно: из неё подставляется название, а это
-  /// контроллер текста, то есть ресурс.
-  final ValueChanged<String> onMagnetChanged;
-
-  /// Системные окна выбора — тоже дело окна, а не блока.
-  final VoidCallback onPickTorrent;
-  final VoidCallback onPickFolder;
+  final AddGameInputs inputs;
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +28,7 @@ class AddGameDialogView extends StatelessWidget {
       title: Text(l.addGame),
       content: SizedBox(
         width: EvaporateLayout.dialogWidth,
-        child: SingleChildScrollView(
-          child: AddGameFields(
-            magnetController: magnetController,
-            titleController: titleController,
-            onMagnetChanged: onMagnetChanged,
-            onPickTorrent: onPickTorrent,
-            onPickFolder: onPickFolder,
-          ),
-        ),
+        child: SingleChildScrollView(child: AddGameFields(inputs: inputs)),
       ),
       actions: [
         TextButton(

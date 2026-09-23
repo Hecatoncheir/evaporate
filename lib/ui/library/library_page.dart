@@ -10,12 +10,9 @@ import '../../bloc/library_view/library_view_bloc.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
-import '../../models/app_settings.dart';
 import '../../models/game.dart';
-import '../../models/shelf.dart';
 import '../../services/launch/library_scanner.dart';
 import '../../services/launch/scan_session.dart';
-import 'add_game_dialog.dart';
 import 'game_page.dart';
 import 'library_body.dart';
 import 'library_grid_controller.dart';
@@ -119,18 +116,9 @@ class _LibraryPageState extends State<LibraryPage> {
     final opened = context.select<LibraryBloc, Game?>(
       (b) => b.state.gameById(navState.openedGameId),
     );
-    // Только облик: папка игр или прокси сетку обложек не касаются.
-    final effects = context.select<SettingsBloc, Appearance>(
-      (b) => b.state.appearance,
-    );
-    final scale = context.select<SettingsBloc, double>(
-      (b) => b.state.appearance.libraryScale,
-    );
     _forgetGone(all);
 
-    final view = _view.state;
-    final found = view.found(all);
-    final games = gamesOnShelf(found, view.shelf);
+    final games = _view.state.shown(all);
 
     // Открытую игру могли удалить, а выбранную — отфильтровать. И то и
     // другое чинится после кадра: менять состояние во время сборки нельзя.
@@ -142,23 +130,17 @@ class _LibraryPageState extends State<LibraryPage> {
 
     // Блок экрана — в дерево: вкладки полок и поле поиска читают и
     // меняют его сами, а не через колбэки четырёх виджетов над ними.
+    // Выбор, облик и крупность листья тоже берут сами; сюда идёт то, чем
+    // владеет страница: ресурсы, полка, окно поиска и возврат фокуса.
     return BlocProvider.value(
       value: _view,
       child: LibraryBody(
         grid: _grid,
         games: games,
-        found: found,
-        libraryIsEmpty: all.isEmpty,
-        selectedId: navState.selectedGameId,
-        effects: effects,
-        scale: scale,
-        scanning: _scanning,
         searchFocus: _searchFocus,
-        onReturnToGames: () => _returnToGames(games, nav),
+        scanning: _scanning,
         onScan: () => _scanFolder(context),
-        onAdd: () => _addGame(context),
-        onSelect: (id) => nav.add(GameSelected(id)),
-        onOpen: (id) => nav.add(GameOpened(id)),
+        onReturnToGames: () => _returnToGames(games, nav),
       ),
     );
   }
@@ -266,11 +248,5 @@ class _LibraryPageState extends State<LibraryPage> {
       session.dispose();
       if (mounted) setState(() => _scanning = false);
     }
-  }
-
-  Future<void> _addGame(BuildContext context) async {
-    final nav = context.read<NavigationBloc>();
-    final addedId = await showAddGameDialog(context);
-    if (addedId != null && mounted) nav.add(GameSelected(addedId));
   }
 }

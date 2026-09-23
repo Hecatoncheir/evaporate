@@ -15,19 +15,11 @@ class ScanDialogBody extends StatelessWidget {
     super.key,
     required this.session,
     required this.scan,
-    required this.dragging,
-    required this.onDragging,
     required this.onPickFolder,
   });
 
   final ScanSession session;
   final ScanState scan;
-
-  /// Папку держат над окном. Это не состояние, а положение мыши, поэтому
-  /// живёт у самого окна, а не в блоке.
-  final bool dragging;
-
-  final ValueChanged<bool> onDragging;
   final VoidCallback onPickFolder;
 
   @override
@@ -43,21 +35,7 @@ class ScanDialogBody extends StatelessWidget {
         children: [
           ScanProgress(session: session),
           const SizedBox(height: EvaporateSpacing.field),
-          ScanDropArea(
-            dragging: dragging,
-            wrongDrop: scan.wrongDrop,
-            onTap: onPickFolder,
-            onEntered: () => onDragging(true),
-            onExited: () => onDragging(false),
-            onDrop: (details) {
-              onDragging(false);
-              bloc.add(
-                ScanFolderDropped([
-                  for (final file in details.files) file.path,
-                ]),
-              );
-            },
-          ),
+          ScanDropArea(onTap: onPickFolder),
           if (scan.found.isNotEmpty) ...[
             const SizedBox(height: EvaporateSpacing.field),
             Flexible(

@@ -30,21 +30,15 @@ Future<int?> showScanFolderDialog(BuildContext context, ScanSession session) {
 ///
 /// Ход обхода и отбор держит `ScanBloc`: находки приходят из `ScanSession`
 /// сами, пока человек смотрит, а отбор при этом его — и переживать приход
-/// новой находки он обязан. В самом окне остаётся признак «папку держат над
-/// ним»: это не состояние, а положение мыши.
-class ScanFolderDialog extends StatefulWidget {
+/// новой находки он обязан. Признак «папку держат над окном» — у приёмника
+/// броска (`ScanDropArea`): это не состояние, а положение мыши.
+class ScanFolderDialog extends StatelessWidget {
   const ScanFolderDialog({super.key, required this.session});
 
   final ScanSession session;
 
-  @override
-  State<ScanFolderDialog> createState() => _ScanFolderDialogState();
-}
-
-class _ScanFolderDialogState extends State<ScanFolderDialog> {
-  bool _dragging = false;
-
-  Future<void> _pickFolder(ScanBloc scan) async {
+  Future<void> _pickFolder(BuildContext context) async {
+    final scan = context.read<ScanBloc>();
     final directory = await getDirectoryPath(
       confirmButtonText: L.of(context).scan,
     );
@@ -76,14 +70,12 @@ class _ScanFolderDialogState extends State<ScanFolderDialog> {
         autofocus: true,
         skipTraversal: true,
         child: BlocProvider(
-          create: (context) => ScanBloc(widget.session),
+          create: (context) => ScanBloc(session),
           child: BlocBuilder<ScanBloc, ScanState>(
             builder: (context, scan) => ScanDialogView(
-              session: widget.session,
+              session: session,
               scan: scan,
-              dragging: _dragging,
-              onDragging: (value) => setState(() => _dragging = value),
-              onPickFolder: () => _pickFolder(context.read<ScanBloc>()),
+              onPickFolder: () => _pickFolder(context),
               onAdd: () => _add(context, scan),
             ),
           ),

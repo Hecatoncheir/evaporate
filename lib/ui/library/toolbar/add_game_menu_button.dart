@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../theme.dart';
+import '../add_game_dialog.dart';
 
 /// «Добавить игру» — одна клавиша с меню на два способа.
 ///
@@ -14,13 +15,10 @@ import '../../theme.dart';
 /// Меню, а не расщеплённая клавиша: у расщеплённой две области нажатия и
 /// две остановки фокуса, а сюда ходят и с клавиатуры, и с геймпада.
 class AddGameMenuButton extends StatelessWidget {
-  const AddGameMenuButton({
-    super.key,
-    required this.onAdd,
-    required this.onScan,
-  });
+  const AddGameMenuButton({super.key, required this.onScan});
 
-  final VoidCallback onAdd;
+  /// Поиск установленных игр — страницы: пока его окно открыто, она
+  /// держит броски в окно при себе.
   final VoidCallback onScan;
 
   @override
@@ -52,7 +50,7 @@ class AddGameMenuButton extends StatelessWidget {
       ),
       menuChildren: [
         MenuItemButton(
-          onPressed: onAdd,
+          onPressed: () => showAddGameDialog(context),
           leadingIcon: const Icon(Icons.link, size: EvaporateIconSize.panel),
           child: Text(l.addGameSource),
         ),

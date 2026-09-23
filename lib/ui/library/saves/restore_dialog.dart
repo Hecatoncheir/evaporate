@@ -22,8 +22,7 @@ class RestoreDialog extends StatefulWidget {
 }
 
 class _RestoreDialogState extends State<RestoreDialog> {
-  bool _backup = true;
-  bool _wipe = false;
+  var _options = const RestoreOptions(backupCurrent: true, wipeTarget: false);
 
   @override
   Widget build(BuildContext context) {
@@ -47,10 +46,8 @@ class _RestoreDialogState extends State<RestoreDialog> {
             content: RestoreDialogBody(
               snapshot: widget.snapshot,
               preview: preview,
-              backup: _backup,
-              wipe: _wipe,
-              onBackup: (value) => setState(() => _backup = value),
-              onWipe: (value) => setState(() => _wipe = value),
+              options: _options,
+              onOptions: (patch) => setState(() => _options = patch(_options)),
             ),
             actions: [
               TextButton(
@@ -62,13 +59,7 @@ class _RestoreDialogState extends State<RestoreDialog> {
                 // некуда, сказано выше списком целей.
                 onPressed: preview.targets.isEmpty
                     ? null
-                    : () => Navigator.pop(
-                        context,
-                        RestoreOptions(
-                          backupCurrent: _backup,
-                          wipeTarget: _wipe,
-                        ),
-                      ),
+                    : () => Navigator.pop(context, _options),
                 child: Text(l.restore),
               ),
             ],

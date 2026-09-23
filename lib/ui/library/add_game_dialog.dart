@@ -6,16 +6,23 @@ import 'package:path/path.dart' as p;
 import '../../bloc/add_game/add_game_bloc.dart';
 import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
+import '../../bloc/navigation/navigation_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import 'add/add_game_dialog_view.dart';
 
-/// Возвращает идентификатор добавленной игры: событие ничего не возвращает,
-/// а вызывающему нужно выделить новую игру в списке.
-Future<String?> showAddGameDialog(BuildContext context) {
-  return showDialog<String>(
+/// Окно «Добавить игру» и выбор добавленной: иначе новая игра затеряется
+/// среди прочих.
+///
+/// Навигация берётся до окна, и живость позвавшего не проверяется: клавишу
+/// с пустой полки к закрытию окна сменяет сетка с новой игрой, а выбрать
+/// её всё равно нужно.
+Future<void> showAddGameDialog(BuildContext context) async {
+  final nav = context.read<NavigationBloc>();
+  final addedId = await showDialog<String>(
     context: context,
     builder: (_) => const AddGameDialog(),
   );
+  if (addedId != null) nav.add(GameSelected(addedId));
 }
 
 /// Окно «Добавить игру»: папка установки, `.torrent` или magnet-ссылка.
@@ -92,11 +99,13 @@ class _AddGameDialogState extends State<AddGameDialog> {
         listener: (context, form) => Navigator.pop(context, form.addedId),
         builder: (context, form) => AddGameDialogView(
           form: form,
-          magnetController: _magnetController,
-          titleController: _titleController,
-          onMagnetChanged: (value) => _onMagnetChanged(context, value),
-          onPickTorrent: () => _pickTorrent(context),
-          onPickFolder: () => _pickFolder(context),
+          inputs: (
+            magnet: _magnetController,
+            title: _titleController,
+            onMagnetChanged: (value) => _onMagnetChanged(context, value),
+            pickTorrent: () => _pickTorrent(context),
+            pickFolder: () => _pickFolder(context),
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../bloc/navigation/navigation_bloc.dart';
+import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
@@ -17,8 +18,6 @@ class LibraryFeaturedSlot extends StatelessWidget {
   const LibraryFeaturedSlot({
     super.key,
     required this.games,
-    required this.selectedId,
-    required this.effects,
     required this.height,
   });
 
@@ -29,14 +28,12 @@ class LibraryFeaturedSlot extends StatelessWidget {
   static const heroHeight = 520.0;
 
   final List<Game> games;
-  final String? selectedId;
-  final Appearance effects;
 
   /// Высота, доставшаяся разделу.
   final double height;
 
   /// Игра для кадра: выбранная, а если её на полке нет — первая.
-  Game? get _featured {
+  Game? _featured(String? selectedId) {
     if (games.isEmpty) return null;
     final index = games.indexWhere((game) => game.id == selectedId);
     return games[index < 0 ? 0 : index];
@@ -44,7 +41,12 @@ class LibraryFeaturedSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final game = _featured;
+    final game = _featured(
+      context.select<NavigationBloc, String?>((b) => b.state.selectedGameId),
+    );
+    final effects = context.select<SettingsBloc, Appearance>(
+      (b) => b.state.appearance,
+    );
     if (game == null || height < heroHeight) return const SizedBox.shrink();
     return FeaturedGame(
       game: game,

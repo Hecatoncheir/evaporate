@@ -371,14 +371,12 @@ const _longClosures = [
   'lib/ui/library/effects/portal/portal_sparks.dart: PortalSparksState.build: 30',
   'lib/ui/library/featured/shots_slideshow.dart: ShotsSlideshow.build: 40',
   'lib/ui/library/featured_game.dart: FeaturedGame.build: 30',
-  'lib/ui/library/library_body.dart: LibraryBody.build: 46',
-  'lib/ui/library/library_grid.dart: LibraryGrid.build: 36',
-  'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 35',
+  'lib/ui/library/library_body.dart: LibraryBody.build: 28',
+  'lib/ui/library/library_grid.dart: LibraryGrid.build: 30',
+  'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 27',
   'lib/ui/library/toolbar/toolbar_layout.dart: ToolbarLayout.build: 35',
   'lib/ui/saves/snapshot_row.dart: SnapshotRow.build: 35',
-  'lib/ui/settings/about_body.dart: AboutBody.build: 45',
   'lib/ui/settings/log_card.dart: LogCard.build: 41',
-  'lib/ui/settings/proxy_form_body.dart: ProxyFormBody.build: 30',
   'lib/ui/shell/navigation_rack.dart: NavigationRack.build: 49',
   'lib/ui/shell/top_action.dart: TopAction.build: 29',
   'lib/ui/window/interface_scale.dart: InterfaceScale.build: 28',
@@ -387,10 +385,4 @@ const _longClosures = [
 /// Виджеты больше чем с семью параметрами, кроме `key`: `путь: Имя: число`.
 /// Родитель, передающий половину своего состояния по одной штуке, —
 /// метод-виджет, переодетый классом.
-const _wideWidgets = [
-  'lib/main.dart: EvaporateApp: 9',
-  'lib/ui/library/game_cover.dart: GameCoverTile: 8',
-  'lib/ui/library/library_body.dart: LibraryBody: 14',
-  'lib/ui/library/library_grid_tile.dart: LibraryGridTile: 8',
-  'lib/ui/library/nav_tile.dart: NavTile: 12',
-];
+const _wideWidgets = <String>[];

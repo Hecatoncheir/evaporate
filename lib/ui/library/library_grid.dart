@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/navigation/navigation_bloc.dart';
+import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
@@ -10,36 +13,27 @@ import 'library_grid_controller.dart';
 import 'library_grid_tile.dart';
 
 /// Сетка обложек: ленивая, с рамкой выбранного и всходом первого экрана.
+///
+/// Выбор, облик и крупность плиток сетка берёт у блоков сама, а выбирают и
+/// открывают игру плитки: прежде «открыть» шло сюда пятым звеном от
+/// страницы, и ни одному звену посередине не было нужно.
 class LibraryGrid extends StatelessWidget {
-  const LibraryGrid({
-    super.key,
-    required this.controller,
-    required this.games,
-    required this.selectedId,
-    required this.effects,
-    required this.scale,
-    required this.onSelect,
-    required this.onOpen,
-  });
+  const LibraryGrid({super.key, required this.controller, required this.games});
 
   /// Ключи, фокусы, прокрутка и наведение: они переживают перестроение
   /// сетки, а сама сетка — нет.
   final LibraryGridController controller;
 
   final List<Game> games;
-  final String? selectedId;
-  final Appearance effects;
-
-  /// Крупность плиток из настроек библиотеки.
-  final double scale;
-
-  /// Выбрать игру — курсором или фокусом.
-  final ValueChanged<String> onSelect;
-
-  final ValueChanged<String> onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final selectedId = context.select<NavigationBloc, String?>(
+      (b) => b.state.selectedGameId,
+    );
+    final effects = context.select<SettingsBloc, Appearance>(
+      (b) => b.state.appearance,
+    );
     // Где какая игра — чтобы ленивая сетка узнавала уже построенную плитку
     // после перестановки, а не собирала её заново. Ключ для этого стоит на
     // самой `LibraryGridTile`: спрятанный в её `MouseRegion`, он до сетки не
@@ -48,7 +42,7 @@ class LibraryGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, box) {
-        _measure(box);
+        _measure(box, effects.libraryScale);
         return LiquidSelection(
           key: const ValueKey('grid-liquid'),
           targetKey: () => controller.targetKey(selectedId),
@@ -61,7 +55,7 @@ class LibraryGrid extends StatelessWidget {
             findChildIndexCallback: (key) =>
                 key is ValueKey<String> ? indices[key.value] : null,
             padding: padding,
-            gridDelegate: delegateFor(scale),
+            gridDelegate: delegateFor(effects.libraryScale),
             itemCount: games.length,
             itemBuilder: (context, index) {
               final game = games[index];
@@ -72,12 +66,6 @@ class LibraryGrid extends StatelessWidget {
                 controller: controller,
                 selected: game.id == selectedId,
                 effects: effects,
-                onHover: (value) {
-                  controller.hover(game.id, hovered: value);
-                  if (value && selectedId != game.id) onSelect(game.id);
-                },
-                onOpen: () => onOpen(game.id),
-                onFocused: () => onSelect(game.id),
               );
             },
           ),
@@ -137,7 +125,7 @@ class LibraryGrid extends StatelessWidget {
 
   /// Ширина плитки нужна не только сетке: по шагу ряда страница мотает
   /// список, догоняя фокусом ещё не построенную плитку.
-  void _measure(BoxConstraints box) {
+  void _measure(BoxConstraints box, double scale) {
     final layout = layoutFor(box.maxWidth, scale);
     controller
       ..columns = layout.columns

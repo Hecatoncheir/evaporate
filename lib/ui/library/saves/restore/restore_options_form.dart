@@ -2,22 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../theme.dart';
+import '../restore_options.dart';
 
 /// Две галочки: снять резервную копию и стереть целевую папку до
 /// распаковки.
+///
+/// Выбор — одно значение [RestoreOptions], то же, что окно отдаёт наружу:
+/// прежде две галочки ехали сюда четырьмя параметрами через тело окна,
+/// которому не были нужны.
 class RestoreOptionsForm extends StatelessWidget {
   const RestoreOptionsForm({
     super.key,
-    required this.backup,
-    required this.wipe,
-    required this.onBackup,
-    required this.onWipe,
+    required this.value,
+    required this.onChanged,
   });
 
-  final bool backup;
-  final bool wipe;
-  final ValueChanged<bool> onBackup;
-  final ValueChanged<bool> onWipe;
+  final RestoreOptions value;
+  final ValueChanged<RestoreOptionsPatch> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -26,15 +27,17 @@ class RestoreOptionsForm extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         CheckboxListTile(
-          value: backup,
-          onChanged: (value) => onBackup(value ?? true),
+          value: value.backupCurrent,
+          onChanged: (on) =>
+              onChanged((now) => now.copyWith(backupCurrent: on ?? true)),
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           title: Text(l.backupFirst, style: context.text.body),
         ),
         CheckboxListTile(
-          value: wipe,
-          onChanged: (value) => onWipe(value ?? false),
+          value: value.wipeTarget,
+          onChanged: (on) =>
+              onChanged((now) => now.copyWith(wipeTarget: on ?? false)),
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           title: Text(l.wipeBeforeUnpack, style: context.text.body),

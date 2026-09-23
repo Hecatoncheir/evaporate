@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/navigation/navigation_bloc.dart';
+import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
@@ -15,58 +18,49 @@ import 'toolbar.dart';
 /// Сама страница библиотеки: заголовок, крупный кадр, полки и сетка.
 ///
 /// Отдельно от `LibraryPage`, у которой на руках выбор, поиск, фокус и
-/// системные окна: здесь только раскладка и то, что ей для неё нужно.
+/// системные окна: здесь только раскладка. Выбор, облик и крупность
+/// листья берут у блоков сами — прежде всё это шло сюда параметрами, а
+/// само тело читало из четырнадцати один облик.
 class LibraryBody extends StatelessWidget {
   const LibraryBody({
     super.key,
     required this.grid,
     required this.games,
-    required this.found,
-    required this.libraryIsEmpty,
-    required this.selectedId,
-    required this.effects,
-    required this.scale,
-    required this.scanning,
     required this.searchFocus,
-    required this.onReturnToGames,
+    required this.scanning,
     required this.onScan,
-    required this.onAdd,
-    required this.onSelect,
-    required this.onOpen,
+    required this.onReturnToGames,
   });
 
   final LibraryGridController grid;
 
-  /// Игры выбранной полки — то, что и показывают.
+  /// Игры выбранной полки — то, что и показывают. Считает их страница:
+  /// по ним же она чинит выбор и возвращает фокус.
   final List<Game> games;
 
-  /// Все найденные поиском: по ним считаются числа у полок.
-  final List<Game> found;
-
-  /// В библиотеке нет игр вовсе — это другой разговор, чем «ничего не
-  /// нашлось на этой полке».
-  final bool libraryIsEmpty;
-
-  final String? selectedId;
-  final Appearance effects;
-  final double scale;
+  final FocusNode searchFocus;
 
   /// Идёт поиск установленных игр: пока он идёт, сброс в окно перехватывает
   /// его собственное окно.
   final bool scanning;
 
-  final FocusNode searchFocus;
-  final VoidCallback onReturnToGames;
+  /// Поиск установленных игр держит флаг [scanning] страницы — поэтому он
+  /// её, а не клавиши, которая его зовёт.
   final VoidCallback onScan;
-  final VoidCallback onAdd;
-  final ValueChanged<String> onSelect;
-  final ValueChanged<String> onOpen;
+
+  final VoidCallback onReturnToGames;
 
   /// Ниже этой высоты не остаётся места и заголовку раздела.
   static const _headingHeight = 360.0;
 
   @override
   Widget build(BuildContext context) {
+    final effects = context.select<SettingsBloc, Appearance>(
+      (b) => b.state.appearance,
+    );
+    final selectedId = context.select<NavigationBloc, String?>(
+      (b) => b.state.selectedGameId,
+    );
     return LayoutBuilder(
       builder: (context, constraints) {
         final height = constraints.maxHeight;
@@ -78,36 +72,18 @@ class LibraryBody extends StatelessWidget {
           child: Column(
             children: [
               if (height >= _headingHeight) const ConceptLibraryHeading(),
-              LibraryFeaturedSlot(
-                games: games,
-                selectedId: selectedId,
-                effects: effects,
-                height: height,
-              ),
+              LibraryFeaturedSlot(games: games, height: height),
               LibraryToolbar(
-                found: found,
                 searchFocus: searchFocus,
-                onReturnToGames: onReturnToGames,
                 onScan: onScan,
-                onAdd: onAdd,
+                onReturnToGames: onReturnToGames,
               ),
               Expanded(
                 child: GameDropTarget(
                   enabled: !scanning,
                   child: games.isEmpty
-                      ? LibraryEmptyState(
-                          libraryIsEmpty: libraryIsEmpty,
-                          onAdd: onAdd,
-                        )
-                      : LibraryGrid(
-                          controller: grid,
-                          games: games,
-                          selectedId: selectedId,
-                          effects: effects,
-                          scale: scale,
-                          onSelect: onSelect,
-                          onOpen: onOpen,
-                        ),
+                      ? const LibraryEmptyState()
+                      : LibraryGrid(controller: grid, games: games),
                 ),
               ),
             ],

@@ -60,7 +60,13 @@ void main() {
     expect(sentence, isNotNull, reason: 'фраза о блоках приложения пропала');
     final listed = docNames(sentence!.group(1)!).toSet();
 
-    expect(listed, providedBlocs(File('lib/main.dart').readAsStringSync()));
+    expect(
+      listed,
+      providedBlocs(
+        File('lib/main.dart').readAsStringSync(),
+        services: File('lib/app_services.dart').readAsStringSync(),
+      ),
+    );
   });
 
   group('страж ловит нарушение', () {
@@ -109,6 +115,20 @@ BlocProvider(create: (_) => NavigationBloc(library: widget.library)),
         'DownloadsBloc',
         'NavigationBloc',
       });
+    });
+
+    // Блоки, поднятые `AppServices`, приложение получает одним значением
+    // и раздаёт его полями: считается только розданное.
+    test('раздаваемые поля служб видны по своему типу', () {
+      const main = '''
+BlocProvider.value(value: services.library),
+BlocProvider.value(value: widget.settings),
+''';
+      const services = '''
+final LibraryBloc library;
+final UpdateBloc update;
+''';
+      expect(providedBlocs(main, services: services), {'LibraryBloc'});
     });
   });
 }
@@ -175,16 +195,25 @@ List<String> docNames(String text) => [
       name.group(1)!,
 ];
 
-/// Блоки, которые раздаёт `main.dart`: полями приложения и созданием на
-/// месте в `BlocProvider`.
-Set<String> providedBlocs(String main) => {
-  for (final match in RegExp(r'final (\w+Bloc) \w+;').allMatches(main))
-    match.group(1)!,
-  for (final match in RegExp(
-    r'BlocProvider\(\s*create:\s*\(_\)\s*=>\s*(\w+Bloc)\(',
-  ).allMatches(main))
-    match.group(1)!,
-};
+/// Блоки, которые раздаёт `main.dart`: полями приложения, созданием на
+/// месте в `BlocProvider` и полями [services] (`AppServices`), которые оно
+/// раздаёт как `services.library`.
+Set<String> providedBlocs(String main, {String services = ''}) {
+  final serviceBlocs = {
+    for (final match in RegExp(r'final (\w+Bloc) (\w+);').allMatches(services))
+      match.group(2)!: match.group(1)!,
+  };
+  return {
+    for (final match in RegExp(r'final (\w+Bloc) \w+;').allMatches(main))
+      match.group(1)!,
+    for (final match in RegExp(r'value: services\.(\w+)\)').allMatches(main))
+      ?serviceBlocs[match.group(1)],
+    for (final match in RegExp(
+      r'BlocProvider\(\s*create:\s*\(_\)\s*=>\s*(\w+Bloc)\(',
+    ).allMatches(main))
+      match.group(1)!,
+  };
+}
 
 bool _exists(String path) =>
     File(path).existsSync() || Directory(path).existsSync();

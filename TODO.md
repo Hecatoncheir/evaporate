@@ -512,7 +512,7 @@
   раздаёт рамка. У `_StatusChip` ушёл мёртвый `compact` из B8: непереданный
   параметр приватного виджета — предупреждение анализатора. Поведение не
   менялось.
-- [ ] **B4. Пробросы: листья читают блоки сами, россыпь — одним значением.**
+- [x] **B4. Пробросы: листья читают блоки сами, россыпь — одним значением.**
   **[✔]** P2. `LibraryBody` (`library_body.dart:20-63`): 14 параметров, сам
   читает только `effects`; `onOpen` идёт пятью звеньями
   (`library_page:161 → library_body:63 → library_grid:79 → library_grid_tile:143 → game_cover:63 → nav_tile:91`).
@@ -534,6 +534,30 @@
   `game_drop_target.dart:49`; `ProxyAddressFields` заводит контроллеры сам;
   `AboutActions` читает `UpdateBloc`, `AboutCard` сливается с `AboutBody`.
   Итог: `LibraryBody` ≤ 5 параметров, `_wideWidgets` пуст. **M**
+  *Сделано:* `_wideWidgets` пуст. Выбор, облик и крупность сетка, плитка,
+  кадр и вкладки берут у блоков сами; открывает и выбирает игру
+  `GameCoverTile`, где случаются нажатие и фокус, — от «открыть» в пять
+  звеньев не осталось ни одного. Числа у полок считают вкладки, пустая
+  полка сама знает, пуста ли библиотека, а `showAddGameDialog` сам
+  выделяет добавленную игру: этим в странице не держалось ничего. У
+  `LibraryBody` шесть параметров, а не пять: сетка, полка, фокус поиска,
+  флаг окна поиска с его вызовом и возврат фокуса — всё это страница
+  держит на время своей жизни. `NavTile` сжат с двенадцати до шести: шесть
+  умолчаний единственный вызов переписывал всегда (из B8).
+  `EvaporateApp` берёт `AppServices` одним значением, и `docs_names_test`
+  узнаёт розданные поля служб по их типу. Для окна добавления пять вещей
+  окна — одна запись `AddGameInputs`; признак «папку держат над окном»
+  переехал в `ScanDropArea`, и окно поиска стало без состояния;
+  `ProxyAddressFields` сами заводят контроллеры с набранного в блоке формы;
+  `AboutActions` читает `UpdateBloc`, а `AboutCard` вобрал тело. Галочки
+  восстановления идут значением `RestoreOptions`, но правка — функцией от
+  текущего (`RestoreOptionsPatch`), а не готовым значением: новый тест
+  показал, что две галочки, нажатые между кадрами, иначе затирают одна
+  другую, — та же беда, от которой настройки лечились `SettingsPatched`.
+  Новых тестов два: выбранное в окне восстановления уходит наружу как есть
+  и поля прокси открываются на сохранённом адресе, а набранное уходит в
+  настройки только по «Применить». Карточка «О программе» заодно берёт из
+  настроек `select` одного флага вместо `watch` всего (из B14).
 - [ ] **B5. Двойники, разошедшиеся на волосок.** **[✔]** P2. Каждый —
   один виджет или одна функция:
   - `cover/cover_progress_strip.dart:19-50` и `detail/cover_progress.dart:21-52`
@@ -587,7 +611,8 @@
   убрать (тесту хватит `field.card`); рендерер — на `field.tailOf`. **S**
 - [ ] **B8. Мёртвые параметры, умолчания и куски темы.** **[✔]** P3.
   `nav_tile.dart:18-30` — единственный вызов (`game_cover.dart:61-76`)
-  переписывает шесть умолчаний из двенадцати параметров; `GlassSurface.radius = 24`
+  переписывает шесть умолчаний из двенадцати параметров (снято в B4);
+  `GlassSurface.radius = 24`
   и `_GlassSliver.radius = 24` (`snapshot_history.dart`) — все вызовы
   передают токен; `LiquidSelection.resting` никто не передаёт — ветка
   `liquid_painter.dart:27-31` мёртвая; `FadeIndexedStack.duration`,
@@ -664,7 +689,7 @@
   `download_settings_card:20`, `save_settings_card:20`,
   `speed_limits_settings:22`, `window_startup_card:18`, `gamepad_settings:37`,
   `notification_settings:23`, `effects_card:30`, `effect_preset_picker:15`,
-  `effect_details:17`, `about_body:26`). Там же `theme_cycle_action.dart:41`,
+  `effect_details:17`, `about_body:26` — снято в B4). Там же `theme_cycle_action.dart:41`,
   `library_heading_bar.dart:16` — весь `AppSettings` (снято в B2); `save_paths_section.dart:63`,
   `snapshots_section.dart:32` — весь `SavesState`, а `watched_folders.dart:31`
   рядом — `select`. Лечение: `select` по части (`s.saves`, `s.appearance`,

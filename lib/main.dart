@@ -10,16 +10,11 @@ import 'package:window_manager/window_manager.dart';
 
 import 'app_services.dart';
 import 'bloc/download_history/download_history_bloc.dart';
-import 'bloc/downloads/downloads_bloc.dart';
-import 'bloc/library/library_bloc.dart';
 import 'bloc/logging_observer.dart';
 import 'bloc/navigation/navigation_bloc.dart';
-import 'bloc/saves/saves_bloc.dart';
 import 'bloc/settings/settings_bloc.dart';
-import 'bloc/update/update_bloc.dart';
 import 'core/app_paths.dart';
 import 'core/json_store.dart';
-import 'input/gamepad_service.dart';
 import 'l10n/app_localizations.dart';
 import 'models/app_settings.dart';
 import 'services/notifications/notification_service.dart';
@@ -93,12 +88,7 @@ Future<void> main(List<String> args) async {
   runApp(
     EvaporateApp(
       settings: settings,
-      library: services.library,
-      saves: services.saves,
-      downloads: services.downloads,
-      gamepad: services.gamepad,
-      notifications: services.notifications,
-      update: services.update,
+      services: services,
       windowMode: windowMode,
       tray: tray,
     ),
@@ -278,23 +268,18 @@ class EvaporateApp extends StatefulWidget {
   const EvaporateApp({
     super.key,
     required this.settings,
-    required this.library,
-    required this.saves,
-    required this.downloads,
-    required this.gamepad,
-    required this.notifications,
-    required this.update,
+    required this.services,
     required this.windowMode,
     this.tray,
   });
 
   final SettingsBloc settings;
-  final LibraryBloc library;
-  final SavesBloc saves;
-  final DownloadsBloc downloads;
-  final GamepadService gamepad;
-  final NotificationService notifications;
-  final UpdateBloc update;
+
+  /// Блоки и службы, поднятые `AppServices.bootstrap`, — одним значением:
+  /// по одной штуке они шли сюда шестью параметрами, и каждый новый блок
+  /// уровня приложения добавлял седьмой.
+  final AppServices services;
+
   final WindowModeWatch windowMode;
   final AppTray? tray;
 
@@ -311,21 +296,23 @@ class _EvaporateAppState extends State<EvaporateApp> {
 
   @override
   Widget build(BuildContext context) {
-    final downloads = widget.downloads;
-    final notifications = widget.notifications;
+    final services = widget.services;
+    final notifications = services.notifications;
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: widget.settings),
-        BlocProvider.value(value: widget.library),
-        BlocProvider.value(value: widget.saves),
-        BlocProvider.value(value: downloads),
-        BlocProvider(create: (_) => NavigationBloc(library: widget.library)),
-        BlocProvider.value(value: widget.update),
+        BlocProvider.value(value: services.library),
+        BlocProvider.value(value: services.saves),
+        BlocProvider.value(value: services.downloads),
+        BlocProvider(create: (_) => NavigationBloc(library: services.library)),
+        BlocProvider.value(value: services.update),
         // Истории скоростей — одна на приложение: на задачу смотрят и
         // карточка на загрузках, и страница игры, живущие разом.
         BlocProvider(
           create: (_) => DownloadHistoryBloc(
-            tasks: downloads.stream.map((state) => state.tasks).distinct(),
+            tasks: services.downloads.stream
+                .map((state) => state.tasks)
+                .distinct(),
           ),
         ),
       ],
@@ -333,7 +320,7 @@ class _EvaporateAppState extends State<EvaporateApp> {
       // на котором flutter_bloc и так построен.
       child: MultiProvider(
         providers: [
-          Provider.value(value: widget.gamepad),
+          Provider.value(value: services.gamepad),
           Provider<NotificationService>.value(value: notifications),
         ],
         child: BlocConsumer<SettingsBloc, AppSettings>(

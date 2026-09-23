@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/update/update_bloc.dart';
 import '../../l10n/app_localizations.dart';
-import '../../services/system/update_check.dart';
 import '../theme.dart';
 import '../widgets/busy_spinner.dart';
 
@@ -10,31 +11,16 @@ import '../widgets/busy_spinner.dart';
 ///
 /// `Wrap`, а не `Row`: две кнопки с длинными немецкими по духу подписями
 /// в узком окне не умещаются в строку, и вторая уезжает за край.
+///
+/// Ход проверки и её события клавиши берут у `UpdateBloc` сами: прежде
+/// карточка передавала сюда семь значений, и четыре из них были
+/// однострочными `bloc.add`.
 class AboutActions extends StatelessWidget {
-  const AboutActions({
-    super.key,
-    required this.busy,
-    required this.updating,
-    required this.found,
-    required this.onCheck,
-    required this.onSourceCode,
-    required this.onInstall,
-    required this.onReleasePage,
-  });
+  const AboutActions({super.key});
 
-  /// Идёт проверка обновлений.
-  final bool busy;
-
-  /// Идёт подготовка обновления.
-  final bool updating;
-
-  /// Что нашла проверка. `null` — не искали или мы и так свежие.
-  final Release? found;
-
-  final VoidCallback onCheck;
-  final VoidCallback onSourceCode;
-  final VoidCallback onInstall;
-  final VoidCallback onReleasePage;
+  /// Куда ведёт «Исходный код». Отсюда же человек попадает к релизам:
+  /// ссылка на них у GitHub своя, и вторую клавишу она не заслуживает.
+  static const _repositoryUrl = 'https://github.com/Hecatoncheir/evaporate';
 
   /// Кружок вместо значка, пока клавиша занята работой. Размер тот же, что
   /// у значка: иначе ряд дёргался бы на каждое нажатие.
@@ -43,14 +29,18 @@ class AboutActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
-    final release = found;
+    final bloc = context.read<UpdateBloc>();
+    final update = context.watch<UpdateBloc>().state;
+    final release = update.found;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         FilledButton.tonalIcon(
-          onPressed: busy ? null : onCheck,
-          icon: busy
+          onPressed: update.checking
+              ? null
+              : () => bloc.add(const UpdateCheckRequested()),
+          icon: update.checking
               ? _spinner
               : const Icon(Icons.refresh, size: EvaporateIconSize.panel),
           label: Text(l.checkForUpdates),
@@ -59,19 +49,23 @@ class AboutActions extends StatelessWidget {
         // место навсегда, а нажимают её один раз в жизни, и остальное про
         // сборку — версия, обновления — и так здесь.
         FilledButton.tonalIcon(
-          onPressed: onSourceCode,
+          onPressed: () => bloc.add(const UpdateLinkRequested(_repositoryUrl)),
           icon: const Icon(Icons.open_in_new),
           label: Text(l.sourceCode),
         ),
         if (release != null) ...[
           if (release.updateForThisPlatform != null)
             FilledButton.icon(
-              onPressed: updating ? null : onInstall,
-              icon: updating ? _spinner : const Icon(Icons.system_update_alt),
+              onPressed: update.installing
+                  ? null
+                  : () => bloc.add(const UpdateInstallRequested()),
+              icon: update.installing
+                  ? _spinner
+                  : const Icon(Icons.system_update_alt),
               label: Text(l.updateInstall),
             ),
           FilledButton.tonalIcon(
-            onPressed: onReleasePage,
+            onPressed: () => bloc.add(UpdateLinkRequested(release.url)),
             icon: const Icon(Icons.open_in_new),
             label: Text(l.openReleasePage),
           ),

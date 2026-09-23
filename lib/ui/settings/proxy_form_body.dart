@@ -14,18 +14,7 @@ import 'setting_switch.dart';
 
 /// Содержимое карточки «Прокси».
 class ProxyFormBody extends StatelessWidget {
-  const ProxyFormBody({
-    super.key,
-    required this.host,
-    required this.port,
-    required this.user,
-    required this.password,
-  });
-
-  final TextEditingController host;
-  final TextEditingController port;
-  final TextEditingController user;
-  final TextEditingController password;
+  const ProxyFormBody({super.key});
 
   /// Переключатели уходят в настройки сразу: они не про адрес, и
   /// собирать их нечего.
@@ -67,12 +56,7 @@ class ProxyFormBody extends StatelessWidget {
             onChanged: (next) => _update(context, next),
           ),
           const SizedBox(height: EvaporateSpacing.field),
-          ProxyAddressFields(
-            host: host,
-            port: port,
-            user: user,
-            password: password,
-          ),
+          const ProxyAddressFields(),
           const SizedBox(height: EvaporateSpacing.cluster),
           ProxyApplyRow(
             draft: form.draft,

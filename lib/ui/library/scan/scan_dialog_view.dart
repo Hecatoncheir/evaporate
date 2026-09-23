@@ -12,16 +12,12 @@ class ScanDialogView extends StatelessWidget {
     super.key,
     required this.session,
     required this.scan,
-    required this.dragging,
-    required this.onDragging,
     required this.onPickFolder,
     required this.onAdd,
   });
 
   final ScanSession session;
   final ScanState scan;
-  final bool dragging;
-  final ValueChanged<bool> onDragging;
   final VoidCallback onPickFolder;
   final VoidCallback onAdd;
 
@@ -34,8 +30,6 @@ class ScanDialogView extends StatelessWidget {
       content: ScanDialogBody(
         session: session,
         scan: scan,
-        dragging: dragging,
-        onDragging: onDragging,
         onPickFolder: onPickFolder,
       ),
       actions: [

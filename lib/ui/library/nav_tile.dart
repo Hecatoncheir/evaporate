@@ -2,55 +2,38 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// Фокусируемая плитка: работает и мышью, и с клавиатуры, и с геймпада.
+/// Фокусируемая оправа обложки: работает и мышью, и с клавиатуры, и с
+/// геймпада.
 ///
 /// Обычный `InkWell` фокус принимает, но никак его не показывает — при
-/// управлении без мыши это делает интерфейс непроходимым. По умолчанию фокус
-/// обозначает рамка; в библиотеке к ней добавляется foil-перелив обложки.
+/// управлении без мыши это делает интерфейс непроходимым. Фокус обозначают
+/// рамка и рост обложки; foil-перелив добавляет плитка сверху.
 class NavTile extends StatefulWidget {
   const NavTile({
     super.key,
     required this.child,
     required this.onTap,
-    this.selected = false,
     this.autofocus = false,
     this.focusNode,
-    this.padding = const EdgeInsets.symmetric(
-      horizontal: EvaporateSpacing.cluster,
-      vertical: EvaporateSpacing.gap,
-    ),
-    this.margin = const EdgeInsets.symmetric(
-      horizontal: EvaporateSpacing.gap,
-      vertical: EvaporateSpacing.hair,
-    ),
-    this.borderRadius = 8,
-    this.borderWidth = 1.5,
-    this.focusedScale = 1,
     this.onFocusChange,
     this.showFocusBorder = true,
   });
 
   final Widget child;
   final VoidCallback onTap;
-
-  /// Выбранный элемент (то, что открыто справа) — не то же самое, что фокус.
-  final bool selected;
   final bool autofocus;
   final FocusNode? focusNode;
-  final EdgeInsets padding;
-  final EdgeInsets margin;
-  final double borderRadius;
-  final double borderWidth;
   final bool showFocusBorder;
-
-  /// Насколько плитка подрастает под фокусом. Единица — не растёт вовсе.
-  /// В сетке обложек рост заметнее рамки: соседи расступаются, и видно, где
-  /// ты, даже боковым зрением.
-  final double focusedScale;
 
   /// Фокус переехал сюда или ушёл отсюда. Нужен там, где выбор следует за
   /// фокусом, а не за нажатием.
   final ValueChanged<bool>? onFocusChange;
+
+  /// Насколько обложка подрастает под фокусом. В сетке рост заметнее
+  /// рамки: соседи расступаются, и видно, где ты, даже боковым зрением.
+  static const _focusedScale = 1.06;
+
+  static const _borderWidth = 2.5;
 
   @override
   State<NavTile> createState() => _NavTileState();
@@ -76,44 +59,36 @@ class _NavTileState extends State<NavTile> {
 
   @override
   Widget build(BuildContext context) {
-    final background = widget.selected
-        ? context.colors.surfaceHigh
-        : AppColors.transparent;
-
-    return Padding(
-      padding: widget.margin,
-      child: Material(
-        // Подсветку рисует контейнер ниже: на Material она переключалась бы
-        // рывком, тогда как рамка фокуса рядом уже плавная.
-        color: AppColors.transparent,
-        borderRadius: BorderRadius.circular(widget.borderRadius),
-        child: InkWell(
-          onTap: widget.onTap,
-          autofocus: widget.autofocus,
-          focusNode: widget.focusNode,
-          onFocusChange: _onFocusChange,
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-          child: AnimatedScale(
-            scale: _focused ? widget.focusedScale : 1,
+    final radius = BorderRadius.circular(EvaporateTheme.radiusControl);
+    return Material(
+      // Подсветку рисует контейнер ниже: на Material она переключалась бы
+      // рывком, тогда как рамка фокуса рядом уже плавная.
+      color: AppColors.transparent,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: widget.onTap,
+        autofocus: widget.autofocus,
+        focusNode: widget.focusNode,
+        onFocusChange: _onFocusChange,
+        borderRadius: radius,
+        child: AnimatedScale(
+          scale: _focused ? NavTile._focusedScale : 1,
+          duration: context.motion.instant,
+          curve: EvaporateMotion.ease,
+          child: AnimatedContainer(
             duration: context.motion.instant,
-            curve: EvaporateMotion.ease,
-            child: AnimatedContainer(
-              duration: context.motion.instant,
-              padding: widget.padding,
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: BorderRadius.circular(widget.borderRadius),
-                border: widget.showFocusBorder
-                    ? Border.all(
-                        color: _focused
-                            ? context.colors.selection
-                            : AppColors.transparent,
-                        width: widget.borderWidth,
-                      )
-                    : null,
-              ),
-              child: widget.child,
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: widget.showFocusBorder
+                  ? Border.all(
+                      color: _focused
+                          ? context.colors.selection
+                          : AppColors.transparent,
+                      width: NavTile._borderWidth,
+                    )
+                  : null,
             ),
+            child: widget.child,
           ),
         ),
       ),

@@ -18,24 +18,11 @@ import 'start_now_tile.dart';
 /// Форму и движок поля читают сами, и события блоку шлют сами: прежде окно
 /// передавало сюда четырнадцать параметров, из которых одиннадцать ему не
 /// были нужны вовсе. Снаружи приходит только то, что принадлежит окну, —
-/// контроллеры текста и системные окна выбора.
+/// одной записью [AddGameInputs].
 class AddGameFields extends StatelessWidget {
-  const AddGameFields({
-    super.key,
-    required this.magnetController,
-    required this.titleController,
-    required this.onMagnetChanged,
-    required this.onPickTorrent,
-    required this.onPickFolder,
-  });
+  const AddGameFields({super.key, required this.inputs});
 
-  final TextEditingController magnetController;
-  final TextEditingController titleController;
-
-  /// Ссылку разбирает окно: из неё подставляется название в контроллер.
-  final ValueChanged<String> onMagnetChanged;
-  final VoidCallback onPickTorrent;
-  final VoidCallback onPickFolder;
+  final AddGameInputs inputs;
 
   @override
   Widget build(BuildContext context) {
@@ -55,18 +42,10 @@ class AddGameFields extends StatelessWidget {
           onChanged: (value) => bloc.add(AddGameKindChanged(value)),
         ),
         const SizedBox(height: EvaporateSpacing.section),
-        SourceFields(
-          kind: kind,
-          magnetController: magnetController,
-          filePath: form.filePath,
-          folderPath: form.folderPath,
-          onMagnetChanged: onMagnetChanged,
-          onPickTorrent: onPickTorrent,
-          onPickFolder: onPickFolder,
-        ),
+        SourceFields(form: form, inputs: inputs),
         const SizedBox(height: EvaporateSpacing.panel),
         TextField(
-          controller: titleController,
+          controller: inputs.title,
           onChanged: (value) => bloc.add(AddGameTitleChanged(value)),
           decoration: InputDecoration(
             labelText: l.title,

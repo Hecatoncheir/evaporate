@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/navigation/navigation_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
@@ -11,9 +13,9 @@ import 'rise_in.dart';
 
 /// Одна плитка сетки: она же следит за курсором и всходит при появлении.
 ///
-/// Наведение сообщается наружу и там выбирает игру: крупный кадр наверху
-/// идёт за выбором — без этого до его клавиш было бы не добраться: кадр
-/// сменился бы раньше, чем рука дойдёт. Фокус при этом не трогаем — он у
+/// Наведение выбирает игру: крупный кадр наверху идёт за выбором — без
+/// этого до его клавиш было бы не добраться: кадр сменился бы раньше, чем
+/// рука дойдёт. Фокус при этом не трогаем — он у
 /// клавиатуры и геймпада, и отбирать его курсором, лежащим над сеткой,
 /// значило бы уводить набор из поиска. Первое же нажатие стрелки сведёт
 /// выбор обратно к сфокусированной плитке: выбор идёт за фокусом, а не
@@ -31,9 +33,6 @@ class LibraryGridTile extends StatefulWidget {
     required this.index,
     required this.selected,
     required this.effects,
-    required this.onHover,
-    required this.onOpen,
-    required this.onFocused,
   });
 
   /// Наведение, ключи и фокусы сетки.
@@ -46,12 +45,6 @@ class LibraryGridTile extends StatefulWidget {
 
   final bool selected;
   final Appearance effects;
-
-  /// Курсор вошёл или ушёл.
-  final ValueChanged<bool> onHover;
-
-  final VoidCallback onOpen;
-  final VoidCallback onFocused;
 
   @override
   State<LibraryGridTile> createState() => _LibraryGridTileState();
@@ -73,6 +66,14 @@ class _LibraryGridTileState extends State<LibraryGridTile> {
   void _onController() {
     final next = _lookNow();
     if (next != _look) setState(() => _look = next);
+  }
+
+  void _hover(bool value) {
+    final id = widget.game.id;
+    widget.controller.hover(id, hovered: value);
+    if (value && !widget.selected) {
+      context.read<NavigationBloc>().add(GameSelected(id));
+    }
   }
 
   @override
@@ -103,8 +104,8 @@ class _LibraryGridTileState extends State<LibraryGridTile> {
     final effects = widget.effects;
     final game = widget.game;
     return MouseRegion(
-      onEnter: (_) => widget.onHover(true),
-      onExit: (_) => widget.onHover(false),
+      onEnter: (_) => _hover(true),
+      onExit: (_) => _hover(false),
       child: RiseIn(
         enabled: effects.shows(LibraryEffect.interfaceAnimations),
         // Очередь всхода — только для первого экрана. Дальше ленивая сетка
@@ -135,16 +136,7 @@ class _LibraryGridTileState extends State<LibraryGridTile> {
                 key: ValueKey(game.id),
                 game: game,
                 selected: widget.selected,
-                dropsEnabled: effects.shows(LibraryEffect.drops),
-                portalEnabled: effects.shows(LibraryEffect.portal),
-                // Рамка живёт мимо общего выключателя эффектов: она
-                // показывает, где ты в сетке, а не украшает её.
-                frameEnabled: effects.isOn(LibraryEffect.selectionFrame),
-                onOpen: widget.onOpen,
-                // Выбор идёт за фокусом, а не за нажатием: кнопка «Играть»
-                // должна работать по той игре, на которую смотришь, не
-                // заходя внутрь.
-                onFocused: widget.onFocused,
+                effects: effects,
               ),
             ),
           ),

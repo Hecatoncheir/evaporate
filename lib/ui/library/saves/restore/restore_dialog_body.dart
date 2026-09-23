@@ -6,6 +6,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../models/save_snapshot.dart';
 import '../../../labels.dart';
 import '../../../theme.dart';
+import '../restore_options.dart';
 import 'local_freshness_note.dart';
 import 'restore_options_form.dart';
 import 'restore_target_list.dart';
@@ -17,10 +18,8 @@ class RestoreDialogBody extends StatelessWidget {
     super.key,
     required this.snapshot,
     required this.preview,
-    required this.backup,
-    required this.wipe,
-    required this.onBackup,
-    required this.onWipe,
+    required this.options,
+    required this.onOptions,
   });
 
   final SaveSnapshot snapshot;
@@ -28,10 +27,8 @@ class RestoreDialogBody extends StatelessWidget {
   /// Куда лягут файлы и что лежит там сейчас.
   final RestorePreview preview;
 
-  final bool backup;
-  final bool wipe;
-  final ValueChanged<bool> onBackup;
-  final ValueChanged<bool> onWipe;
+  final RestoreOptions options;
+  final ValueChanged<RestoreOptionsPatch> onOptions;
 
   @override
   Widget build(BuildContext context) {
@@ -56,12 +53,7 @@ class RestoreDialogBody extends StatelessWidget {
           const SizedBox(height: EvaporateSpacing.tight),
           RestoreTargetList(targets: preview.targets),
           const SizedBox(height: EvaporateSpacing.field),
-          RestoreOptionsForm(
-            backup: backup,
-            wipe: wipe,
-            onBackup: onBackup,
-            onWipe: onWipe,
-          ),
+          RestoreOptionsForm(value: options, onChanged: onOptions),
         ],
       ),
     );
