@@ -44,13 +44,30 @@ void main() {
     );
     listing.add(store.fileFor(fresh.hash));
     await listing.close();
-    await collecting;
+    final cleanup = await collecting;
 
     expect(
       store.fileFor(fresh.hash).existsSync(),
       isTrue,
       reason: 'уборка унесла содержимое, которое только что положили',
     );
+    expect(
+      cleanup.complete,
+      isFalse,
+      reason: 'оборванная уборка не выдаёт себя за законченную',
+    );
+  });
+
+  // Уборка, которой отказали, возвращала те же нули, что и уборка, которой
+  // нечего делать, — и о пропущенной не узнавал никто.
+  test('уборка, которой отказали, так и говорит', () async {
+    final store = SnapshotStore(root: root());
+    final garbage = await store.putText('b', 'ненужное');
+
+    final cleanup = await store.guard(() => store.collect(const {}));
+
+    expect(cleanup.complete, isFalse);
+    expect(store.fileFor(garbage.hash).existsSync(), isTrue);
   });
 
   test('уборка без работы выносит бесхозное, а живое оставляет', () async {
@@ -58,9 +75,10 @@ void main() {
     final kept = await store.putText('a', 'нужное');
     final dropped = await store.putText('b', 'ненужное');
 
-    final (:moved, purged: _) = await store.collect({kept.hash});
+    final cleanup = await store.collect({kept.hash});
 
-    expect(moved, greaterThan(0));
+    expect(cleanup.moved, greaterThan(0));
+    expect(cleanup.complete, isTrue);
     expect(store.fileFor(kept.hash).existsSync(), isTrue);
     expect(store.fileFor(dropped.hash).existsSync(), isFalse);
   });
@@ -107,7 +125,7 @@ void main() {
       await store.collect(const {});
 
       now = now.add(store.trashKeep + const Duration(hours: 1));
-      final (moved: _, :purged) = await store.collect(const {});
+      final purged = (await store.collect(const {})).purged;
 
       expect(purged, greaterThan(0));
       expect(await store.contains(blob.hash), isFalse);
@@ -198,7 +216,7 @@ void main() {
       expect(await store.contains(blob.hash), isFalse);
 
       now = now.add(store.trashKeep + const Duration(hours: 1));
-      final (moved: _, :purged) = await store.collect(const {});
+      final purged = (await store.collect(const {})).purged;
       expect(purged, damaged.length);
     });
   });

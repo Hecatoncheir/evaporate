@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../support/bloc_idle.dart';
 import '../support/library_seed.dart';
 import '../support/temp_dir.dart';
 import '../support/wait_for_state.dart';
@@ -26,6 +27,8 @@ void main() {
   late SettingsBloc settings;
   late LibraryBloc library;
   late SavesBloc saves;
+  late SaveManager manager;
+  late HandlerTracker handlers;
 
   /// Свой журнал у каждого теста, а не глобальный: тесты идут
   /// параллельно, и поставленный в глобал отбирает журнал у соседнего
@@ -34,6 +37,7 @@ void main() {
   late AppLog log;
 
   setUp(() async {
+    handlers = installHandlerTracker();
     tmp = await Directory.systemTemp.createTemp('evaporate_rotation_');
     paths = AppPaths.custom(
       dataDir: p.join(tmp.path, 'data'),
@@ -49,10 +53,12 @@ void main() {
       path: p.join(tmp.path, 'evaporate.log'),
       previousPath: p.join(tmp.path, 'evaporate.log.1'),
     );
+    manager = SaveManager(paths: paths, log: () => log);
     saves = SavesBloc(
       paths: paths,
       library: library,
       settings: settings,
+      saveManager: manager,
       saveRoots: () => const [],
       log: () => log,
     );
@@ -199,6 +205,33 @@ void main() {
       }
     },
   );
+
+  // Уборке, которой отказали, числами сказать нечего: нули те же, что у
+  // прохода без дела. А снимки удалены, место не вернулось, и почему —
+  // спросят через неделю.
+  test('отложенная уборка оставляет след в журнале', () async {
+    final id = await gameWithSave('Отказ', keep: 1);
+    await takeSnapshot(id);
+    await File(p.join(tmp.path, 'saves', 'Отказ', 'slot.sav'))
+        .writeAsString('другой прогресс');
+
+    // Пока идёт чужая работа со снимками, ротация зовёт уборку — и та
+    // отказывается начинать.
+    final release = Completer<void>();
+    final busy = manager.store.guard(() => release.future);
+    await takeSnapshot(id);
+    await handlers.settle();
+    release.complete();
+    await busy;
+
+    await log.flush();
+    expect(
+      (await log.tail()).where(
+        (line) => line.contains('уборка хранилища снимков отложена'),
+      ),
+      isNotEmpty,
+    );
+  });
 
   test('лишние снимки уходят и из списка, и с диска', () async {
     final id = await gameWithSave('Ротация', keep: 2);

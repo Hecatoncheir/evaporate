@@ -1151,7 +1151,7 @@ void main() {
       expect(blobsOnDisk(), 3);
 
       await manager.deleteSnapshot(first);
-      final (:moved, purged: _) = await manager.collectGarbage([second]);
+      final moved = (await manager.collectGarbage([second])).moved;
 
       expect(blobsOnDisk(), 2);
       expect(moved, greaterThan(0));
@@ -1182,7 +1182,7 @@ void main() {
       });
 
       final snapshot = await taken.future;
-      final (:moved, purged: _) = await manager.collectGarbage(const []);
+      final moved = (await manager.collectGarbage(const [])).moved;
 
       expect(moved, 0);
       for (final blob in snapshot.blobs) {
