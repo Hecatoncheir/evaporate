@@ -5,7 +5,6 @@ import '../theme.dart';
 import 'effects/hero_sweep.dart';
 import 'featured/featured_art.dart';
 import 'featured/featured_compact_bar.dart';
-import 'featured/featured_frame.dart';
 import 'featured/featured_poster.dart';
 import 'featured/playtime_readout.dart';
 import 'shots_backdrop.dart';
@@ -58,7 +57,7 @@ class FeaturedGame extends StatelessWidget {
         // обложек уходит под нижний край, и полка перестаёт читаться с
         // одного взгляда.
         height: compact ? 128 : 238,
-        child: FeaturedFrame(
+        child: _FeaturedFrame(
           child: LayoutBuilder(
             builder: (context, box) => Stack(
               fit: StackFit.expand,
@@ -93,6 +92,39 @@ class FeaturedGame extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Корпус крупного кадра: волосяной золотой кант, тень и скруглённый вырез.
+///
+/// Кант отделяет кадр от корпуса приложения, не споря с самой картинкой, а
+/// тень своя у каждой схемы: ночью мягкая, днём короткая и жёсткая.
+class _FeaturedFrame extends StatelessWidget {
+  const _FeaturedFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final surface = HardwareSurfaceTheme.of(context);
+    final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        border: Border.all(
+          color: colors.primary.withValues(alpha: EvaporateAlpha.soft),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow,
+            blurRadius: surface.frameShadowBlur,
+            offset: Offset(0, surface.frameShadowDrop),
+          ),
+        ],
+      ),
+      child: ClipRRect(borderRadius: radius, child: child),
     );
   }
 }

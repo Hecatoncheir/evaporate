@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import 'readout_cell.dart';
-import 'readout_row.dart';
 
 /// Панель показаний: несколько граф в одном корпусе через волосяную черту.
 ///
@@ -33,7 +32,7 @@ class ReadoutPanel extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, box) {
           if (box.maxWidth >= wrapBelow || cells.length < 3) {
-            return ReadoutRow(cells: cells);
+            return _ReadoutRow(cells: cells);
           }
           final rows = <Widget>[];
           for (var i = 0; i < cells.length; i += 2) {
@@ -41,11 +40,31 @@ class ReadoutPanel extends StatelessWidget {
             if (rows.isNotEmpty) {
               rows.add(Divider(height: 1, thickness: 1, color: colors.outline));
             }
-            rows.add(ReadoutRow(cells: pair));
+            rows.add(_ReadoutRow(cells: pair));
           }
           return Column(children: rows);
         },
       ),
+    );
+  }
+}
+
+/// Графы показаний в строку, между ними — волосяная черта.
+class _ReadoutRow extends StatelessWidget {
+  const _ReadoutRow({required this.cells});
+
+  final List<ReadoutCell> cells;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 0; i < cells.length; i++) ...[
+          if (i > 0)
+            Container(width: 1, height: 54, color: context.colors.outline),
+          Expanded(child: cells[i]),
+        ],
+      ],
     );
   }
 }

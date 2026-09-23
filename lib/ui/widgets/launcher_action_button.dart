@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'launcher_action_face.dart';
 
 /// Главное действие лаунчера: клавиша фирменного цвета с настоящим ходом.
 ///
@@ -85,7 +84,7 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
                   ),
                   child: Padding(
                     padding: _facePadding,
-                    child: LauncherActionFace(
+                    child: _Face(
                       label: widget.label,
                       icon: widget.icon,
                       color: colors.onPrimary,
@@ -145,6 +144,26 @@ class _LauncherActionButtonState extends State<LauncherActionButton> {
         blurRadius: lit ? 26 : 14,
         offset: Offset(0, sunk ? 2 : 6),
       ),
+    ],
+  );
+}
+
+/// Надпись на главной клавише: значок и слово.
+class _Face extends StatelessWidget {
+  const _Face({required this.label, required this.icon, required this.color});
+
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(icon, size: EvaporateIconSize.panel, color: color),
+      const SizedBox(width: EvaporateSpacing.gap),
+      Text(label, style: context.text.keycap.copyWith(color: color)),
     ],
   );
 }

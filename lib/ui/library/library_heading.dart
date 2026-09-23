@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../bloc/settings/settings_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/app_settings.dart';
 import '../theme.dart';
@@ -14,33 +16,38 @@ import '../widgets/section_heading.dart';
 /// тех, из-за которых первый ряд обложек уходил под нижний край.
 ///
 /// Крупность обложек живёт здесь, а не в настройках: это единственный
-/// орган управления, который видно вместе с тем, на что он влияет.
+/// орган управления, который видно вместе с тем, на что он влияет, — его
+/// крутят, глядя на сами обложки. Из настроек подпись берёт одну эту
+/// крупность: смена папки игр или прокси её не перестраивает.
 class ConceptLibraryHeading extends StatelessWidget {
-  const ConceptLibraryHeading({
-    super.key,
-    required this.scale,
-    required this.onScale,
-  });
-
-  final double scale;
-  final ValueChanged<double> onScale;
+  const ConceptLibraryHeading({super.key});
 
   @override
-  Widget build(BuildContext context) => SectionHeading(
-    label: L.of(context).conceptLibraryLabel,
-    semanticsLabel: L.of(context).library,
-    padding: EvaporateLayout.inset(
-      top: EvaporateSpacing.card,
-      bottom: EvaporateSpacing.gap,
-    ),
-    trailing: ScaleControl(
-      key: const ValueKey('library-scale'),
-      label: L.of(context).coverScale,
-      value: scale,
-      min: Appearance.minLibraryScale,
-      max: Appearance.maxLibraryScale,
-      step: 0.25,
-      onChanged: onScale,
-    ),
-  );
+  Widget build(BuildContext context) {
+    final scale = context.select<SettingsBloc, double>(
+      (bloc) => bloc.state.appearance.libraryScale,
+    );
+    return SectionHeading(
+      label: L.of(context).conceptLibraryLabel,
+      semanticsLabel: L.of(context).library,
+      padding: EvaporateLayout.inset(
+        top: EvaporateSpacing.card,
+        bottom: EvaporateSpacing.gap,
+      ),
+      trailing: ScaleControl(
+        key: const ValueKey('library-scale'),
+        label: L.of(context).coverScale,
+        value: scale,
+        min: Appearance.minLibraryScale,
+        max: Appearance.maxLibraryScale,
+        step: 0.25,
+        onChanged: (value) => context.read<SettingsBloc>().add(
+          SettingsPatched(
+            (current) =>
+                current.withAppearance((a) => a.copyWith(libraryScale: value)),
+          ),
+        ),
+      ),
+    );
+  }
 }

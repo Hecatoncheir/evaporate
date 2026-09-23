@@ -454,7 +454,7 @@
   на каждый случай и на законные. Само правило ничего не сливает: слияния —
   B2–B4 по экранам, `_longClosures` уходит по мере переноса замыканий в
   приватные виджеты (F11), `_wideWidgets` — после B4.
-- [ ] **B2. Девять прокладок с одним вызовом — локальной переменной у
+- [x] **B2. Девять прокладок с одним вызовом — локальной переменной у
   потребителя.** **[○]** P2. `drop_frame.dart:13-19` ← `drop_overlay.dart`;
   `shell_footer_strip.dart` ← `shell_layout.dart`; `featured/featured_frame.dart`
   ← `featured_game.dart`; `widgets/readout_row.dart` ← `readout_panel.dart`;
@@ -465,13 +465,29 @@
   `top_bar_actions.dart`; `widgets/empty_state.dart` (56 строк, один
   потребитель). Каждая — `final frame = Container(…)` внутри `build`
   потребителя; правило B1 для этого не нужно. **S**
+  *Сделано:* все девять у потребителей, файлов на девять меньше. Прямо в
+  дерево потребителя легли рамка приёмника (`drop_overlay.dart`) и клавиши
+  окна (`top_bar_actions.dart`, `if (control != null) ...[…]`), пустая полка
+  собирается в `LibraryEmptyState` сама. Четыре стали приватными виджетами
+  по B1, потому что на месте вызова перевалили бы потолки стражей:
+  `build` у `LauncherActionButton` (59 строк из 60) и у `FeaturedGame`,
+  замыкание `LayoutBuilder` у `ShellLayout` (25 строк), а строку показаний
+  `ReadoutPanel` зовёт дважды — это `_Face`, `_FeaturedFrame`,
+  `_FooterStrip`, `_ReadoutRow`. Две прокладки держали подписку и тем были
+  границей перерисовки, поэтому слиты не с потребителем, а с листом:
+  `GameDetail` вобрал тело страницы и оставил свой `select` задачи, а
+  подпись библиотеки сама берёт `select` по `libraryScale` вместо `watch`
+  всех настроек — из B14 на одно место меньше. Поведение не менялось;
+  держат его прежние тесты раскладки, библиотеки, окна и крупности обложек
+  (`display_scale_test`).
 - [ ] **B3. `widgets/` — только переиспользуемое.** **[○]** P2. 12 из ~45
   виджетов в `lib/ui/widgets` нужны одному месту: `BusyOutlinedButton`,
   `LabeledSwitchRow`, `HintChip`, `PathPickerField`, `RiseIn`,
   `ProgressHatching`, `AppMark`, `AmbientWash`, `LauncherActionFace`,
   `ReadoutRow`, `SliverSideBySide`, `EmptyState`. Папка обещает повторное
   использование, которого нет, — переносить к потребителю (после B1 — в
-  его файл). **S**
+  его файл). `LauncherActionFace`, `ReadoutRow` и `EmptyState` ушли в B2.
+  **S**
 - [ ] **B4. Пробросы: листья читают блоки сами, россыпь — одним значением.**
   **[✔]** P2. `LibraryBody` (`library_body.dart:20-63`): 14 параметров, сам
   читает только `effects`; `onOpen` идёт пятью звеньями
@@ -624,7 +640,7 @@
   `speed_limits_settings:22`, `window_startup_card:18`, `gamepad_settings:37`,
   `notification_settings:23`, `effects_card:30`, `effect_preset_picker:15`,
   `effect_details:17`, `about_body:26`). Там же `theme_cycle_action.dart:41`,
-  `library_heading_bar.dart:16` — весь `AppSettings`; `save_paths_section.dart:63`,
+  `library_heading_bar.dart:16` — весь `AppSettings` (снято в B2); `save_paths_section.dart:63`,
   `snapshots_section.dart:32` — весь `SavesState`, а `watched_folders.dart:31`
   рядом — `select`. Лечение: `select` по части (`s.saves`, `s.appearance`,
   `s.startup`), как `CLAUDE.md` описывает для сетки. **S**

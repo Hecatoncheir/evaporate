@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'shell_footer_strip.dart';
+import 'app_footer.dart';
 import 'shell_panel.dart';
 import 'top_bar.dart';
 
@@ -42,12 +42,31 @@ class ShellLayout extends StatelessWidget {
               const Expanded(child: ShellPanel()),
               if (box.maxHeight >= _shortHeight) ...[
                 const SizedBox(height: EvaporateSpacing.tight),
-                ShellFooterStrip(width: box.maxWidth),
+                _FooterStrip(width: box.maxWidth),
               ],
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// Подвал идёт во всю ширину окна и потому вылезает за поля панели.
+class _FooterStrip extends StatelessWidget {
+  const _FooterStrip({required this.width});
+
+  /// Ширина окна, а не панели: подвал шире своих полей.
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: EvaporateLayout.footerHeight,
+      child: OverflowBox(
+        maxWidth: width,
+        child: SizedBox(width: width, child: const AppFooter()),
+      ),
     );
   }
 }
