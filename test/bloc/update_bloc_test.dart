@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:evaporate/bloc/update/update_bloc.dart';
+import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/services/system/desktop_entry.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/services/system/update_download.dart';
@@ -6,6 +11,7 @@ import 'package:evaporate/services/system/update_installer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/bloc_idle.dart';
+import '../support/temp_dir.dart';
 
 /// Обновление по нажатию заменяет само приложение: молчать здесь нельзя ни
 /// об отказе, ни о том, что замена уже идёт.
@@ -28,6 +34,7 @@ void main() {
     UpdateDownload? download,
     Future<bool> Function(Uri uri)? openLink,
     Future<void> Function()? onRestart,
+    L Function()? localizations,
   }) {
     final update = UpdateBloc(
       check: check ?? answering(releaseJson('0.1.0')),
@@ -36,6 +43,7 @@ void main() {
       download: download,
       openLink: openLink ?? (uri) async => true,
       onRestart: onRestart ?? () async {},
+      localizations: localizations,
     );
     addTearDown(update.close);
     return update;
@@ -97,6 +105,46 @@ void main() {
 
       expect(state.installing, isFalse);
       expect(state.message, isNotEmpty);
+    });
+
+    // Отказ приходит из глубины — транспорта, распаковки, установщика — и
+    // прежде приходил оттуда русским литералом мимо переводов: в
+    // английском интерфейсе «Сервер ответил 404».
+    test('отказ из глубины обновления говорит на языке интерфейса', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((request) async {
+        request.response.statusCode = HttpStatus.notFound;
+        await request.response.close();
+      });
+      final work = await Directory.systemTemp.createTemp('ev_update_');
+      addTearDown(() => deleteTempDir(work));
+      const name = 'evaporate-9.9.9-windows-setup.exe';
+      final release = jsonEncode({
+        'tag_name': 'v9.9.9',
+        'html_url': 'https://релиз/9.9.9',
+        'body': '',
+        'assets': [
+          {
+            'name': name,
+            'browser_download_url': 'http://127.0.0.1:${server.port}/$name',
+            'size': 5,
+          },
+        ],
+      });
+      final update = bloc(
+        check: answering(release),
+        installer: _WritableInstall(),
+        download: UpdateDownload(workDir: work.path, platform: 'windows'),
+        localizations: LEn.new,
+      );
+
+      update.add(const UpdateCheckRequested());
+      await settle(update, (s) => s.found != null);
+      update.add(const UpdateInstallRequested());
+      final state = await settle(update, (s) => s.isError);
+
+      expect(state.message, LEn().updateServerStatus('404'));
     });
 
     // Пока нечего ставить, нажимать нечего: без найденной версии замена
@@ -191,6 +239,17 @@ class _FakeDesktop extends DesktopEntry {
 
   @override
   Future<void> remove() async => installed = false;
+}
+
+/// Копия, которую обновить можно: до самой замены тест не доходит.
+class _WritableInstall extends UpdateInstaller {
+  _WritableInstall() : super(workDir: 'нет');
+
+  @override
+  Future<bool> get canInstall async => true;
+
+  @override
+  Future<void> apply(String stagedRoot) async {}
 }
 
 /// Копия, поставленная пакетным менеджером: обновлять её должен он же.

@@ -57,7 +57,7 @@ class UpdateUnpack {
           ? TarDecoder().decodeBytes(const GZipDecoder().decodeBytes(data))
           : ZipDecoder().decodeBytes(data);
     } on Object catch (error) {
-      throw UpdateException('Архив не читается: $error');
+      throw UpdateException(UpdateFailure.unreadableArchive, '$error');
     }
   }
 
@@ -77,13 +77,13 @@ class UpdateUnpack {
         if (part.isNotEmpty) part,
     ];
     if (parts.any((part) => part == '.' || part == '..')) {
-      throw UpdateException('Архив просит записать файл наружу: $relative');
+      throw UpdateException(UpdateFailure.escapingEntry, relative);
     }
     if (parts.isEmpty) return null;
 
     final destination = p.normalize(p.joinAll([target, ...parts]));
     if (!p.isWithin(target, destination)) {
-      throw UpdateException('Архив просит записать файл наружу: $relative');
+      throw UpdateException(UpdateFailure.escapingEntry, relative);
     }
     return destination;
   }
@@ -114,7 +114,8 @@ class UpdateUnpack {
       final result = await Process.run('chmod', ['+x', destination]);
       if (result.exitCode != 0) {
         throw UpdateException(
-          'Не поставить бит запуска: $destination: ${result.stderr}'.trim(),
+          UpdateFailure.notExecutable,
+          '$destination: ${result.stderr}'.trim(),
         );
       }
     }
@@ -138,9 +139,7 @@ class UpdateUnpack {
     final raw = file.symbolicLink!.replaceAll(r'\', '/');
     final target = p.posix.normalize(raw);
     if (p.posix.isAbsolute(raw) || p.posix.split(target).contains('..')) {
-      throw UpdateException(
-        'Ссылка в архиве указывает наружу: ${file.name} -> $raw',
-      );
+      throw UpdateException(UpdateFailure.escapingLink, '${file.name} -> $raw');
     }
     await Directory(p.dirname(destination)).create(recursive: true);
     await Link(destination).create(target);

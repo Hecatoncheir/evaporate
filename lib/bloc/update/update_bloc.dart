@@ -61,11 +61,7 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
       installer ?? UpdateInstaller(workDir: AppPaths.instance.dataDir);
 
   UpdateDownload get _download =>
-      download ??
-      UpdateDownload(
-        workDir: AppPaths.instance.dataDir,
-        localizations: _localizations,
-      );
+      download ?? UpdateDownload(workDir: AppPaths.instance.dataDir);
   final Future<bool> Function(Uri uri) _openLink;
   final Future<void> Function() _onRestart;
   final L Function() _localizations;
@@ -125,7 +121,7 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
 
     try {
       if (!await _installer.canInstall) {
-        throw UpdateException(_l.updateNotWritable);
+        throw const UpdateException(UpdateFailure.notUpdatable);
       }
       final staged = await _download.prepare(
         release,
@@ -140,7 +136,9 @@ class UpdateBloc extends Bloc<UpdateEvent, UpdateState> {
         state.copyWith(
           installing: false,
           isError: true,
-          message: error is UpdateException ? error.message : '$error',
+          // Отказ приходит причиной: слова к ней есть только здесь, у
+          // блока с языком, — сервисы бросают его и из изолята.
+          message: error is UpdateException ? error.describe(_l) : '$error',
         ),
       );
     }

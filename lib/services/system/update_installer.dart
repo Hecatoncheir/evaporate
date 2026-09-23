@@ -98,18 +98,15 @@ class UpdateInstaller {
   Future<void> apply(String stagedRoot) async {
     final target = _layout;
     if (target == null) {
-      throw const UpdateException('Не понять, куда поставлено приложение');
+      throw const UpdateException(UpdateFailure.unknownLayout);
     }
     if (!await canInstall) {
-      throw const UpdateException(
-        'Эту копию нельзя обновить автоматически. '
-        'Обновите тем способом, каким ставили.',
-      );
+      throw const UpdateException(UpdateFailure.notUpdatable);
     }
 
     if (_os == 'windows') {
       if (p.extension(stagedRoot).toLowerCase() != '.exe') {
-        throw const UpdateException('Установщик Windows не найден');
+        throw const UpdateException(UpdateFailure.noWindowsSetup);
       }
       _log().write('обновление: запускаю setup $stagedRoot');
       // Свой номер процесса передаём затем, чтобы установщик дождался

@@ -191,20 +191,25 @@ class UpdateCheck {
   /// Возвращает вышедшую версию или `null`, если установлена свежая.
   Future<Release?> latest() async {
     final body = await _load(Uri.parse(releasesUrl));
-    final release = parseRelease(body);
+    final Release? release;
+    try {
+      release = parseRelease(body);
+    } on FormatException {
+      throw UpdateCheckException(_l.updateBadAnswer);
+    }
     if (release == null) return null;
     return AppVersion.isNewer(release.version, current) ? release : null;
   }
 
   /// Разбирает ответ GitHub. Черновики и предрелизы пропускаем: их выкладывают
   /// не для того, чтобы на них звали пользователей.
+  ///
+  /// Не JSON — `FormatException`, а слова к нему подбирает [latest]: разбор
+  /// статикой ради тестов на записанных ответах, и языка у него нет. Прежде
+  /// он брал русский по умолчанию, и английский интерфейс получал
+  /// «Ответ о версиях не разобрать».
   static Release? parseRelease(String body) {
-    final Object? decoded;
-    try {
-      decoded = jsonDecode(body);
-    } on FormatException {
-      throw UpdateCheckException(_defaultLocalizations().updateBadAnswer);
-    }
+    final Object? decoded = jsonDecode(body);
     if (decoded is! Map<String, dynamic>) return null;
     if (decoded['draft'] == true || decoded['prerelease'] == true) return null;
 

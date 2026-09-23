@@ -4,8 +4,6 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../../core/format.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_ru.dart';
 import 'app_log.dart';
 import 'update_check.dart';
 import 'update_exception.dart';
@@ -63,12 +61,10 @@ class UpdateDownload {
     )?
     download,
     AppLog Function()? log,
-    L Function()? localizations,
   }) : _platform = platform ?? currentPlatformKey(),
        _fetch = fetch ?? UpdateTransport.fetch,
        _download = download ?? UpdateTransport.download,
-       _log = log ?? _appLog,
-       _localizations = localizations ?? _defaultLocalizations;
+       _log = log ?? _appLog;
 
   /// Куда складывать скачанное — папка данных приложения.
   final String workDir;
@@ -79,14 +75,6 @@ class UpdateDownload {
 
   static AppLog _appLog() => AppLog.instance;
   final String _platform;
-
-  /// Сообщения отсюда человек читает в карточке обновления, а
-  /// `BuildContext` здесь взять неоткуда.
-  final L Function() _localizations;
-
-  L get _l => _localizations();
-
-  static L _defaultLocalizations() => LRu();
 
   /// Мелочь вроде `SHA256SUMS` — её проще прочитать целиком.
   final Future<List<int>> Function(
@@ -124,7 +112,7 @@ class UpdateDownload {
     void Function(UpdateProgress)? onProgress,
   }) async {
     final asset = release.updateFor(_platform);
-    if (asset == null) throw UpdateException(_l.updateNoFile);
+    if (asset == null) throw const UpdateException(UpdateFailure.noFile);
     void report(UpdatePhase phase) =>
         onProgress?.call(UpdateProgress(phase: phase));
 
@@ -212,7 +200,7 @@ class UpdateDownload {
       _log().write(
         'обновление: скачано $size байт вместо ${archive.sizeBytes}',
       );
-      throw UpdateException(_l.updateIncomplete);
+      throw const UpdateException(UpdateFailure.incomplete);
     }
 
     // Файла сумм может не быть у старых релизов — размера уже достаточно.
@@ -243,7 +231,7 @@ class UpdateDownload {
     final actual = (await sha256.bind(file.openRead()).first).toString();
     if (actual != expected) {
       await file.delete();
-      throw UpdateException(_l.updateChecksumMismatch);
+      throw const UpdateException(UpdateFailure.checksumMismatch);
     }
   }
 

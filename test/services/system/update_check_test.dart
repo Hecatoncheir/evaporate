@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:evaporate/core/format.dart';
+import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -99,10 +100,29 @@ void main() {
       expect(await checkWith(body).latest(), isNull);
     });
 
-    test('не-json приводит к понятной ошибке', () {
+    // Разбор — статика без языка: слова к отказу подбирает проверка. Прежде
+    // статика брала русский по умолчанию, и английский интерфейс получал
+    // «Ответ о версиях не разобрать».
+    test('не-json приводит к понятной ошибке на языке интерфейса', () async {
+      final check = UpdateCheck(
+        currentVersion: '0.1.0',
+        fetch: (uri) async => '<html>сбой</html>',
+        localizations: LEn.new,
+      );
+
       expect(
         () => UpdateCheck.parseRelease('<html>сбой</html>'),
-        throwsA(isA<UpdateCheckException>()),
+        throwsFormatException,
+      );
+      await expectLater(
+        check.latest(),
+        throwsA(
+          isA<UpdateCheckException>().having(
+            (e) => e.message,
+            'слова',
+            LEn().updateBadAnswer,
+          ),
+        ),
       );
     });
 

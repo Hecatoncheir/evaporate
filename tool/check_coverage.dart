@@ -145,8 +145,10 @@ List<String> thinFileProblems(
 ///
 /// Файлы событий тонки по понятной причине: их `props` читает только
 /// сравнение двух одинаковых событий, а его не бывает. Строки
-/// `const`-конструкторов VM на Windows засчитывает выполненными, а на
-/// Linux нет — отсюда у событий слитая доля выше, чем по одной ubuntu.
+/// `const`-конструкторов одни системы засчитывают выполненными, другие
+/// нет, и какие — зависит от файла: у `proxy_form_event` их видит один
+/// Windows, у `update_event` — все, кроме него. Отсюда у событий слитая
+/// доля выше, чем по любой одной системе, и местный список им не судья.
 const thinFiles = <String, int>{
   'lib/ui/downloads/engine_failure.dart': 0,
   'lib/ui/library/detail/cover_progress.dart': 0,
@@ -175,15 +177,12 @@ const thinFiles = <String, int>{
   'lib/bloc/library_view/library_view_event.dart': 30,
   'lib/bloc/restore_preview/restore_preview_event.dart': 30,
   'lib/bloc/rule_form/rule_form_event.dart': 30,
-  'lib/services/system/update_exception.dart': 30,
   'lib/ui/settings/notification_actions.dart': 31,
   'lib/bloc/scan/scan_event.dart': 32,
   'lib/bloc/navigation/navigation_event.dart': 34,
   'lib/bloc/settings/settings_event.dart': 34,
   'lib/services/system/managed_window.dart': 35,
-  'lib/services/system/update_transport.dart': 38,
   'lib/services/download/engine_queue.dart': 41,
-  'lib/bloc/update/update_event.dart': 43,
   'lib/ui/library/effects/cover_drops.dart': 44,
 };
 

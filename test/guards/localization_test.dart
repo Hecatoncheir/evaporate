@@ -183,6 +183,23 @@ void main() {
     );
   });
 
+  // Текст этих исключений человек читает как есть: сообщением, отказом на
+  // карточке. Написанный по месту, он доходил до английского интерфейса
+  // по-русски — «Сервер ответил 404», «папки нет». Слова — из ARB, а где
+  // языка нет (изолят, статика), исключение несёт причину.
+  test('исключения, которые читает человек, не пишут по-русски по месту', () {
+    final offenders = dartSources(
+      'lib',
+      skip: (path) => path.contains('/l10n/app_localizations'),
+    ).expand(russianHumanExceptions).toList();
+
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'слова — в lib/l10n/app_ru.arb, а исключению — причина',
+    );
+  });
+
   // Журнальные подписи моделей русские всегда — на то они и журнальные.
   // Страж кириллицы их не видит: литерал лежит в `lib/models`, а в
   // интерфейс он попадал чтением `.label` — «Source: Локальная папка».
@@ -224,6 +241,43 @@ final a = 'ok'; // хвост с 'апострофом' по-русски
 ''';
       expect(cyrillicStrings(file(code)), isEmpty);
     });
+
+    // Разбор терял приставку сырой строки и после каждой такой строки
+    // смотрел на знак левее, чем текст.
+    test('сырая строка не сдвигает разбор', () {
+      const code = r"final re = r'\d'; Text('Привет');";
+      expect(file(code).code, hasLength(code.length));
+      expect(cyrillicStrings(file(code)), hasLength(1));
+    });
+
+    const exceptions = {
+      'русская строка': "throw SaveException('Сломалось');",
+      'подстановка рядом': r"throw FileManagerException('$path — нет');",
+      'именованный конструктор':
+          "throw const FileManagerException.failed(p, 'нет связи');",
+      'строка на другой строке': "throw SaveException(\n  'Сломалось',\n);",
+      'после сырой строки':
+          r"final a = r'\d'; throw UpdateCheckException('Сбой');",
+    };
+    for (final MapEntry(key: shape, value: code) in exceptions.entries) {
+      test(
+        'исключение: $shape',
+        () => expect(russianHumanExceptions(file(code)), hasLength(1)),
+      );
+    }
+
+    const allowed = {
+      'слова из переводов': 'throw SaveException(_l.saveNothingFound);',
+      'журнальное исключение': "throw StateError('не был вызван');",
+      'русский комментарий за скобкой':
+          'throw SaveException(error.message); // Сломалось',
+    };
+    for (final MapEntry(key: shape, value: code) in allowed.entries) {
+      test(
+        'не исключение: $shape',
+        () => expect(russianHumanExceptions(file(code)), isEmpty),
+      );
+    }
   });
 }
 
@@ -234,18 +288,66 @@ final a = 'ok'; // хвост с 'апострофом' по-русски
 /// буква в тексте, на месте которой в разборе пробел, стоит в строке, если
 /// слева от неё — кавычка, и в комментарии, если что-то другое.
 Iterable<String> cyrillicStrings(SourceFile file) sync* {
-  final cyrillic = RegExp('[а-яёА-ЯЁ]');
   final reported = <int>{};
+  for (final at in _cyrillicInStrings(file)) {
+    final line = _lineOf(file, at);
+    if (reported.add(line)) yield '${file.path}:$line';
+  }
+}
+
+/// Где в тексте стоят русские буквы внутри строк.
+Iterable<int> _cyrillicInStrings(SourceFile file) sync* {
+  final cyrillic = RegExp('[а-яёА-ЯЁ]');
   for (final match in cyrillic.allMatches(file.text)) {
     var k = match.start - 1;
     while (k >= 0 && (file.code[k] == ' ' || file.code[k] == '\n')) {
       k--;
     }
-    if (k < 0 || !const {"'", '"'}.contains(file.code[k])) continue;
-    final line =
-        '\n'.allMatches(file.text.substring(0, match.start)).length + 1;
-    if (reported.add(line)) yield '${file.path}:$line';
+    if (k >= 0 && const {"'", '"'}.contains(file.code[k])) yield match.start;
   }
+}
+
+int _lineOf(SourceFile file, int at) =>
+    '\n'.allMatches(file.text.substring(0, at)).length + 1;
+
+/// Исключения, текст которых показывают человеку как есть.
+///
+/// Поимённо, а не все подряд: `StateError` или `FormatException` с русским
+/// текстом законны — они уходят в журнал, а не на экран.
+const humanExceptions = [
+  'AddGameRejected',
+  'DownloadEngineException',
+  'FileManagerException',
+  'LaunchException',
+  'SaveException',
+  'SaveNothingFoundException',
+  'SteamLookupException',
+  'SteamShortcutException',
+  'UpdateCheckException',
+  'UpdateException',
+];
+
+/// Такие исключения с русской строкой в аргументах: `путь:строка`.
+Iterable<String> russianHumanExceptions(SourceFile file) sync* {
+  final russian = _cyrillicInStrings(file).toList();
+  final call = RegExp('\\b(?:${humanExceptions.join('|')})(?:\\.\\w+)?\\(');
+  for (final match in call.allMatches(file.code)) {
+    final end = _closingParen(file.code, match.end - 1);
+    if (russian.any((at) => at > match.end && at < end)) {
+      yield '${file.path}:${_lineOf(file, match.start)}';
+    }
+  }
+}
+
+/// Где закрывается скобка, открытая в [open]. Строки в разборе затёрты, и
+/// скобка внутри них счёт не собьёт.
+int _closingParen(String code, int open) {
+  var depth = 0;
+  for (var i = open; i < code.length; i++) {
+    if (code[i] == '(') depth++;
+    if (code[i] == ')' && --depth == 0) return i;
+  }
+  return code.length;
 }
 
 /// Имена подстановок в строке ARB, включая ICU.

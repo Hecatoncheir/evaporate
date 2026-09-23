@@ -228,7 +228,7 @@ class SteamCatalog {
     });
 
     final body = await _request(uri);
-    return parseSearch(body);
+    return _parsed(() => parseSearch(body));
   }
 
   /// Подробности: описание и картинка шапки.
@@ -239,7 +239,7 @@ class SteamCatalog {
     });
 
     final body = await _request(uri);
-    return parseDetails(body, appId);
+    return _parsed(() => parseDetails(body, appId));
   }
 
   /// Итог обзоров. Отдельным запросом, потому что `appdetails` его не несёт.
@@ -259,7 +259,19 @@ class SteamCatalog {
     });
 
     final body = await _request(uri);
-    return parseReviews(body);
+    return _parsed(() => parseReviews(body));
+  }
+
+  /// Разбор ответа — статикой, ради тестов на записанных ответах, и языка у
+  /// неё нет: не-JSON она бросает `FormatException`, а слова к нему
+  /// подбираются здесь. Прежде статика брала русский по умолчанию, и
+  /// английский интерфейс получал «Steam вернул неожиданный ответ».
+  T _parsed<T>(T Function() parse) {
+    try {
+      return parse();
+    } on FormatException {
+      throw SteamLookupException(_l.steamUnexpectedAnswer);
+    }
   }
 
   /// Ищет и сразу дополняет лучший результат подробностями.
@@ -380,13 +392,10 @@ class SteamCatalog {
     );
   }
 
+  /// Не JSON — `FormatException`; слова к нему подбирает [_parsed].
   static Map<String, dynamic> _decodeMap(String body) {
-    try {
-      final decoded = jsonDecode(body);
-      return decoded is Map<String, dynamic> ? decoded : const {};
-    } on FormatException {
-      throw SteamLookupException(_defaultLocalizations().steamUnexpectedAnswer);
-    }
+    final decoded = jsonDecode(body);
+    return decoded is Map<String, dynamic> ? decoded : const {};
   }
 
   /// Идут ли запросы каталога через прокси.

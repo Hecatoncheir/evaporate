@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:evaporate/services/system/update_exception.dart';
 import 'package:evaporate/services/system/update_transport.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -54,12 +55,18 @@ void main() {
     expect(utf8.decode(bytes), 'сумма');
   });
 
-  test('отказ сервера приходит словами об обновлении', () async {
+  // Слов у транспорта нет — он статика и языка не знает: отказ приходит
+  // причиной с кодом ответа, а слова к ним подберёт блок обновления.
+  test('отказ сервера приходит причиной и кодом ответа', () async {
     final base = await serving({});
 
     await expectLater(
       UpdateTransport.fetch(base.resolve('missing'), (_, _) {}),
-      throwsA(isA<Exception>()),
+      throwsA(
+        isA<UpdateException>()
+            .having((e) => e.reason, 'причина', UpdateFailure.serverStatus)
+            .having((e) => e.detail, 'код', '404'),
+      ),
     );
   });
 }

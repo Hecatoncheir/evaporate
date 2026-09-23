@@ -67,7 +67,11 @@ String stripCommentsAndStrings(String source) {
         j++;
       }
       final contentEnd = j.clamp(0, source.length);
+      // Приставку сырой строки — тоже: без неё разбор короче текста на
+      // знак за каждую такую строку, и страж, сверяющий их по позициям,
+      // смотрел мимо.
       out
+        ..write(match.group(1))
         ..write(delimiter)
         ..write(blank(source.substring(match.end, contentEnd)))
         ..write(delimiter);

@@ -1,3 +1,4 @@
+import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/models/proxy_settings.dart';
 import 'package:evaporate/services/metadata/steam_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,10 +100,28 @@ void main() {
       expect(found.single.appId, 42);
     });
 
-    test('не-json приводит к понятной ошибке', () {
+    // Разбор — статика без языка: слова к отказу подбирает каталог. Прежде
+    // статика брала русский по умолчанию, и английский интерфейс получал
+    // «Steam вернул неожиданный ответ».
+    test('не-json приводит к понятной ошибке на языке интерфейса', () async {
+      final catalog = SteamCatalog(
+        fetch: (uri) async => '<html>Cloudflare</html>',
+        localizations: LEn.new,
+      );
+
       expect(
         () => SteamCatalog.parseSearch('<html>Cloudflare</html>'),
-        throwsA(isA<SteamLookupException>()),
+        throwsFormatException,
+      );
+      await expectLater(
+        catalog.search('Portal'),
+        throwsA(
+          isA<SteamLookupException>().having(
+            (e) => e.message,
+            'слова',
+            LEn().steamUnexpectedAnswer,
+          ),
+        ),
       );
     });
 

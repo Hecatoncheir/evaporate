@@ -859,6 +859,14 @@
   "findFolderByTitle": "Поискать папку по названию игры",
   "findInSteam": "Найти в Steam",
   "folderMissing": "Папка не найдена.",
+  "folderNotFound": "Папка не найдена: {path}",
+  "@folderNotFound": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "fromDatabase": "Из базы",
   "gameFiles": "Файлы игры",
   "gameFolder": "Папка с игрой",
@@ -1045,10 +1053,61 @@
   "updateNoFile": "Для этой системы файла в релизе нет",
   "updateIncomplete": "Обновление скачалось не целиком — попробуйте ещё раз",
   "updateChecksumMismatch": "Контрольная сумма не сошлась: файл скачался повреждённым",
+  "updateServerStatus": "Сервер ответил {status}",
+  "updateNoConnection": "Нет связи: {error}",
+  "updateTooManyRedirects": "Слишком много переадресаций",
+  "updateArchiveUnreadable": "Архив не читается: {error}",
+  "updateArchiveEscapes": "Архив просит записать файл наружу: {path}",
+  "updateArchiveLinkEscapes": "Ссылка в архиве указывает наружу: {link}",
+  "updateNotExecutable": "Не поставить бит запуска: {path}",
+  "updateUnknownLayout": "Не понять, куда поставлено приложение",
+  "updateNoWindowsSetup": "Установщик Windows не найден",
   "@updateDownloading": {
     "placeholders": {
       "percent": {
         "type": "int"
+      }
+    }
+  },
+  "@updateServerStatus": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateNoConnection": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateArchiveUnreadable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateArchiveEscapes": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateArchiveLinkEscapes": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "@updateNotExecutable": {
+    "placeholders": {
+      "path": {
+        "type": "String"
       }
     }
   },

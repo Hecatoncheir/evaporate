@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:crypto/crypto.dart';
-import 'package:evaporate/l10n/app_localizations_en.dart';
 import 'package:evaporate/services/system/app_log.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/services/system/update_download.dart';
@@ -456,15 +455,15 @@ void main() {
       expect(Directory(root).existsSync(), isTrue);
     }, skip: Platform.isLinux ? 'проверяется на zip' : null);
 
-    // Отказ человек читает в карточке обновления, а прежде он приходил
-    // русским литералом и в английский интерфейс.
-    test('отказ говорит на языке интерфейса', () async {
+    // Отказ человек читает в карточке обновления, и слова к нему подбирает
+    // блок с языком интерфейса, а загрузка отдаёт причину. Прежде она
+    // писала слова сама, и в английский интерфейс приходили русские.
+    test('несошедшаяся сумма — отказ своей причиной', () async {
       const name = 'evaporate-9.9.9-windows-setup.exe';
       final bytes = utf8.encode('setup');
       final download = UpdateDownload(
         workDir: tmp.path,
         platform: 'windows',
-        localizations: LEn.new,
         fetch: (uri, onProgress) async => utf8.encode('${'0' * 64}  $name\n'),
         download: (uri, target, from, onProgress) async {
           await target.writeAsBytes(bytes, flush: true);
@@ -475,9 +474,9 @@ void main() {
         download.prepare(releaseWith(name: name, bytes: bytes)),
         throwsA(
           isA<UpdateException>().having(
-            (e) => e.message,
-            'message',
-            LEn().updateChecksumMismatch,
+            (e) => e.reason,
+            'причина',
+            UpdateFailure.checksumMismatch,
           ),
         ),
       );

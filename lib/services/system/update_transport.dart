@@ -41,7 +41,10 @@ class UpdateTransport {
       // дописать к нему второй.
       final resumed = response.statusCode == HttpStatus.partialContent;
       if (!resumed && response.statusCode != HttpStatus.ok) {
-        throw UpdateException('Сервер ответил ${response.statusCode}');
+        throw UpdateException(
+          UpdateFailure.serverStatus,
+          '${response.statusCode}',
+        );
       }
       await _writeBody(
         response,
@@ -51,7 +54,7 @@ class UpdateTransport {
         onProgress: onProgress,
       );
     } on SocketException catch (error) {
-      throw UpdateException('Нет связи: ${error.message}');
+      throw UpdateException(UpdateFailure.noConnection, error.message);
     } finally {
       client.close(force: true);
     }
@@ -121,7 +124,7 @@ class UpdateTransport {
       await response.drain<void>();
       target = target.resolve(location);
     }
-    throw const UpdateException('Слишком много переадресаций');
+    throw const UpdateException(UpdateFailure.tooManyRedirects);
   }
 
   /// Читает небольшой файл релиза целиком — например, `SHA256SUMS`.
@@ -138,7 +141,10 @@ class UpdateTransport {
     try {
       final response = await _open(client, uri, 0);
       if (response.statusCode != HttpStatus.ok) {
-        throw UpdateException('Сервер ответил ${response.statusCode}');
+        throw UpdateException(
+          UpdateFailure.serverStatus,
+          '${response.statusCode}',
+        );
       }
 
       final total = response.contentLength;
@@ -154,7 +160,7 @@ class UpdateTransport {
       progress.finish();
       return builder.takeBytes();
     } on SocketException catch (error) {
-      throw UpdateException('Нет связи: ${error.message}');
+      throw UpdateException(UpdateFailure.noConnection, error.message);
     } finally {
       client.close(force: true);
     }
