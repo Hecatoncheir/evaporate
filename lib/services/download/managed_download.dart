@@ -220,6 +220,10 @@ class _ManagedDownload {
     if (magnet != null) 'magnet': magnet,
     if (torrentPath != null) 'torrentPath': torrentPath,
     if (slot == SlotState.paused) 'pausedByUser': true,
+    // Сорвавшаяся «сама не поднимется» и после перезапуска. Без этого она
+    // вставала в очередь и качалась за спиной, а игра со статусом «ошибка»
+    // за такой загрузкой не следит вовсе.
+    if (slot == SlotState.failed) 'failed': error ?? '',
   };
 
   factory _ManagedDownload.fromJson(
@@ -237,6 +241,7 @@ class _ManagedDownload {
       onChanged: onChanged,
     );
     if (json['pausedByUser'] as bool? ?? false) managed.markPaused();
+    if (json['failed'] case final String message) managed.markFailed(message);
     return managed;
   }
 

@@ -126,5 +126,7 @@ extension EngineQueue on DtorrentEngine {
     await managed.dispose();
     managed.markFailed(message);
     pumpQueue();
+    // В сессию — сразу: срыв должен пережить перезапуск, как и пауза.
+    await _persist();
   }
 }

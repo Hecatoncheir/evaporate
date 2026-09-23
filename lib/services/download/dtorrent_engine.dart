@@ -148,6 +148,10 @@ class DtorrentEngine implements DownloadEngine {
     await Future.wait([
       for (final managed in _downloads.values) managed.dispose(),
     ]);
+    // Сессию пишут и без ожидания — срыв задачи, смена очереди, — и на
+    // выходе последняя такая запись терялась: после перезапуска задача
+    // вела себя так, будто её не было.
+    await _store.flush();
     _downloads.clear();
     _queue.clear();
     _tasks.value = const [];

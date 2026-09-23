@@ -273,6 +273,33 @@ void main() {
       expect(failed.isQueued, isFalse, reason: 'очередь её обходит');
     });
 
+    // Сорвавшаяся задача сама не поднимается, но записывалась без этого:
+    // после перезапуска она вставала в очередь и качалась за спиной, а
+    // игра со статусом «ошибка» за такой загрузкой не следила вовсе.
+    test('сорвавшаяся и после перезапуска ждёт «Возобновить»', () async {
+      final first = launching((hash) async => null);
+      await first.addMagnet(magnet(hashA), dir: tmp.path);
+      for (var i = 0; i < 200; i++) {
+        await first.refresh();
+        if (first.taskById(hashA)?.state == DownloadState.error) break;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+      expect(first.taskById(hashA)?.state, DownloadState.error);
+      await first.stop();
+
+      var asked = 0;
+      final second = launching((hash) {
+        asked++;
+        return never(hash);
+      });
+      await second.start();
+      final task = second.taskById(hashA)!;
+
+      expect(task.state, DownloadState.error);
+      expect(task.errorMessage, LRu().metadataNotFound);
+      expect(asked, 0, reason: 'очередь сорвавшуюся не поднимает');
+    });
+
     // При SOCKS5 поиск идёт через прокси и без DHT: пиров дают только
     // HTTP-трекеры ссылки. Ссылка без них — отказ словами, а не ожидание.
     test('magnet без HTTP-трекера при SOCKS5 в сеть не идёт', () async {
