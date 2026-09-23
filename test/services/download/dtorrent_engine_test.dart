@@ -242,7 +242,13 @@ void main() {
         proxy: proxy,
         metadataTimeout: metadataTimeout,
       );
-      addTearDown(engine.dispose);
+      // Сначала остановить: срыв пишет сессию из запуска, которого никто не
+      // ждёт, и `stop` эти записи дописывает, а синхронный `dispose` — нет.
+      // Иначе папку теста удаляли бы из-под записи.
+      addTearDown(() async {
+        await engine.stop();
+        engine.dispose();
+      });
       return engine;
     }
 

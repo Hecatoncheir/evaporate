@@ -124,9 +124,19 @@ extension EngineQueue on DtorrentEngine {
   /// запирали очередь до перезапуска приложения.
   Future<void> _fail(_ManagedDownload managed, String message) async {
     await managed.dispose();
+    // Пока задачу освобождали, её могли снять или остановить весь движок.
+    // Тогда отмечать и записывать нечего: список уже без неё, а запись
+    // после остановки легла бы пустой и стёрла сессию целиком.
+    if (!identical(_downloads[managed.infoHash], managed)) return;
     managed.markFailed(message);
     pumpQueue();
-    // В сессию — сразу: срыв должен пережить перезапуск, как и пауза.
-    await _persist();
+    // В сессию — сразу: срыв должен пережить перезапуск, как и пауза. Зовут
+    // это из запуска, которого никто не ждёт, и отказ записи вылетел бы
+    // отсюда необработанным: срыв он не отменяет, но след оставляет.
+    try {
+      await _persist();
+    } on FileSystemException catch (error) {
+      AppLog.instance.write('загрузки: срыв $message не записан', error);
+    }
   }
 }
