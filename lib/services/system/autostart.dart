@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../../core/home_dir.dart';
+
 /// Запуск приложения вместе с системой.
 ///
 /// Отдельной зависимости здесь не нужно: на всех трёх системах это запись
@@ -21,7 +23,7 @@ class Autostart {
        _environment = environment ?? Platform.environment,
        _operatingSystem = operatingSystem ?? Platform.operatingSystem,
        _run = run ?? Process.run {
-    _home = homeDir ?? _environment[_isWindows ? 'USERPROFILE' : 'HOME'];
+    _home = homeDir ?? homeDirIn(_environment, windows: _isWindows);
   }
 
   final String _executable;

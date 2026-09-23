@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../../core/home_dir.dart';
+
 /// Запись в меню приложений Linux.
 ///
 /// Сборка под Linux — это папка с исполняемым файлом, а не установленный
@@ -17,7 +19,8 @@ class DesktopEntry {
     Map<String, String>? environment,
   }) : _executable = executablePath ?? Platform.resolvedExecutable,
        _environment = environment ?? Platform.environment {
-    _home = homeDir ?? _environment['HOME'];
+    // Запись в меню бывает только на Linux, и дом у неё — оттуда же.
+    _home = homeDir ?? homeDirIn(_environment, windows: false);
   }
 
   final String _executable;

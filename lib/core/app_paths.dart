@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'home_dir.dart';
 import 'save_path_template.dart';
 import 'system_folders.dart';
 
@@ -41,7 +42,7 @@ class AppPaths {
     final paths = home == null
         ? AppPaths._(
             dataDir: (await getApplicationSupportDirectory()).path,
-            defaultInstallDir: p.join(_homeDir(), 'Games', 'Evaporate'),
+            defaultInstallDir: p.join(homeDir(), 'Games', 'Evaporate'),
           )
         : AppPaths._(
             dataDir: p.join(home, 'data'),
@@ -120,13 +121,5 @@ class AppPaths {
   /// Список загрузок движка: он переживает перезапуск приложения.
   String get engineStateFile => p.join(dataDir, 'downloads.json');
 
-  static String _homeDir() {
-    final env = Platform.environment;
-    if (Platform.isWindows) {
-      return env['USERPROFILE'] ?? env['HOMEPATH'] ?? r'C:\';
-    }
-    return env['HOME'] ?? '/';
-  }
-
-  static String get home => _homeDir();
+  static String get home => homeDir();
 }

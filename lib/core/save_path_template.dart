@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'home_dir.dart';
+
 /// Перенос сейвов между устройствами держится на том, что мы храним не
 /// абсолютный путь (`/Users/имя/Library/...`), а шаблон с плейсхолдером
 /// (`{APPSUPPORT}/MyGame/Saves`). На другой машине — и на другой ОС — тот же
@@ -206,11 +208,5 @@ class SavePathTemplate {
   static bool isPortable(String template) =>
       template.contains(game) || placeholders.keys.any(template.contains);
 
-  static String get _home {
-    final env = Platform.environment;
-    if (Platform.isWindows) {
-      return env['USERPROFILE'] ?? r'C:\';
-    }
-    return env['HOME'] ?? '/';
-  }
+  static String get _home => homeDir();
 }
