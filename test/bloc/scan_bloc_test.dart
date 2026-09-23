@@ -26,7 +26,18 @@ void main() {
   });
 
   ScanBloc bloc() {
-    final scan = ScanBloc(ScanSession(existingDirs: const {}));
+    final scan = ScanBloc(
+      ScanSession(
+        existingDirs: const {},
+        // Без подделок заход читает настоящий Steam и реестр этой машины:
+        // под нагрузкой полного прогона одно это не укладывалось в десять
+        // секунд ожидания, а трогать чужое тесту незачем вовсе.
+        steamRoots: const [],
+        fixedRoots: const [],
+        registryQuery: (executable, arguments) async =>
+            ProcessResult(0, 0, '', ''),
+      ),
+    );
     addTearDown(scan.close);
     return scan;
   }
