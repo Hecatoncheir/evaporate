@@ -102,6 +102,26 @@ void main() {
     expect(bloc.state.host, 'другой.прокси');
   });
 
+  // Переключатели карточки уходят в настройки сразу и сообщают форме, что
+  // сохранённое сменилось. Форма при этом открывалась заново на
+  // сохранённом: набранный адрес стоял в поле, а в черновике его не было,
+  // и клавиша гасла, пока адрес не наберут заново.
+  test('переключатель карточки не стирает набранный адрес', () async {
+    final bloc = form();
+
+    bloc
+      ..add(const ProxyHostChanged('другой.прокси'))
+      ..add(ProxySavedChanged(saved.copyWith(kind: ProxyKind.http)));
+    // Ждём само событие переключателя, а не паузу: не дойди оно до формы,
+    // набранное уцелело бы и при ошибке.
+    final state = await bloc.stream.firstWhere(
+      (next) => next.saved.kind == ProxyKind.http,
+    );
+
+    expect(state.host, 'другой.прокси');
+    expect(state.canApply, isTrue);
+  });
+
   test('пароль не обрезается по краям: пробел в нём — знак пароля', () async {
     final bloc = form();
 

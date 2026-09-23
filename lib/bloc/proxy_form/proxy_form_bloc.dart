@@ -23,6 +23,8 @@ class ProxyFormBloc extends Bloc<ProxyFormEvent, ProxyForm> {
     on<ProxyPasswordChanged>(
       (event, emit) => emit(state.withPassword(event.password)),
     );
-    on<ProxySavedChanged>((event, emit) => emit(ProxyForm.of(event.saved)));
+    on<ProxySavedChanged>(
+      (event, emit) => emit(state.copyWith(saved: event.saved)),
+    );
   }
 }

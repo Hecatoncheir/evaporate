@@ -47,7 +47,12 @@ final class ProxyPasswordChanged extends ProxyFormEvent {
   List<Object?> get props => [password];
 }
 
-/// Настройки сменились снаружи — например, применили набранное.
+/// Настройки сменились снаружи — применили набранное или щёлкнули
+/// переключателем карточки.
+///
+/// Набранное остаётся как было: переключатель адреса не применяет, поля
+/// показывают набранное, и черновик обязан совпадать с ними, а не с
+/// сохранённым.
 final class ProxySavedChanged extends ProxyFormEvent {
   const ProxySavedChanged(this.saved);
 
