@@ -85,15 +85,21 @@ class JsonStore {
   /// Нужно тем, кто разбирает JSON в отдельном изоляте: у кэша базы путей
   /// это десятки тысяч записей, и разбор их на главном потоке роняет
   /// несколько кадров подряд.
+  ///
+  /// Во всём прочем — как [read]: испорченная кодировка уходит в карантин,
+  /// а отказ ввода-вывода не глотается. Прежде он возвращал `null`, и
+  /// «файл есть, но не читается» выглядело как «файла нет»: кэш базы путей
+  /// молча качался заново, семнадцать мегабайт на каждом запуске. Что
+  /// делать с таким отказом, решает тот, кто читает.
   Future<String?> readText() async {
+    recoveryPath = null;
     final file = File(path);
     if (!await file.exists()) return null;
     try {
       final content = utf8.decode(await file.readAsBytes());
       return content.trim().isEmpty ? null : content;
-    } on FileSystemException {
-      return null;
     } on FormatException {
+      await quarantine();
       return null;
     }
   }

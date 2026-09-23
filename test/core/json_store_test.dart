@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import '../support/temp_dir.dart';
+import '../support/unreadable_file.dart';
 
 void main() {
   late Directory tmp;
@@ -30,6 +31,42 @@ void main() {
 
   test('отсутствующий файл — это не ошибка', () async {
     expect(await JsonStore(path).read(), isNull);
+  });
+
+  // «Файла нет» и «файл есть, но не читается» — разные ответы. Текст
+  // отвечал на оба одинаково, и кэш базы путей молча качался заново.
+  test(
+    'отказ ввода-вывода при чтении текста не выдаёт себя за отсутствие файла',
+    () async {
+      final file = File(path);
+      await file.parent.create(recursive: true);
+      await file.writeAsString('{"a":1}');
+      final release = await makeUnreadable(file);
+      try {
+        await expectLater(
+          JsonStore(path).readText(),
+          throwsA(isA<FileSystemException>()),
+        );
+      } finally {
+        await release();
+      }
+    },
+    skip: unreadableSkip,
+  );
+
+  // Испорченный JSON [read] уводил в сторону, а испорченную кодировку
+  // текст выдавал за отсутствие файла — и следующая запись её затирала.
+  test('испорченная кодировка текста уходит в сторону, как у read', () async {
+    final file = File(path);
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(const [0xff, 0xfe, 0x7b, 0x7d]);
+    final store = JsonStore(path);
+
+    expect(await store.readText(), isNull);
+
+    expect(store.recoveryPath, isNotNull);
+    expect(File(store.recoveryPath!).existsSync(), isTrue);
+    expect(await file.exists(), isFalse);
   });
 
   test('flush дожидается очереди записей и второго файла не заводит', () async {

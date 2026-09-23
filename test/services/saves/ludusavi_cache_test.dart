@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:evaporate/core/json_store.dart';
 import 'package:evaporate/models/catalog_progress.dart';
 import 'package:evaporate/services/saves/ludusavi_catalog.dart';
+import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import '../../support/temp_dir.dart';
+import '../../support/unreadable_file.dart';
 
 /// База путей — десятки тысяч записей, и всё, что с ней делают на главном
 /// потоке, видно глазом: анимация на фоне дёргается.
@@ -78,6 +80,49 @@ void main() {
     expect(catalog.find(title: '', steamAppId: 1001), isNull);
     expect(catalog.find(title: '', steamAppId: 2001)?.title, 'Совсем другая');
   });
+
+  // Кэш, который не читается, выглядел отсутствующим: база молча качалась
+  // заново — семнадцать мегабайт на каждом запуске, — и искать причину
+  // было негде.
+  test('непрочитанный кэш качается заново, но не молча', () async {
+    final writer = LudusaviCatalog(
+      cacheFile: cacheFile,
+      fetch: (uri) async => manifest(2),
+    );
+    await writer.ensureLoaded();
+    final journal = AppLog(
+      path: p.join(tmp.path, 'evaporate.log'),
+      previousPath: p.join(tmp.path, 'evaporate.log.1'),
+    );
+    final release = await makeUnreadable(File(cacheFile));
+    var downloads = 0;
+    try {
+      final reader = LudusaviCatalog(
+        cacheFile: cacheFile,
+        // Держатель отпускает файл, пока база качается: иначе свежий кэш
+        // было бы не положить на место.
+        fetch: (uri) async {
+          downloads++;
+          await release();
+          return manifest(2);
+        },
+        log: () => journal,
+      );
+      await reader.ensureLoaded();
+      expect(reader.entryCount, 2);
+    } finally {
+      await release();
+    }
+
+    expect(downloads, 1);
+    await journal.flush();
+    expect(
+      (await journal.tail()).where(
+        (line) => line.contains('кэш базы путей не читается'),
+      ),
+      isNotEmpty,
+    );
+  }, skip: unreadableSkip);
 
   test('кэш пишется и читается обратно', () async {
     final first = LudusaviCatalog(

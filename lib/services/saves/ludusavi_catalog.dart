@@ -9,6 +9,7 @@ import '../../l10n/app_localizations_ru.dart';
 import '../../models/catalog_progress.dart';
 import '../../models/proxy_settings.dart';
 import '../metadata/release_name.dart';
+import '../system/app_log.dart';
 import '../system/http_fetch.dart';
 import '../system/proxy_http_overrides.dart';
 import 'ludusavi_manifest.dart';
@@ -54,12 +55,18 @@ class LudusaviCatalog {
     ProxySettings Function()? proxy,
     this.onProgress,
     L Function()? localizations,
+    AppLog Function()? log,
   }) : // Кэш читает только приложение: отступы в нём — лишняя треть файла.
        _store = JsonStore(cacheFile, pretty: false),
        _localizations = localizations ?? _defaultLocalizations,
+       _log = log ?? (() => AppLog.instance),
        _proxy = proxy ?? _noProxy {
     _fetch = fetch;
   }
+
+  /// Куда сказать, что кэш не прочитался. Функцией — чтобы тест подменял
+  /// журнал, не трогая глобала.
+  final AppLog Function() _log;
 
   /// Куда сообщать о ходе работы. Манифест весит семнадцать мегабайт,
   /// а разбор занимает секунды — без указателя это выглядит зависанием.
@@ -98,7 +105,7 @@ class LudusaviCatalog {
 
   Future<bool> _load({required bool refresh}) async {
     if (!refresh) {
-      final text = await _store.readText();
+      final text = await _cachedText();
       if (text != null) {
         final cached = await compute(_decodeManifest, text);
         if (cached != null) {
@@ -118,6 +125,21 @@ class LudusaviCatalog {
     _steamIndex = null;
     await _store.writeText(parsed.json);
     return true;
+  }
+
+  /// Текст кэша; `null` — кэша нет, и базу пора качать.
+  ///
+  /// Не прочитался — тоже качаем: кэш восстановим, а без базы поиск путей
+  /// не работает вовсе. Но не молча: семнадцать мегабайт на каждом запуске
+  /// видно по трафику, а причину — права, антивирус, сбой диска — должен
+  /// назвать журнал.
+  Future<String?> _cachedText() async {
+    try {
+      return await _store.readText();
+    } on FileSystemException catch (error) {
+      _log().write('кэш базы путей не читается, качаю заново', error);
+      return null;
+    }
   }
 
   /// При известном Steam ID ищет только по нему: совпадение названия
