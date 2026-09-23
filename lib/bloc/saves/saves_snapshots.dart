@@ -111,7 +111,7 @@ extension _SavesSnapshots on SavesBloc {
       await _exportToSyncFolder(snapshot);
     } on Object catch (error) {
       // Папка синхронизации могла отвалиться — снимок сохранён локально.
-      AppLog.instance.write('выгрузка в папку синхронизации', error);
+      _log().write('выгрузка в папку синхронизации', error);
     }
   }
 
@@ -177,10 +177,7 @@ extension _SavesSnapshots on SavesBloc {
         await _saves.deleteSnapshot(snapshot);
       } on Object catch (error) {
         // Пропускаем: ротация не критична, но след оставляем.
-        AppLog.instance.write(
-          'ротация: не удалить ${snapshot.archivePath}',
-          error,
-        );
+        _log().write('ротация: не удалить ${snapshot.archivePath}', error);
       }
     }
     await _collectGarbage();

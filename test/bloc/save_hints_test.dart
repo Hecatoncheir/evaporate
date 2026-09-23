@@ -8,6 +8,7 @@ import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_profile.dart';
 import 'package:evaporate/services/saves/ludusavi_catalog.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
+import 'package:evaporate/services/system/app_log.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -280,5 +281,34 @@ void main() {
     test('непроверенный путь — не «нет»', () {
       expect(const SavesState().pathExists('/какой-то/путь'), isNull);
     });
+  });
+
+  // Отказ обхода гасится молча — подсказок просто не будет, — но след в
+  // журнале остаётся. Писали его мимо журнала блока, прямо в глобал, а
+  // глобал один на весь прогон: тест, давший блоку свой журнал, следа не
+  // видел, и проверка журнала зависела от соседнего файла.
+  test('отказ поиска папок остаётся в журнале самого блока', () async {
+    final journal = AppLog(
+      path: p.join(tmp.path, 'evaporate.log'),
+      previousPath: p.join(tmp.path, 'evaporate.log.1'),
+    );
+    await saves.close();
+    saves = SavesBloc(
+      paths: paths,
+      library: library,
+      settings: settings,
+      saveRoots: () => throw const FileSystemException('корни не прочитались'),
+      log: () => journal,
+    );
+    final game = await addGame('Без корней');
+
+    saves.add(SavePathSuggestionsRequested(game));
+    await handlers.settle();
+
+    await journal.flush();
+    expect(
+      (await journal.tail()).where((line) => line.contains('поиск папок')),
+      isNotEmpty,
+    );
   });
 }

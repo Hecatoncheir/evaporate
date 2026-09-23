@@ -21,7 +21,7 @@ extension _SavesHints on SavesBloc {
       );
     } on Object catch (error) {
       // Обход папок — дело подсобное: не вышло, значит подсказок не будет.
-      AppLog.instance.write('поиск следов игры «${event.game.title}»', error);
+      _log().write('поиск следов игры «${event.game.title}»', error);
       return;
     }
 
@@ -76,7 +76,7 @@ extension _SavesHints on SavesBloc {
         searchRoots: _saveRoots(),
       );
     } on Object catch (error) {
-      AppLog.instance.write('поиск папок «${event.game.title}»', error);
+      _log().write('поиск папок «${event.game.title}»', error);
       finishBusy(emit, key, message: _l.noSimilarFolders, isError: true);
       return;
     }
