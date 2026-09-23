@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/library/cover/decode_width.dart';
 import 'package:evaporate/ui/library/detail/cover_backdrop.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -87,12 +88,17 @@ void main() {
       );
       // Дожидаемся самой картинки, а не отведённого на неё времени:
       // 120 мс под нагрузкой полного прогона не хватало, снимок ловил фон
-      // без обложки, и тест мигал. Тот же `FileImage`, что у `Image.file`,
-      // — значит, тот же ключ в кэше.
+      // без обложки, и тест мигал. Ждать надо ту же запись кэша, что берёт
+      // виджет: `Image.file` с `cacheWidth` кладёт картинку под ключом
+      // `ResizeImage`, и прогретый голый `FileImage` ей не родня — тест
+      // ждал чужую расшифровку и мигал снова.
       final path = game.details.coverPath;
       if (path != null) {
         final context = key.currentContext!;
-        await precacheImage(FileImage(File(path)), context);
+        await precacheImage(
+          ResizeImage(FileImage(File(path)), width: blurredDecodeWidth),
+          context,
+        );
       }
       await tester.pump();
     });
