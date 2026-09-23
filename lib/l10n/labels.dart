@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../services/download/download_engine.dart';
+import '../services/system/update_exception.dart';
 import 'app_localizations.dart';
 
 /// Переводимые подписи, нужные не только интерфейсу, но и блокам.
@@ -16,6 +17,28 @@ String engineStateLabel(L l, EngineState state) => switch (state) {
   EngineState.ready => l.engineReady,
   EngineState.failed => l.statusError,
 };
+
+/// Отказ обновления словами языка.
+///
+/// Здесь, а не у самого исключения: переводы тянут Flutter, а
+/// `UpdateException` бросает и распаковка, которую CI гоняет голой Dart VM.
+extension UpdateExceptionText on UpdateException {
+  String describe(L l) => switch (reason) {
+    UpdateFailure.noFile => l.updateNoFile,
+    UpdateFailure.incomplete => l.updateIncomplete,
+    UpdateFailure.checksumMismatch => l.updateChecksumMismatch,
+    UpdateFailure.serverStatus => l.updateServerStatus(detail),
+    UpdateFailure.noConnection => l.updateNoConnection(detail),
+    UpdateFailure.tooManyRedirects => l.updateTooManyRedirects,
+    UpdateFailure.unreadableArchive => l.updateArchiveUnreadable(detail),
+    UpdateFailure.escapingEntry => l.updateArchiveEscapes(detail),
+    UpdateFailure.escapingLink => l.updateArchiveLinkEscapes(detail),
+    UpdateFailure.notExecutable => l.updateNotExecutable(detail),
+    UpdateFailure.unknownLayout => l.updateUnknownLayout,
+    UpdateFailure.notUpdatable => l.updateNotWritable,
+    UpdateFailure.noWindowsSetup => l.updateNoWindowsSetup,
+  };
+}
 
 /// Размер словами языка: «1,5 ГБ», «1.5 GB».
 ///

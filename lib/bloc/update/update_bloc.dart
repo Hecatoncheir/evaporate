@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 import '../../core/app_paths.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/app_localizations_ru.dart';
+import '../../l10n/labels.dart';
 import '../../services/system/desktop_entry.dart';
 import '../../services/system/update_check.dart';
 import '../../services/system/update_download.dart';

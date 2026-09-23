@@ -1,5 +1,3 @@
-import '../../l10n/app_localizations.dart';
-
 /// Почему обновление не удалось.
 enum UpdateFailure {
   noFile,
@@ -26,7 +24,12 @@ enum UpdateFailure {
 /// Несёт причину, а не готовую фразу: языка там, где его бросают, нет —
 /// распаковка идёт в изоляте, транспорт — статикой. Прежде фразу писали
 /// по месту, и английский интерфейс получал «Сервер ответил 404». Слова
-/// подбирает тот, у кого язык есть, — [describe].
+/// подбирает тот, у кого язык есть, — `describe` из `lib/l10n/labels.dart`.
+///
+/// Переводов в этом файле нет нарочно: они тянут Flutter, а исключение
+/// бросает и распаковка, которую CI гоняет голой Dart VM
+/// (`tool/rehearse_update.dart`). Когда `describe` жил здесь, сборки
+/// macOS и Linux не собирали репетицию обновления, и 0.40.1 не вышла.
 class UpdateException implements Exception {
   const UpdateException(this.reason, [this.detail = '']);
 
@@ -34,22 +37,6 @@ class UpdateException implements Exception {
 
   /// Что подставить в слова: код ответа, путь, ответ системы.
   final String detail;
-
-  String describe(L l) => switch (reason) {
-    UpdateFailure.noFile => l.updateNoFile,
-    UpdateFailure.incomplete => l.updateIncomplete,
-    UpdateFailure.checksumMismatch => l.updateChecksumMismatch,
-    UpdateFailure.serverStatus => l.updateServerStatus(detail),
-    UpdateFailure.noConnection => l.updateNoConnection(detail),
-    UpdateFailure.tooManyRedirects => l.updateTooManyRedirects,
-    UpdateFailure.unreadableArchive => l.updateArchiveUnreadable(detail),
-    UpdateFailure.escapingEntry => l.updateArchiveEscapes(detail),
-    UpdateFailure.escapingLink => l.updateArchiveLinkEscapes(detail),
-    UpdateFailure.notExecutable => l.updateNotExecutable(detail),
-    UpdateFailure.unknownLayout => l.updateUnknownLayout,
-    UpdateFailure.notUpdatable => l.updateNotWritable,
-    UpdateFailure.noWindowsSetup => l.updateNoWindowsSetup,
-  };
 
   /// Для журнала: причина именем, без перевода.
   @override
