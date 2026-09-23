@@ -379,8 +379,7 @@ const _fontSize = [
   // кадра, знак приложения в верхней панели.
   'lib/ui/library/detail/detail_cover.dart: 1',
   'lib/ui/library/cover/cover_title_plate.dart: 1',
-  'lib/ui/library/featured/featured_compact_bar.dart: 1',
-  'lib/ui/library/featured/featured_poster.dart: 1',
+  'lib/ui/library/featured/featured_title.dart: 1',
   'lib/ui/shell/top_bar_brand.dart: 1',
 ];
 
@@ -406,8 +405,7 @@ const _radii = <String>[];
 const _textStyles = [
   'lib/ui/library/cover/cover_title_plate.dart: 1',
   'lib/ui/library/detail/detail_cover.dart: 1',
-  'lib/ui/library/featured/featured_compact_bar.dart: 1',
-  'lib/ui/library/featured/featured_poster.dart: 1',
+  'lib/ui/library/featured/featured_title.dart: 1',
   'lib/ui/shell/top_bar_brand.dart: 1',
 ];
 

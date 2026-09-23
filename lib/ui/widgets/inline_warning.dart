@@ -2,27 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// Предупреждение строкой: значок и текст цветом предупреждения.
+/// Предупреждение строкой: значок и текст цветом предупреждения — или
+/// ошибки, если [danger].
 ///
-/// Было выписано дважды побайтово — в прокси и в уведомлениях, — и копии
-/// ничем не различались, кроме места, где стояли.
+/// Было выписано трижды — в прокси, в уведомлениях и под действиями игры, —
+/// и копии различались только цветом и значком.
 class InlineWarning extends StatelessWidget {
-  const InlineWarning(this.text, {super.key});
+  const InlineWarning(this.text, {super.key, this.danger = false});
 
   final String text;
 
+  /// Не предостережение, а случившаяся ошибка: запуск не удался, загрузка
+  /// сорвалась.
+  final bool danger;
+
   @override
   Widget build(BuildContext context) {
+    final color = danger ? context.colors.danger : context.colors.warning;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
-          Icons.warning_amber_rounded,
+          danger ? Icons.error_outline : Icons.warning_amber_rounded,
           size: EvaporateIconSize.key,
-          color: context.colors.warning,
+          color: color,
         ),
         const SizedBox(width: EvaporateSpacing.gap),
-        Expanded(child: Text(text, style: context.text.warning)),
+        Expanded(
+          child: Text(text, style: context.text.warning.copyWith(color: color)),
+        ),
       ],
     );
   }

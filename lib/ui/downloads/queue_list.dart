@@ -20,18 +20,9 @@ class QueueList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       buildDefaultDragHandles: false,
       itemCount: queued.length,
-      // onReorderItem уже учитывает изъятие перемещаемого элемента,
-      // поэтому индекс соседа ищем в списке без него.
-      onReorderItem: (oldIndex, newIndex) {
-        final moved = queued[oldIndex];
-        final rest = [...queued]..removeAt(oldIndex);
-        // Называем соседа, а не место: место у движка своё, в общем
-        // порядке всех задач, и знать его устройство виджету незачем.
-        final target = newIndex < rest.length ? rest[newIndex] : null;
-        context.read<DownloadsBloc>().add(
-          DownloadReordered(id: moved.id, beforeId: target?.id),
-        );
-      },
+      // onReorderItem уже учитывает изъятие перемещаемого элемента —
+      // ровно в том счёте, в каком место ищет `_reorder`.
+      onReorderItem: (from, to) => _reorder(context, from, to),
       itemBuilder: (context, index) {
         final task = queued[index];
         return ReorderableDragStartListener(
@@ -41,9 +32,11 @@ class QueueList extends StatelessWidget {
             task: task,
             position: index + 1,
             game: library.gameForTask(task.id),
-            onMoveUp: index > 0 ? () => _move(context, index, -1) : null,
+            onMoveUp: index > 0
+                ? () => _reorder(context, index, index - 1)
+                : null,
             onMoveDown: index < queued.length - 1
-                ? () => _move(context, index, 1)
+                ? () => _reorder(context, index, index + 1)
                 : null,
           ),
         );
@@ -51,13 +44,14 @@ class QueueList extends StatelessWidget {
     );
   }
 
-  /// На шаг выше или ниже — тем же поручением, что и перетаскивание: встать
-  /// перед соседом, а не на номер места.
-  void _move(BuildContext context, int index, int delta) {
-    final moved = queued[index];
-    final rest = [...queued]..removeAt(index);
-    final place = index + delta;
-    final before = place < rest.length ? rest[place].id : null;
+  /// Переносит задачу с места [from] на место [to], считанное в очереди
+  /// уже без неё. И перетаскивание, и клавиши «выше/ниже» называют движку
+  /// соседа, а не место: место у движка своё, в общем порядке всех задач,
+  /// и знать его устройство виджету незачем.
+  void _reorder(BuildContext context, int from, int to) {
+    final moved = queued[from];
+    final rest = [...queued]..removeAt(from);
+    final before = to < rest.length ? rest[to].id : null;
     context.read<DownloadsBloc>().add(
       DownloadReordered(id: moved.id, beforeId: before),
     );

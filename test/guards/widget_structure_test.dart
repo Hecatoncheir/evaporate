@@ -364,7 +364,6 @@ const _lonelyShared = <String>[];
 /// укоротили — число правят следом.
 const _longClosures = [
   'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 36',
-  'lib/ui/downloads/game_chip.dart: GameChip.build: 42',
   'lib/ui/downloads/queue_column.dart: QueueColumn.build: 38',
   'lib/ui/library/effects/game_wave.dart: _GameWaveState.build: 43',
   'lib/ui/library/effects/library_atmosphere.dart: LibraryAtmosphereState.build: 40',
@@ -375,7 +374,6 @@ const _longClosures = [
   'lib/ui/library/library_grid.dart: LibraryGrid.build: 30',
   'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 27',
   'lib/ui/library/toolbar/toolbar_layout.dart: ToolbarLayout.build: 35',
-  'lib/ui/saves/snapshot_row.dart: SnapshotRow.build: 35',
   'lib/ui/settings/log_card.dart: LogCard.build: 41',
   'lib/ui/shell/navigation_rack.dart: NavigationRack.build: 49',
   'lib/ui/shell/top_action.dart: TopAction.build: 29',

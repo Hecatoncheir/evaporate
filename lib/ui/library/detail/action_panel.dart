@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../downloads/download_activity.dart';
+import '../../downloads/task_stats.dart';
 import '../../theme.dart';
+import '../../widgets/inline_warning.dart';
 import '../primary_action.dart';
-import 'download_summary.dart';
-import 'game_error_note.dart';
 import 'primary_actions.dart';
 import 'steam_actions.dart';
 
@@ -62,11 +62,11 @@ class ActionPanel extends StatelessWidget {
               // — `DownloadHistoryBloc` один на приложение.
               DownloadActivity(task: task!, showChart: false),
               const SizedBox(height: EvaporateSpacing.cluster),
-              DownloadSummary(task: task!),
+              TaskStats(task: task!),
             ],
             if (game.status == GameStatus.error && game.lastError != null) ...[
               const SizedBox(height: EvaporateSpacing.block),
-              GameErrorNote(message: game.lastError!),
+              InlineWarning(game.lastError!, danger: true),
             ],
           ],
         ),

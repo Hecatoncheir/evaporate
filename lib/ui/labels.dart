@@ -61,8 +61,13 @@ String gameStatusLabel(L l, GameStatus status) => switch (status) {
 
 /// Доля скачанного словами — для экранного диктора: полосу прогресса он
 /// не видит, а число ему сказать можно.
-String percentLabel(L l, double progress) =>
-    l.percentDone((progress.clamp(0.0, 1.0) * 100).round());
+String percentLabel(L l, double progress) => l.percentDone(_percent(progress));
+
+/// Доля скачанного числом — «42%» у полосы и на обложке. Считается там же,
+/// где и словами: диктор и глаз не должны расходиться на процент.
+String percentFigure(double progress) => '${_percent(progress)}%';
+
+int _percent(double progress) => (progress.clamp(0.0, 1.0) * 100).round();
 
 String downloadStateLabel(L l, DownloadState state) => switch (state) {
   DownloadState.waiting => l.stateQueued,
@@ -150,5 +155,5 @@ String downloadProgressShort(L l, DownloadTask task) => switch (task) {
   _ when task.isMetadata => l.metadataShort,
   _ when task.state == DownloadState.paused => l.pausedShort,
   _ when task.totalBytes == 0 => '…',
-  _ => '${(task.progress * 100).toStringAsFixed(0)}%',
+  _ => percentFigure(task.progress),
 };

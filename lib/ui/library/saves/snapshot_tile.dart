@@ -5,7 +5,7 @@ import '../../../models/save_snapshot.dart';
 import '../../labels.dart';
 import '../../widgets/inset_tile.dart';
 import '../../widgets/tile_icon_button.dart';
-import 'snapshot_tile_summary.dart';
+import 'snapshot_summary.dart';
 
 class SnapshotTile extends StatelessWidget {
   const SnapshotTile({
@@ -45,7 +45,7 @@ class SnapshotTile extends StatelessWidget {
           children: [
             Expanded(
               child: ExcludeSemantics(
-                child: SnapshotTileSummary(snapshot: snapshot),
+                child: SnapshotSummary(snapshot: snapshot),
               ),
             ),
             TileIconButton(

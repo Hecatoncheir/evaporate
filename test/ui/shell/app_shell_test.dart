@@ -8,6 +8,7 @@ import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/animated_progress.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -185,7 +186,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('42%'), findsWidgets);
-    expect(find.byType(LinearProgressIndicator), findsWidgets);
+    expect(find.byType(AnimatedProgress), findsWidgets);
     // Reduced-motion tests can settle before the persistence debounce.
     await tester.pump(const Duration(milliseconds: 500));
   });

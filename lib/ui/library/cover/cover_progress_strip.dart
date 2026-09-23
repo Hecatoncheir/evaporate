@@ -4,28 +4,46 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/download_task.dart';
 import '../../labels.dart';
 import '../../theme.dart';
+import '../../widgets/animated_progress.dart';
 
-/// Полоса загрузки поверх нижнего края обложки.
+/// Полоса загрузки поверх нижнего края обложки — на плитке сетки и на
+/// маленькой обложке страницы игры.
+///
+/// Затемнение и белый текст здесь не из палитры и не должны в неё уходить:
+/// подложка — обложка игры, а не фон приложения, и на светлой схеме она
+/// остаётся такой же тёмной.
 class CoverProgressStrip extends StatelessWidget {
-  const CoverProgressStrip({super.key, required this.task});
+  const CoverProgressStrip({
+    super.key,
+    required this.task,
+    this.compact = false,
+  });
 
   final DownloadTask task;
 
+  /// Обложка страницы игры — 64 точки в высоту: поля и подпись мельче.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
+    // У метаданных и у задачи в очереди процента ещё нет — показываем статус.
     final indeterminate = task.isMetadata || task.totalBytes == 0;
     final label = downloadProgressShort(L.of(context), task);
+    final style = compact ? context.text.tagStrong : context.text.chip;
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         color: AppColors.coverOverlay,
-        padding: const EdgeInsets.fromLTRB(
-          EvaporateSpacing.gap,
-          EvaporateSpacing.tight,
-          EvaporateSpacing.gap,
-          EvaporateSpacing.tight,
-        ),
+        padding: compact
+            ? const EdgeInsets.symmetric(
+                horizontal: EvaporateSpacing.tight,
+                vertical: EvaporateSpacing.line,
+              )
+            : const EdgeInsets.symmetric(
+                horizontal: EvaporateSpacing.gap,
+                vertical: EvaporateSpacing.tight,
+              ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -33,17 +51,14 @@ class CoverProgressStrip extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              style: context.text.chip.copyWith(color: AppColors.coverText),
+              style: style.copyWith(color: AppColors.coverText),
             ),
             const SizedBox(height: EvaporateSpacing.line),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
-              child: LinearProgressIndicator(
-                value: indeterminate ? null : task.progress,
-                minHeight: 3,
-                backgroundColor: AppColors.coverProgressTrack,
-                color: context.colors.primary,
-              ),
+            AnimatedProgress(
+              value: indeterminate ? null : task.progress,
+              height: 3,
+              track: AppColors.coverProgressTrack,
+              borderRadius: EvaporateTheme.radiusChip,
             ),
           ],
         ),

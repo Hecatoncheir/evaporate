@@ -36,14 +36,10 @@ class EngineReadout extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Мигает, только пока движок поднимается или сломан: ровно горящий
-        // светодиод рядом со словом «готов» ничего не добавляет.
         PulseDot(
           color: color,
           size: EvaporateIconSize.dot,
-          alive:
-              status.state == EngineState.starting ||
-              status.state == EngineState.failed,
+          alive: status.state.blinks,
         ),
         const SizedBox(width: EvaporateSpacing.hair),
         Text(

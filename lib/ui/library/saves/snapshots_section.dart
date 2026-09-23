@@ -14,9 +14,10 @@ import '../../labels.dart';
 import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
 import '../../widgets/section_card.dart';
-import '../saves/restore_dialog.dart';
-import '../saves/snapshot_tile.dart';
+import 'restore_dialog.dart';
 import 'restore_options.dart';
+import 'snapshot_actions.dart';
+import 'snapshot_tile.dart';
 
 /// Список снимков: восстановление, экспорт на другое устройство, импорт.
 ///
@@ -79,8 +80,8 @@ class SnapshotsSection extends StatelessWidget {
                     SnapshotTile(
                       snapshot: snapshot,
                       onRestore: () => _restore(context, snapshot),
-                      onExport: () => _export(context, snapshot),
-                      onDelete: () => _delete(context, snapshot),
+                      onExport: () => exportSnapshot(context, snapshot),
+                      onDelete: () => deleteSnapshot(context, game, snapshot),
                     ),
                 ],
               ),
@@ -104,36 +105,6 @@ class SnapshotsSection extends StatelessWidget {
         wipeTarget: options.wipeTarget,
       ),
     );
-  }
-
-  Future<void> _export(BuildContext context, SaveSnapshot snapshot) async {
-    final saves = context.read<SavesBloc>();
-    final suggested =
-        safeFileName(
-          '${snapshot.gameTitle} ${dateTimeLabel(L.of(context), snapshot.createdAt)}',
-        ) +
-        SaveSnapshot.fileExtension;
-
-    final location = await getSaveLocation(suggestedName: suggested);
-    if (location == null) return;
-    saves.add(
-      SnapshotExportRequested(snapshot: snapshot, destination: location.path),
-    );
-  }
-
-  Future<void> _delete(BuildContext context, SaveSnapshot snapshot) async {
-    final saves = context.read<SavesBloc>();
-    final ok = await confirm(
-      context,
-      title: L.of(context).deleteSnapshotQuestion,
-      message: L
-          .of(context)
-          .deleteSnapshotNote(dateTimeLabel(L.of(context), snapshot.createdAt)),
-      confirmLabel: L.of(context).delete,
-      destructive: true,
-    );
-    if (!ok) return;
-    saves.add(SnapshotDeleted(snapshot));
   }
 
   /// Выбор файла — дело окна, разбор пакета — дело блока: файл чужой, и

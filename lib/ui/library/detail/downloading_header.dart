@@ -42,7 +42,7 @@ class DownloadingHeader extends StatelessWidget {
             ),
           ),
         ),
-        DetailHeader(game: game),
+        DetailHeader(game: game, task: task),
       ],
     );
   }

@@ -848,7 +848,6 @@
   "exportFile": "Экспортировать файл",
   "exportTorrent": "Сохранить .torrent",
   "fetchingMetadata": "Получаем метаданные…",
-  "fetchingTorrentMetadata": "Получаем метаданные торрента…",
   "fileNotFound": "Файл не найден: {path}",
   "filesCount": "{count, plural, one{{count} файл} few{{count} файла} many{{count} файлов} other{{count} файла}}",
   "filesGoHere": "Файлы лягут сюда:",

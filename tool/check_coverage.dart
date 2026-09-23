@@ -151,9 +151,7 @@ List<String> thinFileProblems(
 /// доля выше, чем по любой одной системе, и местный список им не судья.
 const thinFiles = <String, int>{
   'lib/ui/downloads/engine_failure.dart': 0,
-  'lib/ui/library/detail/cover_progress.dart': 0,
   'lib/ui/library/detail/executable_picker_dialog.dart': 0,
-  'lib/ui/library/detail/game_error_note.dart': 0,
   'lib/ui/library/detail/running_game_actions.dart': 0,
   'lib/ui/library/saves/find_paths_progress.dart': 0,
   'lib/ui/saves/bulk_outcome_group.dart': 0,

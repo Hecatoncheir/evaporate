@@ -17,18 +17,11 @@ class ProxyFormBody extends StatelessWidget {
   const ProxyFormBody({super.key});
 
   /// Переключатели уходят в настройки сразу: они не про адрес, и
-  /// собирать их нечего.
+  /// собирать их нечего. Набранный адрес уходит так же, но по клавише:
+  /// смена прокси перезапускает активные задачи, и делать это на каждый
+  /// знак нельзя.
   void _update(BuildContext context, ProxySettings next) {
     final store = context.read<SettingsBloc>();
-    store.add(SettingsPatched((current) => current.copyWith(proxy: next)));
-    context.read<ProxyFormBloc>().add(ProxySavedChanged(next));
-  }
-
-  /// Набранное уходит в настройки по клавише: смена прокси перезапускает
-  /// активные задачи, и делать это на каждый знак нельзя.
-  void _apply(BuildContext context, ProxyForm form) {
-    final store = context.read<SettingsBloc>();
-    final next = form.draft;
     store.add(SettingsPatched((current) => current.copyWith(proxy: next)));
     context.read<ProxyFormBloc>().add(ProxySavedChanged(next));
   }
@@ -61,7 +54,7 @@ class ProxyFormBody extends StatelessWidget {
           ProxyApplyRow(
             draft: form.draft,
             canApply: form.canApply,
-            onApply: () => _apply(context, form),
+            onApply: () => _update(context, form.draft),
           ),
           ProxyNotes(proxy: saved, onChanged: (next) => _update(context, next)),
         ],

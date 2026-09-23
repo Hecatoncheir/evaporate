@@ -34,6 +34,16 @@ void main() {
     expect(dateTimeLabel(LEn(), moment), '9/22/2026 14:05');
   });
 
+  test('процент числом и процент словами — одно и то же число', () {
+    // Числом его видит глаз у полосы и на обложке, словами слышит диктор;
+    // считались они прежде в трёх местах тремя способами.
+    for (final progress in [0.0, 0.004, 0.425, 0.999, 1.0]) {
+      final figure = percentFigure(progress);
+      expect(percentLabel(LRu(), progress), contains(figure));
+    }
+    expect(percentFigure(0.425), '43%');
+  });
+
   test('разряды — разделителем своего языка', () {
     // Русский разделяет разряды неразрывным пробелом, английский — запятой.
     expect(countLabel(LRu(), 222495), '222 495');

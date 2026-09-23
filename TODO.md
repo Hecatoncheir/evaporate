@@ -558,7 +558,7 @@
   и поля прокси открываются на сохранённом адресе, а набранное уходит в
   настройки только по «Применить». Карточка «О программе» заодно берёт из
   настроек `select` одного флага вместо `watch` всего (из B14).
-- [ ] **B5. Двойники, разошедшиеся на волосок.** **[✔]** P2. Каждый —
+- [x] **B5. Двойники, разошедшиеся на волосок.** **[✔]** P2. Каждый —
   один виджет или одна функция:
   - `cover/cover_progress_strip.dart:19-50` и `detail/cover_progress.dart:21-52`
     — одна раскладка, различия: `coverOverlay` 0.66 против `detailOverlay`
@@ -586,6 +586,28 @@
   - `taskForGame` выбирается трижды (`game_cover.dart:50`, `game_detail.dart:20`,
     `detail_cover.dart:28`) при том, что `GameDetail` уже отдаёт `task` вниз.
   **M**
+  *Сделано:* все одиннадцать пар стали одним. Полоса на обложке —
+  `CoverProgressStrip(compact:)` на плитке и на странице игры: затемнение
+  одно (`coverOverlay`, `detailOverlay` удалён), полоса — `AnimatedProgress`
+  со своей дорожкой (`track`), чтобы на светлой схеме подложка не
+  выбелилась. Задачу обложке страницы теперь отдают сверху —
+  `DownloadingHeader` → `DetailHeader` → `DetailCover`, — и `taskForGame`
+  выбирают два места, а не три: плитка сетки живёт не под страницей игры.
+  Ошибка игры — `InlineWarning(danger: true)`. Снимки: один
+  `SnapshotSummary(gameTitle:)` и общие `exportSnapshot` / `deleteSnapshot`
+  (`library/saves/snapshot_actions.dart`); выгрузка везде предлагает имя с
+  датой, удаление везде называет игру. Под загрузкой — один `TaskStats`:
+  страница игры получила отданное и рейтинг, а «получаем метаданные» там
+  стояло вторым разом под тем же словом из `DownloadAmounts` — ключ
+  `fetchingTorrentMetadata` ушёл из ARB. Подсветка под курсором —
+  `InsetTile(hovered:)` с токеном `EvaporateAlpha.tint`; плашка игры в
+  загрузках стала той же строкой-карточкой, подъём у неё — `AnimatedSlide`.
+  Мигание светодиода — `EngineState.blinks` рядом с цветом. Процент —
+  `percentFigure` рядом с `percentLabel`, одним расчётом. Очередь —
+  `_reorder(from, to)`, прокси — один `_update`. Название крупного кадра —
+  `FeaturedTitle(compact:)`. Из `_longClosures` ушли `GameChip` и
+  `SnapshotRow`. Новых тестов два: показания под загрузкой и процент
+  числом и словами.
 - [ ] **B6. Одно украшение — одни часы, один предикат «можно ли двигаться».**
   **[✔]** P2. Предикат `WidgetsBindingObserver` + `isWindowVisible` +
   `TickerMode.valuesOf` + `ModalRoute.isCurrentOf` + `disableAnimationsOf`

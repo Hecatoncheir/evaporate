@@ -31,7 +31,6 @@ abstract final class AppColors {
   static const coverTextShadow = Colors.black54;
   static final coverShadow = Colors.black.withValues(alpha: 0.3);
   static final coverOverlay = Colors.black.withValues(alpha: 0.66);
-  static final detailOverlay = Colors.black.withValues(alpha: 0.62);
   static const coverProgressTrack = Colors.white24;
   static const foilHighlight = Colors.white;
   static const waveHighlight = Colors.white;

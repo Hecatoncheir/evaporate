@@ -119,7 +119,6 @@ void main() {
     // Белый текст поверх картинки читается только по тёмной подложке, и
     // насколько она тёмная — вопрос не вкуса, а читаемости.
     expect(AppColors.coverOverlay.a, greaterThan(0.5));
-    expect(AppColors.detailOverlay.a, greaterThan(0.5));
     expect(HSLColor.fromColor(AppColors.coverText).lightness, 1);
     expect(AppColors.transparent.a, 0);
   });

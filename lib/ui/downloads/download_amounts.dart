@@ -33,7 +33,7 @@ class DownloadAmounts extends StatelessWidget {
           ),
         ),
         if (!indeterminate)
-          Text('${(task.progress * 100).round()}%', style: context.text.figure),
+          Text(percentFigure(task.progress), style: context.text.figure),
       ],
     );
   }

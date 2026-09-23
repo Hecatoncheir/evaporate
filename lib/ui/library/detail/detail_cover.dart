@@ -1,34 +1,31 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../theme.dart';
+import '../cover/cover_progress_strip.dart';
 import '../cover/decode_width.dart';
-import 'cover_progress.dart';
 
 /// Обложка из Steam, если её удалось найти; иначе — первая буква названия.
 ///
 /// Пока игра качается, поверх обложки идёт полоса прогресса с процентом:
 /// состояние загрузки видно сразу, не вчитываясь в панель ниже.
 class DetailCover extends StatelessWidget {
-  const DetailCover({super.key, required this.game});
+  const DetailCover({super.key, required this.game, this.task});
 
   /// Ширина обложки — она же ширина её расшифровки.
   static const _coverWidth = 132.0;
 
   final Game game;
 
+  /// Идущая загрузка игры; нет её — нет и полосы.
+  final DownloadTask? task;
+
   @override
   Widget build(BuildContext context) {
     final path = game.details.coverPath;
-    final task = context.select<DownloadsBloc, DownloadTask?>(
-      (bloc) => bloc.state.taskForGame(game),
-    );
-    final showProgress = task != null && !task.isFinished;
 
     return Container(
       width: path == null ? 64 : _coverWidth,
@@ -65,7 +62,8 @@ class DetailCover extends StatelessWidget {
                 color: context.colors.textSecondary,
               ),
             ),
-          if (showProgress) CoverProgress(task: task),
+          if (task case final task?)
+            CoverProgressStrip(task: task, compact: true),
         ],
       ),
     );

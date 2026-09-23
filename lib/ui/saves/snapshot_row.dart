@@ -1,18 +1,14 @@
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/saves/saves_bloc.dart';
-import '../../core/format.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
-import '../feedback/confirm.dart';
-import '../labels.dart';
+import '../library/saves/snapshot_actions.dart';
+import '../library/saves/snapshot_summary.dart';
 import '../theme.dart';
 import '../widgets/hover_builder.dart';
+import '../widgets/inset_tile.dart';
 import '../widgets/tile_icon_button.dart';
-import 'snapshot_summary.dart';
 
 /// Строка снимка: чья игра, когда снят, чем снят — и что с ним можно сделать.
 ///
@@ -38,30 +34,17 @@ class SnapshotRow extends StatelessWidget {
     final l = L.of(context);
 
     return HoverBuilder(
-      child: SnapshotSummary(game: game, snapshot: snapshot),
-      builder: (context, hovered, summary) => AnimatedContainer(
-        duration: context.motion.fast,
-        curve: EvaporateMotion.ease,
-        margin: const EdgeInsets.only(bottom: EvaporateSpacing.gap),
+      child: SnapshotSummary(snapshot: snapshot, gameTitle: game.title),
+      builder: (context, hovered, summary) => InsetTile(
+        hovered: hovered,
         padding: _padding,
-        decoration: BoxDecoration(
-          color: hovered
-              ? Color.lerp(colors.surfaceHigh, colors.primary, 0.08)
-              : colors.surfaceHigh,
-          borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
-          border: Border.all(
-            color: hovered
-                ? colors.primary.withValues(alpha: EvaporateAlpha.strong)
-                : colors.outline,
-          ),
-        ),
         child: Row(
           children: [
             Expanded(child: summary!),
             TileIconButton(
               icon: Icons.ios_share,
               tooltip: l.exportFile,
-              onPressed: () => _export(context),
+              onPressed: () => exportSnapshot(context, snapshot),
             ),
             TileIconButton(
               icon: Icons.delete_outline,
@@ -69,40 +52,11 @@ class SnapshotRow extends StatelessWidget {
               // Тревожный цвет — только под курсором: ряд постоянно красных
               // корзин в списке читается как список ошибок.
               color: hovered ? colors.danger : colors.textSecondary,
-              onPressed: () => _delete(context),
+              onPressed: () => deleteSnapshot(context, game, snapshot),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _export(BuildContext context) async {
-    final saves = context.read<SavesBloc>();
-    final suggested =
-        safeFileName(snapshot.gameTitle) + SaveSnapshot.fileExtension;
-    final location = await getSaveLocation(suggestedName: suggested);
-    if (location == null) return;
-    saves.add(
-      SnapshotExportRequested(snapshot: snapshot, destination: location.path),
-    );
-  }
-
-  /// Удаление необратимо, поэтому спрашиваем — и называем в вопросе саму
-  /// игру: в общем списке снимков разных игр одной даты недостаточно.
-  Future<void> _delete(BuildContext context) async {
-    final saves = context.read<SavesBloc>();
-    final l = L.of(context);
-    final ok = await confirm(
-      context,
-      title: l.deleteSnapshotQuestion,
-      message:
-          '${game.title}\n'
-          '${l.deleteSnapshotNote(dateTimeLabel(L.of(context), snapshot.createdAt))}',
-      confirmLabel: l.delete,
-      destructive: true,
-    );
-    if (!ok) return;
-    saves.add(SnapshotDeleted(snapshot));
   }
 }

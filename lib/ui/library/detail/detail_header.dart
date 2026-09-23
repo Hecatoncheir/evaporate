@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../models/download_task.dart';
 import '../../../models/game.dart';
 import '../../labels.dart';
 import '../../theme.dart';
@@ -9,16 +10,19 @@ import 'detail_cover.dart';
 import 'rating_row.dart';
 
 class DetailHeader extends StatelessWidget {
-  const DetailHeader({super.key, required this.game});
+  const DetailHeader({super.key, required this.game, this.task});
 
   final Game game;
+
+  /// Идущая загрузка: её ход ложится полосой на обложку.
+  final DownloadTask? task;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DetailCover(game: game),
+        DetailCover(game: game, task: task),
         const SizedBox(width: EvaporateSpacing.panel),
         Expanded(
           child: Column(

@@ -20,6 +20,7 @@ class AnimatedProgress extends StatelessWidget {
     required this.value,
     this.height = 4,
     this.color,
+    this.track,
     this.borderRadius = 3,
     this.busy = false,
   });
@@ -28,6 +29,11 @@ class AnimatedProgress extends StatelessWidget {
   final double? value;
   final double height;
   final Color? color;
+
+  /// Дорожка под заполнением. Поверх обложки она своя: подложка там —
+  /// картинка, а не корпус, и цвет корпуса на светлой схеме выбелил бы её.
+  final Color? track;
+
   final double borderRadius;
 
   /// Задача идёт прямо сейчас — по полосе бегут насечки.
@@ -37,6 +43,7 @@ class AnimatedProgress extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final line = color ?? colors.primaryFill;
+    final under = track ?? colors.surfaceHigh;
 
     // Неопределённому прогрессу сглаживать нечего: там своя анимация.
     if (value == null) {
@@ -44,7 +51,7 @@ class AnimatedProgress extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: LinearProgressIndicator(
           minHeight: height,
-          backgroundColor: colors.surfaceHigh,
+          backgroundColor: under,
           valueColor: AlwaysStoppedAnimation(line),
         ),
       );
@@ -57,7 +64,7 @@ class AnimatedProgress extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            ColoredBox(color: colors.surfaceHigh),
+            ColoredBox(color: under),
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: value!.clamp(0.0, 1.0)),
               duration: context.motion.track,

@@ -184,7 +184,6 @@
   "exportFile": "Export to a file",
   "exportTorrent": "Save .torrent",
   "fetchingMetadata": "Fetching metadata…",
-  "fetchingTorrentMetadata": "Fetching torrent metadata…",
   "fileNotFound": "File not found: {path}",
   "filesCount": "{count, plural, one{{count} file} other{{count} files}}",
   "filesGoHere": "The files will land here:",

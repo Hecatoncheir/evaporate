@@ -5,6 +5,7 @@ import '../../../models/game.dart';
 import '../../theme.dart';
 import 'featured_actions.dart';
 import 'featured_eyebrow.dart';
+import 'featured_title.dart';
 
 /// Надпись на крупном кадре: метка, название, описание и клавиши.
 ///
@@ -40,26 +41,7 @@ class FeaturedPoster extends StatelessWidget {
         children: [
           FeaturedEyebrow(game: game),
           const Spacer(),
-          Text(
-            game.title.toUpperCase(),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppColors.coverText,
-              fontFamily: EvaporateTheme.displayFontFamily,
-              // Крупнее не влезает: под названием стоят описание в две
-              // строки и ряд клавиш.
-              fontSize: 32,
-              height: 1.04,
-              fontWeight: FontWeight.w800,
-              // Разряд положительный: у широкого шрифта прижатые
-              // заглавные слипаются.
-              letterSpacing: 0.6,
-              shadows: [
-                Shadow(blurRadius: 18, color: AppColors.coverTextShadow),
-              ],
-            ),
-          ),
+          FeaturedTitle(game.title),
           const SizedBox(height: EvaporateSpacing.cluster),
           Text(
             game.details.description?.trim().isNotEmpty == true

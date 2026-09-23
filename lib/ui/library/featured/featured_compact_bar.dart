@@ -4,6 +4,7 @@ import '../../../models/game.dart';
 import '../../theme.dart';
 import 'featured_actions.dart';
 import 'featured_eyebrow.dart';
+import 'featured_title.dart';
 
 /// Полоса: название и клавиши в одной строке.
 class FeaturedCompactBar extends StatelessWidget {
@@ -37,22 +38,7 @@ class FeaturedCompactBar extends StatelessWidget {
               // показанию в полосе места нет, а знать его человек хочет.
               FeaturedEyebrow(game: game, withPlaytime: true),
               const SizedBox(height: EvaporateSpacing.gap),
-              Text(
-                game.title.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.coverText,
-                  fontFamily: EvaporateTheme.displayFontFamily,
-                  fontSize: 22,
-                  height: 1.02,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  shadows: [
-                    Shadow(blurRadius: 14, color: AppColors.coverTextShadow),
-                  ],
-                ),
-              ),
+              FeaturedTitle(game.title, compact: true),
             ],
           ),
         ),
