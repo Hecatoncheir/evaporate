@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../widgets/window_action.dart';
-import '../widgets/window_control.dart';
+import '../window/window_action.dart';
+import '../window/window_control.dart';
 
 /// Подложка, за которую таскают окно. Двойное нажатие по ней разворачивает
 /// окно — так же, как по заголовку обычного окна системы.

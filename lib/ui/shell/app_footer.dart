@@ -5,7 +5,7 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../input/gamepad_binding.dart';
 import '../../input/gamepad_service.dart';
 import '../theme.dart';
-import '../widgets/button_hints.dart';
+import 'button_hints.dart';
 import 'engine_readout.dart';
 
 /// Нижняя строка: подсказки управления и показания движка.

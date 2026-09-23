@@ -14,9 +14,9 @@ import '../models/app_settings.dart';
 import '../models/library_effect.dart';
 import 'feedback/snack.dart';
 import 'library/primary_action.dart';
+import 'shell/ambient_light.dart';
 import 'shell/shell_layout.dart';
 import 'theme.dart';
-import 'widgets/ambient_light.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key});

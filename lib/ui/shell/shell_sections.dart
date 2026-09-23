@@ -9,7 +9,7 @@ import '../downloads/downloads_page.dart';
 import '../library/library_page.dart';
 import '../saves/saves_page.dart';
 import '../settings/settings_page.dart';
-import '../widgets/fade_indexed_stack.dart';
+import 'fade_indexed_stack.dart';
 
 /// Четыре раздела приложения.
 ///

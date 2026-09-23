@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../theme.dart';
-import '../../widgets/path_picker_field.dart';
+import 'path_picker_field.dart';
 
 /// Поля источника: своё для magnet-ссылки, файла раздачи и папки на диске.
 class SourceFields extends StatelessWidget {

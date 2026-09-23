@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/check_complexity.dart';
 import '../support/guards.dart';
+import '../support/layering.dart';
 import '../support/widget_structure.dart';
 
 /// Порог длины замыкания-строителя в `build`.
@@ -84,6 +85,19 @@ void main() {
       found: sources.expand((f) => wideWidgets(f, types: types)),
       known: _wideWidgets,
       rule: 'широкий виджет — на части или с одним значением вместо россыпи',
+    );
+  });
+
+  // Папка обещает, что лежащее в ней нужно не одному месту: иначе читатель
+  // ищет второе использование, которого нет, а виджет живёт вдали от
+  // единственного экрана, который его читает.
+  test('в lib/ui/widgets только нужное хотя бы двум местам', () {
+    expectRatchet(
+      found: lonelyShared(importGraph(dartSources('lib')), 'lib/ui/widgets'),
+      known: _lonelyShared,
+      rule:
+          'нужное одному месту — к нему: в его файл (0009) или в его папку, '
+          'если выросло, держит ресурсы или проверяется отдельно',
     );
   });
 
@@ -292,6 +306,47 @@ class _B extends FancyCard {}
 ''');
       expect(crowdedFiles(code, types: types), isEmpty);
     });
+
+    group('общая папка', () {
+      final found = lonelyShared(
+        importGraph([
+          SourceFile(
+            'lib/ui/a/page.dart',
+            "import '../widgets/lone.dart';\n"
+                "import '../widgets/shared.dart';",
+          ),
+          SourceFile('lib/ui/b/page.dart', "import '../widgets/shared.dart';"),
+          SourceFile('lib/ui/widgets/shared.dart', "import 'part.dart';"),
+          SourceFile('lib/ui/widgets/part.dart', ''),
+          SourceFile('lib/ui/widgets/lone.dart', "import 'lone_part.dart';"),
+          SourceFile('lib/ui/widgets/lone_part.dart', ''),
+          SourceFile('lib/ui/widgets/unused.dart', ''),
+        ]),
+        'lib/ui/widgets',
+      ).toList();
+
+      test('файл, нужный одному месту', () {
+        expect(
+          found,
+          contains('lib/ui/widgets/lone.dart -> lib/ui/a/page.dart'),
+        );
+      });
+
+      test('часть виджета, которого целиком зовёт одно место', () {
+        expect(
+          found,
+          contains('lib/ui/widgets/lone_part.dart -> lib/ui/a/page.dart'),
+        );
+      });
+
+      test('файл, не нужный никому', () {
+        expect(found, contains('lib/ui/widgets/unused.dart -> никто'));
+      });
+
+      test('нужное двоим и часть нужного двоим законны', () {
+        expect(found, hasLength(3));
+      });
+    });
   });
 }
 
@@ -300,6 +355,8 @@ const _privateWidgets = <String>[];
 const _widgetFunctions = <String>[];
 
 const _crowdedFiles = <String>[];
+
+const _lonelyShared = <String>[];
 
 /// Замыкания-строители в `build` длиннее 25 строк: `путь: build: длина
 /// самого длинного`. Метод-виджет запрещён — и его обходят замыканием, те
@@ -324,7 +381,7 @@ const _longClosures = [
   'lib/ui/settings/proxy_form_body.dart: ProxyFormBody.build: 30',
   'lib/ui/shell/navigation_rack.dart: NavigationRack.build: 49',
   'lib/ui/shell/top_action.dart: TopAction.build: 29',
-  'lib/ui/widgets/interface_scale.dart: InterfaceScale.build: 28',
+  'lib/ui/window/interface_scale.dart: InterfaceScale.build: 28',
 ];
 
 /// Виджеты больше чем с семью параметрами, кроме `key`: `путь: Имя: число`.
@@ -335,5 +392,5 @@ const _wideWidgets = [
   'lib/ui/library/game_cover.dart: GameCoverTile: 8',
   'lib/ui/library/library_body.dart: LibraryBody: 14',
   'lib/ui/library/library_grid_tile.dart: LibraryGridTile: 8',
-  'lib/ui/widgets/nav_tile.dart: NavTile: 12',
+  'lib/ui/library/nav_tile.dart: NavTile: 12',
 ];

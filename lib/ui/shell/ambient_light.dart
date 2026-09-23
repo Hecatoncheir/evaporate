@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'ambient_wash.dart';
 
 /// Свет выбранной игры, заливающий корпус приложения.
 ///
@@ -47,19 +46,19 @@ class AmbientLight extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (enabled) ...[
-            AmbientWash(
+            _AmbientWash(
               center: const Alignment(-0.75, -0.95),
               radius: 1.05,
               tint: tints[0],
               alpha: 0.38,
             ),
-            AmbientWash(
+            _AmbientWash(
               center: const Alignment(0.85, -0.8),
               radius: 0.95,
               tint: tints[1],
               alpha: 0.32,
             ),
-            AmbientWash(
+            _AmbientWash(
               center: const Alignment(0.1, 1.15),
               radius: 1.2,
               tint: tints[2],
@@ -83,6 +82,46 @@ class AmbientLight extends StatelessWidget {
           ),
           child,
         ],
+      ),
+    );
+  }
+}
+
+/// Одно пятно света игры: радиальный переход от оттенка к прозрачному.
+///
+/// Сила берётся из материала корпуса: светлый корпус держит свет вполсилы,
+/// на белом та же заливка читалась бы как грязь на панели. Смена оттенка
+/// при перелистывании перетекает, а не щёлкает.
+class _AmbientWash extends StatelessWidget {
+  const _AmbientWash({
+    required this.center,
+    required this.radius,
+    required this.tint,
+    required this.alpha,
+  });
+
+  final Alignment center;
+  final double radius;
+  final Color tint;
+
+  /// Плотность в центре пятна до поправки на материал.
+  final double alpha;
+
+  @override
+  Widget build(BuildContext context) {
+    final strength = HardwareSurfaceTheme.of(context).ambientStrength;
+    return AnimatedContainer(
+      duration: context.motion.slow,
+      curve: EvaporateMotion.ease,
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: center,
+          radius: radius,
+          colors: [
+            tint.withValues(alpha: alpha * strength),
+            AppColors.transparent,
+          ],
+        ),
       ),
     );
   }

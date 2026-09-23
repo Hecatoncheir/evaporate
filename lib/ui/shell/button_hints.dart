@@ -5,7 +5,6 @@ import '../../input/nav_action.dart';
 import '../../l10n/app_localizations.dart';
 import '../labels.dart';
 import '../theme.dart';
-import 'hint_chip.dart';
 
 /// Подсказки управления в нижней строке — как на консольных экранах.
 ///
@@ -46,7 +45,7 @@ class ButtonHints extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final hint in hints) ...[
-          HintChip(glyph: hint.$1, label: hint.$2),
+          _HintChip(glyph: hint.$1, label: hint.$2),
           const SizedBox(width: EvaporateSpacing.cluster),
         ],
       ],
@@ -78,4 +77,45 @@ class ButtonHints extends StatelessWidget {
     NavAction.nextSection => l.hintSections,
     _ => navActionLabel(l, action),
   };
+}
+
+/// Подсказка клавиши: знак клавиши или кнопки в рамке и что она делает.
+class _HintChip extends StatelessWidget {
+  const _HintChip({required this.glyph, required this.label});
+
+  final String glyph;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: EvaporateSpacing.line,
+            vertical: EvaporateSpacing.hair,
+          ),
+          decoration: BoxDecoration(
+            color: context.colors.surfaceHigh,
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+            border: Border.all(color: context.colors.outline),
+          ),
+          child: Text(
+            glyph,
+            style: context.text.tagStrong.copyWith(
+              color: context.colors.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(width: EvaporateSpacing.line),
+        Text(
+          label,
+          style: context.text.small.copyWith(
+            color: context.colors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
 }

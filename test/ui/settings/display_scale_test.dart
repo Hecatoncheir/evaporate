@@ -7,7 +7,7 @@ import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
-import 'package:evaporate/ui/widgets/interface_scale.dart';
+import 'package:evaporate/ui/window/interface_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

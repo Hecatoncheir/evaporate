@@ -5,8 +5,8 @@ import '../../bloc/downloads/downloads_bloc.dart';
 import '../../models/download_task.dart';
 import '../../models/game.dart';
 import '../theme.dart';
-import '../widgets/nav_tile.dart';
 import 'cover/cover_frame.dart';
+import 'nav_tile.dart';
 
 /// Плитка библиотеки: вертикальная обложка 2:3, как в Steam.
 ///

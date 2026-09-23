@@ -1,6 +1,6 @@
+import 'package:evaporate/ui/library/rise_in.dart';
+import 'package:evaporate/ui/shell/fade_indexed_stack.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/ui/widgets/fade_indexed_stack.dart';
-import 'package:evaporate/ui/widgets/rise_in.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

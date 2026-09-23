@@ -396,7 +396,7 @@ const _durations = [
   'lib/ui/widgets/liquid/liquid_selection.dart: 1',
   // Не длительность, а метка: нулевая означает «всход ещё не начинался»,
   // и `_start` по ней отличает первый заход от пересборки.
-  'lib/ui/widgets/rise_in.dart: 1',
+  'lib/ui/library/rise_in.dart: 1',
 ];
 
 const _radii = <String>[];
@@ -431,7 +431,7 @@ const _curves = [
   'lib/ui/widgets/liquid/liquid_selection_path.dart: 3',
   // Прозрачность нарочно на своей кривой поверх общей: она догоняет
   // смещение, иначе плитка проявлялась бы уже на месте.
-  'lib/ui/widgets/rise_in.dart: 1',
+  'lib/ui/library/rise_in.dart: 1',
 ];
 
 const _alphas = [
@@ -441,6 +441,6 @@ const _alphas = [
   'lib/ui/library/effects/foil/foil_surface.dart: 2',
   'lib/ui/library/effects/library_atmosphere.dart: 2',
   'lib/ui/library/effects/portal/portal_atlas.dart: 1',
-  'lib/ui/widgets/progress_hatching.dart: 1',
+  'lib/ui/widgets/animated_progress.dart: 1',
   'lib/ui/widgets/pulse_dot.dart: 2',
 ];

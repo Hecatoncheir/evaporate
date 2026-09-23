@@ -480,7 +480,7 @@
   всех настроек — из B14 на одно место меньше. Поведение не менялось;
   держат его прежние тесты раскладки, библиотеки, окна и крупности обложек
   (`display_scale_test`).
-- [ ] **B3. `widgets/` — только переиспользуемое.** **[○]** P2. 12 из ~45
+- [x] **B3. `widgets/` — только переиспользуемое.** **[○]** P2. 12 из ~45
   виджетов в `lib/ui/widgets` нужны одному месту: `BusyOutlinedButton`,
   `LabeledSwitchRow`, `HintChip`, `PathPickerField`, `RiseIn`,
   `ProgressHatching`, `AppMark`, `AmbientWash`, `LauncherActionFace`,
@@ -488,6 +488,30 @@
   использование, которого нет, — переносить к потребителю (после B1 — в
   его файл). `LauncherActionFace`, `ReadoutRow` и `EmptyState` ушли в B2.
   **S**
+  *Сделано:* подтвердилось, и шире списка: одному месту были нужны
+  двадцать файлов папки. Список пункта собран по именам, а не по импортам,
+  и в нём не было `AmbientLight`, `ButtonHints`, `FadeIndexedStack`,
+  `GlassSliver` с `SliverGlassClip`, `InterfaceScale`, `NavTile`,
+  `StatusChip` и рамки окна из четырёх файлов. Правило держит страж
+  `lonelyShared` в `widget_structure_test`: в `lib/ui/widgets` лежит только
+  нужное хотя бы двум местам вне папки. Места считаются через соседей по
+  ней, так что краска и геометрия капли выбора законны, пока нужна сама
+  капля. До переезда страж падал на двадцати записях, список известных
+  нарушителей пуст. Восемь мелких стали приватными у потребителей (0009):
+  `_AppMark`, `_BusyOutlinedButton`, `_LabeledSwitchRow`, `_HintChip`,
+  `_AmbientWash`, `_StatusChip`, `_GlassSliver` и `_ProgressHatching` —
+  последний страж не ловит, он часть `AnimatedProgress`, нужного двоим, но
+  своего файла ему держать не за что. Крупные, со своим `State` или тестом
+  легли в папку потребителя: `AmbientLight`, `ButtonHints` и
+  `FadeIndexedStack` — в `shell/`, `NavTile` и `RiseIn` — в `library/`,
+  `PathPickerField` — в `library/add/`, `SliverGlassClip` и
+  `SliverSideBySide` — в `saves/` вместе с тестами. Рамка окна
+  (`AppWindowFrame`, `WindowShell`, `WindowResizeZone`, `WindowChrome`) и
+  `InterfaceScale` нужны одному `main.dart`, и для них заведена
+  `lib/ui/window/`; туда же ушли `WindowControl` и `runWindowAction` — их
+  раздаёт рамка. У `_StatusChip` ушёл мёртвый `compact` из B8: непереданный
+  параметр приватного виджета — предупреждение анализатора. Поведение не
+  менялось.
 - [ ] **B4. Пробросы: листья читают блоки сами, россыпь — одним значением.**
   **[✔]** P2. `LibraryBody` (`library_body.dart:20-63`): 14 параметров, сам
   читает только `effects`; `onOpen` идёт пятью звеньями
@@ -564,13 +588,14 @@
 - [ ] **B8. Мёртвые параметры, умолчания и куски темы.** **[✔]** P3.
   `nav_tile.dart:18-30` — единственный вызов (`game_cover.dart:61-76`)
   переписывает шесть умолчаний из двенадцати параметров; `GlassSurface.radius = 24`
-  и `GlassSliver.radius = 24` — все вызовы передают токен;
-  `LiquidSelection.resting` никто не передаёт — ветка `liquid_painter.dart:27-31`
-  мёртвая; `StatusChip.compact`, `FadeIndexedStack.duration`, `RiseIn.offset`,
-  `InfoRow.trailing`, `ReadoutPanel.wrapBelow`, `AppMark.size = 28`,
-  `PulseDot.size = 8`; `EvaporateMotion.exit` — ноль употреблений;
-  `_railTheme` (`evaporate_theme.dart:239-256`) настраивает `NavigationRail`,
-  которого в `lib` нет. **S**
+  и `_GlassSliver.radius = 24` (`snapshot_history.dart`) — все вызовы
+  передают токен; `LiquidSelection.resting` никто не передаёт — ветка
+  `liquid_painter.dart:27-31` мёртвая; `FadeIndexedStack.duration`,
+  `RiseIn.offset`, `InfoRow.trailing`, `ReadoutPanel.wrapBelow`,
+  `_AppMark.size = 28` (`top_bar_brand.dart`), `PulseDot.size = 8`;
+  `EvaporateMotion.exit` — ноль употреблений; `_railTheme`
+  (`evaporate_theme.dart:239-256`) настраивает `NavigationRail`, которого в
+  `lib` нет. `StatusChip.compact` снят в B3. **S**
 - [ ] **B9. Числа, обходящие стража темы.** **[✔]** P2. `spacing:`/`runSpacing:`
   числом — 25 строк в 9+ файлах (`_gapHere` в `theme_structure_test.dart:355`
   ловит только `SizedBox`); высота органа 48/42 — в шести файлах

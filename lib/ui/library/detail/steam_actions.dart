@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/library/library_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
-import '../../widgets/busy_outlined_button.dart';
+import '../../widgets/busy_spinner.dart';
 
 /// Правая половина ряда действий: что делают с ярлыком игры в Steam.
 ///
@@ -35,13 +35,13 @@ class SteamActions extends StatelessWidget {
       runSpacing: 10,
       children: [
         if (game.canLaunch)
-          BusyOutlinedButton(
+          _BusyOutlinedButton(
             busy: addingShortcut,
             onPressed: () => library.add(SteamShortcutRequested(game)),
             icon: Icons.library_add_outlined,
             label: l.steamAddAction,
           ),
-        BusyOutlinedButton(
+        _BusyOutlinedButton(
           busy: lookingUp,
           onPressed: () => library.add(SteamLookupRequested(game)),
           icon: Icons.travel_explore,
@@ -50,6 +50,35 @@ class SteamActions extends StatelessWidget {
               : l.refreshFromSteam,
         ),
       ],
+    );
+  }
+}
+
+/// Обведённая клавиша, которая на время работы гаснет и крутит колесо
+/// вместо значка.
+///
+/// Была выписана дважды — «Добавить в Steam» и «Найти в Steam», — и копии
+/// различались только ключом занятости, событием и значком. Занятость
+/// приходит снаружи: клавише незачем знать, какой блок её считает.
+class _BusyOutlinedButton extends StatelessWidget {
+  const _BusyOutlinedButton({
+    required this.busy,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final bool busy;
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: busy ? null : onPressed,
+      icon: busy ? const BusySpinner() : Icon(icon),
+      label: Text(label),
     );
   }
 }

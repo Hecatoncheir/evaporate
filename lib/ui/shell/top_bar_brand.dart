@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import '../widgets/app_mark.dart';
 
 /// Знак и название приложения в левом краю рейки.
 class TopBarBrand extends StatelessWidget {
@@ -26,7 +25,7 @@ class TopBarBrand extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
           ),
-          child: const AppMark(size: 30),
+          child: const _AppMark(size: 30),
         ),
         if (!compact) ...[
           const SizedBox(width: EvaporateSpacing.cluster),
@@ -54,4 +53,20 @@ class TopBarBrand extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Знак приложения — та же картинка, что в системных ресурсах.
+class _AppMark extends StatelessWidget {
+  const _AppMark({this.size = 28});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(size * 0.22),
+    child: Image.asset(
+      'assets/branding/app_icon.png',
+      width: size,
+      height: size,
+    ),
+  );
 }

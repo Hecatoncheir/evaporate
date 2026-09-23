@@ -4,8 +4,9 @@ import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
 import '../theme.dart';
-import '../widgets/glass_sliver.dart';
+import '../widgets/glass_surface.dart';
 import '../widgets/section_card_header.dart';
+import 'sliver_glass_clip.dart';
 import 'snapshot_row.dart';
 
 /// Снимок вместе с игрой, которой он принадлежит.
@@ -21,7 +22,7 @@ typedef SnapshotEntry = (Game game, SaveSnapshot snapshot);
 /// `Column` строила и раскладывала все на каждую пересборку, а
 /// перерисовка одной строки под курсором переписывала слой целиком.
 /// Строки строит `SliverList` по мере прокрутки; карточка вокруг — то же
-/// стекло, что у соседних, только сливером ([GlassSliver]).
+/// стекло, что у соседних, только сливером ([_GlassSliver]).
 class SnapshotHistory extends StatelessWidget {
   const SnapshotHistory({super.key, required this.entries});
 
@@ -32,7 +33,7 @@ class SnapshotHistory extends StatelessWidget {
     final l = L.of(context);
     return SliverPadding(
       padding: const EdgeInsets.only(bottom: EvaporateSpacing.panel),
-      sliver: GlassSliver(
+      sliver: _GlassSliver(
         radius: EvaporateTheme.radiusPanel,
         opacity: HardwareSurfaceTheme.of(context).cardOpacity,
         padding: const EdgeInsets.all(EvaporateSpacing.card),
@@ -65,4 +66,38 @@ class SnapshotHistory extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Стекло [GlassSurface], но сливером: под длинный ленивый список.
+///
+/// Коробкой такой список не обернуть — он перестал бы быть ленивым и
+/// строил бы все строки разом. Облик тот же до тени: заливка и тени —
+/// из [GlassSurface.decorationOf], обрезка и размытие — из
+/// [SliverGlassClip].
+class _GlassSliver extends StatelessWidget {
+  const _GlassSliver({
+    required this.sliver,
+    this.radius = 24,
+    this.padding = EdgeInsets.zero,
+    this.opacity,
+  });
+
+  final Widget sliver;
+  final double radius;
+  final EdgeInsets padding;
+  final double? opacity;
+
+  @override
+  Widget build(BuildContext context) => SliverGlassClip(
+    radius: radius,
+    blur: GlassSurface.blur,
+    sliver: DecoratedSliver(
+      decoration: GlassSurface.decorationOf(
+        context,
+        radius: radius,
+        opacity: opacity,
+      ),
+      sliver: SliverPadding(padding: padding, sliver: sliver),
+    ),
+  );
 }

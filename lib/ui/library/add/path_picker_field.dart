@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../theme.dart';
-import 'inset_tile.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
+import '../../widgets/inset_tile.dart';
 
 /// Строка выбора пути: подпись, выбранное значение и нажатие на всю
 /// карточку.

@@ -4,10 +4,10 @@ import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
 import '../theme.dart';
-import '../widgets/rise_in.dart';
 import 'effects/foil/foil_card.dart';
 import 'game_cover.dart';
 import 'library_grid_controller.dart';
+import 'rise_in.dart';
 
 /// Одна плитка сетки: она же следит за курсором и всходит при появлении.
 ///

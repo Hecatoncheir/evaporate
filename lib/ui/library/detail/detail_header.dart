@@ -4,7 +4,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../labels.dart';
 import '../../theme.dart';
-import '../../widgets/status_chip.dart';
+import '../../widgets/toned_chip.dart';
 import 'detail_cover.dart';
 import 'rating_row.dart';
 
@@ -41,7 +41,7 @@ class DetailHeader extends StatelessWidget {
               const SizedBox(height: EvaporateSpacing.gap),
               Row(
                 children: [
-                  StatusChip(status: game.status),
+                  _StatusChip(status: game.status),
                   const SizedBox(width: EvaporateSpacing.cluster),
                   if (game.play.playtime.inMinutes > 0)
                     Text(
@@ -61,6 +61,36 @@ class DetailHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Цветная метка статуса игры.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+
+  final GameStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = gameStatusLabel(L.of(context), status);
+    final color = switch (status) {
+      GameStatus.notInstalled => context.colors.textSecondary,
+      GameStatus.downloading => context.colors.primary,
+      GameStatus.paused => context.colors.warning,
+      GameStatus.installed => context.colors.accent,
+      GameStatus.running => context.colors.accent,
+      GameStatus.error => context.colors.danger,
+    };
+
+    return TonedChip(
+      text: label,
+      color: color,
+      style: context.text.captionStrong,
+      padding: const EdgeInsets.symmetric(
+        horizontal: EvaporateSpacing.cluster,
+        vertical: EvaporateSpacing.line,
+      ),
     );
   }
 }

@@ -7,8 +7,8 @@ import 'package:window_manager/window_manager.dart';
 import '../../bloc/navigation/navigation_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
-import '../widgets/window_action.dart';
-import '../widgets/window_control.dart';
+import '../window/window_action.dart';
+import '../window/window_control.dart';
 import 'theme_cycle_action.dart';
 import 'top_action.dart';
 

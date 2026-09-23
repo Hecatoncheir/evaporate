@@ -20,7 +20,7 @@ import 'package:evaporate/services/system/desktop_entry.dart';
 import 'package:evaporate/services/system/update_check.dart';
 import 'package:evaporate/ui/shell.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/ui/widgets/interface_scale.dart';
+import 'package:evaporate/ui/window/interface_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

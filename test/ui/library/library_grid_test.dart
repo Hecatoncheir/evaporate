@@ -7,7 +7,7 @@ import 'package:evaporate/ui/library/featured_game.dart';
 import 'package:evaporate/ui/library/game_cover.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/library/library_grid.dart';
-import 'package:evaporate/ui/widgets/rise_in.dart';
+import 'package:evaporate/ui/library/rise_in.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

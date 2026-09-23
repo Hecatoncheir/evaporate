@@ -7,10 +7,10 @@ import '../../models/game.dart';
 import '../../models/save_snapshot.dart';
 import '../theme.dart';
 import '../widgets/section_heading.dart';
-import '../widgets/sliver_side_by_side.dart';
 import '../widgets/watch_while_shown.dart';
 import 'bulk_transfer_card.dart';
 import 'saves_readout.dart';
+import 'sliver_side_by_side.dart';
 import 'snapshot_history.dart';
 import 'sync_folder_card.dart';
 

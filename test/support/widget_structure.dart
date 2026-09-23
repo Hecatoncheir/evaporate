@@ -275,3 +275,48 @@ Iterable<String> crowdedFiles(
   ).where((name) => !name.startsWith('_')).length;
   if (count > 1) yield '${file.path}: $count';
 }
+
+/// Файлы общей папки [folder], нужные меньше чем двум местам вне неё:
+/// `путь -> единственное место` или `путь -> никто`.
+///
+/// Места считаются за папкой: файл, нужный лишь соседу по ней, служит тем
+/// же, кому служит сосед. Так краска и геометрия переиспользуемого виджета
+/// законны, пока нужен он сам, а цепочка, которую целиком зовёт одно
+/// место, — нет. [graph] — импорты `lib` (`importGraph`): тест потребителем
+/// не считается, он проверяет, а не пользуется.
+Iterable<String> lonelyShared(
+  Map<String, List<String>> graph,
+  String folder,
+) sync* {
+  final importers = <String, Set<String>>{};
+  for (final MapEntry(key: file, value: targets) in graph.entries) {
+    for (final target in targets) {
+      (importers[target] ??= {}).add(file);
+    }
+  }
+  bool inside(String path) => path.startsWith('$folder/');
+
+  Set<String> usersOf(String file) {
+    final users = <String>{};
+    final queue = [file];
+    final seen = {file};
+    while (queue.isNotEmpty) {
+      for (final user in importers[queue.removeLast()] ?? const <String>{}) {
+        if (!seen.add(user)) continue;
+        if (inside(user)) {
+          queue.add(user);
+        } else {
+          users.add(user);
+        }
+      }
+    }
+    return users;
+  }
+
+  for (final file in graph.keys.where(inside)) {
+    final users = usersOf(file);
+    if (users.length < 2) {
+      yield '$file -> ${users.isEmpty ? 'никто' : users.single}';
+    }
+  }
+}

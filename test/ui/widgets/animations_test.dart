@@ -1,5 +1,5 @@
+import 'package:evaporate/ui/shell/fade_indexed_stack.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
-import 'package:evaporate/ui/widgets/fade_indexed_stack.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
