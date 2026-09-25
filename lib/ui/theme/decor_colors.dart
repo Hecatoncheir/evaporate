@@ -49,7 +49,6 @@ abstract final class AppColors {
   static const heroShadeClear = Color(0x0806060A);
   static const heroEyebrow = Color(0xFFFFC24D);
   static const heroBody = Color(0xFFB9C0C8);
-  static const heroPanel = Color(0xC90E0F16);
 
   /// Полоса света, проходящая по герою. Единственное, что двигается по
   /// обложке само: она и отличает живой кадр от вклеенной картинки.

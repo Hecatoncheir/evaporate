@@ -68,6 +68,7 @@ class _ShelfTabsState extends State<ShelfTabs> {
 
   static String _label(L l, Shelf shelf) => switch (shelf) {
     Shelf.all => l.tabAll,
+    Shelf.recent => l.tabRecent,
     Shelf.installed => l.tabInstalled,
     Shelf.notInstalled => l.tabNotInstalled,
   };

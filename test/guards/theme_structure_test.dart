@@ -519,7 +519,7 @@ const _textStyles = [
 
 /// Описание игры поверх крупного кадра — та же типографика картинки:
 /// межстрочие у него своё, под затемнённый кадр.
-const _roleTweaks = ['lib/ui/library/featured/featured_poster.dart: 1'];
+const _roleTweaks = <String>[];
 
 const _iconSizes = <String>[];
 
@@ -539,7 +539,6 @@ const _curves = [
 const _alphas = [
   'lib/ui/downloads/download_chart.dart: 2',
   'lib/ui/library/featured/featured_actions.dart: 1',
-  'lib/ui/library/featured/playtime_readout.dart: 1',
   'lib/ui/library/effects/foil/foil_surface.dart: 2',
   'lib/ui/library/effects/library_atmosphere.dart: 2',
   'lib/ui/library/effects/portal/portal_atlas.dart: 1',

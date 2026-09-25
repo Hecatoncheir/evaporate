@@ -36,22 +36,32 @@ class FeaturedActions extends StatelessWidget {
           tone: primaryActionTone(action),
         ),
         const SizedBox(width: EvaporateSpacing.cluster),
-        OutlinedButton(
-          onPressed: onOpen,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.coverText,
-            side: BorderSide(
-              color: AppColors.coverText.withValues(alpha: 0.34),
+        // Сжимается вторая клавиша, а не главная: в наименьшей ширине
+        // надписи кадра двум клавишам тесно, и переполнение рвало ряд.
+        Flexible(
+          child: OutlinedButton(
+            onPressed: onOpen,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.coverText,
+              side: BorderSide(
+                color: AppColors.coverText.withValues(alpha: 0.34),
+              ),
+              minimumSize: const Size(
+                EvaporateLayout.controlMinWidth,
+                EvaporateLayout.controlHeight,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  EvaporateTheme.radiusControl,
+                ),
+              ),
             ),
-            minimumSize: const Size(
-              EvaporateLayout.controlMinWidth,
-              EvaporateLayout.controlHeight,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
+            child: Text(
+              L.of(context).openGame,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          child: Text(L.of(context).openGame),
         ),
       ],
     );

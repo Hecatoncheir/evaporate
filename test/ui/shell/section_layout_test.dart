@@ -6,11 +6,16 @@ import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/app_fonts.dart';
 import '../../support/test_app.dart';
 
 void main() {
   late Directory tmp;
 
+  // Влез ли ряд обложек и встала ли панель в строку — свойства настоящей
+  // раскладки: служебный шрифт набирает строки вдвое шире, и тест мерил бы
+  // окно, которого человек не увидит.
+  setUpAll(loadAppFonts);
   setUp(() async => tmp = await TestHarness.makeTempDir());
   tearDown(() => TestHarness.removeTempDir(tmp));
 

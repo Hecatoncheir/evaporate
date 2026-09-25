@@ -6,7 +6,6 @@ import 'effects/hero_sweep.dart';
 import 'featured/featured_art.dart';
 import 'featured/featured_compact_bar.dart';
 import 'featured/featured_poster.dart';
-import 'featured/playtime_readout.dart';
 import 'shots_backdrop.dart';
 
 /// Крупная обложка выбранной игры над полкой.
@@ -76,19 +75,13 @@ class FeaturedGame extends StatelessWidget {
                     onOpen: onOpen,
                     onPrimary: onPrimary,
                   )
-                else ...[
+                else
                   FeaturedPoster(
                     game: game,
                     width: box.maxWidth,
                     onOpen: onOpen,
                     onPrimary: onPrimary,
                   ),
-                  Positioned(
-                    right: 22,
-                    bottom: 22,
-                    child: PlaytimeReadout(game: game),
-                  ),
-                ],
               ],
             ),
           ),

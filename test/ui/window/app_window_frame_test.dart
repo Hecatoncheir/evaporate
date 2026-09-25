@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
+import '../../support/app_fonts.dart';
 import '../../support/test_app.dart';
 
 void main() {
@@ -27,16 +28,7 @@ void main() {
 
   setUpAll(() async {
     if (Platform.environment['WINDOW_FRAME_PREVIEW'] == null) return;
-    for (final entry in {
-      'Unbounded': 'assets/fonts/Unbounded.ttf',
-      'Golos Text': 'assets/fonts/GolosText.ttf',
-      'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',
-      'MaterialIcons': 'fonts/MaterialIcons-Regular.otf',
-    }.entries) {
-      await (FontLoader(
-        entry.key,
-      )..addFont(rootBundle.load(entry.value))).load();
-    }
+    await loadAppFonts();
   });
 
   setUp(() async {

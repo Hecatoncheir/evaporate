@@ -28,7 +28,9 @@ void main() {
     addTearDown(harness.dispose);
     await harness.pump(tester);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Добавить игру'));
+    await tester.tap(
+      find.widgetWithText(OutlinedButton, 'Magnet, .torrent или папка…'),
+    );
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
     return harness;

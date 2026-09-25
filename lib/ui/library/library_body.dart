@@ -79,11 +79,11 @@ class LibraryBody extends StatelessWidget {
                 onReturnToGames: onReturnToGames,
               ),
               Expanded(
-                child: GameDropTarget(
-                  enabled: !scanning,
-                  child: games.isEmpty
-                      ? const LibraryEmptyState()
-                      : LibraryGrid(controller: grid, games: games),
+                child: _LibraryShelf(
+                  grid: grid,
+                  games: games,
+                  scanning: scanning,
+                  onScan: onScan,
                 ),
               ),
             ],
@@ -92,4 +92,30 @@ class LibraryBody extends StatelessWidget {
       },
     );
   }
+}
+
+/// Сетка выбранной полки или пустая полка — под приёмником броска.
+///
+/// Пока идёт поиск установленных игр, приёмник молчит: папку в его окно
+/// бросают ради сужения поиска, а не чтобы добавить её одной игрой.
+class _LibraryShelf extends StatelessWidget {
+  const _LibraryShelf({
+    required this.grid,
+    required this.games,
+    required this.scanning,
+    required this.onScan,
+  });
+
+  final LibraryGridController grid;
+  final List<Game> games;
+  final bool scanning;
+  final VoidCallback onScan;
+
+  @override
+  Widget build(BuildContext context) => GameDropTarget(
+    enabled: !scanning,
+    child: games.isEmpty
+        ? LibraryEmptyState(onScan: onScan)
+        : LibraryGrid(controller: grid, games: games),
+  );
 }

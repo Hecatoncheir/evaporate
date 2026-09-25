@@ -368,7 +368,6 @@ const _longClosures = [
   'lib/ui/library/effects/library_atmosphere.dart: LibraryAtmosphereState.build: 40',
   'lib/ui/library/effects/portal/portal_sparks.dart: PortalSparksState.build: 30',
   'lib/ui/library/featured/shots_slideshow.dart: ShotsSlideshow.build: 40',
-  'lib/ui/library/featured_game.dart: FeaturedGame.build: 30',
   'lib/ui/library/library_body.dart: LibraryBody.build: 28',
   'lib/ui/library/library_grid.dart: LibraryGrid.build: 30',
   'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 27',
