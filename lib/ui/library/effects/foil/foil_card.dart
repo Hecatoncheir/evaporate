@@ -1,10 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
-import '../../../widgets/frame_step.dart';
-import '../../../widgets/window_visibility.dart';
+import '../../../widgets/decoration_clock.dart';
 import 'foil_motion.dart';
 import 'foil_scope.dart';
 
@@ -34,39 +32,23 @@ class FoilCard extends StatefulWidget {
 }
 
 class FoilCardState extends State<FoilCard>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, DecorationClock {
   final _motion = FoilMotion();
-  late final Ticker _ticker = createTicker(_tick);
-  final _step = FrameStep();
-  bool _visible = true;
-  bool get isAnimating => _ticker.isActive && !_ticker.muted;
   Matrix4 get perspective => _motion.perspective;
 
-  @override
-  void initState() {
-    super.initState();
-    _visible = isWindowVisible(WidgetsBinding.instance.lifecycleState);
-    WidgetsBinding.instance.addObserver(this);
-  }
+  bool get _enabled =>
+      widget.enabled &&
+      (widget.foilEnabled || widget.tiltEnabled || widget.distortionEnabled);
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncMotion();
-  }
+  bool get wantsFrames => _enabled && (widget.active || _motion.strength > 0);
 
+  /// Приводит облик карточки в соответствие с настройками и обстановкой, а
+  /// затем — часы.
   @override
-  void didUpdateWidget(FoilCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncMotion();
-  }
-
-  /// Приводит анимацию карточки в соответствие с настройками и обстановкой.
-  void _syncMotion() {
+  void syncClock() {
     final reduced = MediaQuery.disableAnimationsOf(context);
-    final enabled =
-        widget.enabled &&
-        (widget.foilEnabled || widget.tiltEnabled || widget.distortionEnabled);
+    final enabled = _enabled;
 
     _motion.foil = widget.enabled && widget.foilEnabled;
     _motion.distortion = enabled && !reduced && widget.distortionEnabled;
@@ -81,54 +63,21 @@ class FoilCardState extends State<FoilCard>
       _motion.phase = 0;
     }
     _motion.changed();
-
-    _runTicker(enabled && !reduced && _worthAnimating);
+    super.syncClock();
   }
 
-  /// Стоит ли гнать кадры прямо сейчас.
-  ///
-  /// Украшение не должно жечь батарею за спиной: в свёрнутом окне, на
-  /// невидимом разделе и на неактивном маршруте часы стоят.
-  bool get _worthAnimating =>
-      _visible &&
-      TickerMode.valuesOf(context).enabled &&
-      (ModalRoute.isCurrentOf(context) ?? true) &&
-      (widget.active || _motion.strength > 0);
-
-  /// Пускает или останавливает часы перерисовки.
-  ///
-  /// Отсчёт прошлого кадра сбрасывается на обеих границах: после паузы он
-  /// показывал бы шаг длиной во всю паузу.
-  void _runTicker(bool run) {
-    if (run == _ticker.isActive) return;
-    _step.reset();
-    if (run) {
-      _ticker.start();
-    } else {
-      _ticker.stop();
-    }
-  }
-
-  void _tick(Duration elapsed) {
-    final dt = _step.next(elapsed);
-    if (dt == null) return;
+  @override
+  void onFrame(double dt) {
     _motion.strength = (_motion.strength + (widget.active ? dt : -dt) / 0.3)
         .clamp(0.0, 1.0);
     _motion.phase = (_motion.phase + dt * math.pi * 2 / 7) % (math.pi * 2);
     _motion.changed();
-    if (!widget.active && _motion.strength == 0) _ticker.stop();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _visible = isWindowVisible(state);
-    _syncMotion();
+    // Вернулась в покой — часам больше незачем идти.
+    if (!widget.active && _motion.strength == 0) super.syncClock();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _ticker.dispose();
     _motion.dispose();
     super.dispose();
   }

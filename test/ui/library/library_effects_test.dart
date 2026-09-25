@@ -112,6 +112,38 @@ void main() {
     expect(EffectsPalette.arclight.particleBase, const Color(0xFFE9C877));
   });
 
+  // Запуск свёрнутым в трей: фон строится принудительным кадром при
+  // скрытом окне. Прежде он один из украшений не спрашивал на старте,
+  // видно ли окно, и считал себя идущим до первого события окна.
+  testWidgets('фон, построенный при скрытом окне, часов не пускает', (
+    tester,
+  ) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: EvaporateTheme.dark(),
+        home: LibraryAtmosphere(
+          enabled: true,
+          targetKey: () => null,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+    // Кадров при скрытом окне нет: строит только разогревочный, как при
+    // настоящем запуске.
+    tester.binding.scheduleWarmUpFrame();
+    final state = tester.state<LibraryAtmosphereState>(
+      find.byType(LibraryAtmosphere),
+    );
+    expect(state.isAnimating, isFalse);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(state.isAnimating, isTrue);
+  });
+
   testWidgets('у частицы резкое ядро и ни следа свечения за его краем', (
     tester,
   ) async {

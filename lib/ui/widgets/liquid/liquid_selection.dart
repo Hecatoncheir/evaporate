@@ -50,7 +50,6 @@ class LiquidSelectionState extends State<LiquidSelection>
   GlobalKey? _identity;
   Rect? _from, _to;
   bool _queued = false;
-  bool _visible = true;
   bool _allowed = false;
 
   bool get isAnimating => _animation.isAnimating;
@@ -59,7 +58,6 @@ class LiquidSelectionState extends State<LiquidSelection>
   @override
   void initState() {
     super.initState();
-    _visible = isWindowVisible(WidgetsBinding.instance.lifecycleState);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -76,21 +74,13 @@ class LiquidSelectionState extends State<LiquidSelection>
   }
 
   void _sync() {
-    _allowed =
-        widget.enabled &&
-        _visible &&
-        !MediaQuery.disableAnimationsOf(context) &&
-        TickerMode.valuesOf(context).enabled &&
-        (ModalRoute.isCurrentOf(context) ?? true);
+    _allowed = widget.enabled && decorationMayRun(context);
     if (!_allowed) _animation.value = 1;
     _scheduleMeasure();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _visible = isWindowVisible(state);
-    _sync();
-  }
+  void didChangeAppLifecycleState(AppLifecycleState state) => _sync();
 
   void _scheduleMeasure() {
     if (_queued) return;

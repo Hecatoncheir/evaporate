@@ -1,11 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 import '../../theme.dart';
-import '../../widgets/frame_step.dart';
-import '../../widgets/window_visibility.dart';
+import '../../widgets/decoration_clock.dart';
 import 'particle_field.dart';
 
 /// Одна ограниченная симуляция и один слой перерисовки. Сетка обложек —
@@ -31,66 +29,29 @@ class LibraryAtmosphere extends StatefulWidget {
 }
 
 class LibraryAtmosphereState extends State<LibraryAtmosphere>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, DecorationClock {
   final field = ParticleField();
   Rect? targetRect;
   Object? targetIdentity;
   final _repaint = _PaintSignal();
   final _viewport = GlobalKey();
-  late final Ticker _ticker = createTicker(_tick);
-  final _step = FrameStep();
-  bool _visible = true;
-  bool _motion = false;
   double _ambientTime = 0;
-  bool get isAnimating => _ticker.isActive && !_ticker.muted;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
+  bool get wantsFrames =>
+      widget.enabled &&
+      (widget.particlesEnabled ||
+          (widget.ambientEnabled && EffectsPalette.of(context).ambientWash));
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncMotion();
-  }
-
-  @override
-  void didUpdateWidget(LibraryAtmosphere oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _syncMotion();
-  }
-
-  void _syncMotion() {
-    _motion =
-        widget.enabled &&
-        (widget.particlesEnabled ||
-            (widget.ambientEnabled &&
-                EffectsPalette.of(context).ambientWash)) &&
-        !MediaQuery.disableAnimationsOf(context) &&
-        (ModalRoute.isCurrentOf(context) ?? true) &&
-        TickerMode.valuesOf(context).enabled &&
-        _visible;
-    if (_motion && !_ticker.isActive) {
-      _step.reset();
-      _ticker.start();
-    } else if (!_motion && _ticker.isActive) {
-      _ticker.stop();
-      _step.reset();
-      field.pointer = null;
-    }
+  void syncClock() {
+    super.syncClock();
+    // Стоящим частицам следить за курсором незачем.
+    if (!clockRunning) field.pointer = null;
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _visible = isWindowVisible(state);
-    _syncMotion();
-  }
-
-  void _tick(Duration elapsed) {
-    final dt = _step.next(elapsed);
-    if (dt == null) return;
+  void onFrame(double dt) {
     final box = _viewport.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return;
     if (widget.particlesEnabled) field.resize(box.size);
@@ -114,8 +75,6 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _ticker.dispose();
     _repaint.dispose();
     super.dispose();
   }
@@ -124,7 +83,7 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
   Widget build(BuildContext context) {
     return MouseRegion(
       onHover: (event) {
-        if (_motion && widget.particlesEnabled) {
+        if (clockRunning && widget.particlesEnabled) {
           field.pointer = event.localPosition;
         }
       },

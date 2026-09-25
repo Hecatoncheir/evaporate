@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
-import 'frame_step.dart';
-import 'window_visibility.dart';
+import 'decoration_clock.dart';
 
 /// Часы перерисовки: гонят кадры анимации, ни разу не пересобирая то,
 /// что под ними нарисовано.
@@ -23,67 +21,26 @@ class DecorativeMotion extends StatefulWidget {
 }
 
 class DecorativeMotionState extends State<DecorativeMotion>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, DecorationClock {
   final _time = ValueNotifier(0.0);
-  late final Ticker _ticker = createTicker(_tick);
-  final _step = FrameStep();
-  bool _visible = true;
-  bool get isAnimating => _ticker.isActive && !_ticker.muted;
   double get time => _time.value;
 
   @override
-  void initState() {
-    super.initState();
-    _visible = isWindowVisible(WidgetsBinding.instance.lifecycleState);
-    WidgetsBinding.instance.addObserver(this);
-  }
+  bool get wantsFrames => widget.enabled;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(DecorativeMotion oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _sync();
-  }
-
-  void _sync() {
-    final reduced = MediaQuery.disableAnimationsOf(context);
-    final run =
-        widget.enabled &&
-        !reduced &&
-        _visible &&
-        TickerMode.valuesOf(context).enabled &&
-        (ModalRoute.isCurrentOf(context) ?? true);
-    if (run && !_ticker.isActive) {
-      _step.reset();
-      _ticker.start();
+  void syncClock() {
+    super.syncClock();
+    if (!widget.enabled || MediaQuery.disableAnimationsOf(context)) {
+      _time.value = 0;
     }
-    if (!run && _ticker.isActive) {
-      _ticker.stop();
-      _step.reset();
-    }
-    if (!widget.enabled || reduced) _time.value = 0;
-  }
-
-  void _tick(Duration elapsed) {
-    final dt = _step.next(elapsed);
-    if (dt != null) _time.value += dt;
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _visible = isWindowVisible(state);
-    _sync();
-  }
+  void onFrame(double dt) => _time.value += dt;
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _ticker.dispose();
     _time.dispose();
     super.dispose();
   }

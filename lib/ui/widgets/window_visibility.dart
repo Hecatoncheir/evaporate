@@ -13,3 +13,17 @@ bool isWindowVisible(AppLifecycleState? state) =>
     state == null ||
     state == AppLifecycleState.resumed ||
     state == AppLifecycleState.inactive;
+
+/// Можно ли украшению двигаться прямо сейчас: окно видно, система не
+/// просит не двигаться, раздел не погашен `TickerMode`, маршрут — текущий.
+///
+/// Одно правило на все украшения — и на часы (`DecorationClock`), и на
+/// каплю выбора. Выписанное в каждом, оно однажды разошлось: фон
+/// библиотеки при запуске не спрашивал, видно ли окно. Видимость читается
+/// у привязки, а не хранится у виджета: к уведомлению о смене состояния
+/// окна привязка его уже знает.
+bool decorationMayRun(BuildContext context) =>
+    isWindowVisible(WidgetsBinding.instance.lifecycleState) &&
+    !MediaQuery.disableAnimationsOf(context) &&
+    TickerMode.valuesOf(context).enabled &&
+    (ModalRoute.isCurrentOf(context) ?? true);

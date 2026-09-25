@@ -608,7 +608,7 @@
   `FeaturedTitle(compact:)`. Из `_longClosures` ушли `GameChip` и
   `SnapshotRow`. Новых тестов два: показания под загрузкой и процент
   числом и словами.
-- [ ] **B6. Одно украшение — одни часы, один предикат «можно ли двигаться».**
+- [x] **B6. Одно украшение — одни часы, один предикат «можно ли двигаться».**
   **[✔]** P2. Предикат `WidgetsBindingObserver` + `isWindowVisible` +
   `TickerMode.valuesOf` + `ModalRoute.isCurrentOf` + `disableAnimationsOf`
   выписан в `decorative_motion.dart:53-70`, `liquid_selection.dart:78-87`,
@@ -619,6 +619,20 @@
   `decorationMayRun(context, {visible})` рядом с `isWindowVisible`;
   `FoilCard`/`LibraryAtmosphere` — на `DecorativeMotion` или хотя бы на
   общий предикат. Закрывает A9. **M**
+  *Сделано:* часы — миксин `DecorationClock` (`widgets/decoration_clock.dart`):
+  тикер, `FrameStep`, наблюдатель за окном и пересчёт на смене
+  зависимостей и виджета. Украшение говорит только своё — `wantsFrames` и
+  `onFrame(dt)`. На нём `DecorativeMotion`, `FoilCard` и
+  `LibraryAtmosphere`: у фольги и фона своё состояние на каждом шаге
+  (сила и фаза, поле частиц), и готовый виджет с накопленным временем им
+  не подходил — поэтому общим стал механизм, а не виджет. Правило одно —
+  `decorationMayRun(context)` рядом с `isWindowVisible`; видимость оно
+  читает у привязки, а не хранит, и `_visible` не осталось ни у кого.
+  Капля выбора спрашивает то же правило — у неё не часы, а переход.
+  `AppLifecycleListener` для подписки не взят: он проверяет порядок
+  переходов утверждениями. A9: фон, построенный при скрытом окне, часов
+  больше не пускает — новый тест падает на прежнем коде. `CLAUDE.md`
+  поправлен: «один `DecorativeMotion`» стал одними часами.
 - [ ] **B7. Тестовые крючки в боевом коде — пометить или убрать.** **[✔]** P2.
   `library_atmosphere.dart:36-37` — публичные `targetRect`/`targetIdentity`,
   заполняются на каждом тике (`:105-106`), читает только
