@@ -1,0 +1,249 @@
+# Конспект читателя: ev-sections
+
+## Сводка
+
+Три раздела evaporate — «Загрузки», «Сохранения», «Настройки» — живут в lib/ui/downloads, lib/ui/saves, lib/ui/settings (+ settings/cards) и читаются как «прибор»: сверху SectionHeading с меткой «[ 0N / … ]», под ней ReadoutPanel из четырёх ReadoutCell, ниже подробности. Разделы стоят в IndexedStack оболочки, поэтому страницы подписываются через watchWhileShown/selectWhileShown (молчит при выключенном TickerMode), а карточки настроек и сохранений читают блоки сами (context.select/watch), страница им ничего не передаёт. Загрузки: DownloadsPage → DownloadsHeading (EngineStatusChip + перезапуск) → DownloadsStatusBar (DownloadsReadout + EngineFailure) → DownloadsColumns (AvailableGames с Draggable<Game> | QueueColumn как DragTarget<Game> с TaskCard для inWork и ReorderableListView QueuedCard для queued). Данные — DownloadsState (tasks/stats/engine, геттеры inWork/holdingSlots/queued), история скоростей — отдельный DownloadHistoryBloc (60 выборок, диск считается по приросту completedBytes), график — CustomPainter в DownloadChart, он же подложкой на странице игры. Сохранения: SavesPage из сливеров — SavesReadout (снимков/занято/игр с путями/последний), слева BulkTransferCard (BulkExport/ImportRequested, BulkReportView) и SyncFolderCard (папка из SettingsBloc.saves.syncFolder, пакеты из SavesState.syncPackages, SyncPackageApplied), справа SnapshotHistory — ленивый SliverList в «стекле-сливере» (SliverGlassClip) из SnapshotRow (экспорт/удаление через snapshot_actions). Настройки: SettingsPage — Column из 12 карточек в фиксированном порядке под своей политикой обхода фокуса; записываются только SettingsPatched(patch) с withAppearance/withStartup/withSaves; у прокси и журнала свои локальные блоки (ProxyFormBloc, LogBloc), обновление — общий UpdateBloc, геймпад — GamepadService через Provider. Все видимые строки — 558 ключей app_ru.arb/app_en.arb, подписи к перечислимым — lib/ui/labels.dart (и lib/l10n/labels.dart для блоков), страж arb_usage требует, чтобы каждый ключ читался через l./_l./L.of(context)./…localizations().
+
+## Файлы
+
+- `lib/ui/downloads/downloads_page.dart` — страница загрузок: подписки на DownloadsBloc/LibraryBloc/SettingsBloc.maxConcurrent, приёмник GameDropTarget, сборка колонок
+- `lib/ui/downloads/downloads_columns.dart` — раскладка источники|очередь по ширине (980) и высоте (360) окна
+- `lib/ui/downloads/downloads_heading.dart` — метка раздела + EngineStatusChip + клавиша перезапуска движка (failed/stopped)
+- `lib/ui/downloads/downloads_status_bar.dart` — DownloadsReadout и панель EngineFailure под ним
+- `lib/ui/downloads/downloads_readout.dart` — четыре графы показаний движка: сеть, отдача, активных/предел, в очереди
+- `lib/ui/downloads/available_games.dart` — левая колонка: игры, которые можно поставить в очередь (library.downloadable)
+- `lib/ui/downloads/draggable_game.dart` — Draggable<Game> вокруг GameChip
+- `lib/ui/downloads/game_chip.dart` — плашка игры с подъёмом под курсором и кнопкой удаления из библиотеки
+- `lib/ui/downloads/remove_from_library_button.dart` — удаление игры из библиотеки через askRemoveGame → GameRemoved
+- `lib/ui/downloads/queue_column.dart` — правая колонка: DragTarget<Game> → DownloadRequested, списки «качается» и «в очереди»
+- `lib/ui/downloads/queue_list.dart` — ReorderableListView очереди, DownloadReordered(id, beforeId) по соседу
+- `lib/ui/downloads/queued_card.dart` — строка ждущей задачи: номер, название, клавиши выше/ниже, снятие из очереди
+- `lib/ui/downloads/task_card.dart` — карточка идущей загрузки: TaskHeader + DownloadActivity + TaskStats + ошибка
+- `lib/ui/downloads/task_header.dart` — название, состояние задачи, TaskActions только при наличии игры
+- `lib/ui/downloads/task_actions.dart` — пауза/продолжение и отмена (cancelDownload)
+- `lib/ui/downloads/cancel_dialog.dart` — общий диалог снятия загрузки с тремя ответами и DownloadCancelRequested
+- `lib/ui/downloads/download_activity.dart` — показания одной загрузки: DownloadMetrics, DownloadChart (опц.), DownloadAmounts, AnimatedProgress
+- `lib/ui/downloads/download_metrics.dart` — четыре DownloadMetric (сеть, пик, диск, отдача) из DownloadHistoryBloc
+- `lib/ui/downloads/download_metric.dart` — одно показание: значок, подпись, число
+- `lib/ui/downloads/download_amounts.dart` — «скачано / всего» и процент
+- `lib/ui/downloads/download_chart.dart` — график скорости: BlocSelector по истории задачи + _SpeedChartPainter (столбцы сети, линия диска)
+- `lib/ui/downloads/task_stats.dart` — ETA, пиры, сиды, отдано, рейтинг
+- `lib/ui/downloads/engine_status.dart` — плашка состояния движка с PulseDot
+- `lib/ui/downloads/engine_state_color.dart` — цвет и мигание по EngineState (общее с нижней строкой окна)
+- `lib/ui/downloads/engine_failure.dart` — красная панель отказа движка
+- `lib/ui/downloads/section_title.dart` — подпись подраздела колонки с числом
+- `lib/ui/downloads/queue_hint.dart` — текст пустого подраздела
+- `lib/ui/saves/saves_page.dart` — страница сохранений из сливеров: readout, две колонки (430 | остальное) от 1080 px
+- `lib/ui/saves/saves_readout.dart` — показания: снимков, занято, игр с путями, последний снимок
+- `lib/ui/saves/snapshot_history.dart` — хронология всех снимков ленивым SliverList в стекле-сливере; typedef SnapshotEntry
+- `lib/ui/saves/snapshot_row.dart` — строка снимка: SnapshotSummary + экспорт + удаление
+- `lib/ui/saves/sliver_glass_clip.dart` — RenderProxySliver: скругление всей карты и BackdropFilter для сливера
+- `lib/ui/saves/sliver_side_by_side.dart` — две сливер-колонки рядом или друг под другом
+- `lib/ui/saves/sync_folder_card.dart` — папка синхронизации: путь из настроек, «Проверить» → SyncFolderScanRequested
+- `lib/ui/saves/sync_folder_contents.dart` — путь и найденные пакеты; различает «пусто» и «ещё не смотрели»
+- `lib/ui/saves/sync_folder_prompt.dart` — выбор папки, когда её нет (SettingsPatched withSaves)
+- `lib/ui/saves/sync_package_row.dart` — пакет с другого устройства: PickGameDialog → confirm → SyncPackageApplied
+- `lib/ui/saves/pick_game_dialog.dart` — выбор игры для пакета, совпавшая по названию первой
+- `lib/ui/saves/bulk_transfer_card.dart` — массовый перенос: выгрузить всё / загрузить всё, отчёт
+- `lib/ui/saves/import_newer_dialog.dart` — вопрос про перезапись более новых сейвов (true/false/null)
+- `lib/ui/saves/bulk_report_view.dart` — ExpansionTile отчёта, раскрыт при проблемах
+- `lib/ui/saves/bulk_outcome_group.dart` — группа исхода отчёта с цветом
+- `lib/ui/library/saves/snapshot_actions.dart` — exportSnapshot/deleteSnapshot — общие с карточкой игры
+- `lib/ui/library/saves/snapshot_summary.dart` — заголовок снимка, SaveTag происхождения, строка «дата · устройство · размер»
+- `lib/ui/settings/settings_page.dart` — столбец 12 карточек, _ListTraversal и стрелки без ignoreTextFields
+- `lib/ui/settings/cards/appearance_card.dart` — язык, тема, масштаб интерфейса
+- `lib/ui/settings/theme_picker.dart` — SegmentedSetting system/light/dark (AppThemeMode)
+- `lib/ui/settings/language_picker.dart` — SegmentedSetting система/ru/en
+- `lib/ui/settings/effects_card.dart` — карточка «Живая библиотека»: пресет + заметка + подробно
+- `lib/ui/settings/effect_preset_picker.dart` — SegmentedButton off/calm/standard/full с пустым выбором
+- `lib/ui/settings/effect_details.dart` — общий выключатель и переключатель на каждое LibraryEffect с подписями
+- `lib/ui/settings/cards/window_startup_card.dart` — окно при запуске и автозапуск
+- `lib/ui/settings/window_start_picker.dart` — SegmentedSetting remembered/maximized/minimized
+- `lib/ui/settings/cards/download_settings_card.dart` — папка игр, одновременных загрузок, пределы скорости
+- `lib/ui/settings/cards/speed_limits_settings.dart` — четыре SpeedField (приём, отдача, рейтинг, во время игры)
+- `lib/ui/settings/speed_field.dart` — числовое поле, фиксирует значение на потере фокуса
+- `lib/ui/settings/cards/save_settings_card.dart` — папка синхронизации и три автоснимка
+- `lib/ui/settings/cards/metadata_card.dart` — две кнопки поиска метаданных (LibraryBloc)
+- `lib/ui/settings/cards/engine_info_card.dart` — состояние движка (select EngineStatus) без перезапуска
+- `lib/ui/settings/proxy_settings_card.dart` — BlocProvider локального ProxyFormBloc
+- `lib/ui/settings/proxy_form_body.dart` — включение, вид, поля адреса, «Применить», заметки
+- `lib/ui/settings/proxy_address_fields.dart` — host/port/user/password → события ProxyFormBloc
+- `lib/ui/settings/proxy_apply_row.dart` — кнопка «Применить» и собранный uri
+- `lib/ui/settings/proxy_kind_picker.dart` — SOCKS5/HTTP
+- `lib/ui/settings/proxy_notes.dart` — useForSteam, предупреждение HTTP, пароль открытым текстом
+- `lib/ui/settings/gamepad_settings.dart` — карточка «Управление»: статус, включение, мёртвая зона, 6 назначений, сброс
+- `lib/ui/settings/gamepad_status_row.dart` — ValueListenableBuilder на GamepadService.status
+- `lib/ui/settings/gamepad_binding_row.dart` — действие → кнопки → «Назначить»
+- `lib/ui/settings/capture_button_dialog.dart` — ждёт нажатия геймпада, Start отменяет
+- `lib/ui/settings/deadzone_slider.dart` — ползунок 0.2–0.9 с AdjustValueIntent
+- `lib/ui/settings/notification_settings.dart` — системные уведомления, доступность, действия
+- `lib/ui/settings/notification_actions.dart` — запрос разрешения (macOS) и пробное уведомление
+- `lib/ui/settings/log_card.dart` — журнал: локальный LogBloc, показать/скопировать/очистить
+- `lib/ui/settings/log_view.dart` — строки журнала снизу вверх, maxHeight 260
+- `lib/ui/settings/about_card.dart` — версия, действия обновления, сообщение UpdateBloc, запись в меню, проверка на старте
+- `lib/ui/settings/about_actions.dart` — проверить, исходный код, установить, страница релиза
+- `lib/ui/settings/menu_entry_row.dart` — запись в меню приложений (Linux)
+- `lib/ui/settings/path_setting.dart` — подпись, путь, «Изменить», очистка
+- `lib/ui/settings/pick_folder.dart` — pickSettingsFolder — папка правкой, не снимком
+- `lib/ui/settings/segmented_setting.dart` — подпись 220 px + SegmentedButton
+- `lib/ui/settings/setting_switch.dart` — SwitchListTile без полей
+- `lib/ui/settings/setting_note.dart` — пояснение ролью paragraph
+- `lib/ui/settings/setting_text_field.dart` — текстовое поле настройки (260 px)
+- `lib/ui/feedback/confirm.dart` — диалог «да/нет», закрытие = нет
+- `lib/ui/feedback/snack.dart` — showError/showInfo SnackBar
+- `lib/ui/labels.dart` — переводимые подписи перечислимых моделей и ввода; реэкспорт bytes/count/dateTime/engineState
+- `lib/l10n/labels.dart` — engineStateLabel, bytesLabel, dateTimeLabel, countLabel — доступны блокам
+- `lib/l10n/app_ru.arb` — исходник строк, 558 ключей
+- `lib/l10n/app_en.arb` — перевод, те же 558 ключей
+- `test/guards/arb_usage_test.dart` — страж: каждый ключ ARB читается получателем переводов
+- `lib/bloc/downloads/downloads_state.dart` — tasks/stats/engine/notice, геттеры inWork, holdingSlots, queued, orderIndexBefore
+- `lib/bloc/downloads/downloads_event.dart` — события: Requested/Pause/Resume/Cancel/Reordered/EngineRestart/TorrentExport и др.
+- `lib/bloc/download_history/download_history_bloc.dart` — минута выборок по задаче, length=60, диск по приросту completedBytes
+- `lib/bloc/download_history/download_history_state.dart` — SpeedSample, DownloadSpeedHistory (peakOf, diskSpeed), DownloadHistories.of
+- `lib/bloc/saves/saves_state.dart` — snapshots, syncPackages, scanningSync, syncScanned, bulkReport, busy, entriesOf
+- `lib/bloc/saves/saves_event.dart` — 21 событие, в т.ч. BulkExport/Import, SyncFolderScan, SyncPackageApplied, SnapshotExport/Deleted
+- `lib/bloc/settings/settings_event.dart` — единственная запись — SettingsPatched(patch)
+- `lib/bloc/update/update_state.dart` — checking, installing, found, message, isError, inMenu
+- `lib/bloc/log/log_state.dart` — lines (null = не показывали), busy
+- `lib/bloc/proxy_form/proxy_form_state.dart` — черновик прокси: draft, portInvalid, dirty, canApply
+- `lib/models/app_settings.dart` — installDir, maxConcurrent, systemNotifications, appearance, startup, saves, proxy, limits, gamepad
+- `lib/models/appearance.dart` — themeMode, locale, interfaceScale/libraryScale с границами, libraryEffects, effects
+- `lib/models/library_effect.dart` — 14 украшений с порядком, jsonKey, independent, shipped
+- `lib/models/effect_preset.dart` — off/calm/standard/full, applyTo и обратный effectPreset
+- `lib/models/download_task.dart` — DownloadTask, DownloadState, EngineStats
+- `lib/ui/widgets/readout_panel.dart` — панель граф с волосяными чертами, перенос по две ниже 680
+- `lib/ui/widgets/readout_cell.dart` — графа: label капсом + readoutLarge/readout, dim, color
+- `lib/ui/widgets/section_card.dart` — GlassSurface с SectionCardHeader — карточка настроек и сохранений
+- `lib/ui/widgets/section_heading.dart` — метка раздела с Semantics header
+- `lib/ui/widgets/watch_while_shown.dart` — подписка, молчащая при выключенном TickerMode
+- `lib/ui/widgets/glass_surface.dart` — стекло: decorationOf общий с сливером, blur 16
+- `lib/ui/widgets/inset_tile.dart` — строка-плитка с подсветкой под курсором
+- `lib/ui/widgets/icon_action.dart` — мелкая клавиша с подложкой (пауза/отмена), danger
+- `lib/ui/widgets/tile_icon_button.dart` — голая клавиша у края плитки
+- `lib/ui/widgets/info_row.dart` — подпись 150 px + значение
+- `lib/ui/shell.dart` — MultiBlocListener: Notice трёх блоков → showError/showInfo
+- `lib/ui/shell/engine_readout.dart` — нижняя строка: состояние движка и скорости
+- `lib/ui/library/detail/downloading_header.dart` — DownloadChart(height: null) подложкой заголовка страницы игры
+- `lib/ui/theme/layout.dart` — gutter 28, contentMaxWidth 1340, settingLabelWidth 220, dialogWidth 560/460, pagePaddingFor
+- `test/guards/widget_structure_test.dart` — храповики _longClosures (downloads_page 36, queue_column 38, log_card 41), _wideWidgets, _lonelyShared
+- `tool/check_coverage.dart` — thinFiles с семью файлами разделов на 0%, _reportedNowhere
+- `test/ui/downloads/available_games_test.dart` — у игры в списке есть кнопка убрать; удаление спрашивает; нескачанной не предлагают стереть файлы
+- `test/ui/downloads/download_activity_test.dart` — панель показывает график и четыре показателя и не переполняется в узком окне
+- `test/ui/downloads/download_cancel_test.dart` — отмена на карточке и в очереди спрашивает; стереть файлы предлагают только скачавшей
+- `test/ui/downloads/download_chart_test.dart` — всплеск диска не давит столбцы сети; столбцы растут; пустая история не падает
+- `test/ui/downloads/downloading_header_test.dart` — на странице игры название поверх графика, подложка занимает блок заголовка
+- `test/ui/downloads/engine_state_color_test.dart` — состояние движка красится смысловым цветом схемы
+- `test/ui/downloads/hidden_page_test.dart` — скрытые загрузки не перестраиваются, показанные читают свежее
+- `test/ui/downloads/queue_keys_test.dart` — клавиши выше/ниже ставят задачу перед нужным соседом
+- `test/ui/downloads/task_stats_test.dart` — рядом с ETA видно отданное; без метаданных ETA нет
+- `test/ui/saves/bulk_transfer_dialog_test.dart` — ветки ImportNewerDialog, отказ, закрытый выбор папки, выгрузка в папку
+- `test/ui/saves/saves_page_test.dart` — показания считают снимки; экран не пересобирается от чужих перемен; удаление через вопрос с именем игры
+- `test/ui/saves/sliver_glass_clip_test.dart` — скругляется вся карта; подложка размыта
+- `test/ui/saves/sliver_side_by_side_test.dart` — колонки рядом в широком и друг под другом в узком окне
+- `test/ui/saves/snapshot_history_test.dart` — строки строятся по мере прокрутки; заголовок называет число снимков
+- `test/ui/settings/about_card_test.dart` — найденную версию открывают кнопкой; без установщика говорят; свежей — никакой кнопки
+- `test/ui/settings/capture_button_dialog_test.dart` — Start закрывает без назначения; другая кнопка назначается
+- `test/ui/settings/display_scale_test.dart` — масштабы независимы и зажаты; масштаб растит значки и области нажатия; навигация влезает в минимальное окно
+- `test/ui/settings/effect_settings_test.dart` — умолчания украшений поимённо; наборы; переключатели по ключам; рамка выбора независима
+- `test/ui/settings/proxy_settings_card_test.dart` — поля открываются на сохранённом; запись только по «Применить»
+- `test/ui/settings/settings_layout_test.dart` — язык/тема в карточке вида; крупность обложек в библиотеке; перезапуск движка только на загрузках; украшения набором
+- `test/ui/settings/settings_navigation_test.dart` — нижняя карточка построена без прокрутки; стрелки уводят фокус из поля; спуск доходит до «Проверить обновления»
+- `test/ui/settings/speed_field_test.dart` — набранное фиксируется при уходе фокуса; без правки ничего не пишет; внешнее значение видно
+- `evaporate_design/design/README.md` — спецификация: «Загрузки» 1233–1323, «Сохранения» 1324–1397, «Настройки» 440–466 и 1630–1706, «D · Терминал» 507–514
+- `evaporate_design/lib/downloads/download_data.dart` — EvDownloads/EvTorrent/EvSwarmParts/EvTorrentAlert/EvQueued — модель дизайна
+- `evaporate_design/lib/saves/saves_data.dart` — EvSaves/EvSavePoint/EvDevice/EvSaveConflict — модель дизайна
+- `evaporate_design/lib/settings/settings_catalog.dart` — десять разделов настроек как данные (look, lib, net, seed, sv, start, keys, about, fx, …)
+
+## facts
+
+- DownloadsPage читает DownloadsBloc и LibraryBloc через watchWhileShown, а maxConcurrent — select по SettingsBloc; дерево: GameDropTarget(selectAfterDrop:false) → ConstrainedBox(1340) → Column[DownloadsHeading, DownloadsStatusBar, Expanded(DownloadsColumns)] — lib/ui/downloads/downloads_page.dart:32-76.
+- Порядок задач в DownloadsState — порядок очереди; inWork = не в очереди и не complete, holdingSlots = inWork с isRunning (active|waiting), queued = isQueued — lib/bloc/downloads/downloads_state.dart:19-35.
+- DownloadsColumns: ≥980 px — Row(источники 340 | VerticalDivider | очередь); ниже 360 px по высоте — одна очередь; иначе Column flex 2/5 — lib/ui/downloads/downloads_columns.dart:22-53.
+- DownloadsHeading: SectionHeading с меткой conceptDownloadsLabel «[ 02 / АКТИВНО ]» (lib/l10n/app_ru.arb:1351), справа EngineStatusChip и OutlinedButton перезапуска только при failed/stopped → DownloadEngineRestartRequested — lib/ui/downloads/downloads_heading.dart:25-45.
+- DownloadsReadout — четыре ReadoutCell: networkSpeed (цвет primary при speed>0, иначе dim), uploadSpeed (dim при 0), downloadsStatActive «active / maxConcurrent» (compact), downloadsStatQueued (dim при 0); active = holdingSlots.length — lib/ui/downloads/downloads_readout.dart:32-57, downloads_status_bar.dart:38.
+- EngineFailure (красная панель с engine.message ?? engineStopped) показывается только при EngineState.failed — lib/ui/downloads/downloads_status_bar.dart:43-47, engine_failure.dart:35.
+- AvailableGames = library.downloadable(taskIds) → ListView.builder из DraggableGame (Draggable<Game>, feedback 250 px, ghost при перетаскивании); GameChip несёт RemoveFromLibraryButton (askRemoveGame → GameRemoved) — lib/ui/downloads/available_games.dart:19-60, draggable_game.dart:19-29, remove_from_library_button.dart:37-44.
+- QueueColumn — DragTarget<Game>: сброс → DownloadRequested(game, source) в конец; внутри ListView: SectionTitle nowDownloading + TaskCard на каждую inWork (game = library.gameForTask), SectionTitle nextInQueue + QueueList — lib/ui/downloads/queue_column.dart:39-84.
+- QueueList — ReorderableListView.builder(shrinkWrap, NeverScrollable, без штатных ручек) с ReorderableDragStartListener; _reorder шлёт DownloadReordered(id, beforeId) — соседа, а не индекс; клавиши выше/ниже идут той же функцией — lib/ui/downloads/queue_list.dart:18-57.
+- QueuedCard: значок drag, номер позиции ролью figure в primary, название (game?.title ?? task.name), waitingInQueue, IconAction вверх/вниз, danger-close → cancelDownload с текстами removeFromQueue* — lib/ui/downloads/queued_card.dart:44-110.
+- TaskCard = Card[TaskHeader, DownloadActivity(task), TaskStats, task.errorMessage в danger]; TaskHeader показывает stateMetadata при isMetadata, состояние в danger при error, TaskActions только когда game != null — lib/ui/downloads/task_card.dart:19-43, task_header.dart:33-46.
+- TaskActions: пауза/продолжение → DownloadPauseRequested/DownloadResumeRequested(game); отмена → cancelDownload — диалог с тремя ответами keepDownload / cancelWithFiles (только если hasDownloadedFiles: completedBytes>0 || files не пусты) / confirm → DownloadCancelRequested(game, deleteFiles) — lib/ui/downloads/task_actions.dart:27-42, cancel_dialog.dart:43-58, 83-104, 112-113.
+- DownloadActivity: DownloadMetrics → (showChart) DownloadChart → DownloadAmounts → AnimatedProgress(height 6, indeterminate при isMetadata || totalBytes==0, busy при active) — lib/ui/downloads/download_activity.dart:32-55.
+- DownloadMetrics берёт историю задачи через context.select<DownloadHistoryBloc>(state.of(task.id)) и показывает 4 DownloadMetric: сеть (task.downloadSpeed), пик (history.peakOf(task)), диск (history.diskSpeed, цвет accent), отдача (task.uploadSpeed) — lib/ui/downloads/download_metrics.dart:22-54.
+- DownloadChart: Semantics(image) → SizedBox(height 116 по умолчанию, null = во всю высоту) → BlocSelector<DownloadHistoryBloc, DownloadHistories, DownloadSpeedHistory> → CustomPaint(_SpeedChartPainter); шкала только по максимуму сети, столбцы primary α0.62 с шириной slot*0.62 (1–5 px), линия диска accent 2 px от двух точек, три линии сетки; свежие выборки прижаты вправо по DownloadHistoryBloc.length=60 слотам — lib/ui/downloads/download_chart.dart:16, 35-49, 85-100, 119-123, 143; lib/bloc/download_history/download_history_bloc.dart:40.
+- DownloadHistoryBloc один на приложение, кормится TasksSampled из потока задач; скорость диска = прирост completedBytes / прошедшее время, на паузе выборка нулевая; окно 60 выборок — lib/bloc/download_history/download_history_bloc.dart:36, 69-80, 95-101; peakOf учитывает текущую скорость задачи — download_history_state.dart:29-35.
+- TaskStats — Wrap ролью captionMuted: etaLeft (если !isMetadata && etaSeconds>0), peersCount(connections), seedsCount (>0), uploadedTotal и ratioValue (uploaded/completed) — lib/ui/downloads/task_stats.dart:23-40.
+- EngineStatusChip: цвет через расширение context.colors.engine(state): ready→accent, starting→warning, failed→danger, stopped→textSecondary; PulseDot мигает только при starting/failed; тот же switch у нижней строки окна EngineReadout — lib/ui/downloads/engine_state_color.dart:12-23, engine_status.dart:17-56; lib/ui/shell/engine_readout.dart:75-81.
+- DownloadChart(height: null) используется подложкой заголовка страницы игры под Opacity(underlay) в Positioned.fill — lib/ui/library/detail/downloading_header.dart:33-45.
+- SavesPage: selectWhileShown games (LibraryBloc) и snapshots (SavesBloc); entries = SavesState.entriesOf(games, snapshots) — статическая сортировка по createdAt убыванием; configured = игр с saveProfile.isConfigured; CustomScrollView: overview (SectionHeading conceptSavesLabel «[ 03 / СИНХРОНИЗАЦИЯ ]» + SavesReadout) → SliverSideBySide(wide ≥1080, слева 430: Column[BulkTransferCard, SyncFolderCard], справа SnapshotHistory) — lib/ui/saves/saves_page.dart:36-39, 43-56, 76-98; lib/bloc/saves/saves_state.dart:94-105; app_ru.arb:1352.
+- SavesReadout — четыре графы: savesStatSnapshots (entries.length), savesStatSize (сумма sizeBytes), savesStatGames (configured), savesStatLast (dateTimeLabel первого или savesStatNever, compact, dim) — lib/ui/saves/saves_readout.dart:26-45.
+- SnapshotHistory — сливер: SliverPadding → _GlassSliver (SliverGlassClip radius/blur + DecoratedSliver с GlassSurface.decorationOf) → SliverMainAxisGroup[SectionCardHeader allSnapshots + число, SliverList.builder SnapshotRow или noSnapshotsYet] — lib/ui/saves/snapshot_history.dart:34-66, 91-102; SliverGlassClip скругляет всю карту с учётом scrollOffset и кладёт BackdropFilterLayer — sliver_glass_clip.dart:68-79, 97-111.
+- SnapshotRow: HoverBuilder → InsetTile(hovered)[SnapshotSummary(gameTitle), TileIconButton экспорт → exportSnapshot (getSaveLocation с именем «<игра> <дата>.evsave» → SnapshotExportRequested), удаление → deleteSnapshot (confirm destructive с именем игры → SnapshotDeleted)] — lib/ui/saves/snapshot_row.dart:36-56; lib/ui/library/saves/snapshot_actions.dart:17-48; SnapshotSummary: заголовок/дата, SaveTag origin (imported в primary), строка «дата · deviceName · размер» ролью pathSmall — snapshot_summary.dart:73-115.
+- SyncFolderCard сам селектит settings.saves.syncFolder и saves.scanningSync; trailing «Проверить» (BusySpinner при сканировании) → SyncFolderScanRequested; без папки — SyncFolderPrompt (getDirectoryPath → SettingsPatched withSaves syncFolder), иначе SyncFolderContents — lib/ui/saves/sync_folder_card.dart:23-47, sync_folder_prompt.dart:26-33.
+- SyncFolderContents селектит syncPackages и syncScanned и различает noPackagesFound (смотрели) и checkFolderHint (не смотрели); SyncPackageRow: gameTitle, «дата · устройство · платформа · файлов», warning если !package.isCompatible, «Применить» → PickGameDialog (gamesMatchingFirst, игры без путей помечены) → confirm(applyNote) → SyncPackageApplied(path, game) — lib/ui/saves/sync_folder_contents.dart:22-42, sync_package_row.dart:33-59, 66-100, pick_game_dialog.dart:23-53.
+- BulkTransferCard: busy = state.isBusy(SavesBloc.bulkKey), report = state.bulkReport; «Выгрузить все» → getDirectoryPath → BulkExportRequested(dir); «Загрузить все» → getDirectoryPath → ImportNewerDialog (true перезаписать / false пропустить / null отмена) → BulkImportRequested(dir, overwriteNewer); BulkReportView — ExpansionTile, раскрыт при report.hasProblems, группы в порядке failed, conflicted, unmatched, applied, skipped (applied→accent, skipped→textSecondary, остальное warning) — lib/ui/saves/bulk_transfer_card.dart:21-26, 61-79; import_newer_dialog.dart:21-32; bulk_report_view.dart:19-25, 43; bulk_outcome_group.dart:41-45.
+- SettingsPage: FocusTraversalGroup(_ListTraversal: вниз/вверх = next/previous) + Shortcuts стрелок с ignoreTextFields:false, SingleChildScrollView (не ListView — все карточки должны быть в дереве для фокуса), Column в порядке: AppearanceCard, WindowStartupCard, GamepadSettingsCard, NotificationSettingsCard, DownloadSettingsCard, MetadataCard, EngineInfoCard, ProxySettingsCard, SaveSettingsCard, LibraryEffectsCard, LogCard, AboutCard; каждая карточка читает блок сама — lib/ui/settings/settings_page.dart:37-75, 93-102.
+- AppearanceCard (watch SettingsBloc, правка через withAppearance): LanguagePicker — сегменты ''/ru/en (пустая строка = как в системе); ThemePicker — AppThemeMode.system/light/dark с иконками; ScaleControl interfaceScale 0.85–1.25 шаг 0.05 (ValueKey 'interface-scale'); libraryScale намеренно живёт в библиотеке — lib/ui/settings/cards/appearance_card.dart:37-71, language_picker.dart:26-31, theme_picker.dart:24-38; lib/models/appearance.dart:38-41.
+- LibraryEffectsCard (ValueKey 'living-library-settings') → EffectPresetPicker: SegmentedButton off/calm/standard/full, emptySelectionAllowed, selected {?appearance.effectPreset}, ключ 'effects-preset' → SettingsPatched(withAppearance(preset.applyTo)); заметка effectPresetCustom при null; EffectDetails — ExpansionTile 'effects-details' с 'effects-master-toggle' и SettingSwitch на каждое LibraryEffect.values (ключ 'effects-<name>-toggle', подпись/пояснение через switch), выключены пока !libraryEffects && !effect.independent — lib/ui/settings/effects_card.dart:34-48, effect_preset_picker.dart:22-48, effect_details.dart:23-59, 64-90.
+- LibraryEffect в порядке настроек: particles, waves, foil, cardTilt, liquidDistortion, liquidSelection, ambient, heroSweep, shotsBackdrop, coverBackdrop, drops, portal, selectionFrame (independent), interfaceAnimations; shipped (= набор «обычно») не включает particles, liquidDistortion, drops, selectionFrame; calm = {interfaceAnimations, coverBackdrop}; effectPreset вычисляется сравнением applyTo(this)==this — lib/models/library_effect.dart:92-152, 169-179; effect_preset.dart:26, 34-48, 69-79.
+- WindowStartupCard: WindowStartPicker (remembered/maximized/minimized) и переключатель launchAtStartup через withStartup — lib/ui/settings/cards/window_startup_card.dart:27-48; window_start_picker.dart:24-38.
+- DownloadSettingsCard: PathSetting installDir (pickSettingsFolder — правка, не снимок), DropdownButton maxConcurrent из AppSettings.concurrencyOptions [1,2,3,5,8], SpeedLimitsSettings с четырьмя SpeedField (download, upload с подсказкой, seedRatio с единицей, whilePlaying); SpeedField пишет на потере фокуса/Enter, пусто или 0 = без предела — lib/ui/settings/cards/download_settings_card.dart:31-61, speed_limits_settings.dart:31-54, speed_field.dart:46-48, 69-73; lib/models/app_settings.dart:72.
+- ProxySettingsCard заводит локальный ProxyFormBloc(settings.proxy); ProxyFormBody: SettingSwitch enabled и ProxyKindPicker (SOCKS5/HTTP, гаснет при !enabled) уходят в настройки сразу, ProxyAddressFields (host/port/user/password, контроллеры с состояния блока, portInvalid → errorText) — по «Применить»; canApply = enabled && !portInvalid && draft.isUsable && dirty; ProxyNotes: useForSteam, InlineWarning для HTTP или заметка SOCKS, предупреждение о пароле — lib/ui/settings/proxy_settings_card.dart:20-28, proxy_form_body.dart:23-60, proxy_address_fields.dart:47-82, proxy_notes.dart:25-41; lib/bloc/proxy_form/proxy_form_state.dart:63-85.
+- GamepadSettingsCard: GamepadService через context.read (Provider), trailing «Обновить» → refreshDevices; GamepadStatusRow слушает gamepad.status (ValueListenable); переключатель binding.enabled; DeadzoneSlider 0.2–0.9, 14 делений, releaseZone = 0.7·deadzone, шаг с геймпада через AdjustValueIntent; шесть назначаемых действий confirm/back/primaryAction/search/nextSection/prevSection через CaptureButtonDialog (ставит gamepad.capturing, Start = отмена); сброс к GamepadBinding.defaultButtons — lib/ui/settings/gamepad_settings.dart:26-33, 37-82, 92-104; deadzone_slider.dart:19-39; capture_button_dialog.dart:29, 38-46.
+- NotificationSettingsCard: systemNotifications → SettingsPatched copyWith; InlineWarning если !NotificationService.isAvailable; NotificationActions — запрос разрешения только на macOS, пробное уведомление с showInfo; MetadataCard — MetadataRetryRequested / MetadataRefreshRequested в LibraryBloc; EngineInfoCard селектит только EngineStatus (не весь блок — иначе перестройка каждую секунду), InfoRow engineState accent/warning + engineImplementation; SaveSettingsCard — PathSetting syncFolder с очисткой, autoExportToSync, autoSnapshotOnExit, autoSnapshotOnLaunch через withSaves — notification_settings.dart:34-57, notification_actions.dart:28-38, metadata_card.dart:25-34, engine_info_card.dart:27-43, save_settings_card.dart:32-64.
+- LogCard: локальный BlocProvider LogBloc(log) с подменой AppLog в тестах; LogState.lines null = ещё не показывали; «Скопировать»/«Очистить» только при непустых строках, «Показать» гаснет при busy; LogView — Container maxHeight 260, ListView reverse со SelectableText ролью log — lib/ui/settings/log_card.dart:40-84, log_view.dart:17-33; lib/bloc/log/log_state.dart:9.
+- AboutCard: watch UpdateBloc (общий из AppServices), select startup.checkUpdates; InfoRow версия AppVersion.current; AboutActions — «Проверить» (spinner при checking), «Исходный код» (UpdateLinkRequested на github), при found: «Установить» (только если release.updateForThisPlatform != null, гаснет при installing) и «Страница релиза»; сообщение update.message в danger при isError; MenuEntryRow при bloc.menuEntrySupported → MenuEntryToggled — lib/ui/settings/about_card.dart:29-69, about_actions.dart:39-72; lib/bloc/update/update_state.dart:15-30.
+- Единственная запись настроек — SettingsPatched(AppSettings Function(current)); части правятся withAppearance/withStartup/withSaves — lib/bloc/settings/settings_event.dart:29-33; lib/models/app_settings.dart:98-105. Notice всех трёх блоков (Library/Saves/Downloads) показывает только оболочка: MultiBlocListener с listenWhen по notice → showError/showInfo — lib/ui/shell.dart:58-73, 94-99; confirm() возвращает false на закрытие, dangerFilled при destructive — lib/ui/feedback/confirm.dart:8-35.
+- lib/ui/labels.dart реэкспортирует bytesLabel/countLabel/dateTimeLabel/engineStateLabel из lib/l10n/labels.dart и даёт navActionLabel, sectionLabel, gameStatusLabel, percentLabel/percentFigure, downloadStateLabel, formatDurationLabel/formatEtaLabel, gamepadStatusLabel, speedLabel, snapshotOriginLabel, gameSourceLabel, ruleLabelText, gamepadButtonLabel, downloadProgressShort — lib/ui/labels.dart:14-15, 23-159; bytesLabel через NumberFormat.decimalPatternDigits(localeName), dateTimeLabel через DateFormat.yMd(localeName).add_Hm() — lib/l10n/labels.dart:25-46.
+- ARB: по 558 ключей в app_ru.arb и app_en.arb (наборы совпадают), 112 с @-описанием и подстановками (посчитано ConvertFrom-Json); страж arb_usage требует, чтобы каждый ключ читался получателем переводов — регулярка _receiver: `l.`, `_l.`, `L.of(context).` (в т.ч. с переносами) или `…localizations().`, поле-однофамилец (`download.source`) чтением не считается — test/guards/arb_usage_test.dart:22-37, 66-80.
+- Общие детали облика разделов: ReadoutPanel переносит графы по две ниже wrapBelow=680, заливка railBackground α readoutOpacity, черта 54 px; ReadoutCell — label капсом + readoutLarge (compact → readout), dim → textSecondary; SectionCard = GlassSurface(radiusPanel, cardOpacity, padding card) + SectionCardHeader(subtitle); InsetTile — surfaceHigh с кантом, под курсором tint primary; роли текста label/statusLabel/readout/readoutLarge/path/pathSmall/log/figure/chip — lib/ui/widgets/readout_panel.dart:13, 34-45, 64; readout_cell.dart:112-128; section_card.dart:157-170; inset_tile.dart:310-330; lib/ui/theme/typography.dart:84-140.
+- Храповики, задевающие разделы: _longClosures держит downloads_page.dart (36), queue_column.dart (38), log_card.dart (41) — test/guards/widget_structure_test.dart:366-367, 377; thinFiles на 0%: engine_failure, bulk_outcome_group, bulk_report_view, pick_game_dialog, sync_folder_contents, sync_package_row, pick_folder; notification_actions 31, proxy_form_event 24, saves_event 26, downloads_event 30, settings_event 34 — tool/check_coverage.dart:153-176.
+- evaporate_design моделирует то, чего в evaporate нет: у EvTorrent — parts (received/inFlight/verifying/remaining), tone/bar/alert с действиями, path, eta строкой, nullable downKb/upKb для офлайна; у EvSaves — usedGb/quotaGb, devices, points с progress/note/mark, conflict с двумя сторонами, cloudReachable, uploadQueue/Done; настройки — каталог из десяти разделов данными с поиском, расписанием скорости и папками-дисками — evaporate_design/lib/downloads/download_data.dart:95-140, 195-216; lib/saves/saves_data.dart:84-117, 179-212; lib/settings/settings_catalog.dart:101-412; design/README.md:1233-1397, 1630-1706.
+
+## constraints
+
+- Стражи test/guards обязательны: один публичный виджет на файл, без методов-виджетов, приватный виджет ≤40 строк без State с ресурсами; замыкание в build >25 строк и виджет >7 параметров — храповики (_longClosures/_wideWidgets), в lib/ui/widgets только нужное двум папкам (lonelyShared) — test/guards/widget_structure_test.dart:359-386.
+- theme_structure: вне lib/ui/theme запрещены isDark, fontSize:, Duration(milliseconds:), BorderRadius.circular(<число>), числа раскладки (28, 1340, 220, 460, 560), Curves.*, прозрачность числом (только EvaporateAlpha), отступы/значки числом (EvaporateSpacing/EvaporateIconSize), TextStyle/copyWith кроме цвета; облик компонента — ThemeExtension с экземплярами arclight и cartridge на обе схемы.
+- layering: lib/ui не импортируется из блоков/сервисов/моделей; подписи для блоков — lib/l10n/labels.dart, для интерфейса — lib/ui/labels.dart (lib/ui/labels.dart:14-22, lib/l10n/labels.dart:6-10).
+- complexity: функция ≤15 сложности, ≤60 строк, вложенность ≤3; списки нарушителей пусты.
+- Локализация: все видимые строки в app_ru.arb + app_en.arb (одинаковые наборы ключей, 558 сейчас); в lib/ui нет кириллицы в литералах и нет .logLabel; каждый ключ ARB читается через l./_l./L.of(context)./…localizations() (arb_usage_test.dart:22-37, 66-77) — удалённый виджет уносит и ключи из обоих ARB.
+- Состояние — Bloc, не Cubit (bloc lint prefer_bloc); публичные методы блока помечены // ignore: avoid_public_bloc_methods с объяснением (bloc_members_test); частые события помечаются FrequentEvent (EngineTasksChanged/EngineStatsChanged — downloads_event.dart:110, 128).
+- Настройки пишутся только SettingsPatched(patch) от текущего значения (settings_event.dart:29-33); правка игры — именованное событие, не снимок.
+- Разделы живут в IndexedStack: подписки страниц через watchWhileShown/selectWhileShown, иначе скрытый раздел перестраивается ежесекундно (watch_while_shown.dart:261-273, hidden_page_test.dart:22); карточки, читающие DownloadsBloc, селектят только нужное поле (engine_info_card.dart:23-29).
+- Notice показывает только оболочка (lib/ui/shell.dart:58-73); SnackBar — для нажатого самим человеком, фон — системное уведомление (snack.dart:5-7).
+- Ключи виджетов, по которым ищут тесты: 'effects-preset', 'effects-details', 'effects-master-toggle', 'effects-<LibraryEffect.name>-toggle', 'living-library-settings', 'interface-scale' — effect_preset_picker.dart:22, effect_details.dart:24-45, effects_card.dart:34, appearance_card.dart:59; порядок LibraryEffect.values = порядок переключателей (library_effect.dart:89-90).
+- Умолчания украшений сторожит effect_settings_test поимённо; наборы EffectPreset выстроены лестницей calm ⊂ standard(=shipped) ⊂ full, «выключено» трогает только общий выключатель (effect_preset.dart:12-20, 34-48).
+- Очередь переставляется DownloadReordered(id, beforeId) по соседу — queue_keys_test проверяет именно это (queue_list.dart:47-57); отмена загрузки — только через cancelDownload с тремя ответами (download_cancel_test).
+- Хронология снимков обязана строиться лениво (SliverList) — snapshot_history_test:42; удаление снимка спрашивает, называя игру (saves_page_test:146).
+- SettingsPage строит все карточки сразу (не ListView) и ходит стрелками по столбцу; settings_navigation_test требует, чтобы спуск доходил до «Проверить обновления» и стрелка вниз уводила фокус из поля (settings_page.dart:25-36, 83-102).
+- Метки разделов «[ 0N / … ]» нумеруются по порядку обоймы — section_layout_test; диктору уходит semanticsLabel (section_heading.dart:194-247).
+- Числа, даты, размеры для показа — bytesLabel/dateTimeLabel/countLabel по языку; formatBytes/formatDateTime из lib/core/format.dart только для журналов и снимков (l10n/labels.dart:20-46).
+- Покрытие: 82% на весь код и на core+models+services; новый файл без выполненных строк — в _reportedNowhere, файл ниже 50% — в thinFiles; названные файлы не могут стать тоньше (tool/check_coverage.dart:88-176).
+- Тесты кладут зеркалом lib/ (test/ui/downloads, test/ui/saves, test/ui/settings); hostWidget принимает только схему и язык (test/support/host_widget.dart:16-24); TestHarness создаётся внутри testWidgets; «ничего не произошло» проверяют handlers.settle().
+- Ворота перед отправкой — dart tool/gate.dart (формат, анализатор с info как провалом, bloc lint, регистраторы плагинов, тесты с покрытием).
+
+## risks
+
+- Дизайнерская доска загрузок опирается на данные, которых у DownloadTask нет: части раздачи (received/inFlight/verifying/remaining), «пиковая» активность пиров, разборы с тоном (нет сидов / нет места / ошибка проверки / офлайн) и nullable скорости для прочерка; у evaporate есть только errorMessage строкой, connections, seeders, completed/total и EngineState (download_task.dart:8-54, download_engine.dart:9-23). Любой из этих приборов либо выводится из имеющегося, либо требует новых сигналов движка через DownloadsBloc (события уже помечаются FrequentEvent).
+- Шкала DownloadChart нарочно только по сети (download_chart.dart:76-88), и он же — подложка заголовка страницы игры с height:null (downloading_header.dart:41); смена API/painter ломает download_chart_test и downloading_header_test.
+- Раздел «Сохранения» в дизайне — облако с квотой, список устройств, карточка конфликта двух версий и идущая выгрузка; у evaporate нет облака: есть папка синхронизации (syncPackages c isCompatible), ImportNewerDialog для массового импорта и RestorePreviewBloc на странице игры; deviceName/platform живут только в SaveSnapshot, прогресса в игре нет вовсе. Прямой перенос «конфликта» потребует нового состояния SavesBloc, а не только виджетов.
+- «Игр под защитой» в дизайне — те, в которые играли; в evaporate графа savesStatGames считает игры с настроенными путями (saves_page.dart:56) — подмена смысла без правки ключа введёт в заблуждение и тест saves_page_test:111.
+- Хронология снимков — сливер со своей обрезкой (SliverGlassClip) ради ленивости; таймлайн дизайна как Column/ListView в коробке провалит snapshot_history_test:42 и вернёт перестройку сотен строк.
+- Настройки в дизайне — липкая колонка, поиск по каталогу-данным и десять разделов, из которых «Звук», «Раздача» (частично), «Клавиши» (таблица горячих клавиш), расписание скорости 24 ч и папки-диски с занятостью в evaporate не существуют; расписание движка намеренно не зовётся (addScheduleWindow, dtorrent_engine_test), клавиши переназначаются только для шести NavAction геймпада (gamepad_settings.dart:26-33).
+- Превращение 12 карточек-виджетов в каталог данных для поиска задевает settings_navigation_test (все карточки в дереве, обход стрелками, спуск до кнопки) и settings_layout_test (где лежат язык/тема/крупность/перезапуск), а также ключи виджетов effect_settings_test.
+- Каждый удалённый виджет оставляет мёртвые ключи ARB → arb_usage падает; каждый новый — требует пар ключей в обоих файлах и чтения через переводы; строки дизайна с «прочерком», «искать источники», «выбрать диск» и т.п. нужно заводить ключами.
+- Новые виджеты без тестов роняют coverage (thinFiles/_reportedNowhere); семь файлов разделов уже на 0% — переписывая их, нельзя оставлять их без тестов, а дорастив — обязаны уйти из списка.
+- Дизайн имеет своё стекло (lib/glass, EvGlass) и токены; в evaporate стекло — GlassSurface + GlassSurfaceTheme/HardwareSurfaceTheme с двумя экземплярами; перенос облика через новые ThemeExtension обязателен, иначе theme_structure (fontSize/BorderRadius/Duration числом) уронит прогон.
+- Настройка украшений (EffectDetails/EffectPresetPicker) — единственный мост к искрам/фольге/наклону/каплям/жидкой подложке, которые нужно сохранить; новое украшение меняет shipped и ломает effect_settings_test, а ключи toggle завязаны на LibraryEffect.name.
+- Перетаскивание игры в очередь (Draggable/DragTarget<Game>) и перестановка (ReorderableListView) — единственный способ пополнить очередь с мышью; дизайнерский «вставить ссылку» этого не заменяет, magnet вставляют в «Добавить игру».
+- EngineInfoCard и EngineReadout нарочно селектят части DownloadsState; новый экран настроек, подписанный на весь SettingsBloc через watch, перестроится от любой правки, а на DownloadsBloc — каждую секунду.
+
+## openQuestions
+
+- Что понимать под «терминалом загрузок»: в дизайне «Терминал» — режим просмотра библиотеки (EvLibraryView.term, lib/modes/ev_term.dart, README:507-514), а раздел «Загрузки» — «приборная доска раздачи» (README:1233); нужна ли моноширинная таблица для задач загрузок или именно доска?
+- Нужны ли в evaporate новые сигналы движка (нет сидов, нет места на диске, ошибка проверки хеша, офлайн) с разбором и тонами, или разборы ограничить тем, что уже есть (errorMessage, EngineState, ProxyRoutingChanged blocked)?
+- Как класть «облако», устройства и конфликт версий на папку синхронизации и пакеты .evsave: показывать ли SavePackageInfo из папки как «устройства», а ImportNewerDialog/RestorePreview как «конфликт»?
+- Входят ли в объём расписание скорости (движок его не соблюдает намеренно), папки-диски с занятостью (нужен новый сервис свободного места) и раздел «Звук»?
+- Нужен ли поиск по настройкам с липкой колонкой (требует каталога настроек данными и переработки 12 карточек), или достаточно визуального облика карточек?
+- Переносить ли раздел «Разработка» с переключением состояний — дизайн сам называет его временным до появления движка.
+- Переезжает ли крупность обложек (libraryScale) в настройки «Библиотека», как у дизайна, вопреки settings_layout_test:56 («крупность задаётся в библиотеке»)?
