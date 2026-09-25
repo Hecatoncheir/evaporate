@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/ui/shell/top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,7 +62,8 @@ void main() {
     expect(calls, contains('close'));
   });
 
-  // Кнопка остаётся доступной с геймпада в строке действий верхней панели.
+  // Кнопка остаётся доступной с геймпада: от клавиш обоймы — вверх до её
+  // верха, оттуда в верхнюю рейку и по ней вправо.
   testWidgets('до кнопки выхода можно дойти геймпадом', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
@@ -69,21 +71,41 @@ void main() {
     await frames(tester);
 
     final quit = find.byKey(const ValueKey('rail-quit'));
-    Focus.of(tester.element(find.text('НАСТРОЙКИ').first)).requestFocus();
+    Focus.of(
+      tester.element(
+        find.descendant(
+          of: find.byKey(const ValueKey('rail-settings')),
+          matching: find.byType(Icon),
+        ),
+      ),
+    ).requestFocus();
     await frames(tester);
 
-    var reached = false;
-    for (var step = 0; step < 12 && !reached; step++) {
-      await harness.tapButton(tester, GamepadButton.dpadRight);
+    bool focusedIn(Finder area) {
       final context = primaryFocus?.context;
-      reached =
-          context != null &&
+      return context != null &&
           find
-              .descendant(of: quit, matching: find.byWidget(context.widget))
+              .descendant(of: area, matching: find.byWidget(context.widget))
               .evaluate()
               .isNotEmpty;
     }
 
-    expect(reached, isTrue, reason: 'стрелками до кнопки выхода не добраться');
+    for (var step = 0; step < 6 && !focusedIn(find.byType(TopBar)); step++) {
+      await harness.tapButton(tester, GamepadButton.dpadUp);
+    }
+    expect(
+      focusedIn(find.byType(TopBar)),
+      isTrue,
+      reason: 'вверх от обоймы в верхнюю рейку не выйти',
+    );
+    for (var step = 0; step < 8 && !focusedIn(quit); step++) {
+      await harness.tapButton(tester, GamepadButton.dpadRight);
+    }
+
+    expect(
+      focusedIn(quit),
+      isTrue,
+      reason: 'стрелками до кнопки выхода не добраться',
+    );
   });
 }

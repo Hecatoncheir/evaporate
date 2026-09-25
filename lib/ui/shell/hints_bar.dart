@@ -8,27 +8,26 @@ import '../theme.dart';
 import 'button_hints.dart';
 import 'engine_readout.dart';
 
-/// Нижняя строка: подсказки управления и показания движка.
+/// Строка подсказок внизу окна: чем управлять прямо сейчас и едет ли
+/// обмен.
 ///
 /// Копирайт и ссылки на репозиторий отсюда убраны — это мебель сайта, а не
 /// приложения: сорок точек высоты у них были заняты навсегда, а нажимали их
 /// один раз в жизни. Ссылка на исходный код переехала в «О программе», где
 /// и остальное про сборку.
-///
-/// Осталось то, что меняется: чем управлять прямо сейчас и едет ли обмен.
-class AppFooter extends StatelessWidget {
-  const AppFooter({super.key});
+class HintsBar extends StatelessWidget {
+  const HintsBar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Только раскладка геймпада: подвал ни на что больше в настройках не
+    // Только раскладка геймпада: строка ни на что больше в настройках не
     // смотрит, а подписка целиком перестраивала его от смены темы.
     final gamepadBinding = context.select<SettingsBloc, GamepadBinding>(
       (b) => b.state.gamepad,
     );
     final gamepad = context.read<GamepadService>();
     return Container(
-      height: EvaporateLayout.footerHeight,
+      height: EvaporateLayout.hintsHeight,
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.card),
       decoration: BoxDecoration(

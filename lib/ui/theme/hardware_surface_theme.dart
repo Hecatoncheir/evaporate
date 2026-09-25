@@ -69,7 +69,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   /// Затемнение краёв окна под светом игр.
   final double vignetteOpacity;
 
-  /// Тень рейки навигации: размытие и сдвиг вниз.
+  /// Тень обоймы разделов: размытие и сдвиг вниз.
   final double railShadowBlur;
   final double railShadowDrop;
 

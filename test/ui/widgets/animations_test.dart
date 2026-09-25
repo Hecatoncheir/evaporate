@@ -1,4 +1,5 @@
 import 'package:evaporate/ui/shell/fade_indexed_stack.dart';
+import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -86,7 +87,6 @@ void main() {
                 Expanded(
                   child: FadeIndexedStack(
                     index: index,
-                    duration: const Duration(milliseconds: 150),
                     children: const [Text('раз'), Text('два')],
                   ),
                 ),
@@ -98,8 +98,9 @@ void main() {
 
       await tester.tap(find.text('сменить'));
       await tester.pump();
-      // На середине перехода новый раздел уже виден, но ещё не полностью.
-      await tester.pump(const Duration(milliseconds: 75));
+      // На середине перехода новый раздел уже виден, но ещё не полностью —
+      // и ещё не дошёл до места.
+      await tester.pump(EvaporateMotion.standard.instant ~/ 2);
       final midway = tester.widget<FadeTransition>(
         find.descendant(
           of: find.byType(FadeIndexedStack),
@@ -108,6 +109,20 @@ void main() {
       );
       expect(midway.opacity.value, greaterThan(0.0));
       expect(midway.opacity.value, lessThan(1.0));
+      expect(
+        tester
+            .widget<Transform>(
+              find.descendant(
+                of: find.byType(FadeIndexedStack),
+                matching: find.byType(Transform),
+              ),
+            )
+            .transform
+            .getTranslation()
+            .y,
+        greaterThan(0),
+        reason: 'новый раздел всплывает снизу',
+      );
 
       await tester.pumpAndSettle();
       final settled = tester.widget<FadeTransition>(

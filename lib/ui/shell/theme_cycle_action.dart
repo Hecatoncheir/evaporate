@@ -38,13 +38,15 @@ class ThemeCycleAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final store = context.watch<SettingsBloc>();
-    final settings = store.state;
-    final mode = settings.appearance.themeMode;
+    // Только схема: клавиша ни на что больше в настройках не смотрит, а
+    // подписка целиком перестраивала её от любой правки.
+    final mode = context.select<SettingsBloc, AppThemeMode>(
+      (bloc) => bloc.state.appearance.themeMode,
+    );
     return TopAction(
       tooltip: _label(context, nextTheme(mode)),
       icon: _icon(mode),
-      onPressed: () => store.add(
+      onPressed: () => context.read<SettingsBloc>().add(
         SettingsPatched(
           (current) => current.withAppearance(
             (a) => a.copyWith(themeMode: nextTheme(mode)),

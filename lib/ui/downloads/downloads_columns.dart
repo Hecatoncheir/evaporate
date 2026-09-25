@@ -27,7 +27,7 @@ class DownloadsColumns extends StatelessWidget {
   /// В низком окне полоса источников уступает место очереди: очередь
   /// отвечает на вопрос «что происходит», а пополнить её можно и
   /// перетаскиванием из библиотеки.
-  static const _sourcesHeight = 360.0;
+  static const _sourcesHeight = 400.0;
 
   @override
   Widget build(BuildContext context) {

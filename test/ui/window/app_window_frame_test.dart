@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/shell/shell_layout.dart';
+import 'package:evaporate/ui/shell/top_bar.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/window/app_window_frame.dart';
 import 'package:evaporate/ui/window/window_chrome.dart';
@@ -243,10 +244,13 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    final rail = find.byKey(const ValueKey('window-drag-region'));
-    // Берёмся за знак и название: посередине рейки стоит обойма разделов,
-    // и нажатие достанется ей. А за имя приложения окно тянуться обязано.
-    final grip = tester.getTopLeft(rail) + const Offset(100, 32);
+    final rail = find.descendant(
+      of: find.byType(TopBar),
+      matching: find.byKey(const ValueKey('window-drag-region')),
+    );
+    // Берёмся за крошку «EVAPORATE / раздел»: она не орган управления, и
+    // за имя приложения окно тянуться обязано.
+    final grip = tester.getTopLeft(rail) + const Offset(60, 29);
 
     await tester.dragFrom(grip, const Offset(100, 0));
     await tester.pumpAndSettle();
@@ -257,6 +261,28 @@ void main() {
     await tester.tapAt(grip);
     await tester.pumpAndSettle();
     expect(maximized, isTrue);
+  });
+
+  // Взяться за окно у левого края — такое же ожидание, как у верхнего:
+  // знак над разделами и пустое поле обоймы под ними тянут окно.
+  testWidgets('обойма тянет окно за знак и пустое поле', (tester) async {
+    await pumpApp(tester);
+    final rack = find.byKey(const ValueKey('navigation-rack'));
+    final column = tester.getRect(rack);
+
+    for (final grip in [
+      tester.getCenter(find.descendant(of: rack, matching: find.byType(Image))),
+      Offset(column.center.dx, column.bottom - 40),
+    ]) {
+      calls.clear();
+      await tester.dragFrom(grip, const Offset(0, 60));
+      await tester.pumpAndSettle();
+      expect(
+        calls.any((c) => c.method == 'startDragging'),
+        isTrue,
+        reason: 'обойма не тянет окно из $grip',
+      );
+    }
   });
 
   testWidgets('край окна тянет ровно за свою сторону', (tester) async {

@@ -1,29 +1,27 @@
 import 'package:flutter/material.dart';
 
-import '../theme.dart';
-import 'app_footer.dart';
+import 'rack_navigation.dart';
 import 'shell_panel.dart';
-import 'top_bar.dart';
 
-/// Раскладка окна: обойма сверху, панель разделов, подвал.
+/// Раскладка окна: обойма разделов слева, рядом — панель, в которой живут
+/// разделы вместе с верхней рейкой и строкой подсказок.
 class ShellLayout extends StatelessWidget {
   const ShellLayout({super.key});
 
   /// Ниже этой ширины поля ужимаются: каждая точка нужна содержимому.
   static const _compactWidth = 980.0;
 
-  /// Ниже этой высоты подвал убирается совсем — иначе не остаётся места
-  /// самим разделам.
+  /// Ниже этой высоты строка подсказок убирается совсем — иначе не
+  /// остаётся места самим разделам.
   static const _shortHeight = 520.0;
 
   /// Поле между краем окна и содержимым: в узком окне меньше, каждая точка
   /// ширины там нужна содержимому.
   ///
   /// Не приватное, потому что от него зависит чужое правило: полоса
-  /// изменения размера у края окна не должна доставать до верхней рейки,
-  /// иначе нажатие на её клавишу уйдёт в системный цикл изменения размера.
-  /// Здесь, а не у `AppShell`: применяет их раскладка, и за ними она
-  /// ходила к оболочке, которая импортирует её саму.
+  /// изменения размера у края окна не должна доставать до обоймы и
+  /// верхней рейки, иначе нажатие на их клавишу уйдёт в системный цикл
+  /// изменения размера. Здесь, а не у `AppShell`: применяет их раскладка.
   static const compactInset = 6.0;
   static const wideInset = 10.0;
 
@@ -31,42 +29,21 @@ class ShellLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, box) {
-        final compact = box.maxWidth < _compactWidth;
-        final inset = compact ? compactInset : wideInset;
+        final inset = box.maxWidth < _compactWidth ? compactInset : wideInset;
         return Padding(
-          padding: EdgeInsets.fromLTRB(inset, inset, inset, 0),
-          child: Column(
+          padding: EdgeInsets.all(inset),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TopBar(compact: compact),
-              const SizedBox(height: EvaporateSpacing.cluster),
-              const Expanded(child: ShellPanel()),
-              if (box.maxHeight >= _shortHeight) ...[
-                const SizedBox(height: EvaporateSpacing.tight),
-                _FooterStrip(width: box.maxWidth),
-              ],
+              const RackNavigation(),
+              // Просвет между обоймой и панелью — то же поле, что у края
+              // окна: две панели корпуса стоят на одном расстоянии от всего.
+              SizedBox(width: inset),
+              Expanded(child: ShellPanel(hints: box.maxHeight >= _shortHeight)),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-/// Подвал идёт во всю ширину окна и потому вылезает за поля панели.
-class _FooterStrip extends StatelessWidget {
-  const _FooterStrip({required this.width});
-
-  /// Ширина окна, а не панели: подвал шире своих полей.
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: EvaporateLayout.footerHeight,
-      child: OverflowBox(
-        maxWidth: width,
-        child: SizedBox(width: width, child: const AppFooter()),
-      ),
     );
   }
 }

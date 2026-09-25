@@ -18,8 +18,9 @@ import '../support/text_roles.dart';
 /// - `Duration(<единицы>: <число>)` — длительность берётся из
 ///   `context.motion`;
 /// - `Radius.circular(<число>)` — радиус берётся из `EvaporateTheme`;
-/// - поле страницы 28, предельная ширина 1340, подпись настройки 220 и
-///   ширины диалогов 460 и 560 — из `EvaporateLayout`;
+/// - поле страницы 28, предельная ширина 1340, подпись настройки 220,
+///   ширины диалогов 460 и 560, ширина обоймы 76 и высоты полос 58 и 32 —
+///   из `EvaporateLayout`;
 /// - промежуток (`SizedBox` с одной шириной или высотой) и поле
 ///   (`EdgeInsets`) числом — ступенью шкалы `EvaporateSpacing`;
 /// - размер значка числом — ступенью `EvaporateIconSize`;
@@ -202,8 +203,16 @@ void main() {
           'BoxConstraints(maxWidth: 1340)',
           'SizedBox(width: 220)',
           'SizedBox(width: 560)',
+          'Container(width: 76)',
+          'SizedBox(height: 58, child: bar)',
+          'Container(height: 32)',
         ],
-        passes: ['SizedBox(width: 2200)', 'EdgeInsets.fromLTRB(280, 0, 0, 0)'],
+        passes: [
+          'SizedBox(width: 2200)',
+          'EdgeInsets.fromLTRB(280, 0, 0, 0)',
+          'SizedBox(width: 760)',
+          'height: 580',
+        ],
       ),
       _alphaHere: (
         catches: ['c.withValues(alpha: 0.4)', 'c.withValues(alpha: .4)'],
@@ -343,7 +352,8 @@ final _radiusHere = RegExp(r'Radius\.circular\(\s*\d');
 /// Ловит только числа, которые уже были токенами: 28 бывает и отступом
 /// сетки, и размытием, и запрет «любого 28» бил бы мимо.
 final _layoutHere = RegExp(
-  r'fromLTRB\(\s*28\b|maxWidth:\s*1340\b|width:\s*(220|460|560)\b',
+  r'fromLTRB\(\s*28\b|maxWidth:\s*1340\b|width:\s*(76|220|460|560)\b'
+  r'|height:\s*(58|32)\b',
 );
 
 final _alphaHere = RegExp(r'withValues\(\s*alpha:\s*[\d.]');
@@ -376,11 +386,10 @@ const _isDark = <String>[];
 
 const _fontSize = [
   // Типографика картинки, а не роль: надписи поверх обложки и крупного
-  // кадра, знак приложения в верхней панели.
+  // кадра.
   'lib/ui/library/detail/detail_cover.dart: 1',
   'lib/ui/library/cover/cover_title_plate.dart: 1',
   'lib/ui/library/featured/featured_title.dart: 1',
-  'lib/ui/shell/top_bar_brand.dart: 1',
 ];
 
 const _durations = [
@@ -401,23 +410,18 @@ const _durations = [
 const _radii = <String>[];
 
 /// Типографика картинки, а не роль — те же места, что в [_fontSize]:
-/// надписи поверх обложки и крупного кадра, знак приложения.
+/// надписи поверх обложки и крупного кадра.
 const _textStyles = [
   'lib/ui/library/cover/cover_title_plate.dart: 1',
   'lib/ui/library/detail/detail_cover.dart: 1',
   'lib/ui/library/featured/featured_title.dart: 1',
-  'lib/ui/shell/top_bar_brand.dart: 1',
 ];
 
 /// Описание игры поверх крупного кадра — та же типографика картинки:
 /// межстрочие у него своё, под затемнённый кадр.
 const _roleTweaks = ['lib/ui/library/featured/featured_poster.dart: 1'];
 
-const _iconSizes = [
-  // Знак приложения — картинка, а не значок: его размер — часть подписи
-  // на корпусе, как и её кегль (см. `_fontSize`).
-  'lib/ui/shell/top_bar_brand.dart: 1',
-];
+const _iconSizes = <String>[];
 
 // Не переходы интерфейса, а геометрия украшений: форма капли выбора,
 // пробег света и фольга считают положение кривой, а не анимируют переход.

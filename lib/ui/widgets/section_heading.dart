@@ -5,8 +5,8 @@ import '../theme.dart';
 /// Подпись раздела: короткая метка на корпусе и, если нужно, орган
 /// управления справа.
 ///
-/// Названия раздела в ней нет намеренно. Оно уже стоит подсвеченным в
-/// обойме сверху, и три имени одного раздела — клавиша в обойме, метка и
+/// Названия раздела в ней нет намеренно. Оно уже стоит в крошке верхней
+/// рейки, а три имени одного раздела — подпись в обойме, метка и
 /// заголовок кеглем 34 — отнимали у содержимого около сотни точек высоты на
 /// каждом экране. В библиотеке, где под заголовком стоят ещё крупный кадр и
 /// полки, из-за этого в окне 1280×900 не оставалось места ни одному
@@ -49,25 +49,25 @@ class SectionHeading extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Semantics(
-            header: true,
-            label: semanticsLabel,
-            child: ExcludeSemantics(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.text.label.copyWith(
-                  color: context.colors.primary,
-                ),
-              ),
+        // Метка короткая и своей ширины — всё остальное отдано органу
+        // справа: в узкой панели он переносится в свою ширину, а не
+        // вылезает за край и не делит строку с меткой поровну.
+        Semantics(
+          header: true,
+          label: semanticsLabel,
+          child: ExcludeSemantics(
+            child: Text(
+              label,
+              maxLines: 1,
+              style: context.text.label.copyWith(color: context.colors.primary),
             ),
           ),
         ),
         if (trailing case final trailing?) ...[
           const SizedBox(width: EvaporateSpacing.panel),
-          trailing,
+          Expanded(
+            child: Align(alignment: Alignment.centerRight, child: trailing),
+          ),
         ],
       ],
     ),

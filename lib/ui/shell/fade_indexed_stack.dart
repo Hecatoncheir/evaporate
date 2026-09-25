@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 
-/// [IndexedStack], который меняет разделы затуханием, а не рывком.
+/// [IndexedStack], который меняет разделы проявлением, а не рывком.
+///
+/// Новый раздел проявляется и чуть всплывает снизу — на одну ступень
+/// шкалы: так смена читается движением страницы, а не миганием.
 ///
 /// Обычный `AnimatedSwitcher` здесь не подходит: он выбрасывает прежнего
 /// ребёнка и вместе с ним всё его состояние — положение прокрутки, введённый
@@ -13,18 +16,12 @@ class FadeIndexedStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
-    this.duration,
     this.enabled = true,
   });
 
   final int index;
   final bool enabled;
   final List<Widget> children;
-
-  /// Коротко по замыслу: разделы переключают и с геймпада, где любая
-  /// задержка читается как подтормаживание. По умолчанию — самая короткая
-  /// ступень темы, `motion.instant`.
-  final Duration? duration;
 
   @override
   State<FadeIndexedStack> createState() => _FadeIndexedStackState();
@@ -60,7 +57,9 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _controller.duration = widget.duration ?? context.motion.instant;
+    // Коротко по замыслу: разделы переключают и с геймпада, где любая
+    // задержка читается как подтормаживание.
+    _controller.duration = context.motion.instant;
     if (!widget.enabled || MediaQuery.disableAnimationsOf(context)) {
       _controller.value = 1;
     }
@@ -77,12 +76,19 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacity,
-      child: IndexedStack(
-        index: widget.index,
-        children: [
-          for (var i = 0; i < widget.children.length; i++)
-            TickerMode(enabled: i == widget.index, child: widget.children[i]),
-        ],
+      child: AnimatedBuilder(
+        animation: _opacity,
+        builder: (context, child) => Transform.translate(
+          offset: Offset(0, EvaporateSpacing.cluster * (1 - _opacity.value)),
+          child: child,
+        ),
+        child: IndexedStack(
+          index: widget.index,
+          children: [
+            for (var i = 0; i < widget.children.length; i++)
+              TickerMode(enabled: i == widget.index, child: widget.children[i]),
+          ],
+        ),
       ),
     );
   }

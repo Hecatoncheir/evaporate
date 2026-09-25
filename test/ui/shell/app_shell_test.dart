@@ -7,6 +7,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/shell/shell_layout.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
@@ -44,16 +45,16 @@ void main() {
 
     await harness.pump(tester);
 
-    await tester.tap(find.text('ЗАГРУЗКИ').first);
+    await tester.tap(find.byKey(const ValueKey('rail-downloads')));
     await tester.pumpAndSettle();
     expect(find.text('СЕЙЧАС СКАЧИВАЕТСЯ'), findsOneWidget);
     expect(find.text('ДАЛЬШЕ В ОЧЕРЕДИ'), findsOneWidget);
 
-    await tester.tap(find.text('СОХРАНЕНИЯ').first);
+    await tester.tap(find.byKey(const ValueKey('rail-saves')));
     await tester.pumpAndSettle();
     expect(find.text(l.syncFolder), findsOneWidget);
 
-    await tester.tap(find.text('НАСТРОЙКИ').first);
+    await tester.tap(find.byKey(const ValueKey('rail-settings')));
     await tester.pumpAndSettle();
     expect(find.text(l.appearanceAndLanguage), findsOneWidget);
     expect(find.text(l.controls), findsOneWidget);
@@ -218,72 +219,58 @@ void main() {
 
     await harness.pump(tester, theme: EvaporateTheme.light());
 
-    for (final section in ['ЗАГРУЗКИ', 'СОХРАНЕНИЯ', 'НАСТРОЙКИ']) {
-      await tester.tap(find.text(section).first);
+    for (final section in ['downloads', 'saves', 'settings']) {
+      await tester.tap(find.byKey(ValueKey('rail-$section')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: 'раздел «$section»');
     }
   });
 
-  testWidgets('узкое окно уплотняет аппаратную панель без переполнения', (
-    tester,
-  ) async {
-    final harness = TestHarness(tmp);
-    addTearDown(harness.dispose);
-    tester.view.physicalSize = const Size(820, 620);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  // Обойма стоит колонкой слева при любой ширине: прежде она делила
+  // верхнюю рейку с поиском и клавишами окна и в узком окне прятала
+  // подписи, а потом сжималась. Подписей на клавишах теперь нет вовсе —
+  // диктору все четыре раздела названы по-прежнему.
+  for (final window in [const Size(820, 620), const Size(620, 600)]) {
+    testWidgets(
+      'в окне ${window.width.round()}×${window.height.round()} обойма '
+      'цела и все разделы названы диктору',
+      (tester) async {
+        final harness = TestHarness(tmp);
+        addTearDown(harness.dispose);
+        tester.view.physicalSize = window;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(harness.buildApp());
-    await tester.pumpAndSettle();
+        await tester.pumpWidget(harness.buildApp());
+        await tester.pumpAndSettle();
 
-    // Подписи — деталь полноразмерной панели; в узком окне место важнее,
-    // но все четыре раздела остаются доступны скринридеру.
-    for (final section in [
-      'Библиотека',
-      'Загрузки',
-      'Сохранения',
-      'Настройки',
-    ]) {
-      expect(find.bySemanticsLabel(section), findsOneWidget);
-    }
-
-    // И остаются в верхней рейке: прежде обойма переезжала под содержимое
-    // и налезала на подсказки управления в нижней строке.
-    final rack = tester.getRect(find.byKey(const ValueKey('navigation-rack')));
-    expect(
-      rack.bottom,
-      lessThan(80),
-      reason: 'разделы должны остаться в рейке, а не уехать вниз',
+        final rack = find.byKey(const ValueKey('navigation-rack'));
+        for (final section in [
+          'Библиотека',
+          'Загрузки',
+          'Сохранения',
+          'Настройки',
+        ]) {
+          expect(
+            find.descendant(of: rack, matching: find.bySemanticsLabel(section)),
+            findsOneWidget,
+          );
+        }
+        final column = tester.getRect(rack);
+        expect(column.left, lessThan(ShellLayout.wideInset + 1));
+        expect(column.width, EvaporateLayout.railWidth);
+        for (final section in AppSection.values) {
+          final key = tester.getRect(
+            find.byKey(ValueKey('rail-${section.name}')),
+          );
+          expect(
+            column.contains(key.center),
+            isTrue,
+            reason: 'клавиша ${section.name} вне обоймы',
+          );
+        }
+        expect(tester.takeException(), isNull);
+      },
     );
-    expect(tester.takeException(), isNull);
-  });
-
-  // Место в рейке обойма уступает по очереди: сначала подписи, потом число
-  // задач, и лишь затем сжимает сами клавиши. Ширина, заданная числом,
-  // переполняла рейку на считанные точки — ровно те, из-за которых Flutter
-  // рисует полосатую ленту поверх интерфейса.
-  testWidgets('в совсем узком окне разделы прячут подписи, но не названия', (
-    tester,
-  ) async {
-    final harness = TestHarness(tmp);
-    addTearDown(harness.dispose);
-    tester.view.physicalSize = const Size(620, 600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
-    await tester.pumpWidget(harness.buildApp());
-    await tester.pumpAndSettle();
-
-    expect(find.text('БИБЛИОТЕКА'), findsNothing);
-    for (final section in [
-      'Библиотека',
-      'Загрузки',
-      'Сохранения',
-      'Настройки',
-    ]) {
-      expect(find.bySemanticsLabel(section), findsOneWidget);
-    }
-    expect(tester.takeException(), isNull);
-  });
+  }
 }

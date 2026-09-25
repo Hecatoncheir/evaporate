@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,7 +55,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('пункты верхнего меню выровнены по вертикальному центру', (
+  testWidgets('клавиши обоймы стоят колонкой по её оси и по порядку', (
     tester,
   ) async {
     final harness = TestHarness(tmp);
@@ -62,16 +63,36 @@ void main() {
 
     await harness.pump(tester);
 
-    final menuCenter = tester.getCenter(
-      find.byKey(const ValueKey('navigation-rack')),
-    );
-    for (final label in ['БИБЛИОТЕКА', 'ЗАГРУЗКИ', 'СОХРАНЕНИЯ', 'НАСТРОЙКИ']) {
-      expect(
-        tester.getCenter(find.text(label).first).dy,
-        closeTo(menuCenter.dy, 1),
+    final axis = tester
+        .getCenter(find.byKey(const ValueKey('navigation-rack')))
+        .dx;
+    var above = double.negativeInfinity;
+    for (final section in AppSection.values) {
+      final center = tester.getCenter(
+        find.byKey(ValueKey('rail-${section.name}')),
       );
+      expect(center.dx, closeTo(axis, 1), reason: section.name);
+      // Порядок обоймы — порядок разделов и номеров в метках страниц.
+      expect(center.dy, greaterThan(above), reason: section.name);
+      above = center.dy;
     }
     expect(find.text('VK'), findsNothing);
+  });
+
+  // Имя раздела на экране одно — в крошке верхней рейки, — и оно следует
+  // за выбором: подписей на клавишах обоймы больше нет.
+  testWidgets('крошка называет открытый раздел', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester);
+    expect(find.text('EVAPORATE'), findsOneWidget);
+    expect(find.text('БИБЛИОТЕКА'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('rail-saves')));
+    await tester.pumpAndSettle();
+    expect(find.text('СОХРАНЕНИЯ'), findsOneWidget);
+    expect(find.text('БИБЛИОТЕКА'), findsNothing);
   });
 
   testWidgets('панель библиотеки разделяет фильтры, действия и поиск', (
