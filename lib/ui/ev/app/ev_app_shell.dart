@@ -7,6 +7,7 @@ import '../../../bloc/settings/settings_bloc.dart';
 import '../../../models/app_section.dart';
 import '../../../models/library_effect.dart';
 import '../../library/effects/game_wave.dart';
+import '../../shell/chrome_overlap.dart';
 import '../../shell/shell_sections.dart';
 import '../../shell/window_drag_area.dart';
 import '../shell/ev_section.dart';
@@ -122,7 +123,8 @@ class _EvAppShellState extends State<EvAppShell> {
 /// полосами: прокрутка, догоняя фокус со стрелок и геймпада, ставит
 /// выбранное к краю видимой области, и под полосой оно пряталось бы.
 /// Рисуется прокрутка при этом и за краем, под стеклом полос: у настроек
-/// и сохранений обрезка снята, а сетка библиотеки открыта снизу
+/// и сохранений обрезка снята, а страница библиотеки уходит под полосы
+/// целиком — сколько экрана они закрывают, ей говорит [ChromeOverlap]
 /// (`sections_under_bars_test`).
 class _Sections extends StatelessWidget {
   const _Sections();
@@ -130,6 +132,7 @@ class _Sections extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.paddingOf(context);
+    final bars = EdgeInsets.only(top: padding.top, bottom: padding.bottom);
     final library = context.select<NavigationBloc, bool>(
       (bloc) => bloc.state.section == AppSection.library,
     );
@@ -137,7 +140,7 @@ class _Sections extends StatelessWidget {
       (bloc) => bloc.state.appearance.shows(LibraryEffect.waves),
     );
     return Padding(
-      padding: EdgeInsets.only(top: padding.top, bottom: padding.bottom),
+      padding: bars,
       child: MediaQuery.removePadding(
         context: context,
         removeTop: true,
@@ -152,7 +155,7 @@ class _Sections extends StatelessWidget {
               key: const ValueKey('library-wave'),
               // Волна — украшение библиотеки: в других разделах её нет.
               enabled: library && waves,
-              child: const ShellSections(),
+              child: ChromeOverlap(insets: bars, child: const ShellSections()),
             ),
           ),
         ),

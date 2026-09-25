@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 /// То, что сетка обложек помнит между перестроениями: ключи плиток, их узлы
 /// фокуса, прокрутка, наведение и последний замер раскладки.
@@ -6,9 +7,15 @@ import 'package:flutter/material.dart';
 /// Живёт у страницы, а не у сетки: сетка пересобирается на каждый поиск и
 /// смену полки, а ключи и фокусы должны пережить это — иначе фокус после
 /// «назад» терял бы плитку, с которой ушли. Страница же по замеру мотает
-/// список, догоняя ещё не построенную плитку.
+/// себя, догоняя ещё не построенную плитку.
 class LibraryGridController extends ChangeNotifier {
+  /// Прокрутка всей страницы, а не одной сетки: подпись, крупный кадр и
+  /// полки уходят вверх вместе с обложками.
   final scroll = ScrollController();
+
+  /// Ключ сливера сетки: по нему видно, где сетка начинается на странице.
+  final gridKey = GlobalKey(debugLabel: 'library-grid');
+
   final _tileKeys = <String, GlobalKey>{};
   final _focusNodes = <String, FocusNode>{};
 
@@ -56,15 +63,27 @@ class LibraryGridController extends ChangeNotifier {
     }
   }
 
-  /// Мотает список к плитке по её месту в сетке.
+  /// Мотает страницу так, чтобы ряд плитки встал к верхнему краю видимого.
+  ///
+  /// Ряд отмеряется от начала сетки, а не страницы: над сеткой подпись,
+  /// крупный кадр и полки, и счёт от нуля промахивался на их высоту. Где
+  /// сетка начинается и где кончается видимое под полосой каркаса, знает
+  /// окно прокрутки — его и спрашиваем, как спрашивает фокус.
   void scrollTo(int index) {
-    if (!scroll.hasClients) return;
-    scroll.jumpTo(
-      (index ~/ columns * rowStride).clamp(
-        0.0,
-        scroll.position.maxScrollExtent,
-      ),
+    final grid = gridKey.currentContext?.findRenderObject();
+    if (!scroll.hasClients || grid is! RenderSliver || grid.geometry == null) {
+      return;
+    }
+    final row = Rect.fromLTWH(
+      0,
+      index ~/ columns * rowStride,
+      grid.constraints.crossAxisExtent,
+      rowStride,
     );
+    final target = RenderAbstractViewport.of(grid)
+        .getOffsetToReveal(grid, 0, rect: row)
+        .offset;
+    scroll.jumpTo(target.clamp(0.0, scroll.position.maxScrollExtent));
   }
 
   @override

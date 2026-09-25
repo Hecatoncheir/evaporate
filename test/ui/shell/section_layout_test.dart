@@ -5,6 +5,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
+import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/shell/shell_sections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,19 +47,23 @@ void main() {
   // нижний край: библиотека не показывала ни одной полной обложки. В
   // наименьшем окне ряд срезала панель библиотеки: обойма слева сузила
   // её, и органы панели вставали столбцом в три строки.
+  //
+  // Страница с тех пор прокручивается целиком, но первый экран — тот, что
+  // видят, открыв библиотеку, — по-прежнему обязан показать ряд обложек:
+  // видимое — место раздела между полосами, а не вся прокрутка.
   for (final window in [const Size(1280, 900), const Size(900, 620)]) {
     testWidgets('первый ряд обложек виден целиком в окне '
         '${window.width.round()}×${window.height.round()}', (tester) async {
       await show(tester, window);
 
-      final grid = tester.getRect(find.byType(GridView));
+      final page = tester.getRect(find.byType(LibraryBody));
       final tile = tester.getRect(find.byType(GameCoverTile).first);
 
-      expect(tile.top, greaterThanOrEqualTo(grid.top));
+      expect(tile.top, greaterThanOrEqualTo(page.top));
       expect(
         tile.bottom,
-        lessThanOrEqualTo(grid.bottom),
-        reason: 'обложка обрезана нижним краем полки',
+        lessThanOrEqualTo(page.bottom),
+        reason: 'обложка ушла под строку подсказок',
       );
     });
   }

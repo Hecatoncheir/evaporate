@@ -9,6 +9,7 @@ import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
+import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/liquid/liquid_selection.dart';
 import 'package:evaporate/ui/widgets/liquid/liquid_selection_path.dart';
@@ -264,7 +265,9 @@ void main() {
       await frames(25);
       expect(state('grid-liquid').isAnimating, isFalse);
       final beforeScroll = state('grid-liquid').targetRect!;
-      final scroll = tester.widget<GridView>(find.byType(GridView)).controller!;
+      final scroll = tester
+          .widget<ChromeScrollView>(find.byType(ChromeScrollView))
+          .controller;
       scroll.jumpTo(60);
       await frames(2);
       expect(

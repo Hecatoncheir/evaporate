@@ -35,9 +35,12 @@ void main() {
   /// В поиске ли фокус.
   ///
   /// Узел поля принадлежит библиотеке, а не блоку: блок лишь просит увести
-  /// фокус, и спрашивать о нём надо у того, кто полем владеет.
+  /// фокус, и спрашивать о нём надо у того, кто полем владеет. Поле при
+  /// этом может быть и за краем: полки прокручиваются вместе с сеткой.
   bool searchHasFocus(WidgetTester tester) => tester
-      .widget<LibrarySearchField>(find.byType(LibrarySearchField))
+      .widget<LibrarySearchField>(
+        find.byType(LibrarySearchField, skipOffstage: false),
+      )
       .focusNode
       .hasFocus;
 

@@ -98,8 +98,8 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
 
   @override
   Widget build(BuildContext context) {
-    // Страница не обрезана: сетка уходит низом под стекло строки
-    // подсказок. Частицы и свет срезает по странице сам художник.
+    // Страница не обрезана: её прокрутка уходит под стекло обеих полос
+    // каркаса. Частицы и свет срезает по месту раздела сам художник.
     return KeyedSubtree(
       key: _viewport,
       child: LayoutBuilder(

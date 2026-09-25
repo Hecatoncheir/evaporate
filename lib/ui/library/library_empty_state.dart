@@ -33,8 +33,10 @@ class LibraryEmptyState extends StatelessWidget {
       (b) => b.state.games.isEmpty,
     );
     final view = context.select<LibraryViewBloc, LibraryView>((b) => b.state);
+    // Своей прокрутки нет: пустая полка — часть страницы, и не влезшее
+    // уходит вверх вместе с ней.
     return Center(
-      child: SingleChildScrollView(
+      child: Padding(
         padding: const EdgeInsets.all(EvaporateSpacing.vast),
         child: Column(
           mainAxisSize: MainAxisSize.min,

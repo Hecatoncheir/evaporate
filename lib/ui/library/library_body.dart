@@ -8,14 +8,10 @@ import '../../models/game.dart';
 import '../../models/library_effect.dart';
 import '../widgets/game_drop_target.dart';
 import 'effects/library_atmosphere.dart';
-import 'library_empty_state.dart';
-import 'library_featured_slot.dart';
-import 'library_grid.dart';
 import 'library_grid_controller.dart';
-import 'library_heading.dart';
-import 'library_toolbar.dart';
+import 'library_scroll.dart';
 
-/// Сама страница библиотеки: заголовок, крупный кадр, полки и сетка.
+/// Сама страница библиотеки: фон, приёмник броска и одна прокрутка.
 ///
 /// Отдельно от `LibraryPage`, у которой на руках выбор, поиск, фокус и
 /// системные окна: здесь только раскладка. Выбор, облик и крупность
@@ -50,9 +46,6 @@ class LibraryBody extends StatelessWidget {
 
   final VoidCallback onReturnToGames;
 
-  /// Ниже этой высоты не остаётся места и заголовку раздела.
-  static const _headingHeight = 360.0;
-
   @override
   Widget build(BuildContext context) {
     final effects = context.select<SettingsBloc, Appearance>(
@@ -61,61 +54,28 @@ class LibraryBody extends StatelessWidget {
     final selectedId = context.select<NavigationBloc, String?>(
       (b) => b.state.selectedGameId,
     );
+    // Приёмник броска — над всей страницей: бросают туда, куда смотрят, а
+    // смотрят теперь и на крупный кадр, и на полки. Пока идёт поиск
+    // установленных игр, он молчит: папку в окно поиска бросают ради
+    // сужения поиска, а не чтобы добавить её одной игрой.
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final height = constraints.maxHeight;
-        return LibraryAtmosphere(
-          enabled: effects.libraryEffects,
-          particlesEnabled: effects.isOn(LibraryEffect.particles),
-          ambientEnabled: effects.isOn(LibraryEffect.ambient),
-          targetKey: () => grid.targetKey(selectedId),
-          child: Column(
-            children: [
-              if (height >= _headingHeight) const LibraryHeading(),
-              LibraryFeaturedSlot(games: games, height: height),
-              LibraryToolbar(
-                searchFocus: searchFocus,
-                onScan: onScan,
-                onReturnToGames: onReturnToGames,
-              ),
-              Expanded(
-                child: _GridDropArea(
-                  grid: grid,
-                  games: games,
-                  scanning: scanning,
-                  onScan: onScan,
-                ),
-              ),
-            ],
+      builder: (context, box) => LibraryAtmosphere(
+        enabled: effects.libraryEffects,
+        particlesEnabled: effects.isOn(LibraryEffect.particles),
+        ambientEnabled: effects.isOn(LibraryEffect.ambient),
+        targetKey: () => grid.targetKey(selectedId),
+        child: GameDropTarget(
+          enabled: !scanning,
+          child: LibraryScroll(
+            grid: grid,
+            games: games,
+            page: box.biggest,
+            searchFocus: searchFocus,
+            onScan: onScan,
+            onReturnToGames: onReturnToGames,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
-}
-
-/// Сетка выбранной полки или пустая полка — под приёмником броска.
-///
-/// Пока идёт поиск установленных игр, приёмник молчит: папку в его окно
-/// бросают ради сужения поиска, а не чтобы добавить её одной игрой.
-class _GridDropArea extends StatelessWidget {
-  const _GridDropArea({
-    required this.grid,
-    required this.games,
-    required this.scanning,
-    required this.onScan,
-  });
-
-  final LibraryGridController grid;
-  final List<Game> games;
-  final bool scanning;
-  final VoidCallback onScan;
-
-  @override
-  Widget build(BuildContext context) => GameDropTarget(
-    enabled: !scanning,
-    child: games.isEmpty
-        ? LibraryEmptyState(onScan: onScan)
-        : LibraryGrid(controller: grid, games: games),
-  );
 }

@@ -11,6 +11,7 @@ import 'package:evaporate/ui/library/effects/game_wave.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
 import 'package:evaporate/ui/library/effects/particle_field.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
+import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/decorative_motion.dart';
 import 'package:evaporate/ui/widgets/pointer_trail.dart';
@@ -562,7 +563,7 @@ void main() {
         await frames(tester, 40);
         expect(harness.nav.state.selectedGameId, isNot(previousSelection));
         final rect = state.field.card!;
-        await tester.drag(find.byType(GridView), const Offset(0, -120));
+        await tester.drag(find.byType(ChromeScrollView), const Offset(0, -120));
         await frames(tester, 30);
         expect(state.field.card?.top, isNot(rect.top));
         tester.view.physicalSize = const Size(1100, 760);

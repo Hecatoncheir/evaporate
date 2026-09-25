@@ -6,25 +6,36 @@ import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
-import '../../models/library_effect.dart';
 import '../theme.dart';
-import '../widgets/liquid/liquid_selection.dart';
 import 'library_grid_controller.dart';
 import 'library_grid_tile.dart';
 
-/// Сетка обложек: ленивая, с рамкой выбранного и всходом первого экрана.
+/// Сетка обложек: ленивая, со всходом первого экрана.
+///
+/// Это сливер, а не своя прокрутка: сетка — часть страницы и уходит вверх
+/// вместе с подписью, крупным кадром и полками (`LibraryScroll`). Рамка
+/// выбранного поэтому тоже стоит над всей страницей, а не над сеткой.
 ///
 /// Выбор, облик и крупность плиток сетка берёт у блоков сама, а выбирают и
 /// открывают игру плитки: прежде «открыть» шло сюда пятым звеном от
 /// страницы, и ни одному звену посередине не было нужно.
 class LibraryGrid extends StatelessWidget {
-  const LibraryGrid({super.key, required this.controller, required this.games});
+  const LibraryGrid({
+    super.key,
+    required this.controller,
+    required this.games,
+    required this.width,
+  });
 
   /// Ключи, фокусы, прокрутка и наведение: они переживают перестроение
   /// сетки, а сама сетка — нет.
   final LibraryGridController controller;
 
   final List<Game> games;
+
+  /// Ширина страницы. Замер берёт её снаружи: построитель раскладки
+  /// у сливера пересобирал бы сетку на каждый кадр прокрутки.
+  final double width;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +45,7 @@ class LibraryGrid extends StatelessWidget {
     final effects = context.select<SettingsBloc, Appearance>(
       (b) => b.state.appearance,
     );
+    _measure(width, effects.libraryScale);
     // Где какая игра — чтобы ленивая сетка узнавала уже построенную плитку
     // после перестановки, а не собирала её заново. Ключ для этого стоит на
     // самой `LibraryGridTile`: спрятанный в её `MouseRegion`, он до сетки не
@@ -43,41 +55,22 @@ class LibraryGrid extends StatelessWidget {
     int? indexOf(Key key) =>
         key is ValueKey<String> ? indices[key.value] : null;
 
-    // Сверху сетку срезает полка — выше неё крупный кадр, — а снизу
-    // она уходит под стекло строки подсказок. Само окно прокрутки
-    // кончается над строкой: плитка, подведённая стрелками, встаёт к
-    // его краю и под стеклом не прячется.
-    return ClipRect(
-      clipper: const _OpenBelow(),
-      child: LayoutBuilder(
-        builder: (context, box) {
-          _measure(box, effects.libraryScale);
-          return LiquidSelection(
-            key: const ValueKey('grid-liquid'),
-            targetKey: () => controller.targetKey(selectedId),
-            enabled: effects.shows(LibraryEffect.liquidSelection),
-            color: context.colors.selection,
-            radius: EvaporateTheme.radiusPanel,
-            padding: const EdgeInsets.all(EvaporateSpacing.gap),
-            child: GridView.builder(
-              clipBehavior: Clip.none,
-              controller: controller.scroll,
-              findChildIndexCallback: indexOf,
-              padding: padding,
-              gridDelegate: delegateFor(effects.libraryScale),
-              itemCount: games.length,
-              itemBuilder: (context, index) {
-                final game = games[index];
-                return LibraryGridTile(
-                  key: ValueKey(game.id),
-                  game: game,
-                  index: index,
-                  controller: controller,
-                  selected: game.id == selectedId,
-                  effects: effects,
-                );
-              },
-            ),
+    return SliverPadding(
+      padding: padding,
+      sliver: SliverGrid.builder(
+        key: controller.gridKey,
+        findChildIndexCallback: indexOf,
+        gridDelegate: delegateFor(effects.libraryScale),
+        itemCount: games.length,
+        itemBuilder: (context, index) {
+          final game = games[index];
+          return LibraryGridTile(
+            key: ValueKey(game.id),
+            game: game,
+            index: index,
+            controller: controller,
+            selected: game.id == selectedId,
+            effects: effects,
           );
         },
       ),
@@ -134,27 +127,11 @@ class LibraryGrid extends StatelessWidget {
   }
 
   /// Ширина плитки нужна не только сетке: по шагу ряда страница мотает
-  /// список, догоняя фокусом ещё не построенную плитку.
-  void _measure(BoxConstraints box, double scale) {
-    final layout = layoutFor(box.maxWidth, scale);
+  /// себя, догоняя фокусом ещё не построенную плитку.
+  void _measure(double width, double scale) {
+    final layout = layoutFor(width, scale);
     controller
       ..columns = layout.columns
       ..rowStride = layout.rowStride;
   }
-}
-
-/// Обрезка только сверху и по бокам: низом сетка рисуется и за своим краем.
-class _OpenBelow extends CustomClipper<Rect> {
-  const _OpenBelow();
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTRB(0, 0, size.width, size.height * 2);
-
-  // Приблизительную обрезку спрашивают, например, семантика и проверка
-  // того, что видно: по умолчанию она — вся коробка, то есть с низом.
-  @override
-  Rect getApproximateClipRect(Size size) => getClip(size);
-
-  @override
-  bool shouldReclip(_OpenBelow oldClipper) => false;
 }

@@ -8,6 +8,7 @@ import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/library/library_grid.dart';
 import 'package:evaporate/ui/library/rise_in.dart';
+import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -118,7 +119,8 @@ void main() {
       addTearDown(tester.view.reset);
       await harness.pump(tester);
 
-      final grid = tester.getSize(find.byType(GridView)).width;
+      // Сетка — сливер страницы: её ширина — ширина прокрутки.
+      final grid = tester.getSize(find.byType(ChromeScrollView)).width;
       final tops = [
         for (final tile in tester.widgetList(find.byType(GameCoverTile)))
           tester.getTopLeft(find.byWidget(tile)).dy,
