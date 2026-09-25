@@ -50,7 +50,11 @@ dependencies:
   flutter_local_notifications: ^22.3.0
   flutter_localizations:
     sdk: flutter
+  # Спайк «как есть»: зависимости прототипа evaporate_design.
+  flutter_soloud: ^5.1.2
+  flutter_svg: ^2.3.0
   gamepads: ^0.1.11
+  google_fonts: ^8.2.1
   intl: ^0.20.3
   # Движок загрузок жалуется через `logging`, и его жалобы мы кладём в
   # журнал приложения: до сих пор задача могла часами висеть «активной», а
@@ -88,11 +92,16 @@ flutter:
   assets:
     # Значок для трея грузится в рантайме, поэтому лежит в ассетах.
     - assets/branding/
+    # Спайк «как есть»: значки и знак прототипа по тем же путям.
+    - design/assets/icons/
+    - design/assets/logo/
 
   # Шейдер компилируется при сборке, а не читается как обычный ассет: в
   # готовом приложении лежит уже машинный код для платформы.
   shaders:
     - assets/shaders/drops.frag
+    - shaders/plume.frag
+    - shaders/glass_lens.frag
 
   # Шрифты вариативные: один файл на всё семейство вместо десятка начертаний.
   fonts:
