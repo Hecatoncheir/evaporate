@@ -5,6 +5,7 @@ import '../../bloc/downloads/downloads_bloc.dart';
 import '../../bloc/library/library_bloc.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/game.dart';
+import '../theme.dart';
 
 /// Главное действие игры — одно решение для всех мест, где есть её главная
 /// клавиша.
@@ -61,6 +62,16 @@ IconData primaryActionIcon(PrimaryAction action) => switch (action) {
   PrimaryAction.stop => Icons.stop_circle_outlined,
   PrimaryAction.pause => Icons.pause_rounded,
   PrimaryAction.download => Icons.download_rounded,
+};
+
+/// Тон клавиши: запуск и остановка игры горят огнём главного действия, а
+/// всё, что про загрузку, — холодным цветом данных. Иначе «Скачать» и
+/// «Играть» выглядели бы одной клавишей с разными словами.
+LauncherTone primaryActionTone(PrimaryAction action) => switch (action) {
+  PrimaryAction.play || PrimaryAction.stop => LauncherTone.launch,
+  PrimaryAction.download ||
+  PrimaryAction.pause ||
+  PrimaryAction.resume => LauncherTone.download,
 };
 
 /// Делает то, что написано на клавише.

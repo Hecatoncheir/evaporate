@@ -77,7 +77,7 @@ class SnapshotHistory extends StatelessWidget {
 class _GlassSliver extends StatelessWidget {
   const _GlassSliver({
     required this.sliver,
-    this.radius = 24,
+    required this.radius,
     this.padding = EdgeInsets.zero,
     this.opacity,
   });
@@ -90,7 +90,7 @@ class _GlassSliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SliverGlassClip(
     radius: radius,
-    blur: GlassSurface.blur,
+    filter: GlassSurface.filterOf(GlassSurfaceTheme.of(context)),
     sliver: DecoratedSliver(
       decoration: GlassSurface.decorationOf(
         context,

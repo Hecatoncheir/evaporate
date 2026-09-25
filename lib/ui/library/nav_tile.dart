@@ -59,7 +59,7 @@ class _NavTileState extends State<NavTile> {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(EvaporateTheme.radiusControl);
+    final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
     return Material(
       // Подсветку рисует контейнер ниже: на Material она переключалась бы
       // рывком, тогда как рамка фокуса рядом уже плавная.

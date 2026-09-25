@@ -17,18 +17,19 @@ class SliverGlassClip extends SingleChildRenderObjectWidget {
   const SliverGlassClip({
     super.key,
     required this.radius,
-    required this.blur,
+    required this.filter,
     required Widget sliver,
   }) : super(child: sliver);
 
   final double radius;
 
-  /// Сигма размытия подложки.
-  final double blur;
+  /// Что стекло делает с подложкой — тот же фильтр, что у стекла-коробки
+  /// (`GlassSurface.filterOf`).
+  final ImageFilter filter;
 
   @override
   RenderSliverGlassClip createRenderObject(BuildContext context) =>
-      RenderSliverGlassClip(radius: radius, blur: blur);
+      RenderSliverGlassClip(radius: radius, filter: filter);
 
   @override
   void updateRenderObject(
@@ -37,12 +38,12 @@ class SliverGlassClip extends SingleChildRenderObjectWidget {
   ) {
     renderObject
       ..radius = radius
-      ..blur = blur;
+      ..filter = filter;
   }
 }
 
 class RenderSliverGlassClip extends RenderProxySliver {
-  RenderSliverGlassClip({required this._radius, required this._blur});
+  RenderSliverGlassClip({required this._radius, required this._filter});
 
   double get radius => _radius;
   double _radius;
@@ -52,11 +53,11 @@ class RenderSliverGlassClip extends RenderProxySliver {
     markNeedsPaint();
   }
 
-  double get blur => _blur;
-  double _blur;
-  set blur(double value) {
-    if (value == _blur) return;
-    _blur = value;
+  ImageFilter get filter => _filter;
+  ImageFilter _filter;
+  set filter(ImageFilter value) {
+    if (value == _filter) return;
+    _filter = value;
     markNeedsPaint();
   }
 
@@ -101,7 +102,7 @@ class RenderSliverGlassClip extends RenderProxySliver {
       shape,
       (context, offset) {
         final backdrop = _backdrop.layer ??= BackdropFilterLayer();
-        backdrop.filter = ImageFilter.blur(sigmaX: _blur, sigmaY: _blur);
+        backdrop.filter = _filter;
         context.pushLayer(backdrop, (context, offset) {
           final data = child.parentData! as SliverPhysicalParentData;
           context.paintChild(child, offset + data.paintOffset);

@@ -10,7 +10,9 @@ import 'cover_face.dart';
 /// обложки.
 ///
 /// Искры лежат снаружи выреза: увеличенная под фокусом обложка закрыла бы
-/// самые яркие из них у кромки.
+/// самые яркие из них у кромки. Вырез — угол панели, и по тому же углу
+/// считается кромка искр (`PortalOutline.corner`): при разных углах между
+/// обложкой и искрами оставался бы тёмный шов.
 class CoverFrame extends StatelessWidget {
   const CoverFrame({
     super.key,
@@ -31,7 +33,7 @@ class CoverFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(EvaporateTheme.radiusControl);
+    final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
     return PortalSparks(
       enabled: selected && portalEnabled,
       child: DecoratedBox(

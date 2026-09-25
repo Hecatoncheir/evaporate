@@ -36,6 +36,7 @@ void main() {
               child: LauncherActionButton(
                 icon: Icons.play_arrow_rounded,
                 label: 'Играть',
+                tone: LauncherTone.launch,
                 onPressed: enabled ? () => taps++ : null,
               ),
             ),

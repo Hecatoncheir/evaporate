@@ -7,6 +7,7 @@ import 'package:evaporate/input/input_scope.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/ui/settings/deadzone_slider.dart';
+import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,7 @@ void main() {
           child: LauncherActionButton(
             label: 'Играть',
             icon: Icons.play_arrow,
+            tone: LauncherTone.launch,
             onPressed: () {},
           ),
         ),

@@ -32,6 +32,7 @@ class PlayActions extends StatelessWidget {
           onPressed: onPressed,
           icon: Icons.play_arrow_rounded,
           label: label,
+          tone: LauncherTone.launch,
         ),
         if (!game.canLaunch) ...[
           const SizedBox(width: EvaporateSpacing.cluster),

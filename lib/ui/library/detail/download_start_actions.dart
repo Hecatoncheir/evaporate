@@ -28,7 +28,12 @@ class DownloadStartActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        LauncherActionButton(onPressed: onPressed, icon: icon, label: label),
+        LauncherActionButton(
+          onPressed: onPressed,
+          icon: icon,
+          label: label,
+          tone: LauncherTone.download,
+        ),
         const SizedBox(width: EvaporateSpacing.cluster),
         OutlinedButton.icon(
           onPressed: () => _pickInstallDir(context),

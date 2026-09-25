@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:evaporate/ui/saves/sliver_glass_clip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -12,11 +14,11 @@ void main() {
     textDirection: TextDirection.ltr,
     child: CustomScrollView(
       controller: controller,
-      slivers: const [
+      slivers: [
         SliverGlassClip(
           radius: 12,
-          blur: 16,
-          sliver: SliverToBoxAdapter(child: SizedBox(height: 1000)),
+          filter: _blur,
+          sliver: const SliverToBoxAdapter(child: SizedBox(height: 1000)),
         ),
       ],
     ),
@@ -52,5 +54,8 @@ void main() {
 
     final backdrop = tester.layers.whereType<BackdropFilterLayer>().single;
     expect(backdrop.parent, same(clipOf(tester)));
+    expect(backdrop.filter, _blur, reason: 'фильтр тот, что дали, а не свой');
   });
 }
+
+final _blur = ImageFilter.blur(sigmaX: 16, sigmaY: 16);

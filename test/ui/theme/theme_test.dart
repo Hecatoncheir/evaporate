@@ -99,6 +99,26 @@ void main() {
       // Та же пара у необратимого: прежде на красную заливку ложился
       // обычный текст — 2,7:1 у опасной клавиши Картриджа и около 3:1 у
       // сообщения об ошибке в обеих схемах.
+      // Заливка главной клавиши ночью — переход до остывающего низа, а на
+      // нём надпись не дотянула бы до нормы. Поэтому мерится та часть
+      // перехода, над которой лежит надпись, — до середины клавиши.
+      test('$name: надпись на главной клавише читается обоих тонов', () {
+        final look = p.isDark
+            ? LauncherButtonTheme.arclight
+            : LauncherButtonTheme.cartridge;
+        for (final tone in LauncherTone.values) {
+          final fill = look.fillOf(tone);
+          for (var i = 0; i < fill.colors.length; i++) {
+            if (fill.stops![i] > 0.6) continue;
+            expect(
+              contrast(p.onPrimary, fill.colors[i]),
+              greaterThanOrEqualTo(4.5),
+              reason: '$tone, стоп ${fill.stops![i]}',
+            );
+          }
+        }
+      });
+
       test('$name: надпись на опасной заливке читается', () {
         expect(contrast(p.onDanger, p.dangerFill), greaterThanOrEqualTo(4.5));
       });

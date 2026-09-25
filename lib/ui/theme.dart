@@ -13,6 +13,7 @@ export 'theme/evaporate_theme.dart';
 export 'theme/glass_surface_theme.dart';
 export 'theme/hardware_surface_theme.dart';
 export 'theme/icon_size.dart';
+export 'theme/launcher_button_theme.dart';
 export 'theme/layout.dart';
 export 'theme/motion.dart';
 export 'theme/palette.dart';

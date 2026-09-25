@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'alpha.dart';
 import 'effects_palette.dart';
 import 'glass_surface_theme.dart';
 import 'hardware_surface_theme.dart';
 import 'icon_size.dart';
+import 'launcher_button_theme.dart';
 import 'motion.dart';
 import 'palette.dart';
 
@@ -33,8 +35,13 @@ class EvaporateTheme {
   /// Геометрия корпуса. Радиусы малые и одни на обе схемы: округлость —
   /// это про яркость не больше, чем толщина рамки, и разные углы в двух
   /// темах читались бы как два разных приложения.
-  static const radiusPanel = 6.0;
-  static const radiusControl = 4.0;
+  ///
+  /// Числа — плотный набор прототипа (`docs/decisions/0010`). Угол панели
+  /// режет и обложку, и он же — скругление кромки, по которой рождаются
+  /// искры (`PortalOutline.corner`): разойдись они, между вырезом и искрами
+  /// в углу оставался бы тёмный шов.
+  static const radiusPanel = 8.0;
+  static const radiusControl = 5.0;
   static const radiusChip = 3.0;
 
   /// Скругление подложки под выбранным.
@@ -51,6 +58,7 @@ class EvaporateTheme {
     HardwareSurfaceTheme.arclight,
     GlassSurfaceTheme.arclight,
     EffectsPalette.arclight,
+    LauncherButtonTheme.arclight,
   );
 
   static ThemeData light() => _build(
@@ -58,6 +66,7 @@ class EvaporateTheme {
     HardwareSurfaceTheme.cartridge,
     GlassSurfaceTheme.cartridge,
     EffectsPalette.cartridge,
+    LauncherButtonTheme.cartridge,
   );
 
   /// Собирает тему из палитры. Каждая строка — свой кусок оформления, и
@@ -67,13 +76,21 @@ class EvaporateTheme {
     HardwareSurfaceTheme surface,
     GlassSurfaceTheme glass,
     EffectsPalette effects,
+    LauncherButtonTheme launcher,
   ) {
     final base = p.isDark
         ? ThemeData.dark(useMaterial3: true)
         : ThemeData.light(useMaterial3: true);
 
     return base.copyWith(
-      extensions: [p, EvaporateMotion.standard, surface, glass, effects],
+      extensions: [
+        p,
+        EvaporateMotion.standard,
+        surface,
+        glass,
+        effects,
+        launcher,
+      ],
       scaffoldBackgroundColor: p.background,
       colorScheme: _colorScheme(p),
       dividerTheme: DividerThemeData(color: p.outline, space: 1, thickness: 1),
@@ -84,7 +101,6 @@ class EvaporateTheme {
       textButtonTheme: _textButtonTheme(),
       iconButtonTheme: _iconButtonTheme(),
       outlinedButtonTheme: _outlinedButtonTheme(p),
-      navigationRailTheme: _railTheme(p),
       segmentedButtonTheme: _segmentedButtonTheme(p),
       dialogTheme: _dialogTheme(p),
       snackBarTheme: _snackBarTheme(p),
@@ -100,6 +116,8 @@ class EvaporateTheme {
         textColor: p.textPrimary,
       ),
       tooltipTheme: _tooltipTheme(p),
+      scrollbarTheme: _scrollbarTheme(p),
+      textSelectionTheme: _textSelectionTheme(p),
     );
   }
 
@@ -236,25 +254,6 @@ class EvaporateTheme {
         ),
       );
 
-  static NavigationRailThemeData _railTheme(EvaporatePalette p) =>
-      NavigationRailThemeData(
-        backgroundColor: p.railBackground,
-        indicatorColor: p.railIndicator,
-        selectedIconTheme: IconThemeData(color: p.onSelection),
-        unselectedIconTheme: IconThemeData(color: p.textSecondary),
-        selectedLabelTextStyle: TextStyle(
-          fontFamily: fontFamily,
-          color: p.primary,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-        unselectedLabelTextStyle: TextStyle(
-          fontFamily: fontFamily,
-          color: p.textSecondary,
-          fontSize: 12,
-        ),
-      );
-
   /// Выбранный сегмент красится сам; погашенный остаётся как есть, иначе
   /// недоступная кнопка выглядела бы выбранной.
   static SegmentedButtonThemeData _segmentedButtonTheme(EvaporatePalette p) {
@@ -307,4 +306,34 @@ class EvaporateTheme {
     ),
     textStyle: TextStyle(color: p.textPrimary, fontSize: 12),
   );
+
+  /// Полоса прокрутки тоньше материаловской и цвета границ: она показывает,
+  /// где ты в списке, а не спорит с ним. Под курсором и при перетаскивании
+  /// толще и заметнее — за неё взялись.
+  static ScrollbarThemeData _scrollbarTheme(EvaporatePalette p) {
+    bool held(Set<WidgetState> states) =>
+        states.contains(WidgetState.hovered) ||
+        states.contains(WidgetState.dragged);
+
+    return ScrollbarThemeData(
+      thickness: WidgetStateProperty.resolveWith(
+        (states) => held(states) ? 9 : 6,
+      ),
+      thumbColor: WidgetStateProperty.resolveWith(
+        (states) => held(states)
+            ? p.textSecondary.withValues(alpha: EvaporateAlpha.rim)
+            : p.outline,
+      ),
+      radius: const Radius.circular(radiusPanel),
+    );
+  }
+
+  /// Выделенный текст — подкраска фирменного цвета, курсор и ручки — цвета
+  /// выбора: так выделение читается тем же жестом, что выбор в сетке.
+  static TextSelectionThemeData _textSelectionTheme(EvaporatePalette p) =>
+      TextSelectionThemeData(
+        cursorColor: p.selection,
+        selectionColor: p.primaryFill.withValues(alpha: 0.32),
+        selectionHandleColor: p.selection,
+      );
 }

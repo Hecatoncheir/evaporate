@@ -31,7 +31,6 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     required this.scrimOpacity,
     required this.ambientStrength,
     required this.vignetteOpacity,
-    required this.keySheen,
     required this.railShadowBlur,
     required this.railShadowDrop,
     required this.frameShadowBlur,
@@ -70,14 +69,12 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   /// Затемнение краёв окна под светом игр.
   final double vignetteOpacity;
 
-  /// Доля отлива на главной клавише.
-  final double keySheen;
-
   /// Тень рейки навигации: размытие и сдвиг вниз.
   final double railShadowBlur;
   final double railShadowDrop;
 
-  /// Тень крупного кадра библиотеки.
+  /// Тень крупного кадра библиотеки. Ночью это тень поднятого предмета —
+  /// длинная и мягкая: кадр лежит над корпусом, а не вровень с ним.
   final double frameShadowBlur;
   final double frameShadowDrop;
 
@@ -91,11 +88,10 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     scrimOpacity: 0.72,
     ambientStrength: 1,
     vignetteOpacity: 0.62,
-    keySheen: 0.16,
     railShadowBlur: 22,
     railShadowDrop: 10,
-    frameShadowBlur: 34,
-    frameShadowDrop: 14,
+    frameShadowBlur: 54,
+    frameShadowDrop: 26,
   );
 
   static const cartridge = HardwareSurfaceTheme(
@@ -108,7 +104,6 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     scrimOpacity: 0.82,
     ambientStrength: 0.4,
     vignetteOpacity: 0.14,
-    keySheen: 0.04,
     railShadowBlur: 8,
     railShadowDrop: 2,
     frameShadowBlur: 12,
@@ -130,7 +125,6 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     scrimOpacity,
     ambientStrength,
     vignetteOpacity,
-    keySheen,
     railShadowBlur,
     railShadowDrop,
     frameShadowBlur,
@@ -148,7 +142,6 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     scrimOpacity: scrimOpacity,
     ambientStrength: ambientStrength,
     vignetteOpacity: vignetteOpacity,
-    keySheen: keySheen,
     railShadowBlur: railShadowBlur,
     railShadowDrop: railShadowDrop,
     frameShadowBlur: frameShadowBlur,
@@ -172,7 +165,6 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
       scrimOpacity: mix(scrimOpacity, other.scrimOpacity),
       ambientStrength: mix(ambientStrength, other.ambientStrength),
       vignetteOpacity: mix(vignetteOpacity, other.vignetteOpacity),
-      keySheen: mix(keySheen, other.keySheen),
       railShadowBlur: mix(railShadowBlur, other.railShadowBlur),
       railShadowDrop: mix(railShadowDrop, other.railShadowDrop),
       frameShadowBlur: mix(frameShadowBlur, other.frameShadowBlur),

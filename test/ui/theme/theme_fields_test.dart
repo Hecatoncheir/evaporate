@@ -25,6 +25,7 @@ void main() {
         'EffectsPalette',
         'EvaporateMotion',
         'GlassSurfaceTheme',
+        'LauncherButtonTheme',
       ]),
     );
   });

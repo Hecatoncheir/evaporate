@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/primary_action.dart';
+import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -106,6 +107,19 @@ void main() {
       // Продолжить и играть — один жест, и значок у них общий.
       expect(icons.length, PrimaryAction.values.length - 1);
     });
+
+    test('у загрузки клавиша своего тона, у запуска — своего', () {
+      // «Скачать» и «Играть» одной заливки различались бы только словом.
+      expect(primaryActionTone(PrimaryAction.play), LauncherTone.launch);
+      expect(primaryActionTone(PrimaryAction.stop), LauncherTone.launch);
+      for (final action in [
+        PrimaryAction.download,
+        PrimaryAction.pause,
+        PrimaryAction.resume,
+      ]) {
+        expect(primaryActionTone(action), LauncherTone.download);
+      }
+    });
   });
 
   group('крупный кадр библиотеки', () {
@@ -133,6 +147,7 @@ void main() {
 
       expect(featured(tester).label, 'Пауза');
       expect(featured(tester).icon, Icons.pause_rounded);
+      expect(featured(tester).tone, LauncherTone.download);
       expect(featured(tester).onPressed, isNotNull);
     });
 

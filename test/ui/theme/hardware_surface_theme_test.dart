@@ -43,6 +43,18 @@ void main() {
     expect(same, isEmpty);
   });
 
+  // У главной клавиши заливки — переходы, и смешиваются они не числом:
+  // переход с другим набором стопов на концах смены дал бы не свою схему.
+  test('клавиша запуска смешивается по всем полям', () {
+    const night = LauncherButtonTheme.arclight;
+    const day = LauncherButtonTheme.cartridge;
+
+    expect(night.lerp(day, 0).values, night.values);
+    expect(night.lerp(day, 1).values, day.values);
+    expect(night.copyWith().values, night.values);
+    expect(day.copyWith().values, day.values);
+  });
+
   // То же правило для палитры: двадцать полей, выписанных руками в `lerp`
   // и `copyWith`, — ровно то место, где новое поле забывают.
   test('палитра смешивается по всем полям', () {

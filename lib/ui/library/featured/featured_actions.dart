@@ -33,6 +33,7 @@ class FeaturedActions extends StatelessWidget {
           onPressed: canDoPrimaryAction(game) ? onPrimary : null,
           icon: primaryActionIcon(action),
           label: primaryActionLabel(L.of(context), action),
+          tone: primaryActionTone(action),
         ),
         const SizedBox(width: EvaporateSpacing.cluster),
         OutlinedButton(
