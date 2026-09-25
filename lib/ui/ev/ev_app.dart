@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 
 import 'data/real_library.dart';
@@ -323,6 +324,11 @@ class _EvaporateAppState extends State<EvaporateApp> {
               themeAnimationDuration: EvMotion.screen,
               themeAnimationCurve: EvMotion.easeOut,
               navigatorKey: _navigator,
+              // Обложки приложения внутри карточек подписывают себя его
+              // переводами: без них L.of(context) падает.
+              localizationsDelegates: L.localizationsDelegates,
+              supportedLocales: L.supportedLocales,
+              locale: const Locale('ru'),
               // Полоса сценария — над всеми маршрутами, и над диалогом тоже:
               // `z-index` у неё в прототипе выше, чем у диалога.
               builder: (context, child) => Focus(

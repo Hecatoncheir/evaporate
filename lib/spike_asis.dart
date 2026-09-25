@@ -10,6 +10,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+
+import 'ui/library/effects/cover_drops.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -65,7 +67,51 @@ Future<void> _script(String outDir) async {
   _hoverSecondCard(binding);
   await Future<void>.delayed(const Duration(seconds: 2));
   await _capture('$outDir/asis-library-2.png');
+  _probeDrops();
+  await _captureCard('$outDir/card-1.png');
+  await Future<void>.delayed(const Duration(seconds: 3));
+  await _captureCard('$outDir/card-2.png');
   exit(0);
+}
+
+/// Сколько обложек с каплями сейчас в дереве и рисуют ли они шейдером.
+void _probeDrops() {
+  var enabled = 0;
+  var painting = 0;
+  void visit(Element e) {
+    final w = e.widget;
+    if (w is CoverDrops && w.enabled) enabled++;
+    if (w.key == const ValueKey('cover-drops')) painting++;
+    e.visitChildElements(visit);
+  }
+
+  WidgetsBinding.instance.rootElement?.visitChildElements(visit);
+  _log('drops enabled=$enabled painting=$painting');
+}
+
+/// Крупный снимок обложки, на которой идут капли.
+Future<void> _captureCard(String path) async {
+  Element? target;
+  void visit(Element e) {
+    if (e.widget.key == const ValueKey('cover-drops')) target ??= e;
+    e.visitChildElements(visit);
+  }
+
+  WidgetsBinding.instance.rootElement?.visitChildElements(visit);
+  final found = target;
+  if (found == null) {
+    _log('no drops to capture');
+    return;
+  }
+  RenderObject? o = found.findRenderObject();
+  while (o != null && o is! RenderRepaintBoundary) {
+    o = o.parent;
+  }
+  if (o is! RenderRepaintBoundary) return;
+  final image = await o.toImage(pixelRatio: 3);
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  await File(path).writeAsBytes(bytes!.buffer.asUint8List());
+  _log('saved $path ${image.width}x${image.height}');
 }
 
 /// Клиентская область ровно 1440×900: рамку окна система считает по-своему,

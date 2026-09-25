@@ -27,6 +27,8 @@ class EvGameCard extends StatefulWidget {
     this.badge,
     this.width = 178,
     this.onTap,
+    this.cover,
+    this.onActiveChanged,
   });
 
   final String title;
@@ -42,6 +44,16 @@ class EvGameCard extends StatefulWidget {
   final double width;
   final VoidCallback? onTap;
 
+  /// Обложка вместо рисованной прототипа — с украшениями приложения.
+  /// Получает, горит ли карточка (под курсором или в фокусе): фольга,
+  /// наклон, искры и капли идут за этим, а кант, тень и блик рисует
+  /// сама обложка, поэтому свои у карточки тогда не нужны.
+  final Widget Function(BuildContext context, bool active)? cover;
+
+  /// Карточка загорелась или погасла. Полка поднимает горящую над
+  /// соседями: иначе соседняя, нарисованная позже, закрывала бы её искры.
+  final ValueChanged<bool>? onActiveChanged;
+
   @override
   State<EvGameCard> createState() => _EvGameCardState();
 }
@@ -49,6 +61,16 @@ class EvGameCard extends StatefulWidget {
 class _EvGameCardState extends State<EvGameCard> {
   bool _hover = false;
   bool _focus = false;
+
+  void _set({bool? hover, bool? focus}) {
+    final was = _hover || _focus;
+    setState(() {
+      _hover = hover ?? _hover;
+      _focus = focus ?? _focus;
+    });
+    final now = _hover || _focus;
+    if (now != was) widget.onActiveChanged?.call(now);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +84,9 @@ class _EvGameCardState extends State<EvGameCard> {
     return MouseRegion(
       onEnter: (_) {
         EvSoundScope.maybeOf(context)?.play(EvVoice.tick);
-        setState(() => _hover = true);
+        _set(hover: true);
       },
-      onExit: (_) => setState(() => _hover = false),
+      onExit: (_) => _set(hover: false),
       child: AnimatedContainer(
         duration: EvMotion.hover,
         curve: EvMotion.easeOut,
@@ -73,91 +95,120 @@ class _EvGameCardState extends State<EvGameCard> {
         child: EvFocusable(
           onActivate: widget.onTap,
           radius: ev.radii.r3,
-          onFocusHighlight: (v) => setState(() => _focus = v),
+          onFocusHighlight: (v) => _set(focus: v),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              AspectRatio(
-                aspectRatio: 3 / 4,
-                child: AnimatedContainer(
-                  duration: EvMotion.hover,
-                  curve: EvMotion.easeOut,
-                  decoration: BoxDecoration(
-                    borderRadius: ev.radii.b3,
-                    border: Border.all(
-                      color: lifted ? c.hot1.withValues(alpha: 0.4) : c.line,
-                    ),
-                    boxShadow: lifted
-                        ? [
-                            ...ev.shadowLift,
-                            BoxShadow(
-                              color: c.hot1.withValues(alpha: 0.3),
-                              blurRadius: 42,
-                            ),
-                          ]
-                        : ev.shadowRest,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: ev.radii.b3,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        EvCover(palette: widget.palette, seed: widget.seed),
-                        // кромка, освещённая изнутри
+              if (widget.cover case final cover?)
+                AspectRatio(
+                  aspectRatio: 3 / 4,
+                  // Искры выходят за обложку: слой их не обрезает.
+                  child: Stack(
+                    fit: StackFit.expand,
+                    clipBehavior: Clip.none,
+                    children: [
+                      cover(context, lifted),
+                      if (widget.badge != null)
                         Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          height: 1,
-                          child: ColoredBox(
-                            color: c.ink.withValues(alpha: 0.16),
+                          top: 9,
+                          left: 9,
+                          child: EvCoverBadge(
+                            widget.badge!,
+                            state: widget.state,
                           ),
                         ),
-                        if (widget.badge != null)
+                      if (widget.progress != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: EvBar(widget.progress!, cool: true, height: 3),
+                        ),
+                    ],
+                  ),
+                )
+              else
+                AspectRatio(
+                  aspectRatio: 3 / 4,
+                  child: AnimatedContainer(
+                    duration: EvMotion.hover,
+                    curve: EvMotion.easeOut,
+                    decoration: BoxDecoration(
+                      borderRadius: ev.radii.b3,
+                      border: Border.all(
+                        color: lifted ? c.hot1.withValues(alpha: 0.4) : c.line,
+                      ),
+                      boxShadow: lifted
+                          ? [
+                              ...ev.shadowLift,
+                              BoxShadow(
+                                color: c.hot1.withValues(alpha: 0.3),
+                                blurRadius: 42,
+                              ),
+                            ]
+                          : ev.shadowRest,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: ev.radii.b3,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          EvCover(palette: widget.palette, seed: widget.seed),
+                          // кромка, освещённая изнутри
                           Positioned(
-                            top: 9,
-                            left: 9,
-                            child: EvCoverBadge(
-                              widget.badge!,
-                              state: widget.state,
-                            ),
-                          ),
-                        if (widget.progress != null)
-                          Positioned(
+                            top: 0,
                             left: 0,
                             right: 0,
-                            bottom: 0,
-                            child: EvBar(
-                              widget.progress!,
-                              cool: true,
-                              height: 3,
+                            height: 1,
+                            child: ColoredBox(
+                              color: c.ink.withValues(alpha: 0.16),
                             ),
                           ),
-                        if (lifted)
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      const Color(0x00FFFFFF),
-                                      c.ink.withValues(alpha: 0.22),
-                                      const Color(0x00FFFFFF),
-                                    ],
-                                    stops: const [0.3, 0.48, 0.62],
+                          if (widget.badge != null)
+                            Positioned(
+                              top: 9,
+                              left: 9,
+                              child: EvCoverBadge(
+                                widget.badge!,
+                                state: widget.state,
+                              ),
+                            ),
+                          if (widget.progress != null)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: EvBar(
+                                widget.progress!,
+                                cool: true,
+                                height: 3,
+                              ),
+                            ),
+                          if (lifted)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        const Color(0x00FFFFFF),
+                                        c.ink.withValues(alpha: 0.22),
+                                        const Color(0x00FFFFFF),
+                                      ],
+                                      stops: const [0.3, 0.48, 0.62],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
               const SizedBox(height: 11),
               Text(
                 widget.title,

@@ -1,3 +1,4 @@
+import '../../../models/game.dart';
 import '../art/key_art.dart';
 import '../library/hero_state.dart';
 import '../returning/return_data.dart';
@@ -30,6 +31,7 @@ class SampleGame {
     this.rateKb,
     this.checking = false,
     this.isNew = false,
+    this.game,
   });
 
   final String title;
@@ -68,6 +70,11 @@ class SampleGame {
   /// Появилась в библиотеке недавно.
   final bool isNew;
 
+  /// Игра приложения, из которой собраны поля выше. Есть — карточка
+  /// показывает её настоящую обложку с украшениями приложения (капли,
+  /// фольга, искры, наклон); нет — рисованную обложку прототипа.
+  final Game? game;
+
   /// Та же игра с другой версией на диске — после обновления.
   SampleGame withVersion(String version) => SampleGame(
     title,
@@ -85,6 +92,7 @@ class SampleGame {
     rateKb: rateKb,
     checking: checking,
     isNew: isNew,
+    game: game,
   );
 
   /// Версия без «v»: «2.4.1».
@@ -103,6 +111,7 @@ class SampleGame {
     blurb: blurb,
     tags: tags,
     isNew: true,
+    game: game,
   );
 
   /// Подпись на полке: «Action-RPG · 284 ч».

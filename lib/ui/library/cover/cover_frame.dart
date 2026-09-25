@@ -21,6 +21,8 @@ class CoverFrame extends StatelessWidget {
     required this.selected,
     required this.dropsEnabled,
     required this.portalEnabled,
+    this.aspectRatio = 2 / 3,
+    this.face,
   });
 
   final Game game;
@@ -30,6 +32,14 @@ class CoverFrame extends StatelessWidget {
 
   /// Искры по краю выбранной обложки.
   final bool portalEnabled;
+
+  /// Пропорции выреза: у сетки — обложка Steam 2:3, у полки прототипа —
+  /// карточка 3:4, и обложка Steam в ней обрезается по высоте.
+  final double aspectRatio;
+
+  /// Лицо обложки вместо обычного (картинка, ход загрузки, значок
+  /// состояния): у полки прототипа значки и подпись свои.
+  final Widget? face;
 
   @override
   Widget build(BuildContext context) {
@@ -69,13 +79,15 @@ class CoverFrame extends StatelessWidget {
           child: ClipRRect(
             borderRadius: radius,
             child: AspectRatio(
-              aspectRatio: 2 / 3,
-              child: CoverFace(
-                game: game,
-                task: task,
-                selected: selected,
-                dropsEnabled: dropsEnabled,
-              ),
+              aspectRatio: aspectRatio,
+              child:
+                  face ??
+                  CoverFace(
+                    game: game,
+                    task: task,
+                    selected: selected,
+                    dropsEnabled: dropsEnabled,
+                  ),
             ),
           ),
         ),

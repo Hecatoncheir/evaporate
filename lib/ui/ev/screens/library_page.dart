@@ -13,6 +13,7 @@ import '../library/ev_side_cards.dart';
 import '../library/library_layout.dart';
 import '../util/plural.dart';
 import '../util/units.dart';
+import '../widgets/ev_effect_cover.dart';
 import '../widgets/ev_game_card.dart';
 import '../widgets/ev_surfaces.dart';
 
@@ -260,7 +261,7 @@ class _Bare extends StatelessWidget {
 
 /// Полка: ряд обложек с горизонтальной прокруткой. Сверху запас на подъём
 /// карточки при наведении, иначе её кромку срезало бы.
-class _Shelf extends StatelessWidget {
+class _Shelf extends StatefulWidget {
   const _Shelf({required this.games, required this.layout, this.onOpen});
 
   final List<SampleGame> games;
@@ -268,31 +269,103 @@ class _Shelf extends StatelessWidget {
   final ValueChanged<SampleGame>? onOpen;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    // 8 + 16 — те же 24 px, что 6 + 18 в прототипе, но подъём на 8 px
-    // помещается целиком
-    padding: EdgeInsets.only(top: 8, bottom: layout.shelfBottom - 2),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final (i, g) in games.indexed) ...[
-          if (i > 0) const SizedBox(width: 16),
-          EvGameCard(
-            title: g.title,
-            subtitle: g.subtitle,
-            palette: g.palette,
-            seed: g.seed,
-            state: g.state,
-            progress: g.progress,
-            badge: g.badge,
-            width: layout.cardWidth,
-            onTap: onOpen == null ? null : () => onOpen!(g),
-          ),
+  State<_Shelf> createState() => _ShelfState();
+}
+
+/// Карточки лежат слоями на своих местах, а не рядом в строке: горящая
+/// рисуется последней, поверх соседей. Иначе соседняя, нарисованная позже,
+/// закрывала бы искры по её кромке.
+class _ShelfState extends State<_Shelf> {
+  static const _gap = 16.0;
+
+  /// Какая карточка горит — под курсором или в фокусе.
+  int? _active;
+
+  void _activeChanged(int index, bool active) {
+    if (active) {
+      setState(() => _active = index);
+    } else if (_active == index) {
+      setState(() => _active = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final games = widget.games;
+    final layout = widget.layout;
+    final active = _active != null && _active! < games.length ? _active : null;
+    final order = [
+      for (var i = 0; i < games.length; i++)
+        if (i != active) i,
+      ?active,
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      // Искры выходят за кромку карточки: полка их не обрезает.
+      clipBehavior: Clip.none,
+      // 8 + 16 — те же 24 px, что 6 + 18 в прототипе, но подъём на 8 px
+      // помещается целиком
+      padding: EdgeInsets.only(top: 8, bottom: layout.shelfBottom - 2),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (final i in order)
+            Padding(
+              key: ValueKey(games[i].game?.id ?? '${games[i].title}#$i'),
+              padding: EdgeInsets.only(left: i * (layout.cardWidth + _gap)),
+              child: _ShelfCard(
+                game: games[i],
+                width: layout.cardWidth,
+                onOpen: widget.onOpen,
+                onActiveChanged: (value) => _activeChanged(i, value),
+              ),
+            ),
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
+}
+
+/// Одна карточка полки: у настоящей игры обложка приложения с его
+/// украшениями, у примера — рисованная обложка прототипа.
+class _ShelfCard extends StatelessWidget {
+  const _ShelfCard({
+    required this.game,
+    required this.width,
+    required this.onActiveChanged,
+    this.onOpen,
+  });
+
+  final SampleGame game;
+  final double width;
+  final ValueChanged<SampleGame>? onOpen;
+  final ValueChanged<bool> onActiveChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final g = game;
+    return EvGameCard(
+      title: g.title,
+      subtitle: g.subtitle,
+      palette: g.palette,
+      seed: g.seed,
+      state: g.state,
+      progress: g.progress,
+      badge: g.badge,
+      width: width,
+      onTap: onOpen == null ? null : () => onOpen!(g),
+      onActiveChanged: onActiveChanged,
+      cover: switch (g.game) {
+        final real? => (context, active) => EvEffectCover(
+          game: real,
+          active: active,
+          palette: g.palette,
+          seed: g.seed,
+        ),
+        null => null,
+      },
+    );
+  }
 }
 
 /// Правая колонка широкого окна: то, что на узком живёт всплывающими
