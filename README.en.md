@@ -477,8 +477,8 @@ falls short of the threshold as text on a pale background, so a single token for
 both roles would mean either dull buttons or unreadable captions. `accent` and
 `accentFill` are separated the same way. Three more tokens describe **material**
 rather than meaning: `glow` (the halo — transparent by day, since a pale chassis
-does not glow), `depth` (the edge under a key — transparent at night) and
-`shadow`.
+does not glow), `depth` (the edge under a key — in both schemes, never under a
+label) and `shadow`.
 
 Colours are handed out by a theme extension (`context.colors.textSecondary`)
 rather than as constants: the two schemes could not otherwise coexist. All of

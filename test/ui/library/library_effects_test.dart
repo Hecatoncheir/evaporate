@@ -175,7 +175,7 @@ void main() {
       final image = await picture.toImage(32, 32);
       try {
         final pixels = (await image.toByteData())!.buffer.asUint8List();
-        // Ядро светится первым цветом кольца: фаза −1 попадает в него.
+        // Ядро светится первым цветом кольца: фаза 0 попадает в него.
         final core = libraryInkColors.first;
         expect(pixels.sublist((16 * 32 + 16) * 4, (16 * 32 + 16) * 4 + 4), [
           closeTo(core.r * 255, 1),
