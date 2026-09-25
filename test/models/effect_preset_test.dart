@@ -43,6 +43,7 @@ void main() {
         calm.isOn(LibraryEffect.liquidDistortion),
         calm.isOn(LibraryEffect.liquidSelection),
         calm.isOn(LibraryEffect.ambient),
+        calm.isOn(LibraryEffect.glass),
         calm.isOn(LibraryEffect.heroSweep),
         calm.isOn(LibraryEffect.shotsBackdrop),
         calm.isOn(LibraryEffect.drops),

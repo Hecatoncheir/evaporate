@@ -30,6 +30,7 @@ void main() {
       expect(settings.appearance.isOn(LibraryEffect.liquidDistortion), isFalse);
       expect(settings.appearance.isOn(LibraryEffect.liquidSelection), isFalse);
       expect(settings.appearance.isOn(LibraryEffect.ambient), isTrue);
+      expect(settings.appearance.isOn(LibraryEffect.glass), isTrue);
       expect(settings.appearance.isOn(LibraryEffect.heroSweep), isTrue);
       expect(settings.appearance.isOn(LibraryEffect.shotsBackdrop), isTrue);
       expect(settings.appearance.isOn(LibraryEffect.coverBackdrop), isTrue);
@@ -65,6 +66,7 @@ void main() {
       base.withAppearance(
         (a) => a.withEffect(LibraryEffect.ambient, on: false),
       ),
+      base.withAppearance((a) => a.withEffect(LibraryEffect.glass, on: false)),
       base.withAppearance(
         (a) => a.withEffect(LibraryEffect.heroSweep, on: false),
       ),

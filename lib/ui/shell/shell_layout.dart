@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme.dart';
 import 'rack_navigation.dart';
 import 'shell_panel.dart';
 
@@ -27,23 +28,32 @@ class ShellLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, box) {
-        final inset = box.maxWidth < _compactWidth ? compactInset : wideInset;
-        return Padding(
-          padding: EdgeInsets.all(inset),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const RackNavigation(),
-              // Просвет между обоймой и панелью — то же поле, что у края
-              // окна: две панели корпуса стоят на одном расстоянии от всего.
-              SizedBox(width: inset),
-              Expanded(child: ShellPanel(hints: box.maxHeight >= _shortHeight)),
-            ],
-          ),
-        );
-      },
+    // Стёкла обоймы, рейки и строки подсказок читают один снимок фона на
+    // всех (`ShellGlass`). Снимок берётся на первом из них, поэтому обойма
+    // рисуется после панели, хотя стоит левее: первой была бы она, и рейка
+    // со строкой показали бы сквозь себя свет корпуса без волны и заливки
+    // панели, нарисованных позже.
+    return BackdropGroup(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final inset = box.maxWidth < _compactWidth ? compactInset : wideInset;
+          return Padding(
+            padding: EdgeInsets.all(inset),
+            child: Stack(
+              children: [
+                // Просвет между обоймой и панелью — то же поле, что у края
+                // окна: две панели корпуса стоят на одном расстоянии от
+                // всего.
+                Positioned.fill(
+                  left: EvaporateLayout.railWidth + inset,
+                  child: ShellPanel(hints: box.maxHeight >= _shortHeight),
+                ),
+                const Positioned.fill(right: null, child: RackNavigation()),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

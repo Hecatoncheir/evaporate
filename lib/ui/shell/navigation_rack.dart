@@ -7,6 +7,7 @@ import '../../models/library_effect.dart';
 import '../theme.dart';
 import '../widgets/liquid/liquid_selection.dart';
 import 'navigation_key.dart';
+import 'shell_glass.dart';
 import 'window_drag_area.dart';
 
 /// Обойма разделов: колонка слева во всю высоту окна — знак сверху, под
@@ -40,57 +41,55 @@ class NavigationRack extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final surface = HardwareSurfaceTheme.of(context);
-    return Container(
+    return ShellGlass(
       key: const ValueKey('navigation-rack'),
-      width: EvaporateLayout.railWidth,
-      padding: const EdgeInsets.symmetric(vertical: EvaporateSpacing.field),
-      decoration: BoxDecoration(
-        color: colors.railBackground,
-        border: Border.all(color: colors.outline),
-        borderRadius: BorderRadius.circular(EvaporateTheme.radiusPanel),
-        boxShadow: [
-          // Ночью обойма лежит в мягкой тени, днём — на коротком жёстком
-          // торце: один и тот же приём выглядел бы на светлом грязью.
-          BoxShadow(
-            color: colors.shadow,
-            blurRadius: surface.railShadowBlur,
-            offset: Offset(0, surface.railShadowDrop),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const _RailMark(),
-          const SizedBox(height: EvaporateSpacing.panel),
-          LiquidSelection(
-            key: const ValueKey('rail-liquid'),
-            targetKey: () => targets[section],
-            color: colors.selection,
-            radius: EvaporateTheme.radiusControl,
-            enabled: context.select<SettingsBloc, bool>(
-              (b) => b.state.appearance.shows(LibraryEffect.liquidSelection),
+      radius: EvaporateTheme.radiusPanel,
+      shadows: [
+        // Ночью обойма лежит в мягкой тени, днём — на коротком жёстком
+        // торце: один и тот же приём выглядел бы на светлом грязью.
+        BoxShadow(
+          color: colors.shadow,
+          blurRadius: surface.railShadowBlur,
+          offset: Offset(0, surface.railShadowDrop),
+        ),
+      ],
+      child: Container(
+        width: EvaporateLayout.railWidth,
+        padding: const EdgeInsets.symmetric(vertical: EvaporateSpacing.field),
+        child: Column(
+          children: [
+            const _RailMark(),
+            const SizedBox(height: EvaporateSpacing.panel),
+            LiquidSelection(
+              key: const ValueKey('rail-liquid'),
+              targetKey: () => targets[section],
+              color: colors.selection,
+              radius: EvaporateTheme.radiusControl,
+              enabled: context.select<SettingsBloc, bool>(
+                (b) => b.state.appearance.shows(LibraryEffect.liquidSelection),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                spacing: EvaporateSpacing.line,
+                children: [
+                  for (final value in AppSection.values)
+                    NavigationKey(
+                      key: ValueKey('rail-${value.name}'),
+                      targetKey: targets[value]!,
+                      section: value,
+                      label: labels[value]!,
+                      icon: icons[value]!,
+                      selected: section == value,
+                      queued: queuedAt[value] ?? 0,
+                    ),
+                ],
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: EvaporateSpacing.line,
-              children: [
-                for (final value in AppSection.values)
-                  NavigationKey(
-                    key: ValueKey('rail-${value.name}'),
-                    targetKey: targets[value]!,
-                    section: value,
-                    label: labels[value]!,
-                    icon: icons[value]!,
-                    selected: section == value,
-                    queued: queuedAt[value] ?? 0,
-                  ),
-              ],
-            ),
-          ),
-          // Пустое поле обоймы под клавишами тянет окно, как верхняя
-          // рейка: взяться за окно у левого края — такое же ожидание.
-          const Expanded(child: WindowDragArea()),
-        ],
+            // Пустое поле обоймы под клавишами тянет окно, как верхняя
+            // рейка: взяться за окно у левого края — такое же ожидание.
+            const Expanded(child: WindowDragArea()),
+          ],
+        ),
       ),
     );
   }

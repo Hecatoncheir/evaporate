@@ -69,6 +69,7 @@ class EffectDetails extends StatelessWidget {
     LibraryEffect.liquidDistortion => l.effectLiquidDistortion,
     LibraryEffect.liquidSelection => l.effectLiquidSelection,
     LibraryEffect.ambient => l.effectAmbient,
+    LibraryEffect.glass => l.effectGlass,
     LibraryEffect.heroSweep => l.effectHeroSweep,
     LibraryEffect.shotsBackdrop => l.effectShotsBackdrop,
     LibraryEffect.coverBackdrop => l.effectCoverBackdrop,
@@ -82,6 +83,7 @@ class EffectDetails extends StatelessWidget {
   /// эффекта своя или он есть не у каждой игры.
   static String? _note(L l, LibraryEffect effect) => switch (effect) {
     LibraryEffect.ambient => l.effectAmbientNote,
+    LibraryEffect.glass => l.effectGlassNote,
     LibraryEffect.shotsBackdrop => l.effectShotsBackdropNote,
     LibraryEffect.drops => l.effectDropsNote,
     LibraryEffect.portal => l.effectPortalNote,

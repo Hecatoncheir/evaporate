@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   const GlassSurfaceTheme({
     required this.fillOpacity,
+    required this.opaqueFillOpacity,
     required this.sheenTopOpacity,
     required this.sheenBottomOpacity,
     required this.rimOpacity,
@@ -24,6 +25,12 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
   /// Непрозрачность панели по умолчанию.
   final double fillOpacity;
+
+  /// Непрозрачность панели, которая подложку не читает, — стекла полос
+  /// каркаса при выключенном «Стекле». Без размытия панель держится одной
+  /// заливкой, поэтому та плотнее: прозрачная панель поверх резкого фона
+  /// выглядит не стеклом, а грязью.
+  final double opaqueFillOpacity;
 
   /// Отлив сверху слева; `null` — как заливка. Днём корпус светлее у кромки.
   final double? sheenTopOpacity;
@@ -55,6 +62,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   // где сильное размытие и насыщенность читались бы грязью на панели.
   static const arclight = GlassSurfaceTheme(
     fillOpacity: 0.62,
+    opaqueFillOpacity: 0.9,
     sheenTopOpacity: null,
     sheenBottomOpacity: 0.62,
     rimOpacity: 0.15,
@@ -66,6 +74,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
 
   static const cartridge = GlassSurfaceTheme(
     fillOpacity: 0.72,
+    opaqueFillOpacity: 0.94,
     sheenTopOpacity: 0.98,
     sheenBottomOpacity: 0.72,
     rimOpacity: 0.32,
@@ -81,6 +90,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   /// Все поля по порядку — для проверки, что `lerp` не забыл ни одного.
   List<Object?> get values => [
     fillOpacity,
+    opaqueFillOpacity,
     sheenTopOpacity,
     sheenBottomOpacity,
     rimOpacity,
@@ -93,6 +103,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
   @override
   GlassSurfaceTheme copyWith({double? fillOpacity}) => GlassSurfaceTheme(
     fillOpacity: fillOpacity ?? this.fillOpacity,
+    opaqueFillOpacity: opaqueFillOpacity,
     sheenTopOpacity: sheenTopOpacity,
     sheenBottomOpacity: sheenBottomOpacity,
     rimOpacity: rimOpacity,
@@ -108,6 +119,7 @@ class GlassSurfaceTheme extends ThemeExtension<GlassSurfaceTheme> {
     double mix(double a, double b) => lerpDouble(a, b, t)!;
     return GlassSurfaceTheme(
       fillOpacity: mix(fillOpacity, other.fillOpacity),
+      opaqueFillOpacity: mix(opaqueFillOpacity, other.opaqueFillOpacity),
       // Концы смешиваются как есть: на `t = 0` и `t = 1` получается ровно
       // своя схема, в том числе «как заливка» у ночной.
       sheenTopOpacity: t == 0

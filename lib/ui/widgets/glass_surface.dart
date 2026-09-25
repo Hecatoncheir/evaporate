@@ -22,6 +22,15 @@ class GlassSurface extends StatelessWidget {
   final double? opacity;
   final bool shadow;
 
+  /// Кант по всем краям — у отдельной панели. Полосам каркаса у края
+  /// панели он нужен только на стыке с разделами.
+  static const allSides = {
+    AxisDirection.up,
+    AxisDirection.right,
+    AxisDirection.down,
+    AxisDirection.left,
+  };
+
   /// Что стекло делает с подложкой: размывает её, а размытое — ночью —
   /// делает насыщеннее и темнее: стекло собирает свет, и под ним он гуще,
   /// чем рядом. Днём стекло почти только размывает: на светлом корпусе
@@ -30,54 +39,87 @@ class GlassSurface extends StatelessWidget {
   ///
   /// Отдельно от виджета, потому что стекло бывает и сливером: фильтр у
   /// двух карточек рядом обязан быть один.
-  static ImageFilter filterOf(GlassSurfaceTheme glass) {
+  static ImageFilter filterOf(GlassSurfaceTheme glass) => ImageFilter.compose(
+    outer: _tintOf(glass),
+    inner: ImageFilter.blur(
+      sigmaX: glass.backdropBlur,
+      sigmaY: glass.backdropBlur,
+    ),
+  );
+
+  /// Тот же фильтр для стёкол, читающих общий снимок фона
+  /// (`BackdropFilter.grouped`), — с размытием, которое берёт подложку
+  /// только из-под самой панели: снимок один на весь экран, и обычное
+  /// размытие тянуло бы на край панели цвет соседа. [blurScale] — качество
+  /// украшений.
+  static ImageFilterConfig groupedFilterOf(
+    GlassSurfaceTheme glass, {
+    double blurScale = 1,
+  }) => ImageFilterConfig.compose(
+    outer: ImageFilterConfig(_tintOf(glass)),
+    inner: ImageFilterConfig.blur(
+      sigmaX: glass.backdropBlur * blurScale,
+      sigmaY: glass.backdropBlur * blurScale,
+      bounded: true,
+    ),
+  );
+
+  static ColorFilter _tintOf(GlassSurfaceTheme glass) {
     const lr = 0.2126, lg = 0.7152, lb = 0.0722;
     final s = glass.backdropSaturation;
     final b = glass.backdropBrightness;
-    return ImageFilter.compose(
-      outer: ColorFilter.matrix([
-        (lr + (1 - lr) * s) * b, (lg - lg * s) * b, (lb - lb * s) * b, 0, 0, //
-        (lr - lr * s) * b, (lg + (1 - lg) * s) * b, (lb - lb * s) * b, 0, 0, //
-        (lr - lr * s) * b, (lg - lg * s) * b, (lb + (1 - lb) * s) * b, 0, 0, //
-        0, 0, 0, 1, 0,
-      ]),
-      inner: ImageFilter.blur(
-        sigmaX: glass.backdropBlur,
-        sigmaY: glass.backdropBlur,
-      ),
-    );
+    return ColorFilter.matrix([
+      (lr + (1 - lr) * s) * b, (lg - lg * s) * b, (lb - lb * s) * b, 0, 0, //
+      (lr - lr * s) * b, (lg + (1 - lg) * s) * b, (lb - lb * s) * b, 0, 0, //
+      (lr - lr * s) * b, (lg - lg * s) * b, (lb + (1 - lb) * s) * b, 0, 0, //
+      0, 0, 0, 1, 0,
+    ]);
   }
 
   /// Заливка, отлив, кант и тени стекла — без размытия и обрезки.
   ///
   /// Отдельно от виджета, потому что стекло бывает и сливером
   /// (`GlassSliver`): ленивый список в коробку не обернуть, а облик у двух
-  /// карточек рядом обязан быть один.
+  /// карточек рядом обязан быть один. И полосой каркаса (`ShellGlass`),
+  /// которая знает флаг «Стекло»: [opaque] — панель, не читающая подложку,
+  /// с плотной заливкой без просвета к углу.
   static BoxDecoration decorationOf(
     BuildContext context, {
     required double radius,
     double? opacity,
     bool shadow = true,
+    bool opaque = false,
+    Set<AxisDirection> rim = allSides,
   }) {
     final colors = context.colors;
     final surface = HardwareSurfaceTheme.of(context);
     final glass = GlassSurfaceTheme.of(context);
-    final effectiveOpacity = opacity ?? glass.fillOpacity;
+    final fill = opaque
+        ? glass.opaqueFillOpacity
+        : opacity ?? glass.fillOpacity;
+    final edge = BorderSide(
+      color: colors.textPrimary.withValues(alpha: glass.rimOpacity),
+    );
+    BorderSide side(AxisDirection at) =>
+        rim.contains(at) ? edge : BorderSide.none;
     return BoxDecoration(
-      color: colors.surface.withValues(alpha: effectiveOpacity),
+      color: colors.surface.withValues(alpha: fill),
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          colors.surface.withValues(
-            alpha: glass.sheenTopOpacity ?? effectiveOpacity,
+          colors.surface.withValues(alpha: glass.sheenTopOpacity ?? fill),
+          colors.surfaceHigh.withValues(
+            alpha: opaque ? fill : glass.sheenBottomOpacity,
           ),
-          colors.surfaceHigh.withValues(alpha: glass.sheenBottomOpacity),
         ],
       ),
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(
-        color: colors.textPrimary.withValues(alpha: glass.rimOpacity),
+      border: Border(
+        top: side(AxisDirection.up),
+        right: side(AxisDirection.right),
+        bottom: side(AxisDirection.down),
+        left: side(AxisDirection.left),
       ),
       boxShadow: shadow
           ? [

@@ -36,6 +36,7 @@ void main() {
   test('без насыщенности и яркости стекло только размывает', () {
     const plain = GlassSurfaceTheme(
       fillOpacity: 0.6,
+      opaqueFillOpacity: 0.9,
       sheenTopOpacity: null,
       sheenBottomOpacity: 0.6,
       rimOpacity: 0.1,
@@ -57,5 +58,31 @@ void main() {
         inner: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
       ),
     );
+  });
+  // Полосе у края панели кант нужен только на стыке с разделами: верх и
+  // бока у неё — края самой панели, со своим кантом.
+  testWidgets('кант стекла идёт только по названным краям', (tester) async {
+    late BoxDecoration all, bottom;
+    await tester.pumpWidget(
+      hostWidget(
+        Builder(
+          builder: (context) {
+            all = GlassSurface.decorationOf(context, radius: 0);
+            bottom = GlassSurface.decorationOf(
+              context,
+              radius: 0,
+              rim: const {AxisDirection.down},
+            );
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+
+    final full = all.border! as Border;
+    final seam = bottom.border! as Border;
+    expect(full.isUniform, isTrue);
+    expect(seam.bottom, full.bottom);
+    expect([seam.top, seam.left, seam.right], everyElement(BorderSide.none));
   });
 }

@@ -7,6 +7,7 @@ import '../../input/gamepad_service.dart';
 import '../theme.dart';
 import 'button_hints.dart';
 import 'engine_readout.dart';
+import 'shell_glass.dart';
 
 /// Строка подсказок внизу окна: чем управлять прямо сейчас и едет ли
 /// обмен.
@@ -26,39 +27,33 @@ class HintsBar extends StatelessWidget {
       (b) => b.state.gamepad,
     );
     final gamepad = context.read<GamepadService>();
-    return Container(
-      height: EvaporateLayout.hintsHeight,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.card),
-      decoration: BoxDecoration(
-        color: context.colors.railBackground.withValues(
-          alpha: EvaporateAlpha.veil,
-        ),
-        border: Border(
-          top: BorderSide(
-            color: context.colors.outline.withValues(
-              alpha: EvaporateAlpha.soft,
-            ),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ValueListenableBuilder<GamepadStatus>(
-                valueListenable: gamepad.status,
-                builder: (context, status, _) => ButtonHints(
-                  binding: gamepadBinding,
-                  gamepadConnected: gamepadBinding.enabled && status.hasDevice,
+    // Кант — только на стыке с разделами: остальные края строки — края
+    // самой панели.
+    return ShellGlass(
+      rim: const {AxisDirection.up},
+      child: Container(
+        height: EvaporateLayout.hintsHeight,
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.card),
+        child: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ValueListenableBuilder<GamepadStatus>(
+                  valueListenable: gamepad.status,
+                  builder: (context, status, _) => ButtonHints(
+                    binding: gamepadBinding,
+                    gamepadConnected:
+                        gamepadBinding.enabled && status.hasDevice,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: EvaporateSpacing.panel),
-          const EngineReadout(),
-        ],
+            const SizedBox(width: EvaporateSpacing.panel),
+            const EngineReadout(),
+          ],
+        ),
       ),
     );
   }

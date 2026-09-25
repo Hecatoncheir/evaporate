@@ -375,10 +375,18 @@ void main() {
   });
 
   // Снимок — в двух окнах и с обложками: на пустой библиотеке не видно
-  // главного, помещается ли первый ряд. Путь из переменной получает
-  // размер окна перед расширением.
-  for (final window in [const Size(900, 620), const Size(1280, 900)]) {
-    final size = '${window.width.round()}x${window.height.round()}';
+  // главного, помещается ли первый ряд. И в дневной схеме: подписи на
+  // стекле Картриджа проверяются глазами — страж контраста не меряет их
+  // на размытой подложке. Путь из переменной получает размер окна и схему
+  // перед расширением.
+  for (final (window, light) in [
+    (const Size(900, 620), false),
+    (const Size(1280, 900), false),
+    (const Size(1280, 900), true),
+  ]) {
+    final size =
+        '${window.width.round()}x${window.height.round()}'
+        '${light ? '-light' : ''}';
     testWidgets('в окне $size со своей рамкой библиотека помещается', (
       tester,
     ) async {
@@ -393,6 +401,7 @@ void main() {
       final boundaryKey = GlobalKey();
       await tester.pumpWidget(
         harness.buildApp(
+          theme: light ? EvaporateTheme.light() : null,
           builder: (context, child) => RepaintBoundary(
             key: boundaryKey,
             child: AppWindowFrame(child: child!),
