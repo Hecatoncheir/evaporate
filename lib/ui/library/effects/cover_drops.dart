@@ -41,8 +41,8 @@ class CoverDrops extends StatefulWidget {
   static Future<ui.FragmentProgram> program() =>
       _program ??= ui.FragmentProgram.fromAsset('assets/shaders/drops.frag');
 
-  /// Подменяется в тестах: настоящий шейдер там не собрать — он компилируется
-  /// при сборке приложения, а прогон тестов её не делает.
+  /// Подменяется в тестах: отказ шейдера на чужой машине иначе не
+  /// воспроизвести, а настоящую программу тест грузит сам — в своём времени.
   @visibleForTesting
   static void useProgram(Future<ui.FragmentProgram>? value) => _program = value;
 

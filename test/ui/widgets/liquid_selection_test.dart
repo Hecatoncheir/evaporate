@@ -87,6 +87,7 @@ void main() {
                     targetKey: () => missing ? null : targets[selected],
                     enabled: enabled,
                     color: Colors.orange,
+                    radius: 18,
                     child: content,
                   ),
                 ),
@@ -343,6 +344,7 @@ void main() {
         home: LiquidSelection(
           targetKey: () => target,
           color: const Color(0xFF806040),
+          radius: 18,
           child: Center(
             child: Transform(
               // Матрица без обратной: перевод в координаты подложки делит

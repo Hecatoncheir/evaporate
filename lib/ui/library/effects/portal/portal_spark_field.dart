@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 
 import 'portal_outline.dart';
@@ -107,7 +108,11 @@ class PortalSparkField {
     return math.pow(fade, 1.35).toDouble() * blink;
   }
 
+  @visibleForTesting
   Offset positionOf(PortalSpark spark) => spark.position;
+
+  /// Конец хвоста искры — туда, откуда она летит. Считает его одно место:
+  /// художник рисует искру тем же хвостом, что проверяют тесты.
   Offset tailOf(PortalSpark spark) =>
       spark.position - spark.velocity * spark.trail;
 }

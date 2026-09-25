@@ -17,15 +17,14 @@ class LiquidSelection extends StatefulWidget {
     required this.color,
     required this.child,
     this.enabled = true,
-    this.radius = 18,
+    required this.radius,
     this.padding = EdgeInsets.zero,
-    this.resting = true,
   });
 
   final GlobalKey? Function() targetKey;
   final Color color;
   final Widget child;
-  final bool enabled, resting;
+  final bool enabled;
   final double radius;
   final EdgeInsets padding;
 
@@ -52,7 +51,10 @@ class LiquidSelectionState extends State<LiquidSelection>
   bool _queued = false;
   bool _allowed = false;
 
+  @visibleForTesting
   bool get isAnimating => _animation.isAnimating;
+
+  @visibleForTesting
   Rect? get targetRect => _to;
 
   @override
@@ -180,7 +182,6 @@ class LiquidSelectionState extends State<LiquidSelection>
                           painter: LiquidPainter(
                             geometry: geometry,
                             color: widget.color,
-                            resting: widget.resting,
                           ),
                         ),
                       ),

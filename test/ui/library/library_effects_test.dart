@@ -472,7 +472,7 @@ void main() {
           find.byType(LibraryAtmosphere),
         );
         expect(state.isAnimating, isTrue);
-        expect(state.targetRect, isNotNull);
+        expect(state.field.card, isNotNull);
         expect(
           tester
               .stateList<FoilCardState>(find.byType(FoilCard))
@@ -480,14 +480,14 @@ void main() {
               .length,
           1,
         );
-        final before = state.targetIdentity;
+        final before = state.field.card;
         final mouse = await tester.createGesture(
           kind: ui.PointerDeviceKind.mouse,
         );
         await mouse.addPointer(location: const Offset(1250, 850));
         await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(2)));
         await frames(tester, 4);
-        expect(state.targetIdentity, isNot(before));
+        expect(state.field.card, isNot(before));
         expect(
           tester
               .widgetList<FoilCard>(find.byType(FoilCard))
@@ -510,10 +510,10 @@ void main() {
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
         await frames(tester, 40);
         expect(harness.nav.state.selectedGameId, isNot(previousSelection));
-        final rect = state.targetRect!;
+        final rect = state.field.card!;
         await tester.drag(find.byType(GridView), const Offset(0, -120));
         await frames(tester, 30);
-        expect(state.targetRect?.top, isNot(rect.top));
+        expect(state.field.card?.top, isNot(rect.top));
         tester.view.physicalSize = const Size(1100, 760);
         await frames(tester, 10);
         expect(state.field.size.width, lessThan(1100));

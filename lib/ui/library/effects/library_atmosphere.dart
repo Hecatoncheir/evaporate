@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../../widgets/decoration_clock.dart';
+import '../../widgets/pointer_trail.dart';
 import 'particle_field.dart';
 
 /// Одна ограниченная симуляция и один слой перерисовки. Сетка обложек —
@@ -30,10 +31,10 @@ class LibraryAtmosphere extends StatefulWidget {
 
 class LibraryAtmosphereState extends State<LibraryAtmosphere>
     with SingleTickerProviderStateMixin, DecorationClock {
+  @visibleForTesting
   final field = ParticleField();
-  Rect? targetRect;
-  Object? targetIdentity;
   final _repaint = _PaintSignal();
+  PointerTrail? _trail;
   final _viewport = GlobalKey();
   double _ambientTime = 0;
 
@@ -42,6 +43,12 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
       widget.enabled &&
       (widget.particlesEnabled ||
           (widget.ambientEnabled && EffectsPalette.of(context).ambientWash));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _trail = PointerTrail.maybeOf(context);
+  }
 
   @override
   void syncClock() {
@@ -63,14 +70,24 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
       final candidate = offset & tile.size;
       if (candidate.overlaps(Offset.zero & box.size)) rect = candidate;
     }
-    targetRect = rect;
-    targetIdentity = rect == null ? null : key;
     _ambientTime += dt;
     if (widget.particlesEnabled) {
       field.card = rect?.inflate(8);
+      field.pointer = _pointerIn(box);
       field.step(dt);
     }
     _repaint.repaint();
+  }
+
+  /// Курсор над фоном — в точках фона, без сглаживания: частицы
+  /// отвечают на руку сразу. Над другим разделом, над полосами оболочки и
+  /// без курсора вовсе — `null`, и частицам не за чем следить.
+  Offset? _pointerIn(RenderBox box) {
+    final trail = _trail;
+    if (trail == null || !trail.hasInput) return null;
+    final local = trail.localIn(box, trail.target);
+    if (local == null || !(Offset.zero & box.size).contains(local)) return null;
+    return local;
   }
 
   @override
@@ -81,57 +98,49 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onHover: (event) {
-        if (clockRunning && widget.particlesEnabled) {
-          field.pointer = event.localPosition;
-        }
-      },
-      onExit: (_) => field.pointer = null,
-      child: ClipRect(
-        key: _viewport,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Уменьшенная анимация оставляет точки неподвижными, а явное
-            // выключение убирает их вовсе: остановленная симуляция всё ещё
-            // рисует, и «выключено» должно значить «не видно».
-            if (widget.enabled && widget.particlesEnabled) {
-              field.resize(constraints.biggest);
-            } else {
-              field.particles.clear();
-              field.size = Size.zero;
-              field.pointer = null;
-              field.card = null;
-            }
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                if (widget.enabled)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: RepaintBoundary(
-                        child: CustomPaint(
-                          key: const ValueKey('library-atmosphere-paint'),
-                          painter: _AtmospherePainter(
-                            field: field,
-                            effects: EffectsPalette.of(context),
-                            particlesEnabled: widget.particlesEnabled,
-                            ambientEnabled: widget.ambientEnabled,
-                            ambientTime: () => _ambientTime,
-                            animated:
-                                widget.enabled &&
-                                !MediaQuery.disableAnimationsOf(context),
-                            repaint: _repaint,
-                          ),
+    return ClipRect(
+      key: _viewport,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Уменьшенная анимация оставляет точки неподвижными, а явное
+          // выключение убирает их вовсе: остановленная симуляция всё ещё
+          // рисует, и «выключено» должно значить «не видно».
+          if (widget.enabled && widget.particlesEnabled) {
+            field.resize(constraints.biggest);
+          } else {
+            field.particles.clear();
+            field.size = Size.zero;
+            field.pointer = null;
+            field.card = null;
+          }
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              if (widget.enabled)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        key: const ValueKey('library-atmosphere-paint'),
+                        painter: _AtmospherePainter(
+                          field: field,
+                          effects: EffectsPalette.of(context),
+                          particlesEnabled: widget.particlesEnabled,
+                          ambientEnabled: widget.ambientEnabled,
+                          ambientTime: () => _ambientTime,
+                          animated:
+                              widget.enabled &&
+                              !MediaQuery.disableAnimationsOf(context),
+                          repaint: _repaint,
                         ),
                       ),
                     ),
                   ),
-                RepaintBoundary(child: widget.child),
-              ],
-            );
-          },
-        ),
+                ),
+              RepaintBoundary(child: widget.child),
+            ],
+          );
+        },
       ),
     );
   }

@@ -365,7 +365,6 @@ const _lonelyShared = <String>[];
 const _longClosures = [
   'lib/ui/downloads/downloads_page.dart: DownloadsPage.build: 36',
   'lib/ui/downloads/queue_column.dart: QueueColumn.build: 38',
-  'lib/ui/library/effects/game_wave.dart: _GameWaveState.build: 43',
   'lib/ui/library/effects/library_atmosphere.dart: LibraryAtmosphereState.build: 40',
   'lib/ui/library/effects/portal/portal_sparks.dart: PortalSparksState.build: 30',
   'lib/ui/library/featured/shots_slideshow.dart: ShotsSlideshow.build: 40',

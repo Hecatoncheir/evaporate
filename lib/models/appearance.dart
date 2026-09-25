@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'app_theme_mode.dart';
+import 'effect_quality.dart';
 import 'library_effect.dart';
 
 /// Облик приложения: схема, язык, масштабы и украшения.
@@ -20,6 +21,7 @@ class Appearance extends Equatable {
     this.libraryScale = 1,
     this.libraryEffects = true,
     this.effects = LibraryEffect.shipped,
+    this.effectQuality = EffectQuality.full,
   });
 
   /// Светлая, тёмная или как в системе.
@@ -50,6 +52,10 @@ class Appearance extends Equatable {
   /// выбор человека.
   final Set<LibraryEffect> effects;
 
+  /// Насколько дороги включённые украшения — отдельно от того, какие
+  /// включены.
+  final EffectQuality effectQuality;
+
   /// Языки, на которые приложение переведено.
   static const supportedLocales = ['ru', 'en'];
 
@@ -77,6 +83,7 @@ class Appearance extends Equatable {
     double? libraryScale,
     bool? libraryEffects,
     Set<LibraryEffect>? effects,
+    EffectQuality? effectQuality,
   }) => Appearance(
     themeMode: themeMode ?? this.themeMode,
     locale: locale == _unset ? this.locale : locale as String?,
@@ -84,6 +91,7 @@ class Appearance extends Equatable {
     libraryScale: libraryScale ?? this.libraryScale,
     libraryEffects: libraryEffects ?? this.libraryEffects,
     effects: effects ?? this.effects,
+    effectQuality: effectQuality ?? this.effectQuality,
   );
 
   Map<String, dynamic> toJson() => {
@@ -96,6 +104,7 @@ class Appearance extends Equatable {
     // появления набора, читаются как раньше — и записываются так же.
     for (final effect in LibraryEffect.values)
       effect.jsonKey: effects.contains(effect),
+    'effectQuality': effectQuality.name,
   };
 
   /// Прочитанные значения зажимаются в границы, а незнакомые становятся
@@ -116,6 +125,7 @@ class Appearance extends Equatable {
     ),
     libraryEffects: json['libraryEffects'] as bool? ?? true,
     effects: _effectsFromJson(json),
+    effectQuality: EffectQuality.fromName(json['effectQuality']),
   );
 
   @override
@@ -126,6 +136,7 @@ class Appearance extends Equatable {
     libraryScale,
     libraryEffects,
     effects,
+    effectQuality,
   ];
 
   static const _unset = Object();

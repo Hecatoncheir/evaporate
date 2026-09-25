@@ -17,7 +17,6 @@ class RiseIn extends StatefulWidget {
     required this.delay,
     required this.child,
     this.enabled = true,
-    this.offset = 18,
   });
 
   final Duration delay;
@@ -25,7 +24,7 @@ class RiseIn extends StatefulWidget {
   final bool enabled;
 
   /// Насколько ниже своего места элемент начинает путь.
-  final double offset;
+  static const offset = EvaporateSpacing.card;
 
   @override
   State<RiseIn> createState() => _RiseInState();
@@ -83,7 +82,7 @@ class _RiseInState extends State<RiseIn> with SingleTickerProviderStateMixin {
       // своём месте, и движения не видно.
       opacity: Curves.easeOut.transform(_curve.value.clamp(0.0, 1.0)),
       child: Transform.translate(
-        offset: Offset(0, widget.offset * (1 - _curve.value)),
+        offset: Offset(0, RiseIn.offset * (1 - _curve.value)),
         child: child,
       ),
     ),

@@ -2,6 +2,7 @@ import 'package:evaporate/input/gamepad_binding.dart';
 import 'package:evaporate/input/nav_action.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/app_theme_mode.dart';
+import 'package:evaporate/models/effect_quality.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/game_rating.dart';
 import 'package:evaporate/models/library_effect.dart';
@@ -135,6 +136,7 @@ void main() {
       interfaceScale: 1.25,
       libraryScale: 0.9,
       locale: 'en',
+      effectQuality: EffectQuality.eco,
     ),
     proxy: ProxySettings(
       enabled: true,
@@ -231,6 +233,7 @@ void main() {
         'libraryScale',
         'libraryEffects',
         'particlesEnabled',
+        'effectQuality',
         'launchAtStartup',
         'windowStart',
         'checkUpdates',
@@ -240,6 +243,19 @@ void main() {
         'autoSnapshotOnLaunch',
       ]),
     );
+  });
+
+  // Качество украшений пришло позже самих украшений: у профиля без него и
+  // у профиля от сборки, знающей больше ступеней, — полное, а не эко и
+  // не наибольшее.
+  test('незнакомое и пропущенное качество украшений читается полным', () {
+    for (final json in [
+      <String, dynamic>{},
+      {'effectQuality': 'ultra'},
+      {'effectQuality': 42},
+    ]) {
+      expect(Appearance.fromJson(json).effectQuality, EffectQuality.full);
+    }
   });
 
   // Без этих двух веток библиотека, записанная давно, читалась бы с

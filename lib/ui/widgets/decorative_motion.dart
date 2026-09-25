@@ -23,6 +23,8 @@ class DecorativeMotion extends StatefulWidget {
 class DecorativeMotionState extends State<DecorativeMotion>
     with SingleTickerProviderStateMixin, DecorationClock {
   final _time = ValueNotifier(0.0);
+
+  @visibleForTesting
   double get time => _time.value;
 
   @override

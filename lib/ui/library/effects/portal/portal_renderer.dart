@@ -76,14 +76,13 @@ class PortalRenderer {
         PortalAtlas.buckets - 1,
         (brightness * PortalAtlas.buckets).floor(),
       );
-      final x = spark.position.dx;
-      final y = spark.position.dy;
+      final tail = field.tailOf(spark);
       _batches[bucket].add(
         bucket,
-        x - spark.velocity.dx * spark.trail,
-        y - spark.velocity.dy * spark.trail,
-        x,
-        y,
+        tail.dx,
+        tail.dy,
+        spark.position.dx,
+        spark.position.dy,
       );
     }
     _paint.blendMode = blend;

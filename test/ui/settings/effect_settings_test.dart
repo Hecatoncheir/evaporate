@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
+import 'package:evaporate/models/effect_quality.dart';
 import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
@@ -39,6 +40,7 @@ void main() {
       expect(settings.appearance.isOn(LibraryEffect.drops), isFalse);
       expect(settings.appearance.isOn(LibraryEffect.portal), isTrue);
       expect(settings.appearance.isOn(LibraryEffect.selectionFrame), isFalse);
+      expect(settings.appearance.effectQuality, EffectQuality.full);
       expect(
         AppSettings.fromJson(settings.toJson(), '/games').toJson(),
         settings.toJson(),

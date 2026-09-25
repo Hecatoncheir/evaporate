@@ -17,6 +17,7 @@ import 'library/primary_action.dart';
 import 'shell/ambient_light.dart';
 import 'shell/shell_layout.dart';
 import 'theme.dart';
+import 'widgets/pointer_trail.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
@@ -81,10 +82,14 @@ class AppShell extends StatelessWidget {
         onBack: nav.closeOpenedGame,
         child: Scaffold(
           backgroundColor: AppColors.transparent,
-          body: AmbientLight(
-            enabled: ambientEnabled,
-            title: selectedTitle,
-            child: const ShellLayout(),
+          // Курсор ловится над всей оболочкой, а не над каждым украшением:
+          // тянутся за ним волна и частицы, и сглажен он у всех одинаково.
+          body: PointerTrailScope(
+            child: AmbientLight(
+              enabled: ambientEnabled,
+              title: selectedTitle,
+              child: const ShellLayout(),
+            ),
           ),
         ),
       ),

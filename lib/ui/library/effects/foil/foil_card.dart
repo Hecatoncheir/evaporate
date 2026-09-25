@@ -34,6 +34,8 @@ class FoilCard extends StatefulWidget {
 class FoilCardState extends State<FoilCard>
     with SingleTickerProviderStateMixin, DecorationClock {
   final _motion = FoilMotion();
+
+  @visibleForTesting
   Matrix4 get perspective => _motion.perspective;
 
   bool get _enabled =>
@@ -92,7 +94,7 @@ class FoilCardState extends State<FoilCard>
     builder: (_, child) => Transform(
       key: const ValueKey('foil-perspective'),
       alignment: Alignment.center,
-      transform: perspective,
+      transform: _motion.perspective,
       child: child,
     ),
   );

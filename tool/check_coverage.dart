@@ -179,7 +179,6 @@ const thinFiles = <String, int>{
   'lib/bloc/settings/settings_event.dart': 34,
   'lib/services/system/managed_window.dart': 35,
   'lib/services/download/engine_queue.dart': 41,
-  'lib/ui/library/effects/cover_drops.dart': 44,
 };
 
 /// Файлы `lib`, покрытие которых имеет смысл считать.

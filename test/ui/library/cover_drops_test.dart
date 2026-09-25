@@ -3,14 +3,15 @@ import 'dart:ui' as ui;
 
 import 'package:evaporate/ui/library/effects/cover_drops.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/temp_dir.dart';
 
-/// Капли рисует шейдер, а шейдер собирается вместе с приложением — в прогоне
-/// тестов его нет. Проверить здесь можно и нужно другое: что плитка при
-/// любом отказе остаётся плиткой. Сама картинка проверяется глазами, а вот
-/// исчезнувшая обложка — уже поломка.
+/// Капли рисует шейдер, и прогон тестов собирает его из `pubspec` так же,
+/// как сборка приложения. Поэтому проверяется и сама отрисовка — что капли
+/// рисуют обложку, а не чёрный прямоугольник, — и то, что плитка при любом
+/// отказе остаётся плиткой: исчезнувшая обложка — уже поломка.
 void main() {
   /// Настоящий PNG размером в точку: обложка декодируется, и подделка из
   /// нулей не прошла бы.
@@ -94,6 +95,71 @@ void main() {
     expect(find.text('обложка'), findsOneWidget);
     expect(find.byKey(const ValueKey('cover-drops')), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  group('с настоящим шейдером', () {
+    // Программу грузим снаружи testWidgets: будущее, начатое в подменном
+    // времени, в другом тесте не завершилось бы никогда.
+    late ui.FragmentProgram program;
+    setUpAll(() async {
+      program = await ui.FragmentProgram.fromAsset('assets/shaders/drops.frag');
+    });
+
+    testWidgets('капли рисуют обложку, а не чёрное', (tester) async {
+      CoverDrops.useProgram(Future.value(program));
+      final boundary = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: RepaintBoundary(
+              key: boundary,
+              child: SizedBox(
+                width: 100,
+                height: 150,
+                child: CoverDrops(
+                  enabled: true,
+                  coverPath: coverPath,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      // Обложка читается с диска и расшифровывается по-настоящему: шаги
+      // загрузки проходят под настоящим временем, между ними — кадр.
+      final drops = find.byKey(const ValueKey('cover-drops'));
+      for (var i = 0; i < 40 && drops.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 25)),
+        );
+        await tester.pump();
+      }
+      expect(drops, findsOneWidget, reason: 'капли так и не пошли');
+      // Фиксированное число кадров, а не pumpAndSettle: часы капель идут,
+      // пока капли включены, и «успокоиться» им нечем.
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      final render =
+          boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final pixels = await tester.runAsync(() async {
+        final image = await render.toImage();
+        try {
+          return (await image.toByteData())!.buffer.asUint8List();
+        } finally {
+          image.dispose();
+        }
+      });
+      // Обложка — красная точка: где-то на плитке красный обязан быть.
+      var red = 0;
+      for (var i = 0; i < pixels!.length; i += 4) {
+        if (pixels[i] > 32) red++;
+      }
+      expect(red, greaterThan(pixels.length ~/ 4 ~/ 2));
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('пропавшая обложка не роняет плитку', (tester) async {

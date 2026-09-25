@@ -5,107 +5,109 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 import '../../widgets/decorative_motion.dart';
-
-/// Сглаженное положение указателя — то, за чем тянется вздутие волны.
-///
-/// Живёт не в рисовальщике, а рядом с ним, и вот почему: рисовальщик
-/// создаётся заново при каждой пересборке того, что под ним нарисовано, а в
-/// библиотеке это происходит на каждом переводе выделения с игры на игру.
-/// Начинай он каждый раз с середины — волна дёргалась бы ровно в этот
-/// момент, хотя мышь не двигалась вовсе.
-class WaveTrail {
-  Offset smoothed = const Offset(0.5, 0.5);
-  double lastTime = 0;
-}
+import '../../widgets/pointer_trail.dart';
 
 /// Неоновое поле из двадцати шести линий, нарисованное средствами Flutter.
 /// Образец: https://hecatoncheir.github.io/ (#wave).
+///
+/// Вздутие волны тянется за курсором оболочки (`PointerTrail`): там же он
+/// и сглажен — одними часами на все украшения, а не своими в художнике.
+/// Художник создаётся заново при каждой пересборке того, что под ним
+/// нарисовано, и сглаживание в нём начиналось бы с середины на каждом
+/// переводе выделения с игры на игру.
 class GameWave extends StatefulWidget {
-  const GameWave({
-    super.key,
-    required this.enabled,
-    required this.child,
-    @visibleForTesting this.trail,
-  });
+  const GameWave({super.key, required this.enabled, required this.child});
   final bool enabled;
   final Widget child;
 
-  /// Подменяется в тестах: изнутри за ним не подсмотреть.
-  final WaveTrail? trail;
-
   @override
-  State<GameWave> createState() => _GameWaveState();
+  State<GameWave> createState() => GameWaveState();
 }
 
-class _GameWaveState extends State<GameWave> {
-  final _pointer = ValueNotifier(const Offset(0.5, 0.5));
-  late final WaveTrail _trail = widget.trail ?? WaveTrail();
+class GameWaveState extends State<GameWave> {
+  static const _center = Offset(0.5, 0.5);
+
+  final _pointer = ValueNotifier(_center);
+  PointerTrail? _trail;
+
+  /// Курсор в долях самой волны: за ним тянется вздутие.
+  @visibleForTesting
+  ValueListenable<Offset> get pointer => _pointer;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final trail = PointerTrail.maybeOf(context);
+    if (trail == _trail) return;
+    _trail?.removeListener(_follow);
+    _trail = trail?..addListener(_follow);
+  }
+
+  /// Курсор оболочки — в доли волны: вздутие встаёт там, где курсор над
+  /// волной, а не там, где он над окном.
+  void _follow() {
+    final trail = _trail;
+    final box = context.findRenderObject();
+    if (!widget.enabled || trail == null || box is! RenderBox) return;
+    if (!box.hasSize || box.size.isEmpty) return;
+    final local = trail.localIn(box, trail.value);
+    if (local == null) return;
+    _pointer.value = Offset(
+      local.dx / box.size.width,
+      local.dy / box.size.height,
+    );
+  }
 
   @override
   void dispose() {
+    _trail?.removeListener(_follow);
     _pointer.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final size = constraints.biggest;
-      final reduced = MediaQuery.disableAnimationsOf(context);
-      return MouseRegion(
-        onHover: (event) {
-          if (widget.enabled && !reduced && !size.isEmpty) {
-            _pointer.value = Offset(
-              event.localPosition.dx / size.width,
-              event.localPosition.dy / size.height,
-            );
-          }
-        },
-        onExit: (_) => _pointer.value = const Offset(0.5, 0.5),
-        child: DecorativeMotion(
-          key: const ValueKey('detail-wave-motion'),
-          enabled: widget.enabled,
-          child: RepaintBoundary(child: widget.child),
-          builder: (context, clock, child) => Stack(
-            fit: StackFit.expand,
-            children: [
-              if (widget.enabled)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: RepaintBoundary(
-                      child: CustomPaint(
-                        key: const ValueKey('detail-wave-paint'),
-                        painter: _WavePainter(
-                          clock,
-                          _pointer,
-                          _trail,
-                          effects: EffectsPalette.of(context),
-                          interactive: widget.enabled && !reduced,
-                        ),
-                      ),
+  Widget build(BuildContext context) {
+    final interactive =
+        widget.enabled && !MediaQuery.disableAnimationsOf(context);
+    return DecorativeMotion(
+      key: const ValueKey('detail-wave-motion'),
+      enabled: widget.enabled,
+      child: RepaintBoundary(child: widget.child),
+      builder: (context, clock, child) => Stack(
+        fit: StackFit.expand,
+        children: [
+          if (widget.enabled)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    key: const ValueKey('detail-wave-paint'),
+                    painter: _WavePainter(
+                      clock,
+                      _pointer,
+                      effects: EffectsPalette.of(context),
+                      interactive: interactive,
                     ),
                   ),
                 ),
-              child!,
-            ],
-          ),
-        ),
-      );
-    },
-  );
+              ),
+            ),
+          child!,
+        ],
+      ),
+    );
+  }
 }
 
 class _WavePainter extends CustomPainter {
   _WavePainter(
     this.clock,
-    this.pointer,
-    this.trail, {
+    this.pointer, {
     required this.effects,
     required this.interactive,
   }) : super(repaint: Listenable.merge([clock, pointer]));
   final ValueListenable<double> clock;
   final ValueListenable<Offset> pointer;
-  final WaveTrail trail;
   final EffectsPalette effects;
   final bool interactive;
 
@@ -115,14 +117,7 @@ class _WavePainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     final time = clock.value * 0.16;
-    final dt = (clock.value - trail.lastTime).clamp(0.0, 1 / 30);
-    trail.lastTime = clock.value;
-    trail.smoothed = Offset.lerp(
-      trail.smoothed,
-      pointer.value,
-      1 - math.exp(-3.7 * dt),
-    )!;
-    final target = interactive ? trail.smoothed : const Offset(0.5, 0.5);
+    final target = interactive ? pointer.value : const Offset(0.5, 0.5);
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
@@ -168,6 +163,5 @@ class _WavePainter extends CustomPainter {
       oldDelegate.effects != effects ||
       oldDelegate.interactive != interactive ||
       oldDelegate.clock != clock ||
-      oldDelegate.pointer != pointer ||
-      oldDelegate.trail != trail;
+      oldDelegate.pointer != pointer;
 }

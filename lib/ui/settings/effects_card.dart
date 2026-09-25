@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/section_card.dart';
 import 'effect_details.dart';
 import 'effect_preset_picker.dart';
+import 'effect_quality_picker.dart';
 import 'setting_note.dart';
 
 /// Живая библиотека: набор одним выбором, отдельные украшения — под
@@ -44,6 +45,8 @@ class LibraryEffectsCard extends StatelessWidget {
                 ? l.effectPresetCustom
                 : l.libraryEffectsNote,
           ),
+          const SizedBox(height: EvaporateSpacing.cluster),
+          const EffectQualityPicker(),
           const EffectDetails(),
         ],
       ),
