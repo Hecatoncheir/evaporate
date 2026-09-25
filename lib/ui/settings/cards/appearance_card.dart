@@ -9,8 +9,9 @@ import '../../widgets/scale_control.dart';
 import '../../widgets/section_card.dart';
 import '../language_picker.dart';
 import '../setting_note.dart';
+import '../setting_switch.dart';
 
-/// Язык и крупность интерфейса.
+/// Язык, крупность и звук интерфейса.
 ///
 /// Выбора схемы здесь нет: схема одна — тёмная, дневной у интерфейса
 /// прототипа нет (`docs/decisions/0013`).
@@ -66,6 +67,16 @@ class AppearanceCard extends StatelessWidget {
           ),
           const SizedBox(height: EvaporateSpacing.line),
           SettingNote(l.interfaceScaleNote),
+          const SizedBox(height: EvaporateSpacing.block),
+          // Временный дом выключателя звука: настройки звука прототипа
+          // (громкость, классы) придут вместе с его каталогом настроек.
+          SettingSwitch(
+            key: const ValueKey('interface-sound'),
+            title: l.interfaceSound,
+            note: l.interfaceSoundNote,
+            value: look.sound,
+            onChanged: (on) => update((a) => a.copyWith(sound: on)),
+          ),
         ],
       ),
     );

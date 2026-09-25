@@ -34,8 +34,9 @@ class EvTopBar extends StatelessWidget {
   static const toolsFrom = 1080.0;
 
   /// С какой ширины окна рядом с поиском и клавишами окна помещаются
-  /// показатели. Уже — они уходят: скорость и движок видны и в строке
-  /// подсказок, а клавиши окна без замены не обойтись.
+  /// показатели. Уже — они уходят: скорости обмена и движок видны и в
+  /// строке подсказок (в узком окне её нет — там число задач на нижней
+  /// панели), а клавиши окна без замены не обойтись.
   static const statusFrom = 1000.0;
 
   final VoidCallback? onSearch;
@@ -79,13 +80,13 @@ class EvTopBar extends StatelessWidget {
 
   Widget _row(EvTheme ev, EvColors c) => Row(
     children: [
-      IgnorePointer(
+      _Inert(
         child: Text(
           'EVAPORATE',
           style: ev.text.section.copyWith(fontSize: 12, letterSpacing: 1.9),
         ),
       ),
-      IgnorePointer(
+      _Inert(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 9),
           child: Text('/', style: ev.text.bodySmall.copyWith(color: c.ink4)),
@@ -99,7 +100,7 @@ class EvTopBar extends StatelessWidget {
         child: Row(
           children: [
             Flexible(
-              child: IgnorePointer(
+              child: _Inert(
                 child: AnimatedSwitcher(
                   duration: EvMotion.fast,
                   // старая и новая подписи разной длины: обе прижаты
@@ -131,6 +132,19 @@ class EvTopBar extends StatelessWidget {
       if (end != null) ...[const SizedBox(width: 12), end!],
     ],
   );
+}
+
+/// Надпись крошки: окно тянется и за неё, а диктору она не читается —
+/// раздел он слышит выбранной клавишей рейла и заголовком страницы, а
+/// «EVAPORATE, косая черта» — шум.
+class _Inert extends StatelessWidget {
+  const _Inert({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      ExcludeSemantics(child: IgnorePointer(child: child));
 }
 
 class _SearchButton extends StatefulWidget {

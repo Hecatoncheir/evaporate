@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../bloc/downloads/downloads_bloc.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../models/download_task.dart';
 import '../../../services/download/download_engine.dart';
 import '../../labels.dart';
 import '../design/tokens.dart';
@@ -28,6 +29,11 @@ Color evStatusColor(EvColors c, EvStatus status) => switch (status) {
   EvStatus.idle => c.ink4,
   EvStatus.news => c.hot2,
 };
+
+/// Скорости обмена одной строкой: приём и отдача всех раздач.
+String exchangeReadout(L l, EngineStats stats) =>
+    '↓ ${speedLabel(l, stats.downloadSpeed)}   '
+    '↑ ${speedLabel(l, stats.uploadSpeed)}';
 
 /// Скорость приёма в верхней полосе: складывается из всех раздач.
 ///

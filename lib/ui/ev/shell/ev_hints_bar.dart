@@ -19,6 +19,7 @@ class EvHintsBar extends StatelessWidget {
     this.ready = true,
     this.status,
     this.statusColor,
+    this.readout,
   });
 
   /// Подсказки. `null` — из таблицы клавиш настроек: строка и таблица
@@ -34,6 +35,9 @@ class EvHintsBar extends StatelessWidget {
 
   /// Цвет точки и слова при [status].
   final Color? statusColor;
+
+  /// Показания перед состоянием движка — скорости обмена. `null` — нет.
+  final String? readout;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +80,10 @@ class EvHintsBar extends StatelessWidget {
                 ),
               ),
             ),
+            if (readout case final r?) ...[
+              Text(r, style: label.copyWith(color: c.ink3)),
+              const SizedBox(width: 20),
+            ],
             Text(
               '● ${status ?? (ready ? l.evHintsReady : l.evHintsBusy)}',
               style: label.copyWith(
@@ -83,7 +91,8 @@ class EvHintsBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 20),
-            Text('© 2026 EVAPORATE', style: label),
+            // Подпись, а не сведения: диктору её читать незачем.
+            ExcludeSemantics(child: Text('© 2026 EVAPORATE', style: label)),
           ],
         ),
       ),

@@ -149,6 +149,8 @@ const _formerNames = {
   'RawButtonPressed',
   'CaptureCancelled',
   'WindowBloc',
+  // Прежние полосы каркаса: в П1 их заменил каркас прототипа (0013).
+  'ShellGlass',
 };
 
 /// Имена самого Flutter, которых в нашем коде нет, а в доводах они есть.

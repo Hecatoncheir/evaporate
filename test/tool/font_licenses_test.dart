@@ -25,9 +25,15 @@ void main() {
   }
 }
 
+/// Лицензия лежит на файл или на семейство: у Onest начертания разными
+/// файлами (`Onest-Medium.ttf`), а лицензия одна — `OFL-Onest.txt`.
 bool _licensed(File font) {
   final name = font.uri.pathSegments.last.replaceAll('.ttf', '');
-  final license = File('${font.parent.path}/OFL-$name.txt');
+  final family = name.split('-').first;
+  final license = [
+    for (final each in {name, family})
+      File('${font.parent.path}/OFL-$each.txt'),
+  ].firstWhere((f) => f.existsSync(), orElse: () => File(''));
   return license.existsSync() &&
       license.readAsStringSync().contains('SIL OPEN FONT LICENSE Version 1.1');
 }

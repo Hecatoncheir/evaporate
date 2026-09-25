@@ -69,7 +69,10 @@ dart tool/gate.dart
    - `.evsave` с одной системы восстановлен на другой;
    - недоступный прокси: запросы отказывают, а не уходят напрямую, и об
      этом приходит сообщение;
-   - `.run` на Linux: поставить, обновить по нажатию, удалить.
+   - `.run` на Linux: поставить, обновить по нажатию, удалить;
+   - закрыть окно и выйти из трея: процесса в диспетчере задач не
+     осталось (живой звуковой поток однажды оставлял его после каждого
+     закрытия, а `--smoke` этого не видит).
 4. Коммит.
 5. Тег и отправка:
 
@@ -222,7 +225,10 @@ The tag sets the version — there is nothing to bump in the code or in
    - an `.evsave` from one system restored on another;
    - an unreachable proxy: requests fail instead of going direct, and a
      message says so;
-   - the Linux `.run`: install, update in one click, remove.
+   - the Linux `.run`: install, update in one click, remove;
+   - close the window and quit from the tray: no process is left in the
+     task manager (a live audio thread once left one behind after every
+     close, and `--smoke` cannot see it).
 4. Commit.
 5. Tag and push:
 

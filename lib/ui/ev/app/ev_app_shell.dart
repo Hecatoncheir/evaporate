@@ -89,8 +89,12 @@ class _EvAppShellState extends State<EvAppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final inWork = context.select<DownloadsBloc, int>(
-      (bloc) => bloc.state.inWork.length,
+    // Число на «Загрузках» — вся незаконченная работа: и та, что идёт или
+    // стоит, и та, что ждёт слота. Без ждущих рейл молчал бы, пока вся
+    // очередь ждёт, хотя работа есть. Ноль — не число, а его отсутствие:
+    // иначе подсказка рейла говорила бы «Загрузки · 0».
+    final work = context.select<DownloadsBloc, int>(
+      (bloc) => bloc.state.inWork.length + bloc.state.queued.length,
     );
     return BlocListener<NavigationBloc, NavigationState>(
       listenWhen: (before, after) => before.section != after.section,
@@ -99,7 +103,7 @@ class _EvAppShellState extends State<EvAppShell> {
         controller: _shell,
         initials: '',
         userName: '',
-        downloadsActive: inWork,
+        downloadsActive: work > 0 ? work : null,
         commandsOf: (context) => shellCommands(context, _shell),
         status: const [EvSpeedPill(), EvEnginePill()],
         windowControls: const EvWindowControls(),

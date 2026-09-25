@@ -22,6 +22,7 @@ class Appearance extends Equatable {
     this.libraryEffects = true,
     this.effects = LibraryEffect.shipped,
     this.effectQuality = EffectQuality.full,
+    this.sound = true,
   });
 
   /// Светлая, тёмная или как в системе.
@@ -56,6 +57,12 @@ class Appearance extends Equatable {
   /// включены.
   final EffectQuality effectQuality;
 
+  /// Звучит ли интерфейс. Включён по умолчанию — так решил владелец
+  /// (`docs/decisions/0013`), — но выключатель обязан быть: звук, который
+  /// нечем погасить, кроме системной громкости, — это не «по умолчанию», а
+  /// «всегда». Громкость и классы звуков придут с настройками прототипа.
+  final bool sound;
+
   /// Языки, на которые приложение переведено.
   static const supportedLocales = ['ru', 'en'];
 
@@ -84,6 +91,7 @@ class Appearance extends Equatable {
     bool? libraryEffects,
     Set<LibraryEffect>? effects,
     EffectQuality? effectQuality,
+    bool? sound,
   }) => Appearance(
     themeMode: themeMode ?? this.themeMode,
     locale: locale == _unset ? this.locale : locale as String?,
@@ -92,6 +100,7 @@ class Appearance extends Equatable {
     libraryEffects: libraryEffects ?? this.libraryEffects,
     effects: effects ?? this.effects,
     effectQuality: effectQuality ?? this.effectQuality,
+    sound: sound ?? this.sound,
   );
 
   Map<String, dynamic> toJson() => {
@@ -105,6 +114,7 @@ class Appearance extends Equatable {
     for (final effect in LibraryEffect.values)
       effect.jsonKey: effects.contains(effect),
     'effectQuality': effectQuality.name,
+    'sound': sound,
   };
 
   /// Прочитанные значения зажимаются в границы, а незнакомые становятся
@@ -126,6 +136,7 @@ class Appearance extends Equatable {
     libraryEffects: json['libraryEffects'] as bool? ?? true,
     effects: _effectsFromJson(json),
     effectQuality: EffectQuality.fromName(json['effectQuality']),
+    sound: json['sound'] as bool? ?? true,
   );
 
   @override
@@ -137,6 +148,7 @@ class Appearance extends Equatable {
     libraryEffects,
     effects,
     effectQuality,
+    sound,
   ];
 
   static const _unset = Object();

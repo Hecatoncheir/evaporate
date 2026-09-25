@@ -28,6 +28,16 @@ _Rendered _renderAll() => (
 ///
 /// Не завёлся движок — звука просто нет: окно без него работает.
 class EvSoLoudOut implements EvAudioOut {
+  /// [onError] — куда сказать, что движок не завёлся. Окно молчит и без
+  /// этого, но приложению нужна строка в журнале: иначе «звука нет» у
+  /// человека нечем объяснить.
+  EvSoLoudOut({void Function(Object error)? onError})
+    : _onError = onError ?? _print;
+
+  final void Function(Object error) _onError;
+
+  static void _print(Object error) => debugPrint('Звук не завёлся: $error');
+
   final _sources = <EvVoice, AudioSource>{};
   AudioSource? _strike;
   AudioSource? _ambientSource;
@@ -67,7 +77,7 @@ class EvSoLoudOut implements EvAudioOut {
       );
       ambient(_ambientWanted);
     } on Object catch (e) {
-      debugPrint('Звук не завёлся: $e');
+      _onError(e);
     }
   }
 

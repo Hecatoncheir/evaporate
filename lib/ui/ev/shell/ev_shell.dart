@@ -385,6 +385,7 @@ class _EvShellState extends State<EvShell> {
                                   current: section,
                                   onSelect: _controller.go,
                                   initials: widget.initials,
+                                  downloadsActive: widget.downloadsActive,
                                 ),
                               )
                             else ...[

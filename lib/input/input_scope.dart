@@ -33,33 +33,6 @@ class AdjustValueIntent extends Intent {
   final int steps;
 }
 
-/// «/» — поиск, но только вне текстового поля.
-///
-/// Своим намерением, а не `NavActionIntent`: «/» — ещё и обычный символ.
-/// Перехваченная всегда, она не набиралась ни в пароле прокси, ни в самом
-/// поиске — «Fate/stay» было не найти. `Ctrl+F` и `⌘F` символов не
-/// набирают и уводят в поиск откуда угодно.
-class TypedSearchIntent extends Intent {
-  const TypedSearchIntent();
-}
-
-/// Выключено, пока фокус в поле: выключенное действие `Shortcuts` не
-/// обрабатывают, и клавиша доходит до поля как символ.
-class _TypedSearchAction extends Action<TypedSearchIntent> {
-  _TypedSearchAction(this._search);
-
-  final VoidCallback _search;
-
-  @override
-  bool isEnabled(TypedSearchIntent intent) => !focusInTextField();
-
-  @override
-  Object? invoke(TypedSearchIntent intent) {
-    _search();
-    return null;
-  }
-}
-
 /// Предлагается только поиском по библиотеке, а не текстовыми полями вообще.
 class ReturnToLibraryIntent extends Intent {
   const ReturnToLibraryIntent();
@@ -259,9 +232,6 @@ class _InputScopeState extends State<InputScope> {
               return null;
             },
           ),
-          TypedSearchIntent: _TypedSearchAction(
-            () => _handleAction(NavAction.search),
-          ),
         },
         // Пока фокуса нет вообще, нажатия клавиш до Shortcuts не доходят:
         // они идут в корневой скоуп над MaterialApp. Эта нода забирает фокус
@@ -276,8 +246,11 @@ class _InputScopeState extends State<InputScope> {
 ///
 /// Таблицей, а не ветвлениями: добавить клавишу — значит дописать строку,
 /// а что она делает, видно по имени действия.
+///
+/// «/» здесь нет: это палитра каркаса (`EvShell`), и её область фокуса
+/// слышит клавишу раньше. Здешнее «/ — поле поиска библиотеки» до неё не
+/// доходило, а подпись поля обещала его — поле теперь за `Ctrl+F`.
 const _shortcuts = <ShortcutActivator, Intent>{
-  SingleActivator(LogicalKeyboardKey.slash): TypedSearchIntent(),
   SingleActivator(LogicalKeyboardKey.keyF, meta: true): NavActionIntent(
     NavAction.search,
   ),

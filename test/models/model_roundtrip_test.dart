@@ -137,6 +137,7 @@ void main() {
       libraryScale: 0.9,
       locale: 'en',
       effectQuality: EffectQuality.eco,
+      sound: false,
     ),
     proxy: ProxySettings(
       enabled: true,

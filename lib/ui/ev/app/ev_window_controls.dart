@@ -92,6 +92,8 @@ class _WindowKeyState extends State<_WindowKey> {
     final lit = widget.danger ? EvColors.bad : c.ink;
     return Tooltip(
       message: widget.tooltip,
+      // Подпись диктору даёт `Semantics` ниже; подсказка повторила бы её.
+      excludeFromSemantics: true,
       child: Semantics(
         button: true,
         label: widget.tooltip,

@@ -13,9 +13,9 @@ class DownloadsState extends Equatable {
   final EngineStatus engine;
   final Notice? notice;
 
-  /// Всё незавершённое вне очереди: идущее, на паузе и сорвавшееся. Это и
-  /// колонка «в работе» на странице загрузок, и число на кнопке рейла —
-  /// одно определение на оба места.
+  /// Всё незавершённое вне очереди: идущее, на паузе и сорвавшееся. Это
+  /// колонка «в работе» на странице загрузок; число на кнопке рейла —
+  /// оно же вместе с очередью ([queued]).
   List<DownloadTask> get inWork => [
     for (final t in tasks)
       if (!t.isQueued && t.state != DownloadState.complete) t,

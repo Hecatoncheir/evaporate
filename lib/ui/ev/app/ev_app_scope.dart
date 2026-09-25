@@ -13,7 +13,8 @@ import '../sound/ev_sound.dart';
 ///
 /// Эффекты не хранятся отдельно: они выводятся из облика в настройках
 /// приложения ([applyAppearance]), и переключатель в настройках правит
-/// ровно то, что видно в каркасе.
+/// ровно то, что видно в каркасе. Звук так же слушает свой выключатель
+/// (`Appearance.sound`) и знает, в фокусе ли окно: неактивное молчит.
 class EvAppScope extends StatefulWidget {
   const EvAppScope({super.key, this.sound, required this.child});
 
@@ -35,14 +36,26 @@ class _EvAppScopeState extends State<EvAppScope> {
 
   EvSound get _sound => widget.sound ?? _silent!;
 
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
-    applyAppearance(_effects, context.read<SettingsBloc>().state.appearance);
+    _apply(context.read<SettingsBloc>().state.appearance);
+    _lifecycle = AppLifecycleListener(
+      onStateChange: (state) =>
+          _sound.focused = state == AppLifecycleState.resumed,
+    );
+  }
+
+  void _apply(Appearance appearance) {
+    applyAppearance(_effects, appearance);
+    _sound.enabled = appearance.sound;
   }
 
   @override
   void dispose() {
+    _lifecycle.dispose();
     _effects.dispose();
     _silent?.dispose();
     super.dispose();
@@ -52,8 +65,7 @@ class _EvAppScopeState extends State<EvAppScope> {
   Widget build(BuildContext context) {
     return BlocListener<SettingsBloc, AppSettings>(
       listenWhen: (before, after) => before.appearance != after.appearance,
-      listener: (context, settings) =>
-          applyAppearance(_effects, settings.appearance),
+      listener: (context, settings) => _apply(settings.appearance),
       child: EvEffectsScope(
         effects: _effects,
         child: EvSoundScope(sound: _sound, child: widget.child),

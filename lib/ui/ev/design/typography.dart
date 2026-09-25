@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Шрифтовая пара. Кириллица нарисована во всех трёх — это было условием
 /// выбора, интерфейс русскоязычный.
@@ -7,22 +6,35 @@ import 'package:google_fonts/google_fonts.dart';
 /// * **Unbounded** — дисплей: заголовки, крупные числа, логотип.
 /// * **Onest** — интерфейс: всё остальное.
 /// * **JetBrains Mono** — данные: скорости, пиры, хеши, подсказки клавиш.
+///
+/// Семейства лежат в сборке (`pubspec.yaml`, `assets/fonts/`), а не
+/// скачиваются `google_fonts`, как в прототипе: в приложении это был бы
+/// запрос к Google на каждой машине мимо согласия человека, файлы в его
+/// папке данных даже у `--smoke` и запасной шрифт без сети. Сторожит
+/// `bundled_fonts_test.dart`.
 @immutable
 class EvType {
   const EvType(this.ink, this.ink2, this.ink3, this.ink4);
+
+  /// Семейства из `pubspec.yaml`. Unbounded и JetBrains Mono — вариативные,
+  /// Onest — три начертания (400, 500, 600): других интерфейс не просит.
+  static const uiFamily = 'Onest';
+  static const displayFamily = 'Unbounded';
+  static const monoFamily = 'JetBrains Mono';
 
   final Color ink;
   final Color ink2;
   final Color ink3;
   final Color ink4;
 
-  /// Тот же стиль в другом начертании.
+  /// Тот же стиль в семействе интерфейса и, если задано, другом
+  /// начертании.
   ///
-  /// `copyWith(fontWeight: …)` начертания не меняет: google_fonts кладёт
-  /// в стиль `fontFamily: 'Onest_500'` и подгружает только это начертание.
-  /// Движок остаётся с ним: либо подделывает насыщенность, либо молча
-  /// игнорирует просьбу. Настоящее начертание рождается лишь из повторного
-  /// вызова фабрики — через него и идут все отклонения от базового веса.
+  /// В прототипе через эти три фабрики шли все отклонения от базового
+  /// веса: у `google_fonts` начертание зашито в имя семейства, и
+  /// `copyWith(fontWeight: …)` его не меняло. Семейства из сборки
+  /// слушаются веса и так, а фабрики остались — ими написан весь код
+  /// прототипа.
   ///
   /// Остальные параметры прокинуты, чтобы правка веса и правка кегля или
   /// цвета не расходились по двум вызовам.
@@ -32,8 +44,8 @@ class EvType {
     double? size,
     Color? color,
     double? letterSpacing,
-  }) => GoogleFonts.onest(
-    textStyle: base,
+  }) => base.copyWith(
+    fontFamily: uiFamily,
     fontWeight: weight,
     fontSize: size,
     color: color,
@@ -47,8 +59,8 @@ class EvType {
     double? size,
     Color? color,
     double? letterSpacing,
-  }) => GoogleFonts.unbounded(
-    textStyle: base,
+  }) => base.copyWith(
+    fontFamily: displayFamily,
     fontWeight: weight,
     fontSize: size,
     color: color,
@@ -62,8 +74,8 @@ class EvType {
     double? size,
     Color? color,
     double? letterSpacing,
-  }) => GoogleFonts.jetBrainsMono(
-    textStyle: base,
+  }) => base.copyWith(
+    fontFamily: monoFamily,
     fontWeight: weight,
     fontSize: size,
     color: color,
@@ -71,7 +83,8 @@ class EvType {
   );
 
   /// Заголовок героя. Лёгкое начертание в крупном кегле — характер системы.
-  TextStyle display(double size) => GoogleFonts.unbounded(
+  TextStyle display(double size) => TextStyle(
+    fontFamily: displayFamily,
     fontSize: size,
     fontWeight: FontWeight.w300,
     height: 0.94,
@@ -84,7 +97,8 @@ class EvType {
       dsp(display(size), weight: FontWeight.w800);
 
   /// Заголовок раздела: капс с разрядкой.
-  TextStyle get section => GoogleFonts.unbounded(
+  TextStyle get section => TextStyle(
+    fontFamily: displayFamily,
     fontSize: 13,
     fontWeight: FontWeight.w600,
     letterSpacing: 2.6,
@@ -92,7 +106,8 @@ class EvType {
   );
 
   /// Название игры, строки списков.
-  TextStyle get title => GoogleFonts.onest(
+  TextStyle get title => TextStyle(
+    fontFamily: uiFamily,
     fontSize: 15,
     fontWeight: FontWeight.w500,
     letterSpacing: -0.08,
@@ -102,14 +117,16 @@ class EvType {
   // Разрядка задана явно: под Material текст без неё наследует 0.25
   // из bodyMedium и выходит шире прототипа — описание героя переносилось
   // на лишнюю строку.
-  TextStyle get body => GoogleFonts.onest(
+  TextStyle get body => TextStyle(
+    fontFamily: uiFamily,
     fontSize: 14,
     height: 1.5,
     letterSpacing: 0,
     color: ink2,
   );
 
-  TextStyle get bodySmall => GoogleFonts.onest(
+  TextStyle get bodySmall => TextStyle(
+    fontFamily: uiFamily,
     fontSize: 12.5,
     height: 1.45,
     letterSpacing: 0,
@@ -117,7 +134,8 @@ class EvType {
   );
 
   /// Надпись над заголовком и подписи панелей.
-  TextStyle get label => GoogleFonts.jetBrainsMono(
+  TextStyle get label => TextStyle(
+    fontFamily: monoFamily,
     fontSize: 10.5,
     fontWeight: FontWeight.w500,
     letterSpacing: 2.1,
@@ -125,7 +143,8 @@ class EvType {
   );
 
   /// Числа. Везде, где цифры выстраиваются в колонку, — моноширинные.
-  TextStyle get data => GoogleFonts.jetBrainsMono(
+  TextStyle get data => TextStyle(
+    fontFamily: monoFamily,
     fontSize: 11.5,
     letterSpacing: 0,
     color: ink3,
@@ -135,7 +154,8 @@ class EvType {
   TextStyle get dataStrong => mono(data, weight: FontWeight.w500, color: ink);
 
   /// Крупное число в панели.
-  TextStyle big(double size) => GoogleFonts.unbounded(
+  TextStyle big(double size) => TextStyle(
+    fontFamily: displayFamily,
     fontSize: size,
     fontWeight: FontWeight.w300,
     height: 1,

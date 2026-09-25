@@ -32,6 +32,7 @@ import 'services/system/update_check.dart';
 import 'services/system/update_installer.dart';
 import 'services/system/window_mode_watch.dart';
 import 'services/system/window_state.dart';
+import 'ui/ev/app/app_sound.dart';
 import 'ui/ev/app/app_theme.dart';
 import 'ui/ev/app/ev_app_scope.dart';
 import 'ui/ev/sound/ev_sound.dart';
@@ -70,12 +71,15 @@ Future<void> main(List<String> args) async {
   }
 
   final window = await _prepareWindow(paths, settings.state);
+  final (sound, silence) = _startSound(settings.state);
 
   // Что должно успеть лечь на диск, прежде чем процесс закончится. Список
   // наполняется по мере того, как появляются его владельцы, и шаги идут в
   // его порядке; журнал дописывается последним — после всех, кто в него
-  // пишет, включая сбои самих шагов.
-  final shutdownSteps = <ShutdownStep>[stopProxyRouting];
+  // пишет, включая сбои самих шагов. Звук глушится первым: шаги после
+  // исчерпанного бюджета пропускаются, а без этого шага процесс не
+  // заканчивается вовсе (`appSound`).
+  final shutdownSteps = <ShutdownStep>[silence, stopProxyRouting];
   final (closeHandler, shutdown) = await _handleClose(shutdownSteps);
 
   final tray = await _installTray(localizations, closeHandler.quit);
@@ -98,9 +102,7 @@ Future<void> main(List<String> args) async {
       services: services,
       windowMode: windowMode,
       tray: tray,
-      // Звук прототипа включён сразу. Не завёлся движок (нет устройства,
-      // как в CI) — окно просто молчит: `EvSoLoudOut` гасит отказ сам.
-      sound: EvSound(out: EvSoLoudOut(), enabled: true),
+      sound: sound,
     ),
   );
   if (smoke != null) unawaited(_smokeTest(smoke, paths, shutdown, tray));
@@ -127,6 +129,16 @@ Future<void> _smokeTest(
   );
   exit(code);
 }
+
+/// Заводит звук прототипа и возвращает шаг завершения, который его глушит
+/// (`appSound`).
+///
+/// Не завёлся движок (нет устройства, как в CI) — окно просто молчит, а
+/// отказ уходит в журнал: иначе «звука нет» у человека нечем объяснить.
+(EvSound, ShutdownStep) _startSound(AppSettings settings) => appSound(
+  EvSoLoudOut(onError: (error) => AppLog.instance.write('звук', error)),
+  enabled: settings.appearance.sound,
+);
 
 /// Заводит журнал и сводит в него чужие жалобы.
 ///

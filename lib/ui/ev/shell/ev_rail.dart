@@ -504,7 +504,11 @@ class EvBottomNav extends StatelessWidget {
     required this.onSelect,
     required this.initials,
     this.sections = EvSection.values,
+    this.downloadsActive,
   });
+
+  /// Число на ячейке «Загрузки», как на кнопке рейла.
+  final int? downloadsActive;
 
   final EvSection current;
   final ValueChanged<EvSection> onSelect;
@@ -572,11 +576,31 @@ class EvBottomNav extends StatelessWidget {
                             child: SizedBox(
                               width: _itemWidth,
                               height: box.maxHeight,
+                              // Метка — в углу той же коробки 48 × 44, что
+                              // у кнопки рейла, а не у края высокой ячейки.
                               child: Center(
-                                child: EvIcon(
-                                  s.icon,
-                                  size: 21,
-                                  color: s == current ? c.ink : c.ink3,
+                                child: SizedBox(
+                                  width: EvRail.itemWidth,
+                                  height: EvRail.itemHeight,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      EvIcon(
+                                        s.icon,
+                                        size: 21,
+                                        color: s == current ? c.ink : c.ink3,
+                                      ),
+                                      if (s == EvSection.downloads)
+                                        if (downloadsActive case final n?
+                                            when n > 0)
+                                          Positioned(
+                                            top: 4,
+                                            right: 4,
+                                            child: _Badge(n),
+                                          ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

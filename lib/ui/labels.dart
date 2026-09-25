@@ -38,7 +38,7 @@ String navActionLabel(L l, NavAction action) => switch (action) {
 /// Имя раздела приложения.
 ///
 /// Здесь, а не в самом перечислении: у него нет `BuildContext`, а имя
-/// нужно и обойме, и диктору.
+/// нужно и рейлу, и диктору.
 String sectionLabel(L l, AppSection section) => switch (section) {
   AppSection.library => l.library,
   AppSection.downloads => l.downloads,

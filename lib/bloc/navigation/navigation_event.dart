@@ -7,7 +7,7 @@ sealed class NavigationEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Перейти к разделу (клавиша обоймы).
+/// Перейти к разделу (клавиша рейла).
 final class SectionSelected extends NavigationEvent {
   const SectionSelected(this.section);
 

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/ui/ev/shell/ev_rail.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
 import 'package:evaporate/ui/ev/widgets/ev_icon.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -105,17 +107,29 @@ void main() {
   // не дотянуться. Значит они легко накрывают то, что под ними, и проверять
   // тут нужно именно геометрию.
   /// Приложение целиком под своей рамкой: клавиши окна живут в верхней
-  /// рейке, и без оболочки их не достать.
-  Future<void> pumpApp(WidgetTester tester, {Locale? locale}) async {
+  /// полосе каркаса, и без оболочки их не достать.
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    Locale? locale,
+    Size size = const Size(1100, 720),
+    double scale = 1,
+  }) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
-    tester.view.physicalSize = const Size(1100, 720);
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       harness.buildApp(
         locale: locale,
         builder: (context, child) => AppWindowFrame(child: child!),
+      ),
+    );
+    await tester.pumpAndSettle();
+    if (scale == 1) return;
+    harness.settings.add(
+      SettingsPatched(
+        (s) => s.withAppearance((a) => a.copyWith(interfaceScale: scale)),
       ),
     );
     await tester.pumpAndSettle();
@@ -163,28 +177,43 @@ void main() {
   // Flutter не видит, и отложенное нажатие достаётся тому, что под
   // полосой. Клавиши окна и рейла стоят у самого края окна, и отступ их
   // задаёт каркас прототипа, а толщину полос — рамка: сходятся они здесь.
-  testWidgets('полосы у края не накрывают ни одной клавиши', (tester) async {
-    await pumpApp(tester);
-    final zones = WindowChrome.resizeZones(const Size(1100, 720));
-    for (final key in [
-      'rail-minimize',
-      'rail-maximize',
-      'rail-quit',
-      'rail-library',
-      'rail-downloads',
-      'rail-saves',
-      'rail-settings',
-    ]) {
-      final rect = tester.getRect(find.byKey(ValueKey(key)));
-      for (final zone in zones) {
-        expect(
-          zone.rect.overlaps(rect),
-          isFalse,
-          reason: '$key под полосой ${zone.edge.name}',
-        );
+  // Три раскладки: обычная, увеличенный интерфейс и узкая — наименьшее
+  // окно при крупном масштабе, где рейл уходит в нижнюю панель у самого
+  // нижнего края.
+  for (final (size, scale) in [
+    (const Size(1100, 720), 1.0),
+    (const Size(1100, 720), 1.25),
+    (const Size(900, 620), 1.25),
+  ]) {
+    testWidgets('полосы у края не накрывают ни одной клавиши: '
+        '${size.width.round()}×${size.height.round()}, масштаб $scale', (
+      tester,
+    ) async {
+      await pumpApp(tester, size: size, scale: scale);
+      final zones = WindowChrome.resizeZones(size);
+      if (scale > 1 && size.width < 1000) {
+        expect(find.byType(EvBottomNav), findsOneWidget);
       }
-    }
-  });
+      for (final key in [
+        'rail-minimize',
+        'rail-maximize',
+        'rail-quit',
+        'rail-library',
+        'rail-downloads',
+        'rail-saves',
+        'rail-settings',
+      ]) {
+        final rect = tester.getRect(find.byKey(ValueKey(key)));
+        for (final zone in zones) {
+          expect(
+            zone.rect.overlaps(rect),
+            isFalse,
+            reason: '$key под полосой ${zone.edge.name}',
+          );
+        }
+      }
+    });
+  }
 
   testWidgets('клавиши полосы сворачивают, разворачивают и закрывают окно', (
     tester,
@@ -213,7 +242,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // Без своей рамки клавиш окна в рейке нет вовсе: окном тогда
+  // Без своей рамки клавиш окна в верхней полосе нет вовсе: окном тогда
   // распоряжается система, и вторых клавиш ему не нужно.
   testWidgets('без рамки полоса клавиш окна не показывает', (tester) async {
     final harness = TestHarness(tmp);

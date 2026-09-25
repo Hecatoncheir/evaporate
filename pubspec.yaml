@@ -54,7 +54,6 @@ dependencies:
   flutter_soloud: ^5.1.2
   flutter_svg: ^2.3.0
   gamepads: ^0.1.11
-  google_fonts: ^8.2.1
   intl: ^0.20.3
   # Движок загрузок жалуется через `logging`, и его жалобы мы кладём в
   # журнал приложения: до сих пор задача могла часами висеть «активной», а
@@ -104,7 +103,16 @@ flutter:
     - shaders/glass_lens.frag
 
   # Шрифты вариативные: один файл на всё семейство вместо десятка начертаний.
+  # Кроме Onest (шрифт интерфейса прототипа): вариативного файла у него под
+  # рукой не было, и лежат три начертания, которых интерфейс и просит.
   fonts:
+    - family: Onest
+      fonts:
+        - asset: assets/fonts/Onest-Regular.ttf
+        - asset: assets/fonts/Onest-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Onest-SemiBold.ttf
+          weight: 600
     - family: Unbounded
       fonts:
         - asset: assets/fonts/Unbounded.ttf

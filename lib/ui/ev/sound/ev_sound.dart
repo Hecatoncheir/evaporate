@@ -156,7 +156,12 @@ class EvSound extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Окно в фокусе. Отдушина дышит, только пока окно активно.
+  /// Окно в фокусе. Отдушина дышит и голоса звучат, только пока окно
+  /// активно.
+  ///
+  /// Голоса — правка приложения: в прототипе молчала только отдушина. Но
+  /// геймпад слышен и окну за спиной игры, и бампер в игре листал бы
+  /// разделы лаунчера со звуком поверх неё.
   set focused(bool value) {
     if (value == _focused) return;
     _focused = value;
@@ -166,7 +171,8 @@ class EvSound extends ChangeNotifier {
   void _syncAmbient() => _out.ambient(_enabled && _ambient && _focused);
 
   /// Прозвучит ли [voice] сейчас.
-  bool allows(EvVoice voice) => _enabled && _classes[voice.soundClass]!;
+  bool allows(EvVoice voice) =>
+      _enabled && _focused && _classes[voice.soundClass]!;
 
   void play(EvVoice voice) {
     if (!allows(voice)) return;

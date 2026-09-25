@@ -50,8 +50,8 @@ class WindowShell extends StatelessWidget {
                 child: child,
               ),
               // Невидимые узкие полосы возвращают изменение размера после
-              // удаления рамки ОС. Их размеры и правило «не доставать до
-              // рейки» живут в WindowChrome, где их и проверяет тест.
+              // удаления рамки ОС. Их размеры и правило «не накрывать
+              // клавиш» живут в WindowChrome, где их и проверяет тест.
               if (resizable)
                 for (final zone in WindowChrome.resizeZones(
                   constraints.biggest,
