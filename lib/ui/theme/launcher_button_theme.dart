@@ -31,8 +31,8 @@ class LauncherButtonTheme extends ThemeExtension<LauncherButtonTheme> {
     required this.haloLit,
   });
 
-  /// Заливка клавиши запуска. Горячее — сверху слева: так на неё падает
-  /// свет, и надпись лежит на светлой половине.
+  /// Заливка клавиши запуска. Горячее — сверху: так на клавишу падает свет,
+  /// а остывающий низ уходит к торцу.
   final LinearGradient launchFill;
 
   /// Заливка клавиши загрузки — цвет данных, а не запуска.
@@ -53,8 +53,13 @@ class LauncherButtonTheme extends ThemeExtension<LauncherButtonTheme> {
 
   /// Геометрия переходов одна на обе схемы: иначе смена схемы крутила бы
   /// свет по клавише, а не меняла его цвет.
-  static const _fillFrom = Alignment(-0.9, -0.6);
-  static const _fillTo = Alignment(0.9, 0.6);
+  ///
+  /// Переход идёт сверху вниз, а не по диагонали, как в прототипе: клавиша
+  /// тянется по ширине подписи, и на диагонали хвост длинного слова
+  /// («Остановить», «Продолжить») ложился на остывающий низ, где надпись
+  /// не дотягивает до нормы. По вертикали надпись всегда в светлой середине.
+  static const _fillFrom = Alignment.topCenter;
+  static const _fillTo = Alignment.bottomCenter;
   static const _fillStops = [0.0, 0.58, 1.0];
   static const _coreCenter = Alignment(-0.56, 0);
   static const _coreRadius = 0.9;

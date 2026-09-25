@@ -3,7 +3,10 @@ import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/save_snapshot.dart';
 import 'package:evaporate/ui/saves/snapshot_history.dart';
 import 'package:evaporate/ui/saves/snapshot_row.dart';
+import 'package:evaporate/ui/theme.dart';
+import 'package:evaporate/ui/widgets/glass_surface.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/host_widget.dart';
@@ -33,8 +36,27 @@ void main() {
     ];
   }
 
-  Widget page(List<SnapshotEntry> list) =>
-      hostWidget(CustomScrollView(slivers: [SnapshotHistory(entries: list)]));
+  Widget page(List<SnapshotEntry> list, {ThemeData? theme}) => hostWidget(
+    CustomScrollView(slivers: [SnapshotHistory(entries: list)]),
+    theme: theme,
+  );
+
+  // Лента — то же стекло, что соседние карточки, только сливером: фильтр у
+  // неё обязан быть тот же, из темы схемы, а не своё число размытия.
+  testWidgets('лента берёт фильтр стекла своей схемы', (tester) async {
+    for (final (theme, glass) in [
+      (EvaporateTheme.dark(), GlassSurfaceTheme.arclight),
+      (EvaporateTheme.light(), GlassSurfaceTheme.cartridge),
+    ]) {
+      await tester.pumpWidget(page(entries(3), theme: theme));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.layers.whereType<BackdropFilterLayer>().single.filter,
+        GlassSurface.filterOf(glass),
+      );
+    }
+  });
 
   // Снимков по двадцать на игру: у сложившейся библиотеки строк сотни, а
   // видно полтора десятка. Прежде `Column` строила их все на каждую

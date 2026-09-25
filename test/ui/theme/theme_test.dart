@@ -1,29 +1,10 @@
-import 'dart:math' as math;
-
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/app_theme_mode.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Относительная яркость по WCAG.
-double _luminance(Color color) {
-  double channel(double v) =>
-      v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
-
-  return 0.2126 * channel(color.r) +
-      0.7152 * channel(color.g) +
-      0.0722 * channel(color.b);
-}
-
-/// Отношение контраста двух цветов: от 1 (неразличимы) до 21.
-double contrast(Color a, Color b) {
-  final la = _luminance(a);
-  final lb = _luminance(b);
-  final light = math.max(la, lb);
-  final dark = math.min(la, lb);
-  return (light + 0.05) / (dark + 0.05);
-}
+import '../../support/contrast.dart';
 
 void main() {
   final palettes = {
@@ -99,26 +80,6 @@ void main() {
       // Та же пара у необратимого: прежде на красную заливку ложился
       // обычный текст — 2,7:1 у опасной клавиши Картриджа и около 3:1 у
       // сообщения об ошибке в обеих схемах.
-      // Заливка главной клавиши ночью — переход до остывающего низа, а на
-      // нём надпись не дотянула бы до нормы. Поэтому мерится та часть
-      // перехода, над которой лежит надпись, — до середины клавиши.
-      test('$name: надпись на главной клавише читается обоих тонов', () {
-        final look = p.isDark
-            ? LauncherButtonTheme.arclight
-            : LauncherButtonTheme.cartridge;
-        for (final tone in LauncherTone.values) {
-          final fill = look.fillOf(tone);
-          for (var i = 0; i < fill.colors.length; i++) {
-            if (fill.stops![i] > 0.6) continue;
-            expect(
-              contrast(p.onPrimary, fill.colors[i]),
-              greaterThanOrEqualTo(4.5),
-              reason: '$tone, стоп ${fill.stops![i]}',
-            );
-          }
-        }
-      });
-
       test('$name: надпись на опасной заливке читается', () {
         expect(contrast(p.onDanger, p.dangerFill), greaterThanOrEqualTo(4.5));
       });
@@ -148,8 +109,8 @@ void main() {
   group('схемы различаются', () {
     test('светлая светлее тёмной', () {
       expect(
-        _luminance(EvaporatePalette.light.background),
-        greaterThan(_luminance(EvaporatePalette.dark.background)),
+        luminance(EvaporatePalette.light.background),
+        greaterThan(luminance(EvaporatePalette.dark.background)),
       );
     });
 

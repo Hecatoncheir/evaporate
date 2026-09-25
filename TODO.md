@@ -656,7 +656,9 @@
   `_AppMark.size = 28` (`top_bar_brand.dart`), `PulseDot.size = 8`;
   `EvaporateMotion.exit` — ноль употреблений; `_railTheme`
   (`evaporate_theme.dart:239-256`) настраивает `NavigationRail`, которого в
-  `lib` нет. `StatusChip.compact` снят в B3. **S**
+  `lib` нет. `StatusChip.compact` снят в B3. В Ф2 обновления интерфейса
+  (`docs/redesign-plan.md`) радиус стекла у `GlassSurface` и
+  `_GlassSliver` стал обязательным, `_railTheme` ушёл. **S**
 - [ ] **B9. Числа, обходящие стража темы.** **[✔]** P2. `spacing:`/`runSpacing:`
   числом — 25 строк в 9+ файлах (`_gapHere` в `theme_structure_test.dart:355`
   ловит только `SizedBox`); высота органа 48/42 — в шести файлах
@@ -668,7 +670,10 @@
   радиусы в умолчаниях параметров (24, 8, 3, 18). Лечение:
   `EvaporateLayout.controlHeight` (48) и компактный (42); кортеж → ступени;
   `Wrap.spacing` → `EvaporateSpacing`; стражу — учить `? :`, умолчания
-  параметров и `spacing:` (храповиком с числом, см. F11). **M**
+  параметров и `spacing:` (храповиком с числом, см. F11). В Ф2
+  обновления интерфейса `launcher_action_button.dart` снят: погашенная
+  клавиша — ступенью `EvaporateAlpha.disabled`, ореол — долями
+  `LauncherButtonTheme.haloRest`/`haloLit`; радиус 24 стекла — см. B8. **M**
 - [ ] **B10. Роли текста: тридцать — много, полукегли — лишние.** **[○]** P2
   (поведение: на полкегля). `typography.dart:40-65`: `bodyMuted` 13,
   `note` 12.5, `captionMuted` 12, `paragraph` 12.5 — четыре приглушённые
