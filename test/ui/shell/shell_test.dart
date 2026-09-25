@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_theme_mode.dart';
+import 'package:evaporate/ui/shell/top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -93,6 +94,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('СОХРАНЕНИЯ'), findsOneWidget);
     expect(find.text('БИБЛИОТЕКА'), findsNothing);
+  });
+
+  // Ряд, сжатый по самой высокой клавише, прижимался к верху рейки.
+  testWidgets('крошка и клавиши рейки стоят посередине её высоты', (
+    tester,
+  ) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester);
+
+    final bar = tester.getRect(find.byType(TopBar));
+    for (final part in [
+      find.text('EVAPORATE'),
+      find.byTooltip('Светлая тема'),
+    ]) {
+      expect(tester.getCenter(part).dy, closeTo(bar.center.dy, 1));
+    }
+  });
+
+  // Клавиша стоит посередине колонки, и отсчёт от её края клал подсказку
+  // на кант обоймы.
+  testWidgets('подсказки клавиш начинаются за краем обоймы', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester);
+
+    final rack = tester.getRect(find.byKey(const ValueKey('navigation-rack')));
+    final tips = find.byKey(const ValueKey('rail-tooltip'));
+    expect(tips, findsNWidgets(AppSection.values.length));
+    for (var i = 0; i < AppSection.values.length; i++) {
+      expect(tester.getRect(tips.at(i)).left, greaterThan(rack.right));
+    }
   });
 
   testWidgets('панель библиотеки разделяет фильтры, действия и поиск', (

@@ -666,7 +666,10 @@
   (`docs/redesign-plan.md`) радиус стекла у `GlassSurface` и
   `_GlassSliver` стал обязательным, `_railTheme` ушёл. В Ф3 ушли
   `LiquidSelection.resting` с мёртвой веткой художника и умолчание
-  радиуса капли (оно же из B9), `RiseIn.offset` стал постоянной. **S**
+  радиуса капли (оно же из B9), `RiseIn.offset` стал постоянной. В Ф4
+  ушли `FadeIndexedStack.duration` и `_AppMark.size` вместе с
+  `top_bar_brand.dart`: знак обоймы берёт размер из
+  `EvaporateLayout.railMark`. **S**
 - [x] **B9. Числа, обходящие стража темы.** **[✔]** P2. `spacing:`/`runSpacing:`
   числом — 25 строк в 9+ файлах (`_gapHere` в `theme_structure_test.dart:355`
   ловит только `SizedBox`); высота органа 48/42 — в шести файлах
@@ -702,7 +705,8 @@
   P2. `context.colors/text/motion/buttons` (288 вызовов) против
   `HardwareSurfaceTheme.of(context)` ×13, `GlassSurfaceTheme.of`,
   `EffectsPalette.of` и `EvaporateTypography(colors).label` напрямую
-  (`navigation_key.dart:103`). `EvaporateMotion` — `ThemeExtension` с одним
+  (`navigation_key.dart:103`; в Ф4 ушло вместе с подписью клавиши).
+  `EvaporateMotion` — `ThemeExtension` с одним
   экземпляром на обе схемы: 37 строк `copyWith/lerp` никогда не смешивают
   разное, а `still` идёт мимо темы (`motion.dart:131-138`). Лечение:
   `context.surface/glass/effects`; `EvaporateMotion` — `abstract final
@@ -750,7 +754,8 @@
   `download_settings_card:20`, `save_settings_card:20`,
   `speed_limits_settings:22`, `window_startup_card:18`, `gamepad_settings:37`,
   `notification_settings:23`, `effects_card:30`, `effect_preset_picker:15`,
-  `effect_details:17`, `about_body:26` — снято в B4). Там же `theme_cycle_action.dart:41`,
+  `effect_details:17`, `about_body:26` — снято в B4). Там же `theme_cycle_action.dart:41`
+  (в Ф4 берёт `select` по `themeMode`),
   `library_heading_bar.dart:16` — весь `AppSettings` (снято в B2); `save_paths_section.dart:63`,
   `snapshots_section.dart:32` — весь `SavesState`, а `watched_folders.dart:31`
   рядом — `select`. Лечение: `select` по части (`s.saves`, `s.appearance`,

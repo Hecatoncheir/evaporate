@@ -11,7 +11,10 @@ import '../theme.dart';
 ///
 /// Переносом, а не строкой: в узкой карточке клавиши справа уходят под
 /// имя, а не за край. Строкой они получали бесконечную ширину, и их
-/// собственный перенос не срабатывал никогда.
+/// собственный перенос не срабатывал никогда. Ширину перенос берёт всю —
+/// иначе он сжимается по своей строке, и клавиши встают вплотную за
+/// именем, а не у правого края. Клавиши же, в свою очередь, не
+/// растягиваются: строка во всю ширину уходила под имя в любом окне.
 class SectionCardHeader extends StatelessWidget {
   const SectionCardHeader({
     super.key,
@@ -27,28 +30,31 @@ class SectionCardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: EvaporateSpacing.block),
-    child: Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: EvaporateSpacing.gap,
-      runSpacing: EvaporateSpacing.gap,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: EvaporateIconSize.panel,
-                color: context.colors.textSecondary,
-              ),
-              const SizedBox(width: EvaporateSpacing.gap),
+    child: SizedBox(
+      width: double.infinity,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: EvaporateSpacing.gap,
+        runSpacing: EvaporateSpacing.gap,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: EvaporateIconSize.panel,
+                  color: context.colors.textSecondary,
+                ),
+                const SizedBox(width: EvaporateSpacing.gap),
+              ],
+              Flexible(child: Text(title, style: context.text.subtitle)),
             ],
-            Flexible(child: Text(title, style: context.text.subtitle)),
-          ],
-        ),
-        ?trailing,
-      ],
+          ),
+          ?trailing,
+        ],
+      ),
     ),
   );
 }

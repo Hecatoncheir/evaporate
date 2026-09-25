@@ -37,6 +37,11 @@ class _RailTooltipState extends State<RailTooltip> {
 
   @override
   Widget build(BuildContext context) {
+    // Отступ от края обоймы, а не клавиши: клавиша стоит посередине
+    // колонки, и отсчёт от неё клал подсказку на кант обоймы.
+    final beyondRack =
+        (EvaporateLayout.railWidth - EvaporateLayout.railKey.width) / 2 +
+        EvaporateSpacing.gap;
     return CompositedTransformTarget(
       link: _link,
       child: OverlayPortal(
@@ -49,7 +54,7 @@ class _RailTooltipState extends State<RailTooltip> {
             showWhenUnlinked: false,
             targetAnchor: Alignment.centerRight,
             followerAnchor: Alignment.centerLeft,
-            offset: const Offset(EvaporateSpacing.cluster, 0),
+            offset: Offset(beyondRack, 0),
             child: _Bubble(
               message: widget.message,
               visible: _hovered || _focused,

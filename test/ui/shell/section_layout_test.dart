@@ -34,30 +34,33 @@ void main() {
   // Главное, ради чего подписи разделов стали одной строкой. Прежде сверху
   // стояли метка, лозунг кеглем 32 и абзац про библиотеку — около ста
   // двадцати точек, — и в окне 1280×900 первый ряд обложек уходил под
-  // нижний край: библиотека не показывала ни одной полной обложки.
-  testWidgets('первый ряд обложек виден целиком в окне 1280×900', (
-    tester,
-  ) async {
-    await show(tester, const Size(1280, 900));
+  // нижний край: библиотека не показывала ни одной полной обложки. В
+  // наименьшем окне ряд срезала панель библиотеки: обойма слева сузила
+  // её, и органы панели вставали столбцом в три строки.
+  for (final window in [const Size(1280, 900), const Size(900, 620)]) {
+    testWidgets('первый ряд обложек виден целиком в окне '
+        '${window.width.round()}×${window.height.round()}', (tester) async {
+      await show(tester, window);
 
-    final grid = tester.getRect(find.byType(GridView));
-    final tile = tester.getRect(find.byType(GameCoverTile).first);
+      final grid = tester.getRect(find.byType(GridView));
+      final tile = tester.getRect(find.byType(GameCoverTile).first);
 
-    expect(tile.top, greaterThanOrEqualTo(grid.top));
-    expect(
-      tile.bottom,
-      lessThanOrEqualTo(grid.bottom),
-      reason: 'обложка обрезана нижним краем полки',
-    );
-  });
+      expect(tile.top, greaterThanOrEqualTo(grid.top));
+      expect(
+        tile.bottom,
+        lessThanOrEqualTo(grid.bottom),
+        reason: 'обложка обрезана нижним краем полки',
+      );
+    });
+  }
 
   testWidgets('раздел подписан меткой, а не своим именем трижды', (
     tester,
   ) async {
     final harness = await show(tester, const Size(1280, 900));
 
-    // Имя раздела стоит в обойме сверху — и только там. Заголовок кеглем
-    // 34 повторял его на самой странице третий раз, считая метку.
+    // Имя раздела стоит в крошке верхней рейки — и только там. Заголовок
+    // кеглем 34 повторял его на самой странице третий раз, считая метку.
     for (final (section, label, name) in [
       (AppSection.library, '[ 01 / КОЛЛЕКЦИЯ ]', 'БИБЛИОТЕКА'),
       (AppSection.downloads, '[ 02 / АКТИВНО ]', 'ЗАГРУЗКИ'),
@@ -71,7 +74,7 @@ void main() {
       expect(
         find.text(name),
         findsOneWidget,
-        reason: 'имя «$name» должно остаться только в обойме',
+        reason: 'имя «$name» должно остаться только в крошке рейки',
       );
     }
   });

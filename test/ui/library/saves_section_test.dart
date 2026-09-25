@@ -122,6 +122,17 @@ void main() {
     expect(find.textContaining('Снимков пока нет'), findsOneWidget);
   });
 
+  // Ряд клавиш во всю ширину уводил их под имя карточки в любом окне.
+  testWidgets('клавиши снимков стоят в строке с именем карточки', (
+    tester,
+  ) async {
+    await openGame(tester);
+
+    final title = tester.getCenter(find.text(l.snapshots));
+    final take = tester.getCenter(find.widgetWithText(FilledButton, 'Снять'));
+    expect(take.dy, closeTo(title.dy, 1));
+  });
+
   testWidgets('с заданным путём снимок снять можно', (tester) async {
     await openGame(
       tester,

@@ -62,23 +62,26 @@ class NavigationKey extends StatelessWidget {
             // Какой раздел открыт, диктор узнаёт так же, как видит глаз:
             // прежде выбранная клавиша звучала ровно как все остальные.
             selected: selected,
+            // Метка стоит в углу клавиши, а не значка: слой во всю клавишу,
+            // иначе он сжимался по значку, и метка ложилась на сам значок.
             child: ExcludeSemantics(
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  LiquidSelectionInk(
-                    normalColor: colors.textSecondary,
-                    selectedColor: colors.onSelection,
-                    child: Icon(icon, size: EvaporateIconSize.panel),
-                  ),
-                  if (queued > 0)
-                    Positioned(
-                      top: EvaporateSpacing.line,
-                      right: EvaporateSpacing.hair,
-                      child: QueueBadge(count: queued, selected: selected),
+              child: SizedBox.expand(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    LiquidSelectionInk(
+                      normalColor: colors.textSecondary,
+                      selectedColor: colors.onSelection,
+                      child: Icon(icon, size: EvaporateIconSize.panel),
                     ),
-                ],
+                    if (queued > 0)
+                      Positioned(
+                        top: EvaporateSpacing.hair,
+                        right: EvaporateSpacing.hair,
+                        child: QueueBadge(count: queued, selected: selected),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

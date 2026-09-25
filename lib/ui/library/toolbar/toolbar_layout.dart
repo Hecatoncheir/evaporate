@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../theme.dart';
 
-/// Расставляет три органа панели по ширине окна.
+/// Расставляет три органа панели по её ширине.
 ///
-/// Выше [_wide] все три встают в строку с просветами, ниже — плотнее, а в
-/// узком окне становятся столбцом: втиснутые в строку, они начинают резать
-/// друг другу подписи.
+/// Переносом: пока влезают, все трое стоят строкой — полки слева, поиск
+/// справа, добавление между ними; не влезают — правые уходят следующей
+/// строкой, а не сжимаются. Прежде было три раскладки по порогам ширины,
+/// и в самой узкой органы вставали столбцом в три строки: в окне 900×620
+/// панель съедала высоту первого ряда обложек. Сжатая же строка резала
+/// подпись «Добавить игру» надвое.
+///
+/// Ширину перенос берёт всю: иначе он сжимается по своей строке, и
+/// разносить органы по краям ему становится нечем.
 class ToolbarLayout extends StatelessWidget {
   const ToolbarLayout({
     super.key,
@@ -15,54 +21,19 @@ class ToolbarLayout extends StatelessWidget {
     required this.search,
   });
 
-  /// Выше этой ширины все три органа встают в строку с просветами.
-  static const _wide = 1340.0;
-
-  /// Ниже этой — в строку не влезают вовсе и становятся столбцом.
-  static const _narrow = 760.0;
-
   final Widget filters;
   final Widget actions;
   final Widget search;
 
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, box) {
-        if (box.maxWidth >= _wide) {
-          return Row(
-            children: [
-              filters,
-              const Spacer(),
-              actions,
-              const Spacer(),
-              search,
-            ],
-          );
-        }
-        if (box.maxWidth >= _narrow) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              filters,
-              const SizedBox(width: EvaporateSpacing.tight),
-              Expanded(child: actions),
-              const SizedBox(width: EvaporateSpacing.tight),
-              search,
-            ],
-          );
-        }
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(alignment: Alignment.centerLeft, child: filters),
-            const SizedBox(height: EvaporateSpacing.gap),
-            SizedBox(width: double.infinity, child: search),
-            const SizedBox(height: EvaporateSpacing.gap),
-            Align(child: actions),
-          ],
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: EvaporateSpacing.tight,
+      runSpacing: EvaporateSpacing.gap,
+      children: [filters, actions, search],
+    ),
+  );
 }

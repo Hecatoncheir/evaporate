@@ -184,6 +184,13 @@ void main() {
     // До нажатия журнал не читается: он может быть большим.
     expect(find.textContaining('снимок не снялся'), findsNothing);
 
+    // Клавиша стоит в строке с именем карточки: ряд клавиш во всю ширину
+    // уводил её под имя в любом окне.
+    expect(
+      tester.getCenter(find.widgetWithText(OutlinedButton, 'Показать')).dy,
+      closeTo(tester.getCenter(find.text('Журнал')).dy, 1),
+    );
+
     await _press(tester, find.widgetWithText(OutlinedButton, 'Показать'));
     await _untilVisible(tester, 'снимок не снялся');
     expect(find.textContaining('снимок не снялся'), findsOneWidget);

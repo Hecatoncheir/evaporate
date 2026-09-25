@@ -48,29 +48,15 @@ class SnapshotsSection extends StatelessWidget {
       child: SectionCard(
         title: L.of(context).snapshots,
         icon: Icons.history,
-        trailing: Row(
-          children: [
-            TextButton.icon(
-              onPressed: busy ? null : () => _import(context),
-              icon: const Icon(Icons.file_download_outlined),
-              label: Text(L.of(context).importShort),
-            ),
-            const SizedBox(width: EvaporateSpacing.line),
-            FilledButton.icon(
-              onPressed:
-                  busy ||
-                      (!game.saveProfile.isConfigured &&
-                          game.saveDiscovery.ludusaviTemplates.isEmpty)
-                  ? null
-                  : () =>
-                        context.read<SavesBloc>().add(SnapshotRequested(game)),
-              style: context.buttons.compactFilled,
-              icon: busy
-                  ? const BusySpinner()
-                  : const Icon(Icons.add_a_photo_outlined),
-              label: Text(L.of(context).takeSnapshot),
-            ),
-          ],
+        trailing: _SnapshotButtons(
+          busy: busy,
+          onImport: () => _import(context),
+          // Снимать нечего, пока не сказано откуда.
+          onTake:
+              game.saveProfile.isConfigured ||
+                  game.saveDiscovery.ludusaviTemplates.isNotEmpty
+              ? () => context.read<SavesBloc>().add(SnapshotRequested(game))
+              : null,
         ),
         child: snapshots.isEmpty
             ? Text(L.of(context).noSnapshotsNote, style: context.text.paragraph)
@@ -150,4 +136,42 @@ class SnapshotsSection extends StatelessWidget {
       SnapshotImportRequested(path: pending.info.path, game: pending.game),
     );
   }
+}
+
+/// Клавиши снимков в заголовке карточки. Переносом, а не строкой: строка
+/// забирала бы у заголовка всю ширину и уводила клавиши под имя карточки
+/// в любом окне.
+class _SnapshotButtons extends StatelessWidget {
+  const _SnapshotButtons({
+    required this.busy,
+    required this.onImport,
+    required this.onTake,
+  });
+
+  final bool busy;
+  final VoidCallback onImport;
+
+  /// Нет — снять нельзя.
+  final VoidCallback? onTake;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: EvaporateSpacing.line,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      TextButton.icon(
+        onPressed: busy ? null : onImport,
+        icon: const Icon(Icons.file_download_outlined),
+        label: Text(L.of(context).importShort),
+      ),
+      FilledButton.icon(
+        onPressed: busy ? null : onTake,
+        style: context.buttons.compactFilled,
+        icon: busy
+            ? const BusySpinner()
+            : const Icon(Icons.add_a_photo_outlined),
+        label: Text(L.of(context).takeSnapshot),
+      ),
+    ],
+  );
 }

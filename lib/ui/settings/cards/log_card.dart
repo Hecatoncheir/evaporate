@@ -26,14 +26,6 @@ class LogCard extends StatelessWidget {
   /// Подменяется в тестах: настоящий журнал живёт в папке данных.
   final AppLog? log;
 
-  /// Копирование — единственное, что остаётся у карточки: буфер обмена не
-  /// состояние, а сообщение об удаче показывает `SnackBar` по месту.
-  Future<void> _copy(BuildContext context, List<String> lines) async {
-    if (lines.isEmpty) return;
-    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
-    if (context.mounted) showInfo(context, L.of(context).logCopied);
-  }
-
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
@@ -42,33 +34,10 @@ class LogCard extends StatelessWidget {
       child: BlocBuilder<LogBloc, LogState>(
         builder: (context, state) {
           final lines = state.lines;
-          final bloc = context.read<LogBloc>();
           return SectionCard(
             title: l.logTitle,
             icon: Icons.receipt_long_outlined,
-            trailing: Row(
-              children: [
-                if (lines != null && lines.isNotEmpty) ...[
-                  TextButton.icon(
-                    onPressed: () => _copy(context, lines),
-                    icon: const Icon(Icons.copy_all_outlined),
-                    label: Text(l.logCopy),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => bloc.add(const LogClearRequested()),
-                    icon: const Icon(Icons.delete_outline),
-                    label: Text(l.logClear),
-                  ),
-                ],
-                OutlinedButton.icon(
-                  onPressed: state.busy
-                      ? null
-                      : () => bloc.add(const LogShowRequested()),
-                  icon: const Icon(Icons.visibility_outlined),
-                  label: Text(l.logShow),
-                ),
-              ],
-            ),
+            trailing: _LogActions(lines: lines, busy: state.busy),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -82,6 +51,53 @@ class LogCard extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Копирование — единственное, что остаётся у карточки: буфер обмена не
+/// состояние, а сообщение об удаче показывает `SnackBar` по месту.
+Future<void> _copy(BuildContext context, List<String> lines) async {
+  if (lines.isEmpty) return;
+  await Clipboard.setData(ClipboardData(text: lines.join('\n')));
+  if (context.mounted) showInfo(context, L.of(context).logCopied);
+}
+
+/// Клавиши журнала в заголовке карточки. Переносом, а не строкой: строка
+/// забирала бы у заголовка всю ширину и уводила клавиши под имя карточки
+/// в любом окне.
+class _LogActions extends StatelessWidget {
+  const _LogActions({required this.lines, required this.busy});
+
+  final List<String>? lines;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = L.of(context);
+    final bloc = context.read<LogBloc>();
+    final shown = lines ?? const [];
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (shown.isNotEmpty) ...[
+          TextButton.icon(
+            onPressed: () => _copy(context, shown),
+            icon: const Icon(Icons.copy_all_outlined),
+            label: Text(l.logCopy),
+          ),
+          TextButton.icon(
+            onPressed: () => bloc.add(const LogClearRequested()),
+            icon: const Icon(Icons.delete_outline),
+            label: Text(l.logClear),
+          ),
+        ],
+        OutlinedButton.icon(
+          onPressed: busy ? null : () => bloc.add(const LogShowRequested()),
+          icon: const Icon(Icons.visibility_outlined),
+          label: Text(l.logShow),
+        ),
+      ],
     );
   }
 }

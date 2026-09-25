@@ -21,7 +21,7 @@ class HintsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Только раскладка геймпада: строка ни на что больше в настройках не
-    // смотрит, а подписка целиком перестраивала его от смены темы.
+    // смотрит, а подписка целиком перестраивала её от смены темы.
     final gamepadBinding = context.select<SettingsBloc, GamepadBinding>(
       (b) => b.state.gamepad,
     );

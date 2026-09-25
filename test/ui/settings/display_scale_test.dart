@@ -7,6 +7,8 @@ import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
+import 'package:evaporate/ui/shell/hints_bar.dart';
+import 'package:evaporate/ui/shell/top_bar.dart';
 import 'package:evaporate/ui/window/interface_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -169,6 +171,17 @@ void main() {
       await tester.pumpWidget(harness.buildApp());
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      // Обойма и рейка целиком в окне, а строка подсказок в таком низком
+      // окне спрятана: её место отдано разделу.
+      const window = Rect.fromLTWH(0, 0, 900, 578);
+      for (final part in [
+        find.byKey(const ValueKey('navigation-rack')),
+        find.byType(TopBar),
+      ]) {
+        final rect = tester.getRect(part);
+        expect(window.intersect(rect), rect, reason: '$rect вне окна');
+      }
+      expect(find.byType(HintsBar), findsNothing);
       await tester.tapAt(
         tester.getTopLeft(find.byType(GameCoverTile).first) +
             const Offset(40, 40),

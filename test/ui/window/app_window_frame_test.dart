@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
 import '../../support/test_app.dart';
@@ -373,12 +374,20 @@ void main() {
     expect(calls.any((c) => c.method == 'minimize'), isTrue);
   });
 
-  testWidgets(
-    'в наименьшее окно со своей рамкой библиотека помещается целиком',
-    (tester) async {
+  // Снимок — в двух окнах и с обложками: на пустой библиотеке не видно
+  // главного, помещается ли первый ряд. Путь из переменной получает
+  // размер окна перед расширением.
+  for (final window in [const Size(900, 620), const Size(1280, 900)]) {
+    final size = '${window.width.round()}x${window.height.round()}';
+    testWidgets('в окне $size со своей рамкой библиотека помещается', (
+      tester,
+    ) async {
       final harness = TestHarness(tmp);
       addTearDown(harness.dispose);
-      tester.view.physicalSize = const Size(900, 620);
+      for (var i = 0; i < 8; i++) {
+        harness.addGame(title: 'Игра $i');
+      }
+      tester.view.physicalSize = window;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final boundaryKey = GlobalKey();
@@ -391,6 +400,8 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      // Библиотека ложится на диск через 400 мс после правки.
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.byKey(const ValueKey('rail-quit')), findsOneWidget);
       expect(
         find.widgetWithText(OutlinedButton, 'Добавить игру'),
@@ -414,13 +425,14 @@ void main() {
             final bytes = await image.toByteData(
               format: ui.ImageByteFormat.png,
             );
-            await File(preview).writeAsBytes(bytes!.buffer.asUint8List());
+            await File('${p.withoutExtension(preview)}-$size.png')
+                .writeAsBytes(bytes!.buffer.asUint8List());
           } finally {
             image.dispose();
           }
         });
       }
       expect(tester.takeException(), isNull);
-    },
-  );
+    });
+  }
 }

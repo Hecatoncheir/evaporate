@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 
 /// Сколько задач в работе. На выбранной клавише метка выворачивается:
-/// тёплая метка на тёплой плашке выделения пропала бы.
+/// тёплая метка на тёплой капле выделения пропала бы.
 class QueueBadge extends StatelessWidget {
   const QueueBadge({super.key, required this.count, required this.selected});
 
