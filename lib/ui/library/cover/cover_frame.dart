@@ -6,8 +6,8 @@ import '../../theme.dart';
 import '../effects/portal/portal_sparks.dart';
 import 'cover_face.dart';
 
-/// Корпус плитки: искры по краю, тень, скруглённый вырез и пропорции
-/// обложки.
+/// Корпус плитки: искры по краю, ореол выбранной, тень, скруглённый вырез
+/// и пропорции обложки.
 ///
 /// Искры лежат снаружи выреза: увеличенная под фокусом обложка закрыла бы
 /// самые яркие из них у кромки. Вырез — угол панели, и по тому же углу
@@ -34,30 +34,48 @@ class CoverFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(EvaporateTheme.radiusPanel);
-    return PortalSparks(
-      enabled: selected && portalEnabled,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: radius,
-          boxShadow: [
+    // Ореол выбранной — снаружи искр, а не рядом с тенью: искры рисуются
+    // первым слоем под обложкой, и тень внутри легла бы поверх них. Снаружи
+    // украшение красится раньше всего, что в нём, — ореол под искрами.
+    // Приглушён долей от своей же прозрачности: днём цвет ореола пуст, и
+    // ступень поверх него дала бы тёмное пятно вместо ничего.
+    final glow = context.colors.glow;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          if (selected)
             BoxShadow(
-              // Тень своя, а не из темы: она отделяет обложку от фона, и в
-              // светлой теме нужна не меньше, чем в тёмной.
-              color: AppColors.coverShadow,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: glow.withValues(alpha: glow.a * EvaporateAlpha.ghost),
+              blurRadius: HardwareSurfaceTheme.of(context).tileGlowBlur,
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: radius,
-          child: AspectRatio(
-            aspectRatio: 2 / 3,
-            child: CoverFace(
-              game: game,
-              task: task,
-              selected: selected,
-              dropsEnabled: dropsEnabled,
+        ],
+      ),
+      child: PortalSparks(
+        enabled: selected && portalEnabled,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            boxShadow: [
+              BoxShadow(
+                // Тень своя, а не из темы: она отделяет обложку от фона, и в
+                // светлой теме нужна не меньше, чем в тёмной.
+                color: AppColors.coverShadow,
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: radius,
+            child: AspectRatio(
+              aspectRatio: 2 / 3,
+              child: CoverFace(
+                game: game,
+                task: task,
+                selected: selected,
+                dropsEnabled: dropsEnabled,
+              ),
             ),
           ),
         ),

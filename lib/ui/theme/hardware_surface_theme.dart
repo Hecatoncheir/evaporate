@@ -35,6 +35,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     required this.railShadowDrop,
     required this.frameShadowBlur,
     required this.frameShadowDrop,
+    required this.tileGlowBlur,
   });
 
   /// Тень под стеклянной панелью.
@@ -78,6 +79,11 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
   final double frameShadowBlur;
   final double frameShadowDrop;
 
+  /// Размытие ореола под выбранной плиткой. Цвет — `glow` палитры: днём он
+  /// прозрачен, светлый корпус не светится, и число здесь только держит
+  /// смешение схем гладким.
+  final double tileGlowBlur;
+
   static const arclight = HardwareSurfaceTheme(
     shadow: Color(0x8C000000),
     shellOpacity: 0.62,
@@ -92,6 +98,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     railShadowDrop: 10,
     frameShadowBlur: 54,
     frameShadowDrop: 26,
+    tileGlowBlur: 42,
   );
 
   static const cartridge = HardwareSurfaceTheme(
@@ -108,6 +115,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     railShadowDrop: 2,
     frameShadowBlur: 12,
     frameShadowDrop: 3,
+    tileGlowBlur: 18,
   );
 
   static HardwareSurfaceTheme of(BuildContext context) =>
@@ -129,6 +137,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     railShadowDrop,
     frameShadowBlur,
     frameShadowDrop,
+    tileGlowBlur,
   ];
 
   @override
@@ -146,6 +155,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
     railShadowDrop: railShadowDrop,
     frameShadowBlur: frameShadowBlur,
     frameShadowDrop: frameShadowDrop,
+    tileGlowBlur: tileGlowBlur,
   );
 
   @override
@@ -169,6 +179,7 @@ class HardwareSurfaceTheme extends ThemeExtension<HardwareSurfaceTheme> {
       railShadowDrop: mix(railShadowDrop, other.railShadowDrop),
       frameShadowBlur: mix(frameShadowBlur, other.frameShadowBlur),
       frameShadowDrop: mix(frameShadowDrop, other.frameShadowDrop),
+      tileGlowBlur: mix(tileGlowBlur, other.tileGlowBlur),
     );
   }
 }

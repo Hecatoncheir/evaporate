@@ -61,4 +61,55 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
   });
+
+  /// Украшение, которое лежит прямо над искрами, — ореол.
+  BoxDecoration glowOf(WidgetTester tester) =>
+      tester
+              .widget<DecoratedBox>(
+                find
+                    .ancestor(
+                      of: find.byType(PortalSparks),
+                      matching: find.byType(DecoratedBox),
+                    )
+                    .first,
+              )
+              .decoration
+          as BoxDecoration;
+
+  testWidgets('выбранная плитка светится, невыбранная нет', (tester) async {
+    await show(tester, selected: false);
+    expect(glowOf(tester).boxShadow, isEmpty);
+
+    await show(tester, selected: true);
+    final context = tester.element(find.byType(CoverFrame));
+    final [glow] = glowOf(tester).boxShadow!;
+    final tone = context.colors.glow;
+    expect(glow.color, tone.withValues(alpha: tone.a * EvaporateAlpha.ghost));
+    expect(glow.blurRadius, HardwareSurfaceTheme.of(context).tileGlowBlur);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  // Искры рисуются первым слоем под обложкой: ореол рядом с тенью, внутри
+  // искр, лёг бы поверх них и погасил самые яркие у кромки.
+  testWidgets('ореол лежит снаружи искр, а не внутри', (tester) async {
+    await show(tester, selected: true);
+    final glow = tester.element(find.byType(CoverFrame)).colors.glow;
+
+    final inside = tester.widgetList<DecoratedBox>(
+      find.descendant(
+        of: find.byType(PortalSparks),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
+    for (final box in inside) {
+      final shadows = (box.decoration as BoxDecoration?)?.boxShadow ?? [];
+      expect(
+        shadows.where((s) => s.color.b == glow.b && s.color.r == glow.r),
+        isEmpty,
+      );
+    }
+
+    await tester.pumpWidget(const SizedBox());
+  });
 }

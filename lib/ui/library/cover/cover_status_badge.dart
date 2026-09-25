@@ -4,6 +4,12 @@ import '../../../models/game.dart';
 import '../../theme.dart';
 
 /// Значок в углу: установлена, запущена, не заладилось.
+///
+/// Плашка в тоне смысла: подложка тёмная, как у всего поверх обложки, —
+/// на светлой картинке значок иначе пропадал бы, — но тронута цветом
+/// состояния и окантована им. Стеклом, как у прототипа, не сделана:
+/// размытие под каждой плиткой сетки, да ещё над каплями, стоило бы
+/// кадров.
 class CoverStatusBadge extends StatelessWidget {
   const CoverStatusBadge({super.key, required this.game});
 
@@ -11,10 +17,14 @@ class CoverStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color) = switch (game.status) {
-      GameStatus.running => (Icons.play_arrow_rounded, context.colors.accent),
-      GameStatus.installed => (Icons.check_rounded, context.colors.accent),
-      GameStatus.error => (Icons.priority_high_rounded, context.colors.danger),
+    final colors = context.colors;
+    // Идущая игра горит огнём главного действия, установленная — холодным
+    // цветом готового: прежде обе были одного цвета, и запущенную в сетке
+    // было не отличить.
+    final (icon, tone) = switch (game.status) {
+      GameStatus.running => (Icons.play_arrow_rounded, colors.primary),
+      GameStatus.installed => (Icons.check_rounded, colors.accent),
+      GameStatus.error => (Icons.priority_high_rounded, colors.danger),
       _ => (null, AppColors.transparent),
     };
     if (icon == null) return const SizedBox.shrink();
@@ -29,13 +39,16 @@ class CoverStatusBadge extends StatelessWidget {
           width: 22,
           height: 22,
           decoration: BoxDecoration(
-            // Кружок лежит на обложке, а не на фоне приложения: подложка
-            // тёмная в обеих темах, иначе значок пропадал бы на светлых
-            // картинках.
-            color: AppColors.coverOverlay,
-            shape: BoxShape.circle,
+            color: Color.alphaBlend(
+              tone.withValues(alpha: EvaporateAlpha.subtle),
+              AppColors.coverOverlay,
+            ),
+            border: Border.all(
+              color: tone.withValues(alpha: EvaporateAlpha.rim),
+            ),
+            borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
           ),
-          child: Icon(icon, size: EvaporateIconSize.key, color: color),
+          child: Icon(icon, size: EvaporateIconSize.key, color: tone),
         ),
       ),
     );

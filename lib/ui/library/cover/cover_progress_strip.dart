@@ -30,6 +30,18 @@ class CoverProgressStrip extends StatelessWidget {
     final indeterminate = task.isMetadata || task.totalBytes == 0;
     final label = downloadProgressShort(L.of(context), task);
     final style = compact ? context.text.tagStrong : context.text.chip;
+    final colors = context.colors;
+    // Полоса в цвете смысла, а не одним огнём: идущая загрузка — холодный
+    // цвет данных, как её клавиша, вставшая — предупреждение, сорвавшаяся
+    // — тревога. Ждущая очереди светиться не должна вовсе.
+    final tone = switch (task.state) {
+      DownloadState.active || DownloadState.complete => colors.accentFill,
+      DownloadState.paused => colors.warning,
+      DownloadState.error => colors.dangerFill,
+      DownloadState.waiting => AppColors.coverText.withValues(
+        alpha: EvaporateAlpha.ghost,
+      ),
+    };
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -57,6 +69,7 @@ class CoverProgressStrip extends StatelessWidget {
             AnimatedProgress(
               value: indeterminate ? null : task.progress,
               height: 3,
+              color: tone,
               track: AppColors.coverProgressTrack,
             ),
           ],
