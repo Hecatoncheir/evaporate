@@ -62,7 +62,7 @@ class SavesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeading(
-            label: L.of(context).conceptSavesLabel,
+            label: L.of(context).sectionSavesLabel,
             semanticsLabel: L.of(context).saves,
             padding: const EdgeInsets.only(bottom: EvaporateSpacing.section),
           ),

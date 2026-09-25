@@ -578,12 +578,12 @@
   "windowRemembered": "As you left it",
   "wipeBeforeUnpack": "Empty the folders before unpacking",
   "wipeNote": "Otherwise files from the snapshot just overwrite same-named ones",
-  "conceptLibraryLabel": "[ 01 / COLLECTION ]",
-  "conceptDownloadsLabel": "[ 02 / ACTIVE ]",
-  "conceptSavesLabel": "[ 03 / SYNC ]",
-  "conceptSettingsLabel": "[ 04 / SETTINGS ]",
-  "conceptFeaturedContinue": "CONTINUE · {freshness}",
-  "@conceptFeaturedContinue": {
+  "sectionLibraryLabel": "[ 01 / COLLECTION ]",
+  "sectionDownloadsLabel": "[ 02 / ACTIVE ]",
+  "sectionSavesLabel": "[ 03 / SYNC ]",
+  "sectionSettingsLabel": "[ 04 / SETTINGS ]",
+  "featuredContinue": "CONTINUE · {freshness}",
+  "@featuredContinue": {
     "placeholders": {
       "freshness": {"type": "String"}
     }

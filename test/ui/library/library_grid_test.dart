@@ -4,7 +4,7 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/library/featured_game.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/library/library_grid.dart';
 import 'package:evaporate/ui/library/rise_in.dart';

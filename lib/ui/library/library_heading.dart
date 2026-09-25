@@ -19,8 +19,8 @@ import '../widgets/section_heading.dart';
 /// орган управления, который видно вместе с тем, на что он влияет, — его
 /// крутят, глядя на сами обложки. Из настроек подпись берёт одну эту
 /// крупность: смена папки игр или прокси её не перестраивает.
-class ConceptLibraryHeading extends StatelessWidget {
-  const ConceptLibraryHeading({super.key});
+class LibraryHeading extends StatelessWidget {
+  const LibraryHeading({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +28,7 @@ class ConceptLibraryHeading extends StatelessWidget {
       (bloc) => bloc.state.appearance.libraryScale,
     );
     return SectionHeading(
-      label: L.of(context).conceptLibraryLabel,
+      label: L.of(context).sectionLibraryLabel,
       semanticsLabel: L.of(context).library,
       padding: EvaporateLayout.inset(
         top: EvaporateSpacing.card,

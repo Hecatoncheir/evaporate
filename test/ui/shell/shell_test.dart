@@ -48,7 +48,7 @@ void main() {
 
     // Раздел подписан меткой на корпусе, а лозунга и абзаца про библиотеку
     // здесь больше нет: их место занимает сама библиотека.
-    expect(find.text(l.conceptLibraryLabel), findsOneWidget);
+    expect(find.text(l.sectionLibraryLabel), findsOneWidget);
     expect(find.text('ТЕСТОВАЯ ОРБИТА'), findsOneWidget);
     expect(find.text(l.openGame), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -63,7 +63,7 @@ void main() {
     await harness.pump(tester);
 
     final menuCenter = tester.getCenter(
-      find.byKey(const ValueKey('concept-navigation')),
+      find.byKey(const ValueKey('navigation-rack')),
     );
     for (final label in ['БИБЛИОТЕКА', 'ЗАГРУЗКИ', 'СОХРАНЕНИЯ', 'НАСТРОЙКИ']) {
       expect(

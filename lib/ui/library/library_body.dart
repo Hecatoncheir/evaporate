@@ -13,7 +13,7 @@ import 'library_featured_slot.dart';
 import 'library_grid.dart';
 import 'library_grid_controller.dart';
 import 'library_heading.dart';
-import 'toolbar.dart';
+import 'library_toolbar.dart';
 
 /// Сама страница библиотеки: заголовок, крупный кадр, полки и сетка.
 ///
@@ -71,7 +71,7 @@ class LibraryBody extends StatelessWidget {
           targetKey: () => grid.targetKey(selectedId),
           child: Column(
             children: [
-              if (height >= _headingHeight) const ConceptLibraryHeading(),
+              if (height >= _headingHeight) const LibraryHeading(),
               LibraryFeaturedSlot(games: games, height: height),
               LibraryToolbar(
                 searchFocus: searchFocus,

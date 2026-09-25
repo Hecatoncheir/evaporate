@@ -10,7 +10,7 @@ import 'package:evaporate/ui/library/effects/foil/foil_surface.dart';
 import 'package:evaporate/ui/library/effects/game_wave.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
 import 'package:evaporate/ui/library/effects/particle_field.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/decorative_motion.dart';
 import 'package:flutter/material.dart';

@@ -6,14 +6,14 @@ import 'package:evaporate/core/app_paths.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/services/system/desktop_entry.dart';
 import 'package:evaporate/services/system/update_check.dart';
-import 'package:evaporate/ui/settings/about_card.dart';
+import 'package:evaporate/ui/settings/cards/about_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
-import '../../support/host_widget.dart';
-import '../../support/temp_dir.dart';
+import '../../../support/host_widget.dart';
+import '../../../support/temp_dir.dart';
 
 void main() {
   late Directory tmp;

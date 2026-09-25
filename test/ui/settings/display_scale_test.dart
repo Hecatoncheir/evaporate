@@ -5,7 +5,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/window/interface_scale.dart';
 import 'package:flutter/material.dart';

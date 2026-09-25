@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:evaporate/services/system/app_log.dart';
-import 'package:evaporate/ui/settings/log_card.dart';
+import 'package:evaporate/ui/settings/cards/log_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;

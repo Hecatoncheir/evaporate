@@ -4,18 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gamepads/gamepads.dart';
 
-import '../../bloc/settings/settings_bloc.dart';
-import '../../input/gamepad_binding.dart';
-import '../../input/gamepad_service.dart';
-import '../../input/nav_action.dart';
-import '../../l10n/app_localizations.dart';
-import '../theme.dart';
-import '../widgets/section_card.dart';
-import 'capture_button_dialog.dart';
-import 'deadzone_slider.dart';
-import 'gamepad_binding_row.dart';
-import 'gamepad_status_row.dart';
-import 'setting_switch.dart';
+import '../../../bloc/settings/settings_bloc.dart';
+import '../../../input/gamepad_binding.dart';
+import '../../../input/gamepad_service.dart';
+import '../../../input/nav_action.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../theme.dart';
+import '../../widgets/section_card.dart';
+import '../capture_button_dialog.dart';
+import '../deadzone_slider.dart';
+import '../gamepad_binding_row.dart';
+import '../gamepad_status_row.dart';
+import '../setting_switch.dart';
 
 /// Раздел «Управление»: состояние геймпада и переназначение кнопок.
 class GamepadSettingsCard extends StatelessWidget {

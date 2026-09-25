@@ -37,7 +37,7 @@ class ShellLayout extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(inset, inset, inset, 0),
           child: Column(
             children: [
-              ConceptTopBar(compact: compact),
+              TopBar(compact: compact),
               const SizedBox(height: EvaporateSpacing.cluster),
               const Expanded(child: ShellPanel()),
               if (box.maxHeight >= _shortHeight) ...[

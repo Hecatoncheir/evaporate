@@ -7,7 +7,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/library_effect.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/liquid/liquid_selection.dart';

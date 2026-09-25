@@ -37,7 +37,7 @@ class NavigationRack extends StatelessWidget {
       builder: (context, box) {
         final fit = RackFit.forRack(box, AppSection.values.length);
         return Container(
-          key: const ValueKey('concept-navigation'),
+          key: const ValueKey('navigation-rack'),
           height: EvaporateLayout.railHeight,
           padding: const EdgeInsets.all(EvaporateLayout.wellInset),
           decoration: BoxDecoration(

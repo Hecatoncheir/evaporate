@@ -7,7 +7,7 @@ import '../../models/game.dart';
 import '../../models/library_effect.dart';
 import '../theme.dart';
 import 'effects/foil/foil_card.dart';
-import 'game_cover.dart';
+import 'game_cover_tile.dart';
 import 'library_grid_controller.dart';
 import 'rise_in.dart';
 

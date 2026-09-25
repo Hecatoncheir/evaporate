@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

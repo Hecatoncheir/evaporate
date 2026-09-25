@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/proxy_form/proxy_form_bloc.dart';
-import '../../bloc/settings/settings_bloc.dart';
-import '../../l10n/app_localizations.dart';
-import '../widgets/section_card.dart';
-import 'proxy_form_body.dart';
+import '../../../bloc/proxy_form/proxy_form_bloc.dart';
+import '../../../bloc/settings/settings_bloc.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../widgets/section_card.dart';
+import '../proxy_form_body.dart';
 
 /// Раздел «Прокси» для движка загрузок.
 ///

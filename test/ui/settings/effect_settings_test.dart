@@ -8,7 +8,7 @@ import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
 import 'package:evaporate/ui/library/effects/portal/portal_sparks.dart';
-import 'package:evaporate/ui/library/game_cover.dart';
+import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

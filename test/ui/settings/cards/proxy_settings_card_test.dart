@@ -8,7 +8,7 @@ import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../support/test_app.dart';
+import '../../../support/test_app.dart';
 
 /// Карточка «Прокси»: поля открываются на сохранённом адресе, а набранное
 /// уходит в настройки только по «Применить» — смена прокси перезапускает

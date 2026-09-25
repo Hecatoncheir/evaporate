@@ -250,9 +250,7 @@ void main() {
 
     // И остаются в верхней рейке: прежде обойма переезжала под содержимое
     // и налезала на подсказки управления в нижней строке.
-    final rack = tester.getRect(
-      find.byKey(const ValueKey('concept-navigation')),
-    );
+    final rack = tester.getRect(find.byKey(const ValueKey('navigation-rack')));
     expect(
       rack.bottom,
       lessThan(80),

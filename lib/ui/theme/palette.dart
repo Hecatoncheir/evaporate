@@ -30,7 +30,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     required this.textPrimary,
     required this.textSecondary,
     required this.railBackground,
-    required this.railIndicator,
+    required this.selection,
     required this.onSelection,
     required this.glow,
     required this.depth,
@@ -77,7 +77,9 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
   final Color textPrimary;
   final Color textSecondary;
   final Color railBackground;
-  final Color railIndicator;
+
+  /// Выбранное: капля выделения, выбранный сегмент, рамка фокуса.
+  final Color selection;
   final Color onSelection;
 
   /// Ореол вокруг активного: в ночной схеме светится янтарь, в дневной
@@ -92,8 +94,6 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   /// Тень панелей: в ночи длинная и мягкая, днём короткая и жёсткая.
   final Color shadow;
-
-  Color get selection => railIndicator;
 
   /// Все поля по порядку — для проверки, что `lerp` и `copyWith` не
   /// забыли ни одного: забытое в `lerp` поле молча застревает в прежней
@@ -116,7 +116,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     textPrimary,
     textSecondary,
     railBackground,
-    railIndicator,
+    selection,
     onSelection,
     glow,
     depth,
@@ -153,7 +153,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     textPrimary: Color(0xFFF2F3F7),
     textSecondary: Color(0xFFA8ACBD),
     railBackground: Color(0xFF0A0B11),
-    railIndicator: Color(0xFFFFC24D),
+    selection: Color(0xFFFFC24D),
     onSelection: Color(0xFF0A0D11),
     glow: Color(0xFFFFC24D),
     depth: Color(0xFFC93A05),
@@ -180,7 +180,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     textPrimary: Color(0xFF16171A),
     textSecondary: Color(0xFF55585C),
     railBackground: Color(0xFFDAD7CD),
-    railIndicator: Color(0xFF16171A),
+    selection: Color(0xFF16171A),
     onSelection: Color(0xFFF7F6F2),
     glow: Color(0x00000000),
     depth: Color(0xFFB22F08),
@@ -206,7 +206,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
     Color? textPrimary,
     Color? textSecondary,
     Color? railBackground,
-    Color? railIndicator,
+    Color? selection,
     Color? onSelection,
     Color? glow,
     Color? depth,
@@ -230,7 +230,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       railBackground: railBackground ?? this.railBackground,
-      railIndicator: railIndicator ?? this.railIndicator,
+      selection: selection ?? this.selection,
       onSelection: onSelection ?? this.onSelection,
       glow: glow ?? this.glow,
       depth: depth ?? this.depth,
@@ -261,7 +261,7 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
       textPrimary: mix(textPrimary, other.textPrimary),
       textSecondary: mix(textSecondary, other.textSecondary),
       railBackground: mix(railBackground, other.railBackground),
-      railIndicator: mix(railIndicator, other.railIndicator),
+      selection: mix(selection, other.selection),
       onSelection: mix(onSelection, other.onSelection),
       glow: mix(glow, other.glow),
       depth: mix(depth, other.depth),

@@ -19,7 +19,7 @@ class FeaturedEyebrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = L.of(context);
-    var text = l.conceptFeaturedContinue(
+    var text = l.featuredContinue(
       game.play.lastPlayed == null ? l.featuredReady : l.featuredRecent,
     );
     if (withPlaytime && game.play.playtime > Duration.zero) {

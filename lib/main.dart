@@ -33,8 +33,8 @@ import 'services/system/window_mode_watch.dart';
 import 'services/system/window_state.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
+import 'ui/window/app_window_frame.dart';
 import 'ui/window/interface_scale.dart';
-import 'ui/window/window_frame.dart';
 
 /// Запуск приложения — список шагов по порядку.
 ///

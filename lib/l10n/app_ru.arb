@@ -1351,12 +1351,12 @@
   "windowRemembered": "Как закрыли",
   "wipeBeforeUnpack": "Очистить папки перед распаковкой",
   "wipeNote": "Иначе файлы из снимка просто перезапишут одноимённые",
-  "conceptLibraryLabel": "[ 01 / КОЛЛЕКЦИЯ ]",
-  "conceptDownloadsLabel": "[ 02 / АКТИВНО ]",
-  "conceptSavesLabel": "[ 03 / СИНХРОНИЗАЦИЯ ]",
-  "conceptSettingsLabel": "[ 04 / ПАРАМЕТРЫ ]",
-  "conceptFeaturedContinue": "ПРОДОЛЖИТЬ · {freshness}",
-  "@conceptFeaturedContinue": {
+  "sectionLibraryLabel": "[ 01 / КОЛЛЕКЦИЯ ]",
+  "sectionDownloadsLabel": "[ 02 / АКТИВНО ]",
+  "sectionSavesLabel": "[ 03 / СИНХРОНИЗАЦИЯ ]",
+  "sectionSettingsLabel": "[ 04 / ПАРАМЕТРЫ ]",
+  "featuredContinue": "ПРОДОЛЖИТЬ · {freshness}",
+  "@featuredContinue": {
     "placeholders": {
       "freshness": {"type": "String"}
     }

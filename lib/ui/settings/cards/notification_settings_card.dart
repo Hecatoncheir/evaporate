@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 
-import '../../bloc/settings/settings_bloc.dart';
-import '../../l10n/app_localizations.dart';
-import '../../services/notifications/notification_service.dart';
-import '../theme.dart';
-import '../widgets/inline_warning.dart';
-import '../widgets/section_card.dart';
-import 'notification_actions.dart';
-import 'setting_note.dart';
-import 'setting_switch.dart';
+import '../../../bloc/settings/settings_bloc.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../services/notifications/notification_service.dart';
+import '../../theme.dart';
+import '../../widgets/inline_warning.dart';
+import '../../widgets/section_card.dart';
+import '../notification_actions.dart';
+import '../setting_note.dart';
+import '../setting_switch.dart';
 
 /// Раздел «Уведомления»: включение, разрешение системы и проверка.
 class NotificationSettingsCard extends StatelessWidget {

@@ -4,18 +4,18 @@ import 'package:flutter/services.dart';
 import '../../l10n/app_localizations.dart';
 import '../theme.dart';
 import '../widgets/section_heading.dart';
-import 'about_card.dart';
+import 'cards/about_card.dart';
 import 'cards/appearance_card.dart';
 import 'cards/download_settings_card.dart';
 import 'cards/engine_info_card.dart';
+import 'cards/gamepad_settings_card.dart';
+import 'cards/library_effects_card.dart';
+import 'cards/log_card.dart';
 import 'cards/metadata_card.dart';
+import 'cards/notification_settings_card.dart';
+import 'cards/proxy_settings_card.dart';
 import 'cards/save_settings_card.dart';
 import 'cards/window_startup_card.dart';
-import 'effects_card.dart';
-import 'gamepad_settings.dart';
-import 'log_card.dart';
-import 'notification_settings.dart';
-import 'proxy_settings_card.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -52,7 +52,7 @@ class SettingsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SectionHeading(
-                label: L.of(context).conceptSettingsLabel,
+                label: L.of(context).sectionSettingsLabel,
                 semanticsLabel: L.of(context).settings,
                 padding: EdgeInsets.zero,
               ),

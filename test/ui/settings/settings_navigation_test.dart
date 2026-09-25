@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
-import 'package:evaporate/ui/settings/about_card.dart';
+import 'package:evaporate/ui/settings/cards/about_card.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

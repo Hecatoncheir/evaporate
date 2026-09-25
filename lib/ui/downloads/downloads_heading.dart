@@ -26,7 +26,7 @@ class DownloadsHeading extends StatelessWidget {
         status.state == EngineState.failed ||
         status.state == EngineState.stopped;
     return SectionHeading(
-      label: L.of(context).conceptDownloadsLabel,
+      label: L.of(context).sectionDownloadsLabel,
       semanticsLabel: L.of(context).downloads,
       padding: EvaporateLayout.inset(top: EvaporateSpacing.section),
       trailing: Wrap(

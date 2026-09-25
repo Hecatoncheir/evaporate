@@ -720,6 +720,11 @@
   сетка; обойма — `NavigationRack`; рейка — верхняя панель; плашка — чип),
   файлы под классы, `Concept` убрать, `railIndicator → selection`, все
   карточки в `cards/`. **M**
+  В Ф4a обновления интерфейса (`docs/redesign-plan.md`) сделано всё, кроме
+  третьего слова подписи (`SectionTitle` уходит в Ф9): словарь — в
+  `CLAUDE.md`, файлы названы по классам, `Concept` ушёл из классов, ключа
+  обоймы (`navigation-rack`) и ARB (`section*Label`, `featuredContinue`),
+  поле палитры — `selection`, шесть карточек — в `cards/` с тестами.
 - [ ] **B13. `LibraryPage`: побочные действия сборки — слушателями.** **[○]**
   P2. `library_page.dart:129,137-139` зовут из `build` четыре сравнения с
   прошлой сборкой (`_forgetGone`, `_repairSelection`, `_grabSearchFocus`,

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/settings/settings_bloc.dart';
-import '../../l10n/app_localizations.dart';
-import '../../models/effect_preset.dart';
-import '../theme.dart';
-import '../widgets/section_card.dart';
-import 'effect_details.dart';
-import 'effect_preset_picker.dart';
-import 'effect_quality_picker.dart';
-import 'setting_note.dart';
+import '../../../bloc/settings/settings_bloc.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../models/effect_preset.dart';
+import '../../theme.dart';
+import '../../widgets/section_card.dart';
+import '../effect_details.dart';
+import '../effect_preset_picker.dart';
+import '../effect_quality_picker.dart';
+import '../setting_note.dart';
 
 /// Живая библиотека: набор одним выбором, отдельные украшения — под
 /// «Подробно».

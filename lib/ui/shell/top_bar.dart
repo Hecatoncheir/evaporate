@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'navigation.dart';
+import 'rack_navigation.dart';
 import 'top_bar_actions.dart';
 import 'top_bar_brand.dart';
 import 'window_drag_area.dart';
 
 /// Верхняя рейка: бренд и действия стоят по краям, а разделы — ровно по
 /// центру доступной ширины. В узком окне разделы переезжают вниз.
-class ConceptTopBar extends StatelessWidget {
-  const ConceptTopBar({super.key, required this.compact});
+class TopBar extends StatelessWidget {
+  const TopBar({super.key, required this.compact});
 
   final bool compact;
 
@@ -38,7 +38,7 @@ class ConceptTopBar extends StatelessWidget {
               // переезжала под содержимое и налезала на подсказки
               // управления в нижней строке.
               const SizedBox(width: EvaporateSpacing.cluster),
-              const Expanded(child: Center(child: ConceptNavigation())),
+              const Expanded(child: Center(child: RackNavigation())),
               const SizedBox(width: EvaporateSpacing.cluster),
             ] else
               const Spacer(),
@@ -47,7 +47,7 @@ class ConceptTopBar extends StatelessWidget {
         ),
         // В широком окне обойма стоит ровно по центру всей рейки, а не
         // между знаком и действиями: для этого она и лежит в Stack.
-        if (!compact) const ConceptNavigation(),
+        if (!compact) const RackNavigation(),
       ],
     ),
   );

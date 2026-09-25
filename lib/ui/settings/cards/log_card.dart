@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/log/log_bloc.dart';
-import '../../l10n/app_localizations.dart';
-import '../../services/system/app_log.dart';
-import '../feedback/snack.dart';
-import '../theme.dart';
-import '../widgets/section_card.dart';
-import 'log_view.dart';
-import 'setting_note.dart';
+import '../../../bloc/log/log_bloc.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../services/system/app_log.dart';
+import '../../feedback/snack.dart';
+import '../../theme.dart';
+import '../../widgets/section_card.dart';
+import '../log_view.dart';
+import '../setting_note.dart';
 
 /// Показ журнала приложения.
 ///

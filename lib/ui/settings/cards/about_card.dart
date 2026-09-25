@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../bloc/settings/settings_bloc.dart';
-import '../../bloc/update/update_bloc.dart';
-import '../../l10n/app_localizations.dart';
-import '../../services/system/update_check.dart';
-import '../theme.dart';
-import '../widgets/info_row.dart';
-import '../widgets/section_card.dart';
-import 'about_actions.dart';
-import 'menu_entry_row.dart';
-import 'setting_switch.dart';
+import '../../../bloc/settings/settings_bloc.dart';
+import '../../../bloc/update/update_bloc.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../services/system/update_check.dart';
+import '../../theme.dart';
+import '../../widgets/info_row.dart';
+import '../../widgets/section_card.dart';
+import '../about_actions.dart';
+import '../menu_entry_row.dart';
+import '../setting_switch.dart';
 
 /// Версия приложения и проверка обновлений: версия, клавиши обновления,
 /// рассказ о том, что сейчас происходит, и запись в меню приложений.

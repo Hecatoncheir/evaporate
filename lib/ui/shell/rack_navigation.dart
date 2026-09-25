@@ -23,14 +23,14 @@ import 'navigation_rack.dart';
 ///
 /// Подпись раздела диктору достаётся всегда, даже когда её не видно: без
 /// неё узкое окно оставило бы человека с четырьмя безымянными значками.
-class ConceptNavigation extends StatefulWidget {
-  const ConceptNavigation({super.key});
+class RackNavigation extends StatefulWidget {
+  const RackNavigation({super.key});
 
   @override
-  State<ConceptNavigation> createState() => _ConceptNavigationState();
+  State<RackNavigation> createState() => _RackNavigationState();
 }
 
-class _ConceptNavigationState extends State<ConceptNavigation> {
+class _RackNavigationState extends State<RackNavigation> {
   final _targets = {
     for (final section in AppSection.values) section: GlobalKey(),
   };
