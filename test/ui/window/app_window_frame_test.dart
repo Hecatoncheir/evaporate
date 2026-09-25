@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:evaporate/l10n/app_localizations.dart';
-import 'package:evaporate/ui/shell/shell_layout.dart';
-import 'package:evaporate/ui/shell/top_bar.dart';
+import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
+import 'package:evaporate/ui/ev/widgets/ev_icon.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/window/app_window_frame.dart';
 import 'package:evaporate/ui/window/window_chrome.dart';
@@ -125,20 +125,6 @@ void main() {
   // не дотянуться. Значит они легко накрывают то, что под ними, и проверять
   // тут нужно именно геометрию.
   group('полосы изменения размера', () {
-    // Орган управления под невидимой полосой — не просто мёртвая точка.
-    // Нажатие уходит в системный цикл изменения размера, отпускания мыши
-    // Flutter не видит, и отложенное нажатие достаётся тому, что под
-    // полосой. Клавиши окна стоят в верхней рейке, а она отступает от края
-    // окна дальше, чем полоса толста, — но числа эти живут в разных файлах
-    // и сходятся только здесь.
-    test('полоса у края не достаёт до верхней рейки', () {
-      expect(WindowChrome.edge, lessThan(ShellLayout.compactInset));
-      expect(
-        ShellLayout.compactInset,
-        lessThanOrEqualTo(ShellLayout.wideInset),
-      );
-    });
-
     test('все не толще заявленной толщины', () {
       for (final zone in WindowChrome.resizeZones(const Size(900, 600))) {
         expect(
@@ -172,7 +158,35 @@ void main() {
     });
   });
 
-  testWidgets('клавиши рейки сворачивают, разворачивают и закрывают окно', (
+  // Орган управления под невидимой полосой — не просто мёртвая точка.
+  // Нажатие уходит в системный цикл изменения размера, отпускания мыши
+  // Flutter не видит, и отложенное нажатие достаётся тому, что под
+  // полосой. Клавиши окна и рейла стоят у самого края окна, и отступ их
+  // задаёт каркас прототипа, а толщину полос — рамка: сходятся они здесь.
+  testWidgets('полосы у края не накрывают ни одной клавиши', (tester) async {
+    await pumpApp(tester);
+    final zones = WindowChrome.resizeZones(const Size(1100, 720));
+    for (final key in [
+      'rail-minimize',
+      'rail-maximize',
+      'rail-quit',
+      'rail-library',
+      'rail-downloads',
+      'rail-saves',
+      'rail-settings',
+    ]) {
+      final rect = tester.getRect(find.byKey(ValueKey(key)));
+      for (final zone in zones) {
+        expect(
+          zone.rect.overlaps(rect),
+          isFalse,
+          reason: '$key под полосой ${zone.edge.name}',
+        );
+      }
+    }
+  });
+
+  testWidgets('клавиши полосы сворачивают, разворачивают и закрывают окно', (
     tester,
   ) async {
     await pumpApp(tester);
@@ -201,7 +215,7 @@ void main() {
 
   // Без своей рамки клавиш окна в рейке нет вовсе: окном тогда
   // распоряжается система, и вторых клавиш ему не нужно.
-  testWidgets('без рамки рейка клавиш окна не показывает', (tester) async {
+  testWidgets('без рамки полоса клавиш окна не показывает', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
     tester.view.physicalSize = const Size(1100, 720);
@@ -233,12 +247,12 @@ void main() {
     },
   );
 
-  testWidgets('рейка тянет окно, а двойное нажатие разворачивает', (
+  testWidgets('полоса тянет окно, а двойное нажатие разворачивает', (
     tester,
   ) async {
     await pumpApp(tester);
     final rail = find.descendant(
-      of: find.byType(TopBar),
+      of: find.byType(EvTopBar),
       matching: find.byKey(const ValueKey('window-drag-region')),
     );
     // Берёмся за крошку «EVAPORATE / раздел»: она не орган управления, и
@@ -257,14 +271,16 @@ void main() {
   });
 
   // Взяться за окно у левого края — такое же ожидание, как у верхнего:
-  // знак над разделами и пустое поле обоймы под ними тянут окно.
-  testWidgets('обойма тянет окно за знак и пустое поле', (tester) async {
+  // знак над разделами и пустое поле рейла под ними тянут окно.
+  testWidgets('рейл тянет окно за знак и пустое поле', (tester) async {
     await pumpApp(tester);
     final rack = find.byKey(const ValueKey('navigation-rack'));
     final column = tester.getRect(rack);
 
     for (final grip in [
-      tester.getCenter(find.descendant(of: rack, matching: find.byType(Image))),
+      tester.getCenter(
+        find.descendant(of: rack, matching: find.byType(EvMark)),
+      ),
       Offset(column.center.dx, column.bottom - 40),
     ]) {
       calls.clear();
@@ -273,7 +289,7 @@ void main() {
       expect(
         calls.any((c) => c.method == 'startDragging'),
         isTrue,
-        reason: 'обойма не тянет окно из $grip',
+        reason: 'рейл не тянет окно из $grip',
       );
     }
   });
@@ -297,8 +313,8 @@ void main() {
 
   // Рамка лежит выше Navigator, и это всё ещё верно для её полос: тянуть
   // окно за край можно и поверх открытого диалога. Клавиши окна этого
-  // свойства лишились сознательно — они переехали в рейку, то есть под
-  // барьер диалога, — и обменяно оно на то, что знак и название больше не
+  // свойства лишились сознательно — они в верхней полосе каркаса, то есть
+  // под барьером диалога, — и обменяно оно на то, что знак и название не
   // стоят в окне дважды.
   testWidgets('полосы изменения размера остаются над диалогом', (tester) async {
     if (Platform.isMacOS) return;
@@ -367,18 +383,10 @@ void main() {
   });
 
   // Снимок — в двух окнах и с обложками: на пустой библиотеке не видно
-  // главного, помещается ли первый ряд. И в дневной схеме: подписи на
-  // стекле Картриджа проверяются глазами — страж контраста не меряет их
-  // на размытой подложке. Путь из переменной получает размер окна и схему
-  // перед расширением.
-  for (final (window, light) in [
-    (const Size(900, 620), false),
-    (const Size(1280, 900), false),
-    (const Size(1280, 900), true),
-  ]) {
-    final size =
-        '${window.width.round()}x${window.height.round()}'
-        '${light ? '-light' : ''}';
+  // главного, помещается ли первый ряд. Путь из переменной получает
+  // размер окна перед расширением.
+  for (final window in [const Size(900, 620), const Size(1280, 900)]) {
+    final size = '${window.width.round()}x${window.height.round()}';
     testWidgets('в окне $size со своей рамкой библиотека помещается', (
       tester,
     ) async {
@@ -393,7 +401,6 @@ void main() {
       final boundaryKey = GlobalKey();
       await tester.pumpWidget(
         harness.buildApp(
-          theme: light ? EvaporateTheme.light() : null,
           builder: (context, child) => RepaintBoundary(
             key: boundaryKey,
             child: AppWindowFrame(child: child!),

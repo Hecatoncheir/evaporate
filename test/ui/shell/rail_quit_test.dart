@@ -1,7 +1,8 @@
 import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
-import 'package:evaporate/ui/shell/top_bar.dart';
+import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
+import 'package:evaporate/ui/ev/widgets/ev_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,7 +53,7 @@ void main() {
 
     final quit = find.byKey(const ValueKey('rail-quit'));
     expect(quit, findsOneWidget);
-    expect(find.text(l.quitApp), findsOneWidget);
+    expect(find.byTooltip(l.quitApp), findsOneWidget);
 
     await tester.tap(quit);
     await frames(tester);
@@ -75,7 +76,7 @@ void main() {
       tester.element(
         find.descendant(
           of: find.byKey(const ValueKey('rail-settings')),
-          matching: find.byType(Icon),
+          matching: find.byType(EvIcon),
         ),
       ),
     ).requestFocus();
@@ -90,11 +91,11 @@ void main() {
               .isNotEmpty;
     }
 
-    for (var step = 0; step < 6 && !focusedIn(find.byType(TopBar)); step++) {
+    for (var step = 0; step < 6 && !focusedIn(find.byType(EvTopBar)); step++) {
       await harness.tapButton(tester, GamepadButton.dpadUp);
     }
     expect(
-      focusedIn(find.byType(TopBar)),
+      focusedIn(find.byType(EvTopBar)),
       isTrue,
       reason: 'вверх от обоймы в верхнюю рейку не выйти',
     );

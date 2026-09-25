@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/shell/ev_palette.dart';
 import 'package:evaporate/ui/library/nav_tile.dart';
 import 'package:evaporate/ui/library/toolbar/library_search_field.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +15,7 @@ import 'package:gamepads/gamepads.dart';
 import '../../support/test_app.dart';
 
 void main() {
+  final l = LRu();
   late Directory tmp;
 
   // Папка готовится снаружи теста: реальный файловый I/O внутри
@@ -207,13 +210,72 @@ void main() {
       expect(harness.nav.state.section, AppSection.downloads);
     });
 
-    testWidgets('слэш переводит фокус в поиск', (tester) async {
-      await withGames(tester);
+    // «/» — палитра прототипа: разделы и игры одним списком. Поле поиска
+    // библиотеки остаётся за Ctrl+F и кнопкой Y.
+    testWidgets('слэш открывает палитру, и игра из неё открывается', (
+      tester,
+    ) async {
+      final harness = await withGames(tester);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.slash);
       await tester.pumpAndSettle();
 
-      expect(searchHasFocus(tester), isTrue);
+      final palette = find.byType(EvPalette);
+      expect(palette, findsOneWidget);
+      expect(
+        find.descendant(of: palette, matching: find.text(l.downloads)),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.descendant(of: palette, matching: find.byType(TextField)),
+        'Бета',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EvPalette), findsNothing);
+      final opened = harness.library.state.gameById(
+        harness.nav.state.openedGameId,
+      );
+      expect(opened?.title, 'Бета');
+      expect(harness.nav.state.section, AppSection.library);
+    });
+
+    testWidgets('раздел из палитры открывается', (tester) async {
+      final harness = attach();
+      await harness.pump(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(EvPalette),
+          matching: find.text(l.saves),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(harness.nav.state.section, AppSection.saves);
+    });
+
+    // Цифры — номера разделов рейла; друзей и профиля у приложения нет,
+    // и пятая клавиша никуда не ведёт.
+    testWidgets('цифры открывают раздел по номеру', (tester) async {
+      final harness = attach();
+      await harness.pump(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+      await tester.pumpAndSettle();
+      expect(harness.nav.state.section, AppSection.saves);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit5);
+      await tester.pumpAndSettle();
+      expect(harness.nav.state.section, AppSection.saves);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
+      await tester.pumpAndSettle();
+      expect(harness.nav.state.section, AppSection.library);
     });
 
     // «/» — ещё и символ: перехваченная всегда, она не набиралась ни в
@@ -233,8 +295,8 @@ void main() {
     });
 
     testWidgets('Ctrl+F уводит в поиск и из текстового поля', (tester) async {
-      await withGames(tester);
-      await tester.sendKeyEvent(LogicalKeyboardKey.slash);
+      final harness = await withGames(tester);
+      harness.nav.add(const SearchFocusRequested());
       await tester.pumpAndSettle();
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.control);

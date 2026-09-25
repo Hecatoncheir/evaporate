@@ -1,3 +1,5 @@
+import 'package:evaporate/l10n/app_localizations.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/ui/ev/design/appearance.dart';
 import 'package:evaporate/ui/ev/design/effects.dart';
 import 'package:evaporate/ui/ev/design/theme.dart';
@@ -73,6 +75,9 @@ Future<EvShellController> _bareShell(
   await tester.pumpWidget(
     MaterialApp(
       theme: buildEvTheme(),
+      localizationsDelegates: L.localizationsDelegates,
+      supportedLocales: L.supportedLocales,
+      locale: const Locale('ru'),
       home: EvShell(
         controller: controller,
         initials: 'ТТ',
@@ -141,7 +146,7 @@ void main() {
     // все экраны по очереди — переполнение любого уронило бы тест
     for (final s in EvSection.values) {
       await _key(tester, _digitFor(s));
-      expect(_crumb(s.label), findsOneWidget);
+      expect(_crumb(s.labelOf(LRu())), findsOneWidget);
     }
   });
 
@@ -262,7 +267,7 @@ void main() {
           if (section == EvSection.library)
             const TextField(key: Key('field'))
           else
-            Text(section.label),
+            Text(section.labelOf(LRu())),
         ],
       ),
     );

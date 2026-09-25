@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../glass/ev_glass.dart';
@@ -12,7 +13,13 @@ import 'ev_top_bar.dart';
 /// Как и верхняя полоса, сделана из матового стекла: полка уходит под неё
 /// при прокрутке.
 class EvHintsBar extends StatelessWidget {
-  const EvHintsBar({super.key, this.hints, this.ready = true});
+  const EvHintsBar({
+    super.key,
+    this.hints,
+    this.ready = true,
+    this.status,
+    this.statusColor,
+  });
 
   /// Подсказки. `null` — из таблицы клавиш настроек: строка и таблица
   /// не должны расходиться.
@@ -21,10 +28,18 @@ class EvHintsBar extends StatelessWidget {
   /// Состояние движка справа: готов или занят.
   final bool ready;
 
+  /// Состояние движка словом — вместо «готов» и «занят», когда оно
+  /// известно точнее: остановлен, запускается, отказал.
+  final String? status;
+
+  /// Цвет точки и слова при [status].
+  final Color? statusColor;
+
   @override
   Widget build(BuildContext context) {
     final ev = context.ev;
     final c = ev.colors;
+    final l = L.of(context);
     final label = ev.text.data.copyWith(color: c.ink4, fontSize: 10.5);
     final gutter = EvSpace.gutterFor(MediaQuery.sizeOf(context));
     return EvGlass(
@@ -62,8 +77,10 @@ class EvHintsBar extends StatelessWidget {
               ),
             ),
             Text(
-              ready ? '● ГОТОВ' : '● ЗАНЯТ',
-              style: label.copyWith(color: ready ? EvColors.ok : c.cool),
+              '● ${status ?? (ready ? l.evHintsReady : l.evHintsBusy)}',
+              style: label.copyWith(
+                color: statusColor ?? (ready ? EvColors.ok : c.cool),
+              ),
             ),
             const SizedBox(width: 20),
             Text('© 2026 EVAPORATE', style: label),

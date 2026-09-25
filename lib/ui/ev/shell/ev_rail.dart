@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../glass/ev_droplet.dart';
@@ -28,7 +29,18 @@ class EvRail extends StatelessWidget {
     required this.userName,
     this.friendsOnline,
     this.downloadsActive,
+    this.friends = true,
+    this.profile = true,
+    this.underlay,
   });
+
+  /// Есть ли внизу «Друзья» и аватар профиля. Приложение их прячет:
+  /// данных о друзьях и профиле у него нет.
+  final bool friends;
+  final bool profile;
+
+  /// Слой под кнопками во всю плиту: за него тянут окно.
+  final Widget? underlay;
 
   final EvSection current;
   final ValueChanged<EvSection> onSelect;
@@ -83,17 +95,18 @@ class EvRail extends StatelessWidget {
     );
   }
 
-  String _tip(EvSection s) => switch (s) {
+  String _tip(L l, EvSection s) => switch (s) {
     EvSection.downloads when downloadsActive != null =>
-      '${s.label} · $downloadsActive',
+      '${s.labelOf(l)} · $downloadsActive',
     EvSection.friends when friendsOnline != null =>
-      '${s.label} · $friendsOnline в сети',
-    _ => s.label,
+      '${s.labelOf(l)} · ${l.evFriendsOnline(friendsOnline!)}',
+    _ => s.labelOf(l),
   };
 
   @override
   Widget build(BuildContext context) {
     final ev = context.ev;
+    final l = L.of(context);
     return SizedBox(
       width: EvSpace.railWidth,
       child: EvGlass(
@@ -110,6 +123,7 @@ class EvRail extends StatelessWidget {
               // черта выбранного раздела выходит на поле, к краю окна
               clipBehavior: Clip.none,
               children: [
+                if (underlay case final grip?) Positioned.fill(child: grip),
                 EvDroplet(
                   rect: dropletRect(current, height),
                   radius: ev.radii.b2,
@@ -117,18 +131,23 @@ class EvRail extends StatelessWidget {
                 Positioned(
                   top: _padTop,
                   left: (slabWidth - _markSize) / 2,
-                  child: DecoratedBox(
-                    // свечение повторяет плитку знака: rx 14 на сетке 48
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(_markSize * 14 / 48),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ev.colors.hot1.withValues(alpha: 0.35),
-                          blurRadius: 18,
+                  // Знак — не орган управления: за него тянут окно.
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      // свечение повторяет плитку знака: rx 14 на сетке 48
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                          _markSize * 14 / 48,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: ev.colors.hot1.withValues(alpha: 0.35),
+                            blurRadius: 18,
+                          ),
+                        ],
+                      ),
+                      child: const EvMark(size: _markSize),
                     ),
-                    child: const EvMark(size: _markSize),
                   ),
                 ),
                 for (final (i, s) in EvSection.primary.indexed)
@@ -136,32 +155,36 @@ class EvRail extends StatelessWidget {
                     top: itemTop(i),
                     left: 0,
                     child: EvRailItem(
+                      key: ValueKey('rail-${s.name}'),
                       section: s,
-                      tooltip: _tip(s),
+                      tooltip: _tip(l, s),
                       active: s == current,
                       onTap: () => onSelect(s),
+                      badge: s == EvSection.downloads ? downloadsActive : null,
                     ),
                   ),
-                Positioned(
-                  top: friendsTop(height),
-                  left: 0,
-                  child: EvRailItem(
-                    section: EvSection.friends,
-                    tooltip: _tip(EvSection.friends),
-                    active: current == EvSection.friends,
-                    onTap: () => onSelect(EvSection.friends),
+                if (friends)
+                  Positioned(
+                    top: friendsTop(height),
+                    left: 0,
+                    child: EvRailItem(
+                      section: EvSection.friends,
+                      tooltip: _tip(l, EvSection.friends),
+                      active: current == EvSection.friends,
+                      onTap: () => onSelect(EvSection.friends),
+                    ),
                   ),
-                ),
-                Positioned(
-                  top: avatarTop(height),
-                  left: (slabWidth - avatarSize) / 2,
-                  child: EvAvatar(
-                    initials: initials,
-                    label: 'Профиль · $userName',
-                    active: current == EvSection.profile,
-                    onTap: () => onSelect(EvSection.profile),
+                if (profile)
+                  Positioned(
+                    top: avatarTop(height),
+                    left: (slabWidth - avatarSize) / 2,
+                    child: EvAvatar(
+                      initials: initials,
+                      label: l.evProfileOf(userName),
+                      active: current == EvSection.profile,
+                      onTap: () => onSelect(EvSection.profile),
+                    ),
                   ),
-                ),
               ],
             );
           },
@@ -181,7 +204,11 @@ class EvRailItem extends StatefulWidget {
     required this.active,
     required this.onTap,
     this.width = EvRail.slabWidth,
+    this.badge,
   });
+
+  /// Число на кнопке: сколько задач в работе. `null` или ноль — без числа.
+  final int? badge;
 
   final EvSection section;
   final String tooltip;
@@ -238,7 +265,7 @@ class _EvRailItemState extends State<EvRailItem> {
           Semantics(
             button: true,
             selected: widget.active,
-            label: widget.section.label,
+            label: widget.section.labelOf(L.of(context)),
             child: _SideTooltip(
               message: widget.tooltip,
               visible: _hover || _focus,
@@ -262,12 +289,18 @@ class _EvRailItemState extends State<EvRailItem> {
                           ? c.ink.withValues(alpha: 0.045)
                           : null,
                     ),
-                    child: Center(
-                      child: EvIcon(
-                        widget.section.icon,
-                        size: 21,
-                        color: lit ? c.ink : c.ink3,
-                      ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      clipBehavior: Clip.none,
+                      children: [
+                        EvIcon(
+                          widget.section.icon,
+                          size: 21,
+                          color: lit ? c.ink : c.ink3,
+                        ),
+                        if (widget.badge case final n? when n > 0)
+                          Positioned(top: 4, right: 4, child: _Badge(n)),
+                      ],
                     ),
                   ),
                 ),
@@ -470,19 +503,28 @@ class EvBottomNav extends StatelessWidget {
     required this.current,
     required this.onSelect,
     required this.initials,
+    this.sections = EvSection.values,
   });
 
   final EvSection current;
   final ValueChanged<EvSection> onSelect;
   final String initials;
 
-  static const _slots = [...EvSection.primary, EvSection.friends];
+  /// Разделы окна: без «Друзей» и «Профиля» их ячеек здесь нет.
+  final List<EvSection> sections;
+
   static const _itemWidth = 48.0;
 
   @override
   Widget build(BuildContext context) {
     final ev = context.ev;
     final c = ev.colors;
+    final l = L.of(context);
+    final slots = [
+      for (final s in [...EvSection.primary, EvSection.friends])
+        if (sections.contains(s)) s,
+    ];
+    final avatar = sections.contains(EvSection.profile);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         EvRail.inset,
@@ -501,9 +543,9 @@ class EvBottomNav extends StatelessWidget {
             builder: (context, box) {
               // spaceAround: у каждой ячейки свой равный кусок ширины,
               // и капля встаёт по центру его.
-              final slot = box.maxWidth / (_slots.length + 1);
-              final index = _slots.indexOf(current);
-              final center = slot * ((index < 0 ? _slots.length : index) + 0.5);
+              final slot = box.maxWidth / (slots.length + (avatar ? 1 : 0));
+              final index = slots.indexOf(current);
+              final center = slot * ((index < 0 ? slots.length : index) + 0.5);
               return Stack(
                 children: [
                   EvDroplet(
@@ -518,12 +560,13 @@ class EvBottomNav extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      for (final s in _slots)
+                      for (final s in slots)
                         Semantics(
                           button: true,
                           selected: s == current,
-                          label: s.label,
+                          label: s.labelOf(l),
                           child: EvFocusable(
+                            key: ValueKey('rail-${s.name}'),
                             onActivate: () => onSelect(s),
                             radius: ev.radii.r2,
                             child: SizedBox(
@@ -539,19 +582,58 @@ class EvBottomNav extends StatelessWidget {
                             ),
                           ),
                         ),
-                      EvAvatar(
-                        initials: initials,
-                        label: 'Профиль',
-                        active: current == EvSection.profile,
-                        onTap: () => onSelect(EvSection.profile),
-                        size: 32,
-                        showTooltip: false,
-                      ),
+                      if (avatar)
+                        EvAvatar(
+                          initials: initials,
+                          label: EvSection.profile.labelOf(l),
+                          active: current == EvSection.profile,
+                          onTap: () => onSelect(EvSection.profile),
+                          size: 32,
+                          showTooltip: false,
+                        ),
                     ],
                   ),
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Число задач на кнопке «Загрузки»: горячая плашка — насыщенный цвет
+/// только у того, что идёт сейчас.
+class _Badge extends StatelessWidget {
+  const _Badge(this.count);
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final ev = context.ev;
+    final c = ev.colors;
+    return IgnorePointer(
+      child: ExcludeSemantics(
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 15),
+          height: 15,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: c.hot1,
+            borderRadius: BorderRadius.circular(7.5),
+            boxShadow: ev.glow(c.hot1, opacity: 0.5, blur: 10),
+          ),
+          child: Text(
+            count > 99 ? '99+' : '$count',
+            style: ev.text.data.copyWith(
+              color: const Color(0xFF170800),
+              fontSize: 9.5,
+              height: 1,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),

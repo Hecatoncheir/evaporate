@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'liquid_geometry.dart';
-import 'liquid_ink_scope.dart';
+import '../../widgets/liquid/liquid_geometry.dart';
+import '../../widgets/liquid/liquid_ink_scope.dart';
 
 /// Держит подпись и значок читаемыми, пока под ними ещё уходит капля.
 /// Перерисовывается только это маленькое поддерево, а не всё вокруг.

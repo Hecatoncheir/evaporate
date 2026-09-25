@@ -123,7 +123,7 @@ void main() {
           locale: locale,
           home: Builder(
             builder: (context) {
-              seen = L.of(context).appearance;
+              seen = L.of(context).library;
               return const SizedBox();
             },
           ),
@@ -136,8 +136,8 @@ void main() {
       final ru = await labelIn(tester, const Locale('ru'));
       final en = await labelIn(tester, const Locale('en'));
 
-      expect(ru, 'Оформление');
-      expect(en, 'Appearance');
+      expect(ru, 'Библиотека');
+      expect(en, 'Library');
     });
 
     testWidgets('незнакомый язык откатывается к первому', (tester) async {

@@ -18,8 +18,9 @@ import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:evaporate/services/system/desktop_entry.dart';
 import 'package:evaporate/services/system/update_check.dart';
+import 'package:evaporate/ui/ev/app/app_theme.dart';
+import 'package:evaporate/ui/ev/app/ev_app_scope.dart';
 import 'package:evaporate/ui/shell.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/window/interface_scale.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -238,13 +239,18 @@ class TestHarness {
           // Обычные тесты взаимодействия не крутят бесконечный декоративный
           // тикер. Тесты эффектов включают его явно и прокручивают
           // ограниченное число кадров.
-          builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
-            child:
-                builder?.call(context, InterfaceScale(child: child!)) ??
-                InterfaceScale(child: child!),
+          // Эффекты и звук прототипа — как в `main`, над навигатором; звук
+          // молчит: окно без него то же самое.
+          builder: (context, child) => EvAppScope(
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: !motion),
+              child:
+                  builder?.call(context, InterfaceScale(child: child!)) ??
+                  InterfaceScale(child: child!),
+            ),
           ),
-          theme: theme ?? EvaporateTheme.dark(),
+          // Каркас прототипа читает свои токены при любой теме теста.
+          theme: withEvTokens(theme ?? evaporateAppTheme()),
           localizationsDelegates: L.localizationsDelegates,
           supportedLocales: L.supportedLocales,
           // По умолчанию русский: иначе окружение выбрало бы системный

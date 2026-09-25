@@ -1,8 +1,11 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
+import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
+import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
+import 'package:evaporate/ui/shell/shell_sections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,6 +13,7 @@ import '../../support/app_fonts.dart';
 import '../../support/test_app.dart';
 
 void main() {
+  final l = LRu();
   late Directory tmp;
 
   // Влез ли ряд обложек и встала ли панель в строку — свойства настоящей
@@ -64,36 +68,43 @@ void main() {
   ) async {
     final harness = await show(tester, const Size(1280, 900));
 
-    // Имя раздела стоит в крошке верхней рейки — и только там. Заголовок
+    // Имя раздела стоит в крошке верхней полосы — и только там. Заголовок
     // кеглем 34 повторял его на самой странице третий раз, считая метку.
     for (final (section, label, name) in [
-      (AppSection.library, '[ 01 / КОЛЛЕКЦИЯ ]', 'БИБЛИОТЕКА'),
-      (AppSection.downloads, '[ 02 / АКТИВНО ]', 'ЗАГРУЗКИ'),
-      (AppSection.saves, '[ 03 / СИНХРОНИЗАЦИЯ ]', 'СОХРАНЕНИЯ'),
-      (AppSection.settings, '[ 04 / ПАРАМЕТРЫ ]', 'НАСТРОЙКИ'),
+      (AppSection.library, '[ 01 / КОЛЛЕКЦИЯ ]', l.library),
+      (AppSection.downloads, '[ 02 / АКТИВНО ]', l.downloads),
+      (AppSection.saves, '[ 03 / СИНХРОНИЗАЦИЯ ]', l.saves),
+      (AppSection.settings, '[ 04 / ПАРАМЕТРЫ ]', l.settings),
     ]) {
       harness.nav.add(SectionSelected(section));
       await tester.pumpAndSettle();
 
       expect(find.text(label), findsOneWidget, reason: 'метка раздела $label');
+      // Подсказки рейла тоже называют раздел, но они не на странице.
       expect(
-        find.text(name),
+        find.descendant(of: find.byType(EvTopBar), matching: find.text(name)),
         findsOneWidget,
-        reason: 'имя «$name» должно остаться только в крошке рейки',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(ShellSections),
+          matching: find.text(name),
+        ),
+        findsNothing,
+        reason: 'имя «$name» должно остаться только в крошке полосы',
       );
     }
   });
 
-  testWidgets('нижняя строка занята показаниями, а не мебелью сайта', (
+  // Строка подсказок — облик прототипа как есть (0013), но состояние
+  // движка в ней настоящее, а не «готов» из образца.
+  testWidgets('нижняя строка показывает настоящее состояние движка', (
     tester,
   ) async {
     await show(tester, const Size(1280, 900));
 
-    // Копирайт и ссылки на репозиторий занимали место навсегда, а нажимали
-    // их один раз в жизни. Ссылка переехала в «О программе».
-    expect(find.text('© 2026 EVAPORATE'), findsNothing);
+    expect(find.text('● ${l.engineStopped2.toUpperCase()}'), findsOneWidget);
+    expect(find.text('● ${l.evHintsReady}'), findsNothing);
     expect(find.text('GITHUB'), findsNothing);
-    expect(find.text('RELEASES'), findsNothing);
-    expect(find.text('ОСТАНОВЛЕН'), findsOneWidget);
   });
 }

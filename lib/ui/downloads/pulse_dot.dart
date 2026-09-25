@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
-import 'decorative_motion.dart';
+import '../widgets/decorative_motion.dart';
 
 /// Светодиод состояния: точка с ореолом, которая дышит, пока что-то идёт.
 ///

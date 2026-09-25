@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../atmosphere/ev_atmosphere.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
@@ -16,8 +17,14 @@ import 'ev_top_bar.dart';
 /// Живёт снаружи каркаса, как `TabController`: раздел меняют рейл, клавиши
 /// и команды палитры, а команды собираются там, где каркаса ещё нет.
 class EvShellController extends ChangeNotifier {
-  EvShellController({EvSection initial = EvSection.library})
-    : _section = initial;
+  EvShellController({
+    EvSection initial = EvSection.library,
+    this.sections = EvSection.values,
+  }) : _section = initial;
+
+  /// Разделы, между которыми ходят рейл, цифры и `Ctrl+Tab`. Приложение
+  /// прячет те, у которых нет данных: друзей и профиль.
+  final List<EvSection> sections;
 
   EvSection _section;
   EvSection get section => _section;
@@ -67,10 +74,15 @@ class EvShellController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// По кругу: библиотека → … → профиль → библиотека.
-  void next() => go(_section.next);
+  /// По кругу: библиотека → … → последний из [sections] → библиотека.
+  void next() => _step(1);
 
-  void previous() => go(_section.previous);
+  void previous() => _step(-1);
+
+  void _step(int delta) {
+    final at = sections.indexOf(_section);
+    go(sections[(at + delta) % sections.length]);
+  }
 
   @override
   void dispose() {
@@ -96,10 +108,15 @@ class EvShell extends StatefulWidget {
   const EvShell({
     super.key,
     required this.controller,
-    required this.pageBuilder,
+    this.pageBuilder,
+    this.body,
     required this.initials,
     required this.userName,
     this.commands = const [],
+    this.commandsOf,
+    this.windowControls,
+    this.windowGrip,
+    this.hintsBar,
     this.status = const [],
     this.friendsOnline,
     this.downloadsActive,
@@ -112,13 +129,32 @@ class EvShell extends StatefulWidget {
   /// Экран раздела. Его главный вертикальный скролл должен быть
   /// `primary: true`: тогда повторный выбор раздела возвращает экран
   /// к началу.
-  final Widget Function(BuildContext context, EvSection section) pageBuilder;
+  final Widget Function(BuildContext context, EvSection section)? pageBuilder;
+
+  /// Постоянное содержимое вместо смены экранов. Приложение держит свои
+  /// разделы стопкой само: их состояние переживает переход, а скрытый
+  /// раздел знает, что он скрыт. Задано — [pageBuilder] не нужен.
+  final Widget? body;
 
   final String initials;
   final String userName;
 
   /// Содержимое палитры поиска.
   final List<EvCommand> commands;
+
+  /// Содержимое палитры, собранное в миг открытия: список игр меняется, а
+  /// перестраивать каркас на каждую его правку незачем. Задано — вместо
+  /// [commands].
+  final List<EvCommand> Function(BuildContext context)? commandsOf;
+
+  /// Клавиши окна справа в верхней полосе — видны при любой ширине.
+  final Widget? windowControls;
+
+  /// Подложка, за которую тянут окно: под верхней полосой и рейлом.
+  final WidgetBuilder? windowGrip;
+
+  /// Строка подсказок вместо образцовой.
+  final Widget? hintsBar;
 
   /// Показатели справа в верхней полосе. В узком окне не показываются.
   final List<Widget> status;
@@ -172,7 +208,10 @@ class _EvShellState extends State<EvShell> {
     if (_paletteOpen) return;
     _paletteOpen = true;
     try {
-      await showEvPalette(context, widget.commands);
+      await showEvPalette(
+        context,
+        widget.commandsOf?.call(context) ?? widget.commands,
+      );
     } finally {
       _paletteOpen = false;
     }
@@ -226,8 +265,11 @@ class _EvShellState extends State<EvShell> {
       return KeyEventResult.handled;
     }
     final index = _digits[key];
-    if (index == null) return KeyEventResult.ignored;
-    _controller.go(EvSection.values[index]);
+    final sections = _controller.sections;
+    if (index == null || index >= sections.length) {
+      return KeyEventResult.ignored;
+    }
+    _controller.go(sections[index]);
     return KeyEventResult.handled;
   }
 
@@ -246,19 +288,23 @@ class _EvShellState extends State<EvShell> {
             listenable: _controller,
             builder: (context, _) {
               final section = _controller.section;
-              final page = AnimatedSwitcher(
-                duration: reduced ? Duration.zero : EvMotion.screenSettle,
-                reverseDuration: reduced ? Duration.zero : EvMotion.fast,
-                layoutBuilder: _stackPages,
-                transitionBuilder: _pageTransition,
-                child: _SectionHost(
-                  key: ValueKey((section, _controller.detail)),
-                  reselected: _controller.reselected,
-                  child: Builder(
-                    builder: (context) => widget.pageBuilder(context, section),
-                  ),
-                ),
-              );
+              final sections = _controller.sections;
+              final page =
+                  widget.body ??
+                  AnimatedSwitcher(
+                    duration: reduced ? Duration.zero : EvMotion.screenSettle,
+                    reverseDuration: reduced ? Duration.zero : EvMotion.fast,
+                    layoutBuilder: _stackPages,
+                    transitionBuilder: _pageTransition,
+                    child: _SectionHost(
+                      key: ValueKey((section, _controller.detail)),
+                      reselected: _controller.reselected,
+                      child: Builder(
+                        builder: (context) =>
+                            widget.pageBuilder!(context, section),
+                      ),
+                    ),
+                  );
               return LayoutBuilder(
                 builder: (context, box) {
                   final narrow = box.maxWidth < EvSpace.narrowBreakpoint;
@@ -306,9 +352,17 @@ class _EvShellState extends State<EvShell> {
                               right: 0,
                               top: 0,
                               child: EvTopBar(
-                                section: _controller.crumb ?? section.label,
+                                section:
+                                    _controller.crumb ??
+                                    section.labelOf(L.of(context)),
                                 onSearch: _openPalette,
-                                trailing: narrow ? const [] : widget.status,
+                                end: widget.windowControls,
+                                underlay: widget.windowGrip?.call(context),
+                                // Плашкам нужно место рядом с поиском и
+                                // клавишами окна: в узком окне их нет.
+                                trailing: box.maxWidth < EvTopBar.statusFrom
+                                    ? const []
+                                    : widget.status,
                                 // На узком окне ему, как и плашкам,
                                 // нет места; до 1080 px — тоже: он
                                 // наезжал бы на поиск.
@@ -326,6 +380,8 @@ class _EvShellState extends State<EvShell> {
                                 right: 0,
                                 bottom: 0,
                                 child: EvBottomNav(
+                                  key: const ValueKey('navigation-rack'),
+                                  sections: sections,
                                   current: section,
                                   onSelect: _controller.go,
                                   initials: widget.initials,
@@ -337,6 +393,10 @@ class _EvShellState extends State<EvShell> {
                                 top: 0,
                                 bottom: 0,
                                 child: EvRail(
+                                  key: const ValueKey('navigation-rack'),
+                                  friends: sections.contains(EvSection.friends),
+                                  profile: sections.contains(EvSection.profile),
+                                  underlay: widget.windowGrip?.call(context),
                                   current: section,
                                   onSelect: _controller.go,
                                   initials: widget.initials,
@@ -345,11 +405,11 @@ class _EvShellState extends State<EvShell> {
                                   downloadsActive: widget.downloadsActive,
                                 ),
                               ),
-                              const Positioned(
+                              Positioned(
                                 left: EvSpace.railWidth,
                                 right: 0,
                                 bottom: 0,
-                                child: EvHintsBar(),
+                                child: widget.hintsBar ?? const EvHintsBar(),
                               ),
                             ],
                           ],

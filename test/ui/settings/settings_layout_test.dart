@@ -6,7 +6,6 @@ import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/settings/language_picker.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
-import 'package:evaporate/ui/settings/theme_picker.dart';
 import 'package:evaporate/ui/settings/window_start_picker.dart';
 import 'package:evaporate/ui/widgets/scale_control.dart';
 import 'package:evaporate/ui/widgets/section_card.dart';
@@ -49,7 +48,8 @@ void main() {
     // Не вкусовщина, а ошибка раскладки: искать язык в «Сохранениях»
     // никто не станет.
     expect(cardOf(tester, find.byType(LanguagePicker)), 'Вид и язык');
-    expect(cardOf(tester, find.byType(ThemePicker)), 'Вид и язык');
+    // Выбора схемы нет вовсе: дневной у интерфейса прототипа нет (0013).
+    expect(find.text('Светлое'), findsNothing);
     expect(cardOf(tester, find.byType(WindowStartPicker)), 'Окно и запуск');
   });
 

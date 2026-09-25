@@ -11,14 +11,17 @@ import '../input/gamepad_service.dart';
 import '../input/input_scope.dart';
 import '../models/app_section.dart';
 import '../models/app_settings.dart';
-import '../models/library_effect.dart';
+import 'ev/app/ev_app_shell.dart';
 import 'feedback/snack.dart';
 import 'library/primary_action.dart';
-import 'shell/ambient_light.dart';
-import 'shell/shell_layout.dart';
-import 'theme.dart';
 import 'widgets/pointer_trail.dart';
 
+/// Оболочка окна: сообщения блоков, раскладка геймпада и общий слой ввода
+/// вокруг каркаса прототипа ([EvAppShell]).
+///
+/// Каркас — облик, а это — поведение, которое у приложения было до него и
+/// остаётся при любом облике: клавиатура и геймпад сводятся к одним
+/// действиям, сообщения об операциях показывает одно место.
 class AppShell extends StatelessWidget {
   const AppShell({super.key});
 
@@ -41,17 +44,6 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final nav = context.read<NavigationBloc>();
     final gamepad = context.read<GamepadService>();
-    final ambientEnabled = context.select<SettingsBloc, bool>(
-      (bloc) => bloc.state.appearance.shows(LibraryEffect.ambient),
-    );
-    // Свет корпуса берётся от выбранной игры, поэтому оболочке нужно и то,
-    // что выбрано, и название — два разных блока.
-    final selectedId = context.select<NavigationBloc, String?>(
-      (bloc) => bloc.state.selectedGameId,
-    );
-    final selectedTitle = context.select<LibraryBloc, String?>(
-      (bloc) => bloc.state.gameById(selectedId)?.title,
-    );
 
     return MultiBlocListener(
       listeners: [
@@ -80,20 +72,11 @@ class AppShell extends StatelessWidget {
         onPrimaryAction: () => _primaryAction(context),
         onSearch: () => nav.add(const SearchFocusRequested()),
         onBack: nav.closeOpenedGame,
-        child: Scaffold(
-          backgroundColor: AppColors.transparent,
-          // Курсор ловится над всей оболочкой, а не над каждым украшением:
-          // он один на всех и сглажен одними часами. Волна тянется за
-          // сглаженным, частицы берут сырое положение — отвечают на руку
-          // сразу.
-          body: PointerTrailScope(
-            child: AmbientLight(
-              enabled: ambientEnabled,
-              title: selectedTitle,
-              child: const ShellLayout(),
-            ),
-          ),
-        ),
+        // Курсор ловится над всей оболочкой, а не над каждым украшением:
+        // он один на всех и сглажен одними часами. Волна тянется за
+        // сглаженным, частицы берут сырое положение — отвечают на руку
+        // сразу.
+        child: const PointerTrailScope(child: EvAppShell()),
       ),
     );
   }

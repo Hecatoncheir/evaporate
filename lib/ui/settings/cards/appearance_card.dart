@@ -9,9 +9,11 @@ import '../../widgets/scale_control.dart';
 import '../../widgets/section_card.dart';
 import '../language_picker.dart';
 import '../setting_note.dart';
-import '../theme_picker.dart';
 
-/// Язык, тема и крупность интерфейса.
+/// Язык и крупность интерфейса.
+///
+/// Выбора схемы здесь нет: схема одна — тёмная, дневной у интерфейса
+/// прототипа нет (`docs/decisions/0013`).
 ///
 /// Всё это лежало в карточке «Сохранения» — не по вкусовщине, а по ошибке
 /// раскладки: искать язык в сохранениях никто не станет. Теперь вид
@@ -37,11 +39,6 @@ class AppearanceCard extends StatelessWidget {
           LanguagePicker(
             value: look.locale,
             onChanged: (code) => update((a) => a.copyWith(locale: code)),
-          ),
-          const SizedBox(height: EvaporateSpacing.field),
-          ThemePicker(
-            value: look.themeMode,
-            onChanged: (mode) => update((a) => a.copyWith(themeMode: mode)),
           ),
           const SizedBox(height: EvaporateSpacing.block),
           // Крупность обложек отсюда убрана: она стоит в самой библиотеке,

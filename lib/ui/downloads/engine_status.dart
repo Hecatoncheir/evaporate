@@ -4,8 +4,8 @@ import '../../l10n/app_localizations.dart';
 import '../../services/download/download_engine.dart';
 import '../labels.dart';
 import '../theme.dart';
-import '../widgets/pulse_dot.dart';
 import 'engine_state_color.dart';
+import 'pulse_dot.dart';
 
 class EngineStatusChip extends StatelessWidget {
   const EngineStatusChip({super.key, required this.status});

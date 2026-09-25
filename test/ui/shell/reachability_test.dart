@@ -85,7 +85,7 @@ void main() {
     expect(binding.releaseZone, closeTo(binding.deadzone * 0.7, 1e-9));
   });
 
-  // Выбранная клавиша обоймы звучала для диктора ровно как все остальные.
+  // Выбранная клавиша рейла звучала для диктора ровно как все остальные.
   testWidgets('диктор слышит, какой раздел открыт', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
@@ -97,7 +97,14 @@ void main() {
 
     bool selected(String label) =>
         tester
-            .getSemantics(find.bySemanticsLabel(label).first)
+            .getSemantics(
+              find
+                  .descendant(
+                    of: find.byKey(const ValueKey('navigation-rack')),
+                    matching: find.bySemanticsLabel(label),
+                  )
+                  .first,
+            )
             .getSemanticsData()
             .flagsCollection
             .isSelected ==

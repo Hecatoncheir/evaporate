@@ -687,7 +687,7 @@ class _Home extends StatelessWidget {
             title: g.title,
             subtitle: g.subtitle,
             cover: (g.palette, g.seed),
-            hint: '↵ открыть',
+            hint: L.of(context).evPaletteOpen,
             onRun: () => _open(context, g),
             // Запускать можно только то, что уже на диске; остальное ведёт
             // туда, где оно качается, — как «Стена» и «Пульт» в прототипе.
@@ -695,10 +695,10 @@ class _Home extends StatelessWidget {
           ),
         for (final s in EvSection.values)
           EvCommand(
-            title: s.label,
-            subtitle: 'раздел · клавиша ${s.hotkey}',
+            title: s.labelOf(L.of(context)),
+            subtitle: L.of(context).evPaletteSection(s.hotkey),
             icon: s.icon,
-            hint: '↵ открыть',
+            hint: L.of(context).evPaletteOpen,
             onRun: () => shell.go(s),
           ),
         for (final s in EvSkin.values)

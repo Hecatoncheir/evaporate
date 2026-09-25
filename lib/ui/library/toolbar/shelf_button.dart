@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme.dart';
-import '../../widgets/liquid/liquid_selection_ink.dart';
+import 'liquid_selection_ink.dart';
 
 /// Полка с числом рядом — как вкладки в библиотеке Steam.
 class ShelfButton extends StatelessWidget {

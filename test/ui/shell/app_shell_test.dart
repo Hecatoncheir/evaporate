@@ -7,8 +7,6 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/ui/shell/shell_layout.dart';
-import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
@@ -209,31 +207,13 @@ void main() {
     expect(find.text('Вторая'), findsWidgets);
   });
 
-  // Светлая тема появилась позже тёмной, и легко забыть перевести на палитру
-  // один-два экрана. Здесь оболочка целиком строится в обеих: вшитый цвет
-  // сам по себе тест не завалит, но упавшая вёрстка или потерянный контекст —
-  // да, а обход всех разделов задевает почти весь интерфейс.
-  testWidgets('оболочка строится в светлой теме', (tester) async {
-    final harness = TestHarness(tmp);
-    addTearDown(harness.dispose);
-
-    await harness.pump(tester, theme: EvaporateTheme.light());
-
-    for (final section in ['downloads', 'saves', 'settings']) {
-      await tester.tap(find.byKey(ValueKey('rail-$section')));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull, reason: 'раздел «$section»');
-    }
-  });
-
-  // Обойма стоит колонкой слева при любой ширине: прежде она делила
-  // верхнюю рейку с поиском и клавишами окна и в узком окне прятала
-  // подписи, а потом сжималась. Подписей на клавишах теперь нет вовсе —
-  // диктору все четыре раздела названы по-прежнему.
+  // Разделы видны при любой ширине: в широком окне рейлом слева, в узком
+  // (и в крупном масштабе интерфейса) — нижней панелью, как в прототипе.
+  // Подписей на клавишах нет — диктору все четыре раздела названы.
   for (final window in [const Size(820, 620), const Size(620, 600)]) {
     testWidgets(
-      'в окне ${window.width.round()}×${window.height.round()} обойма '
-      'цела и все разделы названы диктору',
+      'в окне ${window.width.round()}×${window.height.round()} разделы '
+      'на месте и все названы диктору',
       (tester) async {
         final harness = TestHarness(tmp);
         addTearDown(harness.dispose);
@@ -257,8 +237,7 @@ void main() {
           );
         }
         final column = tester.getRect(rack);
-        expect(column.left, lessThan(ShellLayout.wideInset + 1));
-        expect(column.width, EvaporateLayout.railWidth);
+        expect(column.left, 0);
         for (final section in AppSection.values) {
           final key = tester.getRect(
             find.byKey(ValueKey('rail-${section.name}')),

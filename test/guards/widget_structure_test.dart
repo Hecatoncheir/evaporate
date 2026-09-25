@@ -371,7 +371,6 @@ const _longClosures = [
   'lib/ui/library/library_body.dart: LibraryBody.build: 28',
   'lib/ui/library/library_grid.dart: LibraryGrid.build: 30',
   'lib/ui/library/saves/restore_dialog.dart: _RestoreDialogState.build: 27',
-  'lib/ui/shell/top_action.dart: TopAction.build: 29',
   'lib/ui/window/interface_scale.dart: InterfaceScale.build: 28',
 ];
 

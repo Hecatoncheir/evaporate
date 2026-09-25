@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../glass/ev_glass.dart';
@@ -18,6 +19,8 @@ class EvTopBar extends StatelessWidget {
     this.onSearch,
     this.trailing = const [],
     this.tools,
+    this.end,
+    this.underlay,
   });
 
   /// Текущий раздел — вторая часть крошки.
@@ -30,10 +33,23 @@ class EvTopBar extends StatelessWidget {
   /// вместе с поиском и плашками.
   static const toolsFrom = 1080.0;
 
+  /// С какой ширины окна рядом с поиском и клавишами окна помещаются
+  /// показатели. Уже — они уходят: скорость и движок видны и в строке
+  /// подсказок, а клавиши окна без замены не обойтись.
+  static const statusFrom = 1000.0;
+
   final VoidCallback? onSearch;
 
   /// Показатели: скорость, состояние движка.
   final List<Widget> trailing;
+
+  /// Последнее справа — клавиши окна. В отличие от [trailing], не прячется
+  /// в узком окне: без них окно без рамки не свернуть и не закрыть.
+  final Widget? end;
+
+  /// Слой под содержимым во всю полосу: за него тянут окно. Надписи
+  /// крошки нажатий не забирают — окно тянется и за собственное имя.
+  final Widget? underlay;
 
   @override
   Widget build(BuildContext context) {
@@ -45,62 +61,76 @@ class EvTopBar extends StatelessWidget {
       borderRadius: BorderRadius.zero,
       // Стык с экраном — снизу; слева полоса упирается в кромку рейла.
       rim: const {AxisDirection.down},
-      padding: EdgeInsets.symmetric(horizontal: gutter),
       child: SizedBox(
         height: EvSpace.topBarHeight,
-        child: Row(
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Text(
-              'EVAPORATE',
-              style: ev.text.section.copyWith(fontSize: 12, letterSpacing: 1.9),
-            ),
+            ?underlay,
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9),
-              child: Text(
-                '/',
-                style: ev.text.bodySmall.copyWith(color: c.ink4),
-              ),
+              padding: EdgeInsets.symmetric(horizontal: gutter),
+              child: _row(ev, c),
             ),
-            // Крошка забирает всё свободное место, поэтому поиск и показатели
-            // прижаты к правому полю. Flexible рядом со Spacer получил бы
-            // половину места и не отдал неиспользованное — правая группа
-            // не доезжала бы до края.
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: AnimatedSwitcher(
-                      duration: EvMotion.fast,
-                      // старая и новая подписи разной длины: обе прижаты
-                      // влево, иначе короткая на миг съезжает к середине
-                      // длинной
-                      layoutBuilder: (current, previous) => Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [...previous, ?current],
-                      ),
-                      child: Text(
-                        section,
-                        key: ValueKey(section),
-                        overflow: TextOverflow.ellipsis,
-                        style: ev.text.bodySmall.copyWith(
-                          color: c.ink2,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (tools != null) ...[const SizedBox(width: 14), tools!],
-                ],
-              ),
-            ),
-            const SizedBox(width: EvSpace.l),
-            _SearchButton(onTap: onSearch),
-            for (final w in trailing) ...[const SizedBox(width: 10), w],
           ],
         ),
       ),
     );
   }
+
+  Widget _row(EvTheme ev, EvColors c) => Row(
+    children: [
+      IgnorePointer(
+        child: Text(
+          'EVAPORATE',
+          style: ev.text.section.copyWith(fontSize: 12, letterSpacing: 1.9),
+        ),
+      ),
+      IgnorePointer(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          child: Text('/', style: ev.text.bodySmall.copyWith(color: c.ink4)),
+        ),
+      ),
+      // Крошка забирает всё свободное место, поэтому поиск и показатели
+      // прижаты к правому полю. Flexible рядом со Spacer получил бы
+      // половину места и не отдал неиспользованное — правая группа
+      // не доезжала бы до края.
+      Expanded(
+        child: Row(
+          children: [
+            Flexible(
+              child: IgnorePointer(
+                child: AnimatedSwitcher(
+                  duration: EvMotion.fast,
+                  // старая и новая подписи разной длины: обе прижаты
+                  // влево, иначе короткая на миг съезжает к середине
+                  // длинной
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [...previous, ?current],
+                  ),
+                  child: Text(
+                    section,
+                    key: ValueKey(section),
+                    overflow: TextOverflow.ellipsis,
+                    style: ev.text.bodySmall.copyWith(
+                      color: c.ink2,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (tools != null) ...[const SizedBox(width: 14), tools!],
+          ],
+        ),
+      ),
+      const SizedBox(width: EvSpace.l),
+      _SearchButton(onTap: onSearch),
+      for (final w in trailing) ...[const SizedBox(width: 10), w],
+      if (end != null) ...[const SizedBox(width: 12), end!],
+    ],
+  );
 }
 
 class _SearchButton extends StatefulWidget {
@@ -121,9 +151,10 @@ class _SearchButtonState extends State<_SearchButton> {
     final ev = context.ev;
     final c = ev.colors;
     final ink = _hover ? c.ink2 : c.ink3;
+    final l = L.of(context);
     return Semantics(
       button: true,
-      label: 'Поиск, клавиша слэш',
+      label: l.evSearchKeyLabel,
       child: MouseRegion(
         onEnter: (_) => setState(() => _hover = true),
         onExit: (_) => setState(() {
@@ -154,7 +185,7 @@ class _SearchButtonState extends State<_SearchButton> {
                     EvIcon(EvIcons.search, size: 15, color: ink),
                     const SizedBox(width: 9),
                     Text(
-                      'Поиск',
+                      l.hintSearch,
                       style: ev.text.bodySmall.copyWith(color: ink),
                     ),
                     const SizedBox(width: 9),

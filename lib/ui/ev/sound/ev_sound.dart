@@ -85,8 +85,22 @@ class _SilentHold implements EvHoldVoice {
 /// Правило «звук не громче картинки» решается там, где картинка: ритуал
 /// звучит, только если он виден, испарение — только если искры сорвались.
 class EvSound extends ChangeNotifier {
-  EvSound({required this._out, DateTime Function()? clock})
-    : _clock = clock ?? DateTime.now;
+  /// [enabled] — включён с самого начала: движок заводится сразу, но без
+  /// «Готово» — включения как жеста не было, и окно не должно звучать
+  /// само по себе на старте.
+  EvSound({
+    required this._out,
+    DateTime Function()? clock,
+    bool enabled = false,
+  }) : _clock = clock ?? DateTime.now {
+    if (!enabled) return;
+    _enabled = true;
+    _out.start().then((_) {
+      if (!_enabled) return;
+      _out.volume(_volume.gain);
+      _syncAmbient();
+    });
+  }
 
   final EvAudioOut _out;
   final DateTime Function() _clock;

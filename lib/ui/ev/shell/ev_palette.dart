@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../art/ev_art.dart';
 import '../art/key_art.dart';
 import '../design/theme.dart';
@@ -20,7 +21,7 @@ class EvCommand {
     required this.title,
     required this.subtitle,
     required this.onRun,
-    this.hint = '↵ выполнить',
+    this.hint,
     this.cover,
     this.icon = EvIcons.go,
     this.onLaunch,
@@ -32,7 +33,9 @@ class EvCommand {
   final String subtitle;
 
   final VoidCallback onRun;
-  final String hint;
+
+  /// Подсказка справа; `null` — «выполнить».
+  final String? hint;
 
   /// Обложка игры миниатюрой слева; без неё слева иконка.
   final (EvCoverPalette, int)? cover;
@@ -59,7 +62,7 @@ Future<void> showEvPalette(BuildContext context, List<EvCommand> commands) {
     PageRouteBuilder<void>(
       opaque: false,
       barrierColor: const Color(0x99040408),
-      barrierLabel: 'Закрыть поиск',
+      barrierLabel: L.of(context).evPaletteClose,
       transitionDuration: reduced ? Duration.zero : EvMotion.popover,
       reverseTransitionDuration: reduced ? Duration.zero : EvMotion.fast,
       pageBuilder: (context, animation, secondaryAnimation) =>
@@ -223,7 +226,7 @@ class _EvPaletteState extends State<EvPalette> {
                     scopesRoute: true,
                     namesRoute: true,
                     explicitChildNodes: true,
-                    label: 'Поиск и команды',
+                    label: L.of(context).evPaletteTitle,
                     child: _panel(ev),
                   ),
                 ),
@@ -280,7 +283,7 @@ class _EvPaletteState extends State<EvPalette> {
                         height: 1.3,
                       ),
                       decoration: InputDecoration.collapsed(
-                        hintText: 'Игра, раздел или команда…',
+                        hintText: L.of(context).evPaletteQuery,
                         hintStyle: ev.text.body.copyWith(
                           color: c.ink4,
                           fontSize: 16,
@@ -300,7 +303,7 @@ class _EvPaletteState extends State<EvPalette> {
                       padding: const EdgeInsets.all(22),
                       child: Center(
                         child: Text(
-                          'ничего не найдено',
+                          L.of(context).evPaletteEmpty,
                           style: ev.text.data.copyWith(
                             color: c.ink4,
                             fontSize: 12,
@@ -317,11 +320,11 @@ class _EvPaletteState extends State<EvPalette> {
               ),
               child: Row(
                 children: [
-                  Text('↑↓ выбрать', style: small),
+                  Text(L.of(context).evPaletteSelect, style: small),
                   const SizedBox(width: 16),
-                  Text('↵ открыть', style: small),
+                  Text(L.of(context).evPaletteOpen, style: small),
                   const SizedBox(width: 16),
-                  Text('⇧↵ запустить', style: small),
+                  Text(L.of(context).evPaletteLaunch, style: small),
                 ],
               ),
             ),
@@ -459,7 +462,7 @@ class _PaletteRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  command.hint,
+                  command.hint ?? L.of(context).evPaletteRun,
                   style: ev.text.data.copyWith(color: c.ink4, fontSize: 10),
                 ),
               ],

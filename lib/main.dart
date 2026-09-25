@@ -22,6 +22,7 @@ import 'services/notifications/system_notification_service.dart';
 import 'services/system/app_log.dart';
 import 'services/system/app_shutdown.dart';
 import 'services/system/app_tray.dart';
+import 'services/system/launch_home.dart';
 import 'services/system/managed_window.dart';
 import 'services/system/native_tray_host.dart';
 import 'services/system/proxy_http_overrides.dart';
@@ -31,6 +32,10 @@ import 'services/system/update_check.dart';
 import 'services/system/update_installer.dart';
 import 'services/system/window_mode_watch.dart';
 import 'services/system/window_state.dart';
+import 'ui/ev/app/app_theme.dart';
+import 'ui/ev/app/ev_app_scope.dart';
+import 'ui/ev/sound/ev_sound.dart';
+import 'ui/ev/sound/soloud_out.dart';
 import 'ui/shell.dart';
 import 'ui/theme.dart';
 import 'ui/window/app_window_frame.dart';
@@ -45,7 +50,9 @@ Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final smoke = SmokeRun.requested(args) ? await SmokeRun.prepare() : null;
-  final paths = await AppPaths.init(home: smoke?.home.path);
+  // Дом — временный у дымового запуска и заданный `--home=` у запуска на
+  // копии данных; иначе системная папка.
+  final paths = await AppPaths.init(home: smoke?.home.path ?? launchHome(args));
   final instance = await _claimInstance(paths);
   await _startLog(paths);
 
@@ -91,6 +98,9 @@ Future<void> main(List<String> args) async {
       services: services,
       windowMode: windowMode,
       tray: tray,
+      // Звук прототипа включён сразу. Не завёлся движок (нет устройства,
+      // как в CI) — окно просто молчит: `EvSoLoudOut` гасит отказ сам.
+      sound: EvSound(out: EvSoLoudOut(), enabled: true),
     ),
   );
   if (smoke != null) unawaited(_smokeTest(smoke, paths, shutdown, tray));
@@ -264,6 +274,12 @@ Future<AppTray> _installTray(
   return tray;
 }
 
+/// Приложение: блоки и службы над `MaterialApp`, каркас — домашним экраном.
+///
+/// Схема одна — тёмная: дневной у прототипа нет (0013); выбор схемы в
+/// файле настроек остался ради совместимости и ни на что не влияет.
+/// Эффекты и звук прототипа (`EvAppScope`) лежат над навигатором: их
+/// видят и каркас, и всё, что открывается поверх него.
 class EvaporateApp extends StatefulWidget {
   const EvaporateApp({
     super.key,
@@ -271,6 +287,7 @@ class EvaporateApp extends StatefulWidget {
     required this.services,
     required this.windowMode,
     this.tray,
+    this.sound,
   });
 
   final SettingsBloc settings;
@@ -282,6 +299,10 @@ class EvaporateApp extends StatefulWidget {
 
   final WindowModeWatch windowMode;
   final AppTray? tray;
+
+  /// Звук прототипа — один на приложение, поэтому заводится в `main`, а
+  /// не в дереве: пересборка не должна заново поднимать звуковой движок.
+  final EvSound? sound;
 
   @override
   State<EvaporateApp> createState() => _EvaporateAppState();
@@ -332,22 +353,23 @@ class _EvaporateAppState extends State<EvaporateApp> {
               unawaited(notifications.initialize());
             }
           },
-          buildWhen: (before, after) => _app(before) != _app(after),
+          buildWhen: (before, after) => _locale(before) != _locale(after),
           builder: (context, settings) => MaterialApp(
             title: 'Evaporate',
             debugShowCheckedModeBanner: false,
-            theme: EvaporateTheme.light(),
-            darkTheme: EvaporateTheme.dark(),
-            themeMode: _app(settings).theme,
+            theme: evaporateAppTheme(),
             localizationsDelegates: L.localizationsDelegates,
             supportedLocales: L.supportedLocales,
-            builder: (context, child) => AppWindowFrame(
-              mode: widget.windowMode,
-              child: InterfaceScale(child: child!),
+            builder: (context, child) => EvAppScope(
+              sound: widget.sound,
+              child: AppWindowFrame(
+                mode: widget.windowMode,
+                child: InterfaceScale(child: child!),
+              ),
             ),
             // null означает «взять язык системы»: MaterialApp сам
             // подберёт ближайший из поддерживаемых.
-            locale: _app(settings).locale,
+            locale: _locale(settings),
             home: const AppShell(),
           ),
         ),
@@ -356,17 +378,14 @@ class _EvaporateAppState extends State<EvaporateApp> {
   }
 }
 
-/// То из настроек, от чего зависит сам `MaterialApp`: схема и язык.
+/// То из настроек, от чего зависит сам `MaterialApp`, — язык.
 ///
-/// Записью, а не двумя сравнениями по месту: перестраивать приложение
-/// целиком стоит только на них, и сравнивать надо ровно то, что отдаётся
-/// в `MaterialApp`, — иначе однажды одно добавят, а другое забудут.
-({ThemeMode theme, Locale? locale}) _app(AppSettings settings) {
+/// Одной функцией и для сборки, и для сравнения: перестраивать приложение
+/// целиком стоит только на нём, и сравнивать надо ровно то, что отдаётся
+/// в `MaterialApp`.
+Locale? _locale(AppSettings settings) {
   final code = settings.appearance.locale;
-  return (
-    theme: settings.appearance.themeMode.material,
-    locale: code == null ? null : Locale(code),
-  );
+  return code == null ? null : Locale(code);
 }
 
 /// Язык системы, приведённый к поддерживаемому.

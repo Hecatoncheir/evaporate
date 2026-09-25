@@ -544,5 +544,5 @@ const _alphas = [
   'lib/ui/library/effects/library_atmosphere.dart: 2',
   'lib/ui/library/effects/portal/portal_atlas.dart: 1',
   'lib/ui/widgets/animated_progress.dart: 1',
-  'lib/ui/widgets/pulse_dot.dart: 2',
+  'lib/ui/downloads/pulse_dot.dart: 2',
 ];

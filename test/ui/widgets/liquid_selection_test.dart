@@ -174,7 +174,7 @@ void main() {
   tearDown(() => TestHarness.removeTempDir(tmp));
 
   for (final light in [true, false]) {
-    testWidgets('подложка выбора живёт в обойме, фильтрах и сетке '
+    testWidgets('подложка выбора живёт в фильтрах и сетке '
         '(${light ? 'днём' : 'ночью'})', (tester) async {
       final preview = Platform.environment['LIQUID_PREVIEW_PREFIX'];
       if (preview != null) {
@@ -284,18 +284,6 @@ void main() {
       );
       await capture('filters');
       await frames(25);
-      harness.nav.add(const SectionSelected(AppSection.downloads));
-      await frames(13);
-      expect(state('rail-liquid').isAnimating, isTrue);
-      expect(
-        IconTheme.of(tester.element(find.byIcon(Icons.grid_view_outlined)))
-            .color,
-        palette.onSelection,
-      );
-      expect(state('grid-liquid').isAnimating, isFalse);
-      await capture('rail');
-      await frames(25);
-      expect(state('rail-liquid').isAnimating, isFalse);
       harness.nav.add(const SectionSelected(AppSection.settings));
       await frames(40);
       final effects = find.byKey(const ValueKey('living-library-settings'));
