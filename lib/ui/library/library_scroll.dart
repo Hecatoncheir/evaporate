@@ -71,6 +71,9 @@ class LibraryScroll extends StatelessWidget {
       padding: const EdgeInsets.all(EvaporateSpacing.gap),
       child: ChromeScrollView(
         controller: grid.scroll,
+        // Номера у диктора — только у плиток: у подписи, кадра и полок их
+        // нет, и сетка считается с нуля.
+        semanticChildCount: games.length,
         slivers: [
           if (page.height >= _headingHeight)
             const SliverToBoxAdapter(child: LibraryHeading()),

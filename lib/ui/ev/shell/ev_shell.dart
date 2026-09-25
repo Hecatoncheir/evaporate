@@ -339,7 +339,10 @@ class _EvShellState extends State<EvShell> {
                               left: rail,
                               right: 0,
                               top: EvSpace.topBarHeight,
-                              child: const EvScrollEdge(),
+                              // Край продолжает размытие своей полосы:
+                              // размытый сильнее самой полосы, он читался
+                              // бы второй, мутной полосой под первой.
+                              child: EvScrollEdge(blur: EvTopBar.glass.blur),
                             ),
                             Positioned(
                               left: rail,

@@ -45,16 +45,32 @@ class _NavTileState extends State<NavTile> {
   void _onFocusChange(bool value) {
     if (mounted) setState(() => _focused = value);
     widget.onFocusChange?.call(value);
-    if (!value) return;
-    // Фокус мог уехать за пределы видимой области списка.
-    final context = this.context;
-    if (context.mounted) {
-      Scrollable.ensureVisible(
-        context,
-        alignment: 0.1,
-        duration: context.motion.instant,
-      );
-    }
+    if (value && mounted) _reveal();
+  }
+
+  /// Выводит плитку в видимое — подросшей под фокусом и ровно настолько,
+  /// насколько нужно; видную целиком страницу не двигает.
+  ///
+  /// Сетка — часть одной прокрутки со всей страницей
+  /// (`docs/decisions/0014`), и прежняя доля 0.1 от каждой фокусировки
+  /// уносила под полосу крупный кадр с клавишей «Играть» даже с первого
+  /// ряда: пока прокручивалась одна сетка, первому ряду мешал упор в ноль.
+  /// Рост считаем потому, что обход стрелками подводит плитку вплотную к
+  /// краю, и без него низ обложки с рамкой оставался под строкой подсказок.
+  /// Край видимого — между полосами каркаса: окно прокрутки отвечает
+  /// «куда мотать» с их учётом.
+  void _reveal() {
+    final tile = context.findRenderObject();
+    if (tile is! RenderBox) return;
+    tile.showOnScreen(
+      rect: Rect.fromCenter(
+        center: tile.size.center(Offset.zero),
+        width: tile.size.width * NavTile._focusedScale,
+        height: tile.size.height * NavTile._focusedScale,
+      ),
+      duration: context.motion.instant,
+      curve: EvaporateMotion.ease,
+    );
   }
 
   @override

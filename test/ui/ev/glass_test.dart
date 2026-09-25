@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/ev/design/effects.dart';
 import 'package:evaporate/ui/ev/design/theme.dart';
 import 'package:evaporate/ui/ev/design/tokens.dart';
@@ -16,6 +17,7 @@ import 'package:evaporate/ui/ev/shell/ev_rail.dart';
 import 'package:evaporate/ui/ev/shell/ev_section.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Future<void> _settle(WidgetTester tester) async {
@@ -220,10 +222,10 @@ void main() {
   });
 
   group('каркас', () {
-    test(
-      'край полосы: размытие продолжает иней и сходит на нет без ступенек',
-      () {
-        final blur = EvGlassStyle.frost.blur;
+    // Верхняя полоса — своё стекло, строка подсказок — иней.
+    for (final blur in [EvTopBar.glass.blur, EvGlassStyle.frost.blur]) {
+      test('край полосы: размытие $blur продолжает стекло полосы и сходит на '
+          'нет без ступенек', () {
         final s = EvScrollEdge.sigmas(blur);
         expect(s.length, greaterThanOrEqualTo(8));
         // У полосы — почти её размытие, а не треть, как было.
@@ -235,8 +237,99 @@ void main() {
           // размытия полосы — шов между ними не виден.
           expect(s[i - 1] - s[i], lessThan(blur * .22));
         }
-      },
-    );
+      });
+    }
+
+    // Страница уходит под верхнюю полосу затем, чтобы стекло её размыло, —
+    // об этом просил владелец. Сквозь иней навигационного слоя (заливка
+    // 0.62, яркость 0.68) до глаза доходила четверть фона: обложки под
+    // полосой были едва тёплым налётом, а подпись раздела не видна вовсе.
+    testWidgets('сквозь верхнюю полосу доходит не меньше двух пятых фона', (
+      tester,
+    ) async {
+      await _window(tester, 800, EvSpace.topBarHeight);
+      final effects = _still(tester);
+      final key = GlobalKey();
+
+      /// Средняя яркость полосы там, где на ней ничего не написано.
+      Future<double> over(Color backdrop) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildEvTheme(),
+            localizationsDelegates: L.localizationsDelegates,
+            supportedLocales: L.supportedLocales,
+            locale: const Locale('ru'),
+            home: EvEffectsScope(
+              effects: effects,
+              child: RepaintBoundary(
+                key: key,
+                child: BackdropGroup(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: ColoredBox(color: backdrop)),
+                      const Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: EvTopBar(section: ''),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await _settle(tester);
+        final boundary = tester.renderObject<RenderRepaintBoundary>(
+          find.byKey(key),
+        );
+        final bytes = await tester.runAsync(() async {
+          final image = await boundary.toImage();
+          final data = await image.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          );
+          image.dispose();
+          return data!;
+        });
+        var sum = 0;
+        var n = 0;
+        for (var y = 4; y < 12; y++) {
+          for (var x = 300; x < 450; x++) {
+            sum += bytes!.getUint8((y * 800 + x) * 4);
+            n++;
+          }
+        }
+        return sum / n;
+      }
+
+      final white = await over(const Color(0xFFFFFFFF));
+      final black = await over(const Color(0xFF000000));
+      // Заливка, блик и зерно в разнице гасятся: остаётся то, что стекло
+      // пропускает от фона.
+      expect((white - black) / 255, greaterThanOrEqualTo(.4));
+    });
+
+    testWidgets('край под верхней полосой размыт так же, как сама полоса', (
+      tester,
+    ) async {
+      await _window(tester, 1440, 900);
+      await tester.pumpWidget(_app(_still(tester)));
+      await _settle(tester);
+
+      final bar = tester.widget<EvGlass>(
+        find
+            .descendant(
+              of: find.byType(EvTopBar),
+              matching: find.byType(EvGlass),
+            )
+            .first,
+      );
+      final edge = tester
+          .widgetList<EvScrollEdge>(find.byType(EvScrollEdge))
+          .firstWhere((e) => e.fromTop);
+      expect(edge.blur, bar.style.blur);
+    });
 
     testWidgets('экран уходит под полосы, а не упирается в них', (
       tester,

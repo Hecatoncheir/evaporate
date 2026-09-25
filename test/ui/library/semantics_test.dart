@@ -105,6 +105,33 @@ void main() {
     handle.dispose();
   });
 
+  // Страницу прокручивает свой `Scrollable`, а не `GridView`: тот
+  // объявлял число плиток сам, этот — только если его назвать. Без числа
+  // диктор теряет «игра три из семи».
+  testWidgets('диктор узнаёт, сколько игр на полке', (tester) async {
+    final handle = tester.ensureSemantics();
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    for (var i = 0; i < 7; i++) {
+      harness.addGame(title: 'Игра $i');
+    }
+    await harness.pump(tester);
+
+    final counts = <int>[];
+    void walk(SemanticsNode node) {
+      final count = node.scrollChildCount;
+      if (count != null) counts.add(count);
+      node.visitChildren((child) {
+        walk(child);
+        return true;
+      });
+    }
+
+    walk(tester.binding.rootElement!.renderObject!.debugSemantics!);
+    expect(counts, contains(7));
+    handle.dispose();
+  });
+
   testWidgets('открытая игра не теряет подписи разделов', (tester) async {
     final handle = tester.ensureSemantics();
     final harness = TestHarness(tmp);

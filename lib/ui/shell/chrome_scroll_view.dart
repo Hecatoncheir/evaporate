@@ -22,10 +22,15 @@ class ChromeScrollView extends StatelessWidget {
     super.key,
     required this.controller,
     required this.slivers,
+    this.semanticChildCount,
   });
 
   final ScrollController controller;
   final List<Widget> slivers;
+
+  /// Сколько в прокрутке того, что диктор считает («игра три из семи»).
+  /// `GridView` называл число сам; голый `Scrollable` — только так.
+  final int? semanticChildCount;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +66,7 @@ class ChromeScrollView extends StatelessWidget {
             child: Scrollable(
               controller: controller,
               clipBehavior: Clip.none,
+              semanticChildCount: semanticChildCount,
               viewportBuilder: (context, offset) => MediaQuery.removePadding(
                 context: context,
                 removeTop: true,

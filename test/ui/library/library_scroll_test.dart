@@ -21,14 +21,17 @@ void main() {
 
   /// Библиотека много длиннее окна: восемьдесят игр — шестнадцать рядов
   /// при 1280. Названия с нулями, чтобы порядок полки совпал с номером.
-  Future<(TestHarness, List<String>)> longLibrary(WidgetTester tester) async {
+  Future<(TestHarness, List<String>)> longLibrary(
+    WidgetTester tester, {
+    Size window = const Size(1280, 900),
+  }) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
     final ids = [
       for (var i = 0; i < 80; i++)
         harness.addGame(title: 'Игра ${i.toString().padLeft(2, '0')}'),
     ];
-    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.physicalSize = window;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(harness.buildApp());
@@ -44,6 +47,19 @@ void main() {
   Finder tile(int index) => find.ancestor(
     of: find.text('Игра ${index.toString().padLeft(2, '0')}'),
     matching: find.byType(GameCoverTile),
+  );
+
+  /// Обложка плитки такой, какой её видно: подросшей под фокусом.
+  Rect shownTile(WidgetTester tester, int index) => tester.getRect(
+    find
+        .descendant(
+          of: find.descendant(
+            of: tile(index),
+            matching: find.byType(AnimatedScale),
+          ),
+          matching: find.byType(AnimatedContainer),
+        )
+        .first,
   );
 
   /// Прямоугольник того, что сейчас в фокусе, и его хозяин на странице.
@@ -107,6 +123,123 @@ void main() {
     );
   });
 
+  /// Отдаёт фокус плитке [index] так, как его отдаёт возврат со страницы
+  /// игры или Tab из поиска: мимо направленного обхода.
+  Future<void> focusTile(WidgetTester tester, int index) async {
+    final label = 'Игра ${index.toString().padLeft(2, '0')}';
+    Focus.of(
+      tester.element(
+        find.descendant(of: tile(index), matching: find.text(label)),
+      ),
+    ).requestFocus();
+    await tester.pumpAndSettle();
+  }
+
+  // Сетка — часть одной прокрутки со страницей, и доля 0.1, которой
+  // плитка под фокусом подводила себя, двигала уже всю страницу: плитка
+  // первого ряда, видная целиком, уносила под полосу крупный кадр с
+  // клавишей «Играть» — с первого же нажатия. В 1440×900 под первым
+  // рядом хватает места и на рост обложки под фокусом.
+  testWidgets('фокус на плитке, видной целиком, страницу не двигает', (
+    tester,
+  ) async {
+    await longLibrary(tester, window: const Size(1440, 900));
+    final grid = tester.widget<LibraryBody>(find.byType(LibraryBody)).grid;
+    final hero = tester.getRect(find.byType(FeaturedGame));
+
+    await focusTile(tester, 1);
+
+    expect(grid.scroll.offset, 0);
+    expect(tester.getRect(find.byType(FeaturedGame)), hero);
+  });
+
+  // В 1280×900 под первым рядом не хватает нескольких точек на рост
+  // обложки: страница сдвигается на них, а не на полэкрана.
+  testWidgets('фокус на плитке первого ряда крупный кадр не прячет', (
+    tester,
+  ) async {
+    await longLibrary(tester);
+
+    await focusTile(tester, 1);
+
+    final hero = tester.getRect(find.byType(FeaturedGame));
+    expect(hero.top, greaterThanOrEqualTo(page(tester).top));
+    expect(hero.bottom, lessThanOrEqualTo(page(tester).bottom));
+  });
+
+  // В 1280×720 первый ряд виден не целиком. Доля 0.1 ставила его к
+  // верхнему краю, и кадр уходил под полосу весь; довести ряд до нижнего
+  // края — значит сдвинуть страницу ровно на недостающее.
+  testWidgets('первый ряд, видный не целиком, фокус доводит до нижнего края '
+      'видимого, и кадр остаётся на экране', (tester) async {
+    await longLibrary(tester, window: const Size(1280, 720));
+    expect(tester.getRect(tile(1)).bottom, greaterThan(page(tester).bottom));
+
+    await focusTile(tester, 1);
+
+    final grown = shownTile(tester, 1);
+    expect(grown.bottom, moreOrLessEquals(page(tester).bottom, epsilon: 0.5));
+    expect(
+      tester.getRect(find.byType(FeaturedGame)).bottom,
+      greaterThan(page(tester).top),
+    );
+  });
+
+  testWidgets('со страницы игры из первого ряда возвращаются к крупному '
+      'кадру на месте', (tester) async {
+    final (harness, ids) = await longLibrary(tester);
+    harness.nav
+      ..add(GameSelected(ids[2]))
+      ..add(GameOpened(ids[2]));
+    await tester.pumpAndSettle();
+
+    harness.nav.add(const GameOpened(null));
+    await tester.pumpAndSettle();
+
+    expect(primaryFocus?.debugLabel, 'game:${ids[2]}');
+    expect(
+      tester.getRect(find.byType(FeaturedGame)).top,
+      greaterThanOrEqualTo(page(tester).top),
+    );
+  });
+
+  testWidgets('плитку, наполовину ушедшую под полосу, фокус выводит в '
+      'видимое', (tester) async {
+    await longLibrary(tester);
+    final grid = tester.widget<LibraryBody>(find.byType(LibraryBody)).grid;
+    grid.scrollTo(20);
+    grid.scroll.jumpTo(grid.scroll.offset + 100);
+    await tester.pumpAndSettle();
+    expect(tester.getRect(tile(20)).top, lessThan(page(tester).top));
+
+    await focusTile(tester, 20);
+
+    expect(
+      tester.getRect(tile(20)).top,
+      greaterThanOrEqualTo(page(tester).top),
+    );
+  });
+
+  // Обход крестовиной подводит плитку вплотную к краю видимого, а под
+  // фокусом она подрастает: без запаса на рост низ обложки с рамкой
+  // выбранного уходил под строку подсказок.
+  testWidgets('крестовина вниз выводит следующий ряд целиком, вместе с '
+      'подросшей под фокусом обложкой', (tester) async {
+    final (harness, ids) = await longLibrary(tester);
+    final columns = tester
+        .widget<LibraryBody>(find.byType(LibraryBody))
+        .grid
+        .columns;
+    await focusTile(tester, 0);
+
+    await harness.tapButton(tester, GamepadButton.dpadDown);
+
+    expect(harness.nav.state.selectedGameId, ids[columns]);
+    final grown = shownTile(tester, columns);
+    expect(grown.top, greaterThanOrEqualTo(page(tester).top));
+    expect(grown.bottom, lessThanOrEqualTo(page(tester).bottom));
+  });
+
   testWidgets('со страницы дальней игры фокус возвращается на её плитку, '
       'и та видна между полосами', (tester) async {
     final (harness, ids) = await longLibrary(tester);
@@ -132,12 +265,9 @@ void main() {
   testWidgets('вверх из первого ряда фокус идёт через полки к клавишам '
       'крупного кадра, и каждая выезжает из-под полосы', (tester) async {
     final (harness, _) = await longLibrary(tester);
-    Focus.of(
-      tester.element(
-        find.descendant(of: tile(0), matching: find.text('Игра 00')),
-      ),
-    ).requestFocus();
-    await tester.pumpAndSettle();
+    tester.widget<LibraryBody>(find.byType(LibraryBody)).grid.scrollTo(0);
+    await tester.pump();
+    await focusTile(tester, 0);
     expect(
       tester.getRect(find.byType(FeaturedGame, skipOffstage: false)).bottom,
       lessThan(page(tester).top),
@@ -157,14 +287,17 @@ void main() {
     }
   });
 
-  testWidgets('стрелка вверх из первого ряда уводит в полки', (tester) async {
+  testWidgets('стрелка вверх из первого ряда уводит в полки, и те выезжают '
+      'из-под полосы', (tester) async {
     await longLibrary(tester);
-    Focus.of(
-      tester.element(
-        find.descendant(of: tile(0), matching: find.text('Игра 00')),
-      ),
-    ).requestFocus();
-    await tester.pumpAndSettle();
+    tester.widget<LibraryBody>(find.byType(LibraryBody)).grid.scrollTo(0);
+    await tester.pump();
+    await focusTile(tester, 0);
+    expect(
+      tester.getRect(find.byType(LibraryToolbar, skipOffstage: false)).bottom,
+      lessThanOrEqualTo(page(tester).top),
+      reason: 'полки должны были уйти под полосу, иначе проверять нечего',
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
     await tester.pumpAndSettle();

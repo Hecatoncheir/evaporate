@@ -52,6 +52,21 @@ class EvTopBar extends StatelessWidget {
   /// крошки нажатий не забирают — окно тянется и за собственное имя.
   final Widget? underlay;
 
+  /// Стекло полосы — иней светлее и тоньше, чем у рейла и панелей.
+  ///
+  /// Под полосу уходит прокрученная страница, и пускают её туда затем,
+  /// чтобы стекло её размыло, — об этом просил владелец. Иней навигационного
+  /// слоя пропускал четверть фона при размытии 22, и на полосе в 58 точек
+  /// это была серая заливка без единой формы. Здесь доходит больше двух
+  /// пятых, а размытие вдвое меньше: обложки и крупный кадр под полосой
+  /// видны цветными пятнами. Строка подсказок, наоборот, плотнее инея:
+  /// подписи на ней самые тихие.
+  static final glass = EvGlassStyle.frost.copyWith(
+    tintAlpha: 0.45,
+    brightness: 0.78,
+    blur: 12,
+  );
+
   @override
   Widget build(BuildContext context) {
     final ev = context.ev;
@@ -59,6 +74,7 @@ class EvTopBar extends StatelessWidget {
     final gutter = EvSpace.gutterFor(MediaQuery.sizeOf(context));
     return EvGlass(
       grouped: true,
+      style: glass,
       borderRadius: BorderRadius.zero,
       // Стык с экраном — снизу; слева полоса упирается в кромку рейла.
       rim: const {AxisDirection.down},
