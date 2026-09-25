@@ -74,6 +74,7 @@ class SavesPage extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, box) => CustomScrollView(
+        clipBehavior: Clip.none, // и под стеклом полос: см. `EvAppShell`
         slivers: [
           SliverPadding(
             padding: EvaporateLayout.pagePaddingFor(box.maxWidth),

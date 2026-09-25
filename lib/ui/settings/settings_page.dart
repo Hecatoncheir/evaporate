@@ -47,6 +47,8 @@ class SettingsPage extends StatelessWidget {
           ),
         },
         child: SingleChildScrollView(
+          // Рисуется и под стеклом полос каркаса: см. `EvAppShell`.
+          clipBehavior: Clip.none,
           padding: EvaporateLayout.pagePadding,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

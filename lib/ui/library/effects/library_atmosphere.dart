@@ -98,7 +98,9 @@ class LibraryAtmosphereState extends State<LibraryAtmosphere>
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
+    // Страница не обрезана: сетка уходит низом под стекло строки
+    // подсказок. Частицы и свет срезает по странице сам художник.
+    return KeyedSubtree(
       key: _viewport,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -170,6 +172,7 @@ class _AtmospherePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final bounds = Offset.zero & size;
+    canvas.clipRect(bounds);
     final time = animated ? ambientTime() : 0.0;
     // Медленные малоконтрастные перламутровые разводы по слоновой кости.
     // Контраст низкий намеренно: под текстом фон не должен мигать.

@@ -40,37 +40,47 @@ class LibraryGrid extends StatelessWidget {
     // доходил, и после отбора плитки собирались заново — всход повторялся.
     final indices = {for (var i = 0; i < games.length; i++) games[i].id: i};
 
-    return LayoutBuilder(
-      builder: (context, box) {
-        _measure(box, effects.libraryScale);
-        return LiquidSelection(
-          key: const ValueKey('grid-liquid'),
-          targetKey: () => controller.targetKey(selectedId),
-          enabled: effects.shows(LibraryEffect.liquidSelection),
-          color: context.colors.selection,
-          radius: EvaporateTheme.radiusPanel,
-          padding: const EdgeInsets.all(EvaporateSpacing.gap),
-          child: GridView.builder(
-            controller: controller.scroll,
-            findChildIndexCallback: (key) =>
-                key is ValueKey<String> ? indices[key.value] : null,
-            padding: padding,
-            gridDelegate: delegateFor(effects.libraryScale),
-            itemCount: games.length,
-            itemBuilder: (context, index) {
-              final game = games[index];
-              return LibraryGridTile(
-                key: ValueKey(game.id),
-                game: game,
-                index: index,
-                controller: controller,
-                selected: game.id == selectedId,
-                effects: effects,
-              );
-            },
-          ),
-        );
-      },
+    int? indexOf(Key key) =>
+        key is ValueKey<String> ? indices[key.value] : null;
+
+    // Сверху сетку срезает полка — выше неё крупный кадр, — а снизу
+    // она уходит под стекло строки подсказок. Само окно прокрутки
+    // кончается над строкой: плитка, подведённая стрелками, встаёт к
+    // его краю и под стеклом не прячется.
+    return ClipRect(
+      clipper: const _OpenBelow(),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          _measure(box, effects.libraryScale);
+          return LiquidSelection(
+            key: const ValueKey('grid-liquid'),
+            targetKey: () => controller.targetKey(selectedId),
+            enabled: effects.shows(LibraryEffect.liquidSelection),
+            color: context.colors.selection,
+            radius: EvaporateTheme.radiusPanel,
+            padding: const EdgeInsets.all(EvaporateSpacing.gap),
+            child: GridView.builder(
+              clipBehavior: Clip.none,
+              controller: controller.scroll,
+              findChildIndexCallback: indexOf,
+              padding: padding,
+              gridDelegate: delegateFor(effects.libraryScale),
+              itemCount: games.length,
+              itemBuilder: (context, index) {
+                final game = games[index];
+                return LibraryGridTile(
+                  key: ValueKey(game.id),
+                  game: game,
+                  index: index,
+                  controller: controller,
+                  selected: game.id == selectedId,
+                  effects: effects,
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -131,4 +141,20 @@ class LibraryGrid extends StatelessWidget {
       ..columns = layout.columns
       ..rowStride = layout.rowStride;
   }
+}
+
+/// Обрезка только сверху и по бокам: низом сетка рисуется и за своим краем.
+class _OpenBelow extends CustomClipper<Rect> {
+  const _OpenBelow();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, 0, size.width, size.height * 2);
+
+  // Приблизительную обрезку спрашивают, например, семантика и проверка
+  // того, что видно: по умолчанию она — вся коробка, то есть с низом.
+  @override
+  Rect getApproximateClipRect(Size size) => getClip(size);
+
+  @override
+  bool shouldReclip(_OpenBelow oldClipper) => false;
 }

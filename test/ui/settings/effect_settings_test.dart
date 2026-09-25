@@ -38,7 +38,7 @@ void main() {
         settings.appearance.isOn(LibraryEffect.interfaceAnimations),
         isTrue,
       );
-      expect(settings.appearance.isOn(LibraryEffect.drops), isFalse);
+      expect(settings.appearance.isOn(LibraryEffect.drops), isTrue);
       expect(settings.appearance.isOn(LibraryEffect.portal), isTrue);
       expect(settings.appearance.isOn(LibraryEffect.selectionFrame), isFalse);
       expect(settings.appearance.effectQuality, EffectQuality.full);
@@ -76,7 +76,7 @@ void main() {
       base.withAppearance(
         (a) => a.withEffect(LibraryEffect.interfaceAnimations, on: false),
       ),
-      base.withAppearance((a) => a.withEffect(LibraryEffect.drops, on: true)),
+      base.withAppearance((a) => a.withEffect(LibraryEffect.drops, on: false)),
       base.withAppearance((a) => a.withEffect(LibraryEffect.portal, on: false)),
       base.withAppearance(
         (a) => a.withEffect(LibraryEffect.selectionFrame, on: true),
