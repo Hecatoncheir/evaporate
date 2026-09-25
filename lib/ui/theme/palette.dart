@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 ///
 /// Две схемы — это два самостоятельных облика, а не одна палитра с
 /// вывернутой яркостью. «Арклайт» (ночь) — чернильный корпус кинозала с
-/// тёплым золотом; «Картридж» (день) — светлый корпус измерительного
-/// прибора с плоским насыщенным цветом. Осветлённая копия ночной схемы
-/// выглядела бы выцветшей, и обратно — тоже.
+/// раскалённым оранжевым; «Картридж» (день) — светлый корпус
+/// измерительного прибора с плоским насыщенным цветом. Осветлённая копия
+/// ночной схемы выглядела бы выцветшей, и обратно — тоже.
 class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
   const EvaporatePalette({
     required this.brightness,
@@ -80,12 +80,14 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
   final Color railIndicator;
   final Color onSelection;
 
-  /// Ореол вокруг активного: в ночной схеме светится золото, в дневной
+  /// Ореол вокруг активного: в ночной схеме светится янтарь, в дневной
   /// **прозрачный** — светлый корпус не светится, он отбрасывает тень.
   final Color glow;
 
-  /// «Толщина» под клавишей: в дневной схеме кнопка стоит на своём тёмном
-  /// торце и проваливается при нажатии, в ночной торца нет.
+  /// «Толщина» под клавишей: кнопка стоит на своём тёмном торце и
+  /// проваливается при нажатии. Ночью торец — остывающий низ того же
+  /// огня, днём — тёмный край оранжевого. Под надписью этот цвет не
+  /// лежит: на нём она не дотянула бы до нормы.
   final Color depth;
 
   /// Тень панелей: в ночи длинная и мягкая, днём короткая и жёсткая.
@@ -123,31 +125,38 @@ class EvaporatePalette extends ThemeExtension<EvaporatePalette> {
 
   bool get isDark => brightness == Brightness.dark;
 
-  /// «Арклайт»: почти чёрные чернила, тёплое золото главного действия и
-  /// холодный сигнальный голубой на показаниях. Цвет в интерфейс приносят
-  /// обложки игр, поэтому сам корпус остаётся сдержанным.
+  /// «Арклайт»: почти чёрные чернила с уходом в фиолетовый, раскалённый
+  /// оранжевый главного действия, янтарь выделения и холодный циан на
+  /// показаниях. Цвет в интерфейс приносят обложки игр, поэтому сам корпус
+  /// остаётся сдержанным.
+  ///
+  /// Значения — облик Magma из прототипа (`docs/decisions/0010`). Выделение
+  /// взято янтарём, а не оранжевым главного действия: оранжевая капля
+  /// сливалась бы с кромкой искр вокруг выбранной обложки. Третьего и
+  /// четвёртого уровня чернил прототипа здесь нет: на подложках они не
+  /// дотягивают до нормы текста, и приглушение остаётся ролью, а не цветом.
   static const dark = EvaporatePalette(
     brightness: Brightness.dark,
-    background: Color(0xFF06080B),
-    surface: Color(0xFF0D1116),
-    surfaceHigh: Color(0xFF18202A),
-    outline: Color(0xFF26303B),
-    primary: Color(0xFFE9C877),
-    primaryFill: Color(0xFFE9C877),
-    onPrimary: Color(0xFF0A0D11),
-    accent: Color(0xFF49B7E0),
-    accentFill: Color(0xFF49B7E0),
-    danger: Color(0xFFE96A5C),
-    dangerFill: Color(0xFFE96A5C),
+    background: Color(0xFF06060A),
+    surface: Color(0xFF0E0F16),
+    surfaceHigh: Color(0xFF15161F),
+    outline: Color(0xFF22242F),
+    primary: Color(0xFFFF7A18),
+    primaryFill: Color(0xFFFF7A18),
+    onPrimary: Color(0xFF170800),
+    accent: Color(0xFF5EE7FF),
+    accentFill: Color(0xFF5EE7FF),
+    danger: Color(0xFFFF4D5E),
+    dangerFill: Color(0xFFFF4D5E),
     onDanger: Color(0xFF0A0D11),
-    warning: Color(0xFFF2A93B),
-    textPrimary: Color(0xFFECE6D8),
-    textSecondary: Color(0xFF9BA6B2),
-    railBackground: Color(0xFF080B0F),
-    railIndicator: Color(0xFFE9C877),
+    warning: Color(0xFFFFC24D),
+    textPrimary: Color(0xFFF2F3F7),
+    textSecondary: Color(0xFFA8ACBD),
+    railBackground: Color(0xFF0A0B11),
+    railIndicator: Color(0xFFFFC24D),
     onSelection: Color(0xFF0A0D11),
-    glow: Color(0xFFE9C877),
-    depth: Color(0x00000000),
+    glow: Color(0xFFFFC24D),
+    depth: Color(0xFFC93A05),
     shadow: Color(0xB3000000),
   );
 

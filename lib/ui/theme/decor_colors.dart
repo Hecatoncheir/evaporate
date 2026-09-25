@@ -7,15 +7,16 @@ import 'package:flutter/material.dart';
 /// Насыщенные цвета — декоративные. Текст ими не красят: для него есть
 /// цвета темы, выверенные по контрасту в `theme_test.dart`.
 ///
-/// Набор собран вокруг ночной схемы: золото, сигнальный голубой и коралл —
-/// те же три голоса, что и у корпуса, только в полную силу.
+/// Набор собран вокруг ночной схемы: янтарь, циан, коралл, раскалённый
+/// оранжевый и фиолетовая дуга — те же голоса, что и у корпуса, только в
+/// полную силу.
 const libraryInkColors = [
-  Color(0xFFF2C368),
-  Color(0xFF49B7E0),
-  Color(0xFFE0574A),
-  Color(0xFFF2A93B),
-  Color(0xFF9A7BD8),
-  Color(0xFFF2C368),
+  Color(0xFFFFC24D),
+  Color(0xFF5EE7FF),
+  Color(0xFFFF4D5E),
+  Color(0xFFFF7A18),
+  Color(0xFFA66BFF),
+  Color(0xFFFFC24D),
 ];
 
 /// Цвета, не зависящие от темы: оформление обложек, эффекты и рамка окна.
@@ -37,12 +38,14 @@ abstract final class AppColors {
 
   // Затемнение поверх обложки героя: три ступени одного чернильного цвета,
   // чтобы надпись читалась на любой картинке, а верх кадра остался виден.
-  static const heroShadeStrong = Color(0xED06080B);
-  static const heroShadeMiddle = Color(0x7006080B);
-  static const heroShadeClear = Color(0x0806080B);
-  static const heroEyebrow = Color(0xFFE9C877);
+  // Чернила те же, что у фона и панелей ночной схемы: иначе затемнение
+  // легло бы на корпус пятном другого оттенка.
+  static const heroShadeStrong = Color(0xED06060A);
+  static const heroShadeMiddle = Color(0x7006060A);
+  static const heroShadeClear = Color(0x0806060A);
+  static const heroEyebrow = Color(0xFFFFC24D);
   static const heroBody = Color(0xFFB9C0C8);
-  static const heroPanel = Color(0xC90D1116);
+  static const heroPanel = Color(0xC90E0F16);
 
   /// Полоса света, проходящая по герою. Единственное, что двигается по
   /// обложке само: она и отличает живой кадр от вклеенной картинки.
@@ -71,7 +74,7 @@ List<Color> gameCoverColors(String title) {
 /// Набор выверенный, а не весь круг: свободный оттенок от хеша названия
 /// рано или поздно выдаёт болотно-зелёный или грязно-жёлтый, и оболочка
 /// выглядит не «своей у каждого», а сломанной. Шесть якорей — киноварь,
-/// янтарь, изумруд, лазурь, индиго и фуксия — все живут рядом с золотом
+/// янтарь, изумруд, лазурь, индиго и фуксия — все живут рядом с огнём
 /// корпуса и ни один не спорит с ним.
 const ambientHues = [8.0, 36.0, 152.0, 202.0, 258.0, 322.0];
 

@@ -109,7 +109,7 @@ void main() {
 
   test('частицы берут основной цвет своей схемы', () {
     expect(EffectsPalette.cartridge.particleBase, const Color(0xFF8C3A10));
-    expect(EffectsPalette.arclight.particleBase, const Color(0xFFE9C877));
+    expect(EffectsPalette.arclight.particleBase, const Color(0xFFFFC24D));
   });
 
   // Запуск свёрнутым в трей: фон строится принудительным кадром при
@@ -175,10 +175,12 @@ void main() {
       final image = await picture.toImage(32, 32);
       try {
         final pixels = (await image.toByteData())!.buffer.asUint8List();
+        // Ядро светится первым цветом кольца: фаза −1 попадает в него.
+        final core = libraryInkColors.first;
         expect(pixels.sublist((16 * 32 + 16) * 4, (16 * 32 + 16) * 4 + 4), [
-          closeTo(242, 1),
-          closeTo(195, 1),
-          closeTo(104, 1),
+          closeTo(core.r * 255, 1),
+          closeTo(core.g * 255, 1),
+          closeTo(core.b * 255, 1),
           closeTo(255, 1),
         ]);
         for (final x in [12, 13, 19, 20]) {

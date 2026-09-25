@@ -44,8 +44,8 @@ class TopBarBrand extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: EvaporateSpacing.line),
-              // Короткий золотой штрих под словом — подпись на корпусе,
-              // а не украшение: он же задаёт фирменный цвет всей рейке.
+              // Короткий штрих фирменного цвета под словом — подпись на
+              // корпусе, а не украшение: он же задаёт цвет всей рейке.
               Container(width: 26, height: 2, color: colors.primary),
             ],
           ),

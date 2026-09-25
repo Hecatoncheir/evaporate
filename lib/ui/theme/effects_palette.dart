@@ -40,13 +40,13 @@ class EffectsPalette extends ThemeExtension<EffectsPalette> {
 
   static const arclight = EffectsPalette(
     waveColors: [
-      Color(0xFFE9C877),
-      Color(0xFF49B7E0),
-      Color(0xFFE0574A),
-      Color(0xFFC9C2B2),
+      Color(0xFFFFC24D),
+      Color(0xFF5EE7FF),
+      Color(0xFFFF7A18),
+      Color(0xFFA8ACBD),
     ],
     waveStrength: 1,
-    particleBase: Color(0xFFE9C877),
+    particleBase: Color(0xFFFFC24D),
     sparkBlend: BlendMode.plus,
     ambientWash: false,
   );

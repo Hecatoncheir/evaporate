@@ -456,7 +456,8 @@ about the order things happened in.
 
 There are two schemes, and they are **two looks of their own**, not one palette
 with the brightness inverted. The night one is the inky chassis of a cinema:
-warm gold on the primary action, cold signal blue on the readouts. The day one
+molten orange on the primary action, amber for the selection, cold cyan on the
+readouts. The day one
 is the pale chassis of a measuring instrument: flat saturated colour without
 gradients, black lettering on orange, and a key sitting on its own dark edge. A
 brightened copy of the night scheme would look washed out, and the reverse would
