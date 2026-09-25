@@ -1,12 +1,12 @@
 import '../../../models/game.dart';
 import '../art/key_art.dart';
+import '../launch/ev_launch_ritual.dart';
 import '../library/hero_state.dart';
 import '../returning/return_data.dart';
 import '../settings/settings_data.dart';
-import '../launch/ev_launch_ritual.dart';
-import '../widgets/ev_icon.dart';
 import '../util/units.dart';
 import '../widgets/ev_game_card.dart';
+import '../widgets/ev_icon.dart';
 import 'sample_session.dart';
 
 // Пример содержимого. Движка раздач в приложении ещё нет, а пустой каркас
@@ -352,7 +352,7 @@ final sampleDownloadsActive = sampleDownloading.length;
 /// Шесть состояний героя — то же содержимое, что у `HERO` в прототипе.
 /// Всё про «Пепельный Предел»: это игра в герое.
 final sampleHeroStates = <EvHeroState, EvHeroContent>{
-  EvHeroState.ready: EvHeroContent(
+  EvHeroState.ready: const EvHeroContent(
     eyebrow: 'Продолжить · сыграно 284 ч 10 мин',
     blurb:
         'Пятая глава разблокирована. Ваш отряд ждёт у Кузни Сумерек — '
@@ -365,7 +365,7 @@ final sampleHeroStates = <EvHeroState, EvHeroContent>{
       ('Одиночная', false),
     ],
   ),
-  EvHeroState.notInstalled: EvHeroContent(
+  EvHeroState.notInstalled: const EvHeroContent(
     eyebrow: 'В библиотеке · на диске нет',
     blurb:
         'Игра куплена и привязана к аккаунту, но файлов на этом компьютере '
@@ -401,13 +401,13 @@ final sampleHeroStates = <EvHeroState, EvHeroContent>{
     actionCaption: '1.8 ГБ · ~4 МИН',
     second: 'Играть без обновления',
     secondIcon: EvIcons.play,
-    note: EvHeroNote(
+    note: const EvHeroNote(
       'Со старой версией не работает совместное прохождение',
       icon: EvIcons.alert,
       tone: EvNoteTone.warn,
     ),
   ),
-  EvHeroState.installing: EvHeroContent(
+  EvHeroState.installing: const EvHeroContent(
     eyebrow: 'Установка · осталось 12 мин',
     blurb:
         'Файлы распаковываются на диск. Можно свернуть окно — установка '
@@ -433,7 +433,7 @@ final sampleHeroStates = <EvHeroState, EvHeroContent>{
     ],
     runningFor: sampleSession.clock,
   ),
-  EvHeroState.offline: EvHeroContent(
+  EvHeroState.offline: const EvHeroContent(
     eyebrow: 'Нет сети · играть можно',
     blurb:
         'Одиночное прохождение не требует сети. Сохранения копятся локально '

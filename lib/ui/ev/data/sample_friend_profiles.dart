@@ -41,7 +41,7 @@ final _anton = EvFriendProfile(
 final _igor = EvFriendProfile(
   person: samplePeople[6],
   since: 'в друзьях с ноября 2024',
-  shows: {EvShare.seeding, EvShare.byCode},
+  shows: const {EvShare.seeding, EvShare.byCode},
   common: [
     EvCommonGame(_game('Пепельный Предел'), null),
     EvCommonGame(_game('Лунная Колея'), null),

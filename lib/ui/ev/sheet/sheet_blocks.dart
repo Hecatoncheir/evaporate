@@ -7,13 +7,13 @@ import '../data/sample_data.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../friends/ev_avatar.dart';
-import '../util/units.dart';
-import '../widgets/ev_achievement.dart';
 import '../returning/ev_return_widgets.dart';
 import '../returning/return_data.dart';
-import 'ev_part_row.dart';
+import '../util/units.dart';
+import '../widgets/ev_achievement.dart';
 import '../widgets/ev_icon.dart';
 import '../widgets/ev_surfaces.dart';
+import 'ev_part_row.dart';
 
 /// Содержимое карточки: описание и четыре блока данных, которых нет ни
 /// в одном магазине, потому что их знает только лаунчер, — плюс правая
@@ -392,7 +392,7 @@ class _Nearest extends StatelessWidget {
       ),
       child: Row(
         children: [
-          EvTrophyIcon(unlocked: true, size: 32),
+          const EvTrophyIcon(unlocked: true, size: 32),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -702,7 +702,7 @@ class _SavePoint extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Wrap(
+        const Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
@@ -808,13 +808,17 @@ class _Verbs extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Verb(
+        const _Verb(
           icon: EvIcons.verified,
           label: 'Проверить целостность',
           note: '~4 мин',
         ),
-        _Verb(icon: EvIcons.folder, label: 'Открыть папку', note: r'D:\Игры'),
-        _Verb(icon: EvIcons.boost, label: 'Создать ярлык'),
+        const _Verb(
+          icon: EvIcons.folder,
+          label: 'Открыть папку',
+          note: r'D:\Игры',
+        ),
+        const _Verb(icon: EvIcons.boost, label: 'Создать ярлык'),
         _Verb(
           icon: EvIcons.seed,
           label: facts.installed ? 'Перестать раздавать' : 'Начать раздачу',

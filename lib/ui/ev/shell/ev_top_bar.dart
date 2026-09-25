@@ -158,7 +158,7 @@ class _SearchButtonState extends State<_SearchButton> {
                       style: ev.text.bodySmall.copyWith(color: ink),
                     ),
                     const SizedBox(width: 9),
-                    EvKey('/', dense: true),
+                    const EvKey('/', dense: true),
                   ],
                 ),
               ),

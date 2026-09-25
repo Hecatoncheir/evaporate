@@ -25,7 +25,7 @@ void main() {
     for (final entity in Directory('lib').listSync(recursive: true))
       if (entity is File && entity.path.endsWith('.dart'))
         if (entity.path.replaceAll(r'\', '/') case final path
-            when !isGenerated(path))
+            when !isGenerated(path) && !isPrototypeCode(path))
           (path: path, text: entity.readAsStringSync()),
   ];
   final functions = [

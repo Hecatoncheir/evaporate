@@ -1,11 +1,11 @@
 import 'package:flutter/widgets.dart';
 
+import '../data/game_facts.dart';
 import '../data/sample_data.dart';
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../friends/ev_friend_rows.dart';
 import '../friends/friends_data.dart';
-import '../data/game_facts.dart';
 import '../library/hero_cta.dart';
 import '../library/hero_state.dart';
 import '../profile/ev_friend_profile_rows.dart';

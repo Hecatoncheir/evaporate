@@ -1,8 +1,8 @@
 import '../art/key_art.dart';
 import '../friends/friends_data.dart';
-import 'sample_friends.dart';
 import '../widgets/ev_game_card.dart';
 import 'sample_data.dart';
+import 'sample_friends.dart';
 
 /// Часть игры на диске: озвучка, текстуры, саундтрек. Обязательную часть
 /// снять нельзя.

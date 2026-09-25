@@ -4,10 +4,10 @@ import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../friends/ev_friend_rows.dart';
 import '../friends/friends_data.dart';
-import '../widgets/ev_thread.dart';
 import '../util/plural.dart';
 import '../widgets/ev_icon.dart';
 import '../widgets/ev_surfaces.dart';
+import '../widgets/ev_thread.dart';
 
 /// Друзья — не список контактов, а вторая сеть раздачи.
 ///

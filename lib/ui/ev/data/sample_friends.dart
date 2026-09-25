@@ -1,9 +1,9 @@
 import '../art/key_art.dart';
-import '../friends/friends_data.dart';
 import '../design/tokens.dart';
+import '../downloads/download_data.dart';
+import '../friends/friends_data.dart';
 import 'sample_data.dart';
 import 'sample_downloads.dart';
-import '../downloads/download_data.dart';
 
 // Друзья — те же двенадцать, что в прототипе. Во что они играют, берётся
 // из библиотеки, а сколько они раздают — с экрана загрузок: доля «от

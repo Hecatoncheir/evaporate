@@ -28,7 +28,7 @@ const maxClosureLines = 25;
 /// нельзя; вынесенное — вычёркивать.
 void main() {
   final sources = [
-    ...dartSources('lib/ui'),
+    ...dartSources('lib/ui', skip: isPrototypeCode),
     ...dartSources('lib/input'),
     SourceFile('lib/main.dart', File('lib/main.dart').readAsStringSync()),
   ];

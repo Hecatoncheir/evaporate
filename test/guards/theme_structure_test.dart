@@ -40,7 +40,10 @@ void main() {
   bool isThemeFile(String path) =>
       path.startsWith('lib/ui/theme/') || path == 'lib/ui/theme.dart';
 
-  final sources = dartSources('lib/ui', skip: isThemeFile);
+  final sources = dartSources(
+    'lib/ui',
+    skip: (path) => isThemeFile(path) || isPrototypeCode(path),
+  );
 
   Iterable<String> count(RegExp pattern) sync* {
     for (final file in sources) {

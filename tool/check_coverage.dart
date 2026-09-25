@@ -75,8 +75,19 @@ List<String> filesMissingFromReport(
   Iterable<String> libFiles,
 ) => [
   for (final path in libFiles)
-    if (!files.containsKey(path) && !_reportedNowhere.contains(path)) path,
+    if (!files.containsKey(path) &&
+        !_reportedNowhere.contains(path) &&
+        !isPrototypeCode(path))
+      path,
 ]..sort();
+
+/// Код прототипа `evaporate_design`, перенесённый «как есть»
+/// (`docs/decisions/0013-prototype-ui-as-is.md`). Пофайловые списки —
+/// тонких и молчащих — его не требуют: переносят его со своими тестами,
+/// экран за экраном, и держать на каждый файл запись с числом значило бы
+/// переписывать список на каждой фазе. Общий порог считается по всему коду,
+/// включая его.
+bool isPrototypeCode(String path) => path.startsWith('lib/ui/ev/');
 
 /// Кого в отчёте нет и быть не должно.
 ///
@@ -120,7 +131,7 @@ List<String> thinFileProblems(
 }) {
   final problems = <String>[];
   for (final MapEntry(key: path, value: lines) in files.entries) {
-    if (lines.isEmpty) continue;
+    if (lines.isEmpty || isPrototypeCode(path)) continue;
     final percent =
         100 * lines.values.where((c) => c > 0).length ~/ lines.length;
     final floor = known[path];

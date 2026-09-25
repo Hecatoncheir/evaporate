@@ -735,13 +735,13 @@ class _SheetBar extends StatelessWidget {
             height: 46,
             hot: true,
           ),
-          EvGhostButton(
+          const EvGhostButton(
             label: 'Пауза',
             icon: EvIcons.pause,
             height: 46,
             onPressed: null,
           ),
-          EvGhostButton(
+          const EvGhostButton(
             label: 'Отменить',
             icon: EvIcons.close,
             height: 46,
@@ -783,7 +783,7 @@ class _SheetBar extends StatelessWidget {
             requireHold: false,
             onLaunch: onInstall,
           ),
-          EvGhostButton(
+          const EvGhostButton(
             label: 'Указать папку',
             icon: EvIcons.folder,
             height: 46,
@@ -827,7 +827,7 @@ class _SheetBar extends StatelessWidget {
             requireHold: false,
             onLaunch: null,
           ),
-          EvGhostButton(
+          const EvGhostButton(
             label: 'Пауза',
             icon: EvIcons.pause,
             height: 46,
@@ -853,7 +853,7 @@ class _SheetBar extends StatelessWidget {
             requireHold: false,
             onLaunch: null,
           ),
-          EvGhostButton(
+          const EvGhostButton(
             label: 'Убрать из очереди',
             icon: EvIcons.close,
             height: 46,

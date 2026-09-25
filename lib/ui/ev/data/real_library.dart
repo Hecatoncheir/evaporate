@@ -27,8 +27,13 @@ SampleGame get evHero => evRealLibrary?.hero ?? sampleHero;
 List<SampleGame> get evSessions => evRealLibrary?.sessions ?? sampleSessions;
 
 class EvRealLibrary {
-  EvRealLibrary._(this.games, this.hero, this.sessions, this.heroContent,
-      this.coversFound);
+  EvRealLibrary._(
+    this.games,
+    this.hero,
+    this.sessions,
+    this.heroContent,
+    this.coversFound,
+  );
 
   final List<SampleGame> games;
   final SampleGame hero;
@@ -77,7 +82,8 @@ class EvRealLibrary {
       for (final g in list)
         if (g.play.lastPlayed != null) g,
     ]..sort((a, b) => b.play.lastPlayed!.compareTo(a.play.lastPlayed!));
-    final heroGame = played.firstOrNull ??
+    final heroGame =
+        played.firstOrNull ??
         list.firstWhere(
           (g) => g.status == GameStatus.installed,
           orElse: () => list.first,

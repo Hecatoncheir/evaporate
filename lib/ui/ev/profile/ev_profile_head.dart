@@ -180,8 +180,8 @@ class EvProfileAvatar extends StatelessWidget {
                 transform: const GradientRotation((200 - 90) * math.pi / 180),
               ),
         boxShadow: [
-          BoxShadow(
-            color: const Color.fromRGBO(255, 255, 255, .16),
+          const BoxShadow(
+            color: Color.fromRGBO(255, 255, 255, .16),
             spreadRadius: 2,
           ),
           BoxShadow(

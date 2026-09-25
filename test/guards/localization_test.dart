@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/guards.dart';
+import 'prototype_strings.dart';
 
 void main() {
   Map<String, dynamic> arb(String lang) =>
@@ -174,12 +175,30 @@ void main() {
   // непереведённой: приложение соберётся, тесты пройдут, и обнаружится это
   // только у человека с английским интерфейсом.
   test('в слое интерфейса не осталось непереведённых строк', () {
-    final offenders = dartSources('lib/ui').expand(cyrillicStrings).toList();
+    final offenders = dartSources(
+      'lib/ui',
+      skip: isPrototypeCode,
+    ).expand(cyrillicStrings).toList();
 
     expect(
       offenders,
       isEmpty,
       reason: 'эти строки нужно вынести в lib/l10n/app_ru.arb',
+    );
+  });
+
+  // Прототип перенесён со своими строками по-русски (0013), и английский
+  // интерфейс его пока не видит. Строки уходят в ARB по мере того, как экран
+  // подключается к блокам, — число в файле может только убывать.
+  test('строк прототипа по-русски не прибавляется', () {
+    expectRatchet(
+      found: [
+        for (final file in dartSources('lib/ui/ev'))
+          if (cyrillicStrings(file).length case final n when n > 0)
+            '${file.path}: $n',
+      ],
+      known: prototypeStrings,
+      rule: 'строку прототипа — в lib/l10n/app_ru.arb и app_en.arb',
     );
   });
 

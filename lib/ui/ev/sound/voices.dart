@@ -88,7 +88,7 @@ enum EvVoice {
     ],
     err => [
       EvToneLayer(dur: .3, gain: .085, wave: EvWave.triangle, f0: from, f1: to),
-      EvToneLayer(dur: .3, gain: .035, f0: 452, f1: 226, detune: 8),
+      const EvToneLayer(dur: .3, gain: .035, f0: 452, f1: 226, detune: 8),
       const EvNoiseLayer(
         dur: .05,
         gain: .05,
@@ -218,7 +218,7 @@ Float32List evAmbient() {
   final n = (period * evSampleRate).round();
   final seam = (fade * evSampleRate).round();
   final raw = evRender([
-    EvNoiseLayer(
+    const EvNoiseLayer(
       dur: period + fade,
       gain: 1,
       filter: EvFilter.lowpass,

@@ -1,7 +1,7 @@
 import '../downloads/download_data.dart';
+import '../util/units.dart';
 import '../widgets/ev_icon.dart';
 import '../widgets/ev_surfaces.dart';
-import '../util/units.dart';
 import 'sample_data.dart';
 
 // Содержимое раздела «Загрузки» — то же, что `DL` в прототипе. Раздачи

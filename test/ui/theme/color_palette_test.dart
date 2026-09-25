@@ -4,6 +4,8 @@ import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../support/guards.dart';
+
 void main() {
   test('цвета заводятся только в папке темы', () {
     final definitions = RegExp(
@@ -14,7 +16,9 @@ void main() {
       'lib',
     ).listSync(recursive: true).whereType<File>()) {
       final path = file.path.replaceAll('\\', '/');
-      if (!path.endsWith('.dart') || path.startsWith('lib/ui/theme/')) {
+      if (!path.endsWith('.dart') ||
+          path.startsWith('lib/ui/theme/') ||
+          isPrototypeCode(path)) {
         continue;
       }
       final lines = file.readAsLinesSync();

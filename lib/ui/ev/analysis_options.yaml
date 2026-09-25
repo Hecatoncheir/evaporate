@@ -1,0 +1,11 @@
+# Код прототипа evaporate_design, перенесённый «как есть»
+# (docs/decisions/0013-prototype-ui-as-is.md). Два правила проекта его
+# интерфейсы нарушают сплошь — булевы параметры по месту и склеенные строки
+# в списках, — а переписывать их значило бы менять прототип не ради данных и
+# событий. Правила вернутся, когда код приведут к правилам проекта (TODO).
+include: ../../../analysis_options.yaml
+
+linter:
+  rules:
+    avoid_positional_boolean_parameters: false
+    no_adjacent_strings_in_list: false
