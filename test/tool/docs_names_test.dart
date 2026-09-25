@@ -21,6 +21,12 @@ void main() {
     'README.md',
     'README.en.md',
     'CONTRIBUTING.md',
+    // Подробности, вынесенные из CLAUDE.md, устаревают так же, как он сам.
+    for (final entity in Directory(
+      'docs/architecture',
+    ).listSync()..sort((a, b) => a.path.compareTo(b.path)))
+      if (entity is File && entity.path.endsWith('.md'))
+        entity.path.replaceAll(r'\', '/'),
     for (final entity in Directory(
       'docs/decisions',
     ).listSync()..sort((a, b) => a.path.compareTo(b.path)))
