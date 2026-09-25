@@ -975,6 +975,8 @@
   "notThis": "Не то",
   "nothingDownloading": "Ничего не качается.",
   "nothingFound": "Ничего не найдено",
+  "shelfEmpty": "На этой полке пока пусто",
+  "shelfRecentEmpty": "Здесь появятся игры, которые вы запускали",
   "nothingToVerify": "Проверять нечего: метаданные не получены",
   "noticeApplied": "применено: {count}",
   "noticeDownloadFailed": "Загрузка не удалась",

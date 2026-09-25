@@ -79,7 +79,7 @@ class LibraryBody extends StatelessWidget {
                 onReturnToGames: onReturnToGames,
               ),
               Expanded(
-                child: _LibraryShelf(
+                child: _GridDropArea(
                   grid: grid,
                   games: games,
                   scanning: scanning,
@@ -98,8 +98,8 @@ class LibraryBody extends StatelessWidget {
 ///
 /// Пока идёт поиск установленных игр, приёмник молчит: папку в его окно
 /// бросают ради сужения поиска, а не чтобы добавить её одной игрой.
-class _LibraryShelf extends StatelessWidget {
-  const _LibraryShelf({
+class _GridDropArea extends StatelessWidget {
+  const _GridDropArea({
     required this.grid,
     required this.games,
     required this.scanning,

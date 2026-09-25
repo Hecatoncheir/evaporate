@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/library_view/library_view_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/models/shelf.dart';
 import 'package:evaporate/ui/library/library_empty_state.dart';
 import 'package:evaporate/ui/library/library_toolbar.dart';
 import 'package:flutter/material.dart';
@@ -61,8 +62,11 @@ void main() {
     addTearDown(harness.dispose);
     var scans = 0;
     await tester.pumpWidget(
-      BlocProvider.value(
-        value: harness.library,
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: harness.library),
+          BlocProvider(create: (_) => LibraryViewBloc()),
+        ],
         child: hostWidget(LibraryEmptyState(onScan: () => scans++)),
       ),
     );
@@ -91,5 +95,27 @@ void main() {
       find.widgetWithText(FilledButton, l.findInstalledGames),
       findsNothing,
     );
+  });
+
+  // Пустая полка отбора без всякого поиска — не «ничего не найдено»: у
+  // «Продолжить» так пусто у каждого, кто ещё ничего не запускал.
+  testWidgets('пустая полка без поиска говорит, почему пусто', (tester) async {
+    final harness = TestHarness(tmp);
+    addTearDown(harness.dispose);
+    harness.addGame(title: 'Альфа');
+    await harness.pump(tester);
+    final view = tester
+        .element(find.byType(LibraryToolbar))
+        .read<LibraryViewBloc>();
+
+    view.add(const LibraryShelfSelected(Shelf.recent));
+    await tester.pumpAndSettle();
+    expect(find.text(l.shelfRecentEmpty), findsOneWidget);
+    expect(find.text(l.nothingFound), findsNothing);
+
+    view.add(const LibraryShelfSelected(Shelf.installed));
+    await tester.pumpAndSettle();
+    expect(find.text(l.shelfEmpty), findsOneWidget);
+    expect(find.text(l.nothingFound), findsNothing);
   });
 }

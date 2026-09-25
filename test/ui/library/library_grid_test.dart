@@ -62,7 +62,9 @@ void main() {
     expect(find.text('Гамма'), findsOneWidget);
   });
 
-  testWidgets('полки делят библиотеку без остатка', (tester) async {
+  testWidgets('установленные и неустановленные делят библиотеку без остатка', (
+    tester,
+  ) async {
     await withGames(tester);
 
     // Числа рядом с названиями полок: всего три, установлена одна.

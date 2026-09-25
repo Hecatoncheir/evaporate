@@ -23,8 +23,8 @@ class FeaturedTitle extends StatelessWidget {
     style: TextStyle(
       color: AppColors.coverText,
       fontFamily: EvaporateTheme.displayFontFamily,
-      // Крупнее не влезает: под названием в полный рост стоят описание в
-      // две строки и ряд клавиш.
+      // Крупнее не влезает: под названием в полный рост стоят строка
+      // плашек и ряд клавиш.
       fontSize: compact ? 22 : 32,
       height: 1.04,
       fontWeight: FontWeight.w800,

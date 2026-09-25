@@ -1186,9 +1186,9 @@
     выключаем из диалога; `formatDuration`/`formatEta`/`formatSpeed` «для
     журналов» — никем не зовутся;
   - «кадры гонит один `DecorativeMotion`» — два своих тикера (B6); «диктору
-    обычное слово» — капс уходит диктору из шести мест (`readout_cell.dart:43`,
-    `engine_readout.dart:50`, `featured_eyebrow.dart:34`, `featured_poster.dart:44`,
-    `featured_compact_bar.dart:41`, `playtime_readout.dart:33`); радиусы
+    обычное слово» — капс уходит диктору из пяти мест (`readout_cell.dart:43`,
+    `engine_readout.dart:50`, `featured_eyebrow.dart:34`, `featured_title.dart:20`,
+    `featured_compact_bar.dart:41`; `playtime_readout.dart` ушёл в Ф6); радиусы
     числом — в умолчаниях (B9); «широкие экраны зажаты (1340)» — не сетка и
     не страница игры (940, `game_detail.dart:28`); «подпись собирается в
     `GameCoverTile`» — в `CoverFace._spokenLabel`; `interfaceAnimationsEnabled`

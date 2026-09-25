@@ -16,8 +16,8 @@ yourself: a magnet link, a `.torrent` file, or a folder that is already on disk.
 ![Library: a large cover on top, shelves, and a grid of portrait covers](site/assets/screenshots/library.jpg)
 
 **Library.** On top, the game you are coming back to: a large still, the play
-key, and time played. Below it the All / Installed / Not installed shelves and
-a grid of portrait covers. The colour in the window comes from the games
+key, and time played. Below it the All / Continue / Installed / Not installed
+shelves and a grid of portrait covers. The colour in the window comes from the games
 themselves — the ambient light takes its hue from the selected one.
 
 ![Game page: the cover as a dimmed backdrop, the Steam rating, launch buttons, and save folders](site/assets/screenshots/game.jpg)
@@ -57,7 +57,7 @@ saturated colour without gradients, and black lettering on orange.
 ## What it does
 
 - **Library** — a grid of portrait covers, the way Steam does it: the All,
-  Installed and Not installed shelves, locally cached Steam cover art,
+  Continue, Installed and Not installed shelves, locally cached Steam cover art,
   states, time played, last launch date.
 - **Find installed games** — choose a parent folder such as `Games` or
   `steamapps/common`, then select the discovered games to add. Folders

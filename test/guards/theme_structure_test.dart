@@ -517,8 +517,6 @@ const _textStyles = [
   'lib/ui/library/featured/featured_title.dart: 1',
 ];
 
-/// Описание игры поверх крупного кадра — та же типографика картинки:
-/// межстрочие у него своё, под затемнённый кадр.
 const _roleTweaks = <String>[];
 
 const _iconSizes = <String>[];

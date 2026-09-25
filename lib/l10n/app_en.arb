@@ -304,6 +304,8 @@
   "notThis": "Not it",
   "nothingDownloading": "Nothing is downloading.",
   "nothingFound": "Nothing found",
+  "shelfEmpty": "Nothing on this shelf yet",
+  "shelfRecentEmpty": "Games you have launched will show up here",
   "nothingToVerify": "Nothing to verify: metadata was not fetched",
   "noticeApplied": "applied: {count}",
   "noticeDownloadFailed": "Download failed",
