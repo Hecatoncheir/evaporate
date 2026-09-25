@@ -49,7 +49,6 @@ class DownloadActivity extends StatelessWidget {
           child: AnimatedProgress(
             value: indeterminate ? null : task.progress,
             height: 6,
-            borderRadius: EvaporateTheme.radiusChip,
             busy: task.state == DownloadState.active,
           ),
         ),

@@ -19,13 +19,18 @@ import '../support/text_roles.dart';
 ///   `context.motion`;
 /// - `Radius.circular(<число>)` — радиус берётся из `EvaporateTheme`;
 /// - поле страницы 28, предельная ширина 1340, подпись настройки 220,
-///   ширины диалогов 460 и 560, ширина обоймы 76 и высоты полос 58 и 32 —
-///   из `EvaporateLayout`;
-/// - промежуток (`SizedBox` с одной шириной или высотой) и поле
-///   (`EdgeInsets`) числом — ступенью шкалы `EvaporateSpacing`;
+///   ширины диалогов 460 и 560, ширина обоймы 76, высоты полос 58 и 32,
+///   высоты органа 48 и 42 и наименьшая ширина главной клавиши 112 — из
+///   `EvaporateLayout`;
+/// - промежуток (`SizedBox` с одной шириной или высотой, `spacing` и
+///   `runSpacing` переноса и ряда) и поле (`EdgeInsets`) числом — ступенью
+///   шкалы `EvaporateSpacing`;
+/// - радиус числом в умолчании параметра и в аргументе (`radius:`,
+///   `borderRadius:`) — токеном `EvaporateTheme`;
 /// - размер значка числом — ступенью `EvaporateIconSize`;
-/// - `withValues(alpha: <число>)` и `opacity: <дробь>` — прозрачность
-///   берётся ступенью `EvaporateAlpha`.
+/// - `withValues(alpha: <число>)` и `opacity: <дробь>`, в том числе в ветви
+///   условия (`lit ? 0.34 : 0.18`), — прозрачность берётся ступенью
+///   `EvaporateAlpha`.
 ///
 /// Списки ниже — известные нарушители на момент введения правила (этап 2
 /// первого разбора, `docs/reviews/2026-09-19.md`), с числом вхождений.
@@ -228,12 +233,18 @@ void main() {
           'Container(width: 76)',
           'SizedBox(height: 58, child: bar)',
           'Container(height: 32)',
+          'minimumSize: const Size(0, 48)',
+          'SizedBox(width: 144, height: 42, child: c)',
+          'BoxConstraints(minWidth: 112, minHeight: 48)',
         ],
         passes: [
           'SizedBox(width: 2200)',
           'EdgeInsets.fromLTRB(280, 0, 0, 0)',
           'SizedBox(width: 760)',
           'height: 580',
+          'static const halo = 48.0;',
+          'minimumSize: const Size(0, EvaporateLayout.controlHeight)',
+          'height: 480',
         ],
       ),
       _alphaHere: (
@@ -246,6 +257,7 @@ void main() {
           'c.withValues(alpha: EvaporateAlpha.rim)',
           'c.withValues(alpha: lit ? look.haloLit : look.haloRest)',
           'c.withValues(alpha: c.a * math.sin(t))',
+          'c.withValues(alpha: widget.fade?.value)',
         ],
       ),
       _gapHere: (
@@ -300,12 +312,20 @@ void main() {
           'this.radius = 24,',
           'this.borderRadius = 3,',
           'borderRadius: 4,',
+          'GlassSurface(radius: 24, child: c)',
+          'TonedChip(radius: 4)',
+          '{double radius = 8, Widget? child}',
+          'Widget child,\n    double cornerRadius = 12,',
         ],
         passes: [
           'this.radius = EvaporateTheme.radiusChip,',
           'blurRadius: 26,',
           'radius: 1.05,',
+          'radius: 1,',
+          'radius: 0.95,',
           'static const cornerRadius = 16.0;',
+          'double _radius = 18;',
+          'radius: EvaporateTheme.radiusPanel,',
         ],
       ),
       _opacityHere: (
@@ -413,12 +433,15 @@ final _radiusHere = RegExp(r'Radius\.circular\(\s*\d');
 /// сетки, и размытием, и запрет «любого 28» бил бы мимо.
 final _layoutHere = RegExp(
   r'fromLTRB\(\s*28\b|maxWidth:\s*1340\b|width:\s*(76|220|460|560)\b'
-  r'|height:\s*(58|32)\b',
+  r'|height:\s*(58|32|48|42)\b|minHeight:\s*(48|42)\b|minWidth:\s*112\b'
+  r'|Size\(\s*[\w.]+\s*,\s*(48|42)\b',
 );
 
 /// Прозрачность числом — и прямо, и в ветви условия (`lit ? 0.34 :
 /// 0.18`): второе прежде проходило мимо стража.
-final _alphaHere = RegExp(r'withValues\(\s*alpha:\s*(?:[^,()]*[?:]\s*)?[\d.]');
+final _alphaHere = RegExp(
+  r'withValues\(\s*alpha:\s*(?:[^,()]*[?:]\s*)?(?:\d|\.\d)',
+);
 
 /// Ненулевое число само по себе, а не часть имени: `12`, `.5`, `12.5`.
 const _number = r'(?<![\w.$])(?:0*[1-9]\d*(?:\.\d+)?|0*\.\d*[1-9]\d*)(?![\w.])';
@@ -449,9 +472,14 @@ final _wrapSpacingHere = RegExp(
   [r'\b(?:spacing|runSpacing)\s*:\s*', _number].join(),
 );
 
-/// Радиус числом в умолчании параметра или в аргументе `borderRadius`.
+/// Радиус числом в умолчании параметра (полем `this.` или своим типом)
+/// или в аргументе `radius:` и `borderRadius:`. Дробные радиусы
+/// градиентов (`radius: 1.05`) — не угол панели; приватное поле
+/// (`_radius = 18`) — не умолчание.
 final _radiusParamHere = RegExp(
-  r'this\.\w*[rR]adius\s*=\s*\d|\bborderRadius:\s*\d',
+  r'this\.\w*[rR]adius\s*=\s*\d'
+  r'|[{,]\s*double\??\s+(?:[a-zA-Z]\w*)?[rR]adius\s*=\s*\d'
+  r'|\bborderRadius:\s*\d|\bradius:\s*(?:[2-9]|\d{2})',
 );
 
 const _isDark = <String>[];

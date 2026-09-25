@@ -58,7 +58,6 @@ class CoverProgressStrip extends StatelessWidget {
               value: indeterminate ? null : task.progress,
               height: 3,
               track: AppColors.coverProgressTrack,
-              borderRadius: EvaporateTheme.radiusChip,
             ),
           ],
         ),

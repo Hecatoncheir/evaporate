@@ -21,7 +21,6 @@ class AnimatedProgress extends StatelessWidget {
     this.height = 4,
     this.color,
     this.track,
-    this.borderRadius = EvaporateTheme.radiusChip,
     this.busy = false,
   });
 
@@ -33,8 +32,6 @@ class AnimatedProgress extends StatelessWidget {
   /// Дорожка под заполнением. Поверх обложки она своя: подложка там —
   /// картинка, а не корпус, и цвет корпуса на светлой схеме выбелил бы её.
   final Color? track;
-
-  final double borderRadius;
 
   /// Задача идёт прямо сейчас — по полосе бегут насечки.
   final bool busy;
@@ -48,7 +45,7 @@ class AnimatedProgress extends StatelessWidget {
     // Неопределённому прогрессу сглаживать нечего: там своя анимация.
     if (value == null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
         child: LinearProgressIndicator(
           minHeight: height,
           backgroundColor: under,
@@ -58,7 +55,7 @@ class AnimatedProgress extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
+      borderRadius: BorderRadius.circular(EvaporateTheme.radiusChip),
       child: SizedBox(
         height: height,
         child: Stack(

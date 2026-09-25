@@ -33,12 +33,7 @@ void main() {
               key: key,
               child: SizedBox(
                 width: 400,
-                child: AnimatedProgress(
-                  value: value,
-                  height: 6,
-                  borderRadius: 4,
-                  busy: busy,
-                ),
+                child: AnimatedProgress(value: value, height: 6, busy: busy),
               ),
             ),
           ),
