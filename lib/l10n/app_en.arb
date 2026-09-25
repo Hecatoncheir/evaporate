@@ -26,7 +26,7 @@
   "effectAmbient": "Selected game lights up the chassis",
   "effectAmbientNote": "Panels take on the colour of the selected cover, and the light flows as you move between games",
   "effectGlass": "Frosted glass bars",
-  "effectGlassNote": "Game light and the wave show through the side rack, the top bar and the hints bar. The blur costs frames — on a slow machine the bars can be solid.",
+  "effectGlassNote": "Game light and the library wave show through the top bar and the hints bar, game light through the side rack. The blur costs frames — on a slow machine the bars can be solid.",
   "effectHeroSweep": "Light sweep across the featured cover",
   "effectShotsBackdrop": "Screenshots behind the featured cover",
   "effectShotsBackdropNote": "Steam hands them over together with the description. They cycle and drift slowly; games that did not match Steam have none, and keep the cover.",

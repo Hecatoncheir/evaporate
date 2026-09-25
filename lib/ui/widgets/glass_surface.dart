@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -97,30 +98,25 @@ class GlassSurface extends StatelessWidget {
     final fill = opaque
         ? glass.opaqueFillOpacity
         : opacity ?? glass.fillOpacity;
-    final edge = BorderSide(
-      color: colors.textPrimary.withValues(alpha: glass.rimOpacity),
-    );
-    BorderSide side(AxisDirection at) =>
-        rim.contains(at) ? edge : BorderSide.none;
+    // Отлив плотной панели не прозрачнее заливки: ночного отлива нет, и при
+    // смене схемы он смешивается как заливка 0.62 — край плотной полосы на
+    // кадр просвечивал бы.
+    final sheen = glass.sheenTopOpacity ?? fill;
+    final top = opaque ? math.max(fill, sheen) : sheen;
     return BoxDecoration(
       color: colors.surface.withValues(alpha: fill),
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [
-          colors.surface.withValues(alpha: glass.sheenTopOpacity ?? fill),
+          colors.surface.withValues(alpha: top),
           colors.surfaceHigh.withValues(
             alpha: opaque ? fill : glass.sheenBottomOpacity,
           ),
         ],
       ),
       borderRadius: BorderRadius.circular(radius),
-      border: Border(
-        top: side(AxisDirection.up),
-        right: side(AxisDirection.right),
-        bottom: side(AxisDirection.down),
-        left: side(AxisDirection.left),
-      ),
+      border: _rimOf(colors, glass, rim),
       boxShadow: shadow
           ? [
               BoxShadow(
@@ -137,6 +133,25 @@ class GlassSurface extends StatelessWidget {
               ),
             ]
           : null,
+    );
+  }
+
+  /// Светлый кант по названным краям.
+  static Border _rimOf(
+    EvaporatePalette colors,
+    GlassSurfaceTheme glass,
+    Set<AxisDirection> rim,
+  ) {
+    final edge = BorderSide(
+      color: colors.textPrimary.withValues(alpha: glass.rimOpacity),
+    );
+    BorderSide side(AxisDirection at) =>
+        rim.contains(at) ? edge : BorderSide.none;
+    return Border(
+      top: side(AxisDirection.up),
+      right: side(AxisDirection.right),
+      bottom: side(AxisDirection.down),
+      left: side(AxisDirection.left),
     );
   }
 

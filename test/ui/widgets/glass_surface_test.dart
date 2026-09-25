@@ -85,4 +85,42 @@ void main() {
     expect(seam.bottom, full.bottom);
     expect([seam.top, seam.left, seam.right], everyElement(BorderSide.none));
   });
+  // Смена схемы смешивает темы по кадрам. Ночного отлива нет, и он
+  // смешивается с дневным как обычная заливка: у плотной полосы край на
+  // первом же кадре проседал с 0.9 до 0.65 и просвечивал.
+  testWidgets('плотная заливка не просвечивает посреди смены схемы', (
+    tester,
+  ) async {
+    final dark = EvaporateTheme.dark();
+    final light = EvaporateTheme.light();
+    final tops = <double>[];
+    // Тема — прямо `Theme`, а не темой приложения: та сама анимирует
+    // переход и без хода времени так и стояла бы ночной.
+    for (var step = 0; step <= 20; step++) {
+      await tester.pumpWidget(
+        Theme(
+          data: ThemeData.lerp(dark, light, step / 20),
+          child: Builder(
+            builder: (context) {
+              final fill = GlassSurface.decorationOf(
+                context,
+                radius: 0,
+                opaque: true,
+              );
+              tops.add((fill.gradient! as LinearGradient).colors.first.a);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+    }
+
+    for (var i = 1; i < tops.length; i++) {
+      expect(
+        (tops[i] - tops[i - 1]).abs(),
+        lessThan(0.05),
+        reason: 'скачок между шагами ${i - 1} и $i: $tops',
+      );
+    }
+  });
 }
