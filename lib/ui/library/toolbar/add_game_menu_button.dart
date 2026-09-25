@@ -29,7 +29,7 @@ class AddGameMenuButton extends StatelessWidget {
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 48),
+          minimumSize: const Size(0, EvaporateLayout.controlHeight),
           padding: const EdgeInsets.only(
             left: EvaporateSpacing.field,
             right: EvaporateSpacing.gap,

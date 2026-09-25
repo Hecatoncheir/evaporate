@@ -157,6 +157,28 @@ void main() {
     );
   });
 
+  // Промежуток в переносе и столбце — та же ступень, что у `SizedBox`:
+  // числом по месту их набралось двадцать с лишним, и страж промежутков
+  // видел только `SizedBox`.
+  test('промежутки переноса и ряда — ступени шкалы, а не числа', () {
+    expectRatchet(
+      found: count(_wrapSpacingHere),
+      known: const [],
+      rule: 'spacing и runSpacing — ступени EvaporateSpacing',
+    );
+  });
+
+  // Радиус числом в умолчании параметра и в аргументе с именем радиуса —
+  // обход стража радиусов: сам `Radius.circular` в виджете стоял с именем
+  // поля, а число жило в умолчании.
+  test('радиусы не прячутся в умолчаниях и аргументах', () {
+    expectRatchet(
+      found: count(_radiusParamHere),
+      known: const [],
+      rule: 'радиус — токен EvaporateTheme',
+    );
+  });
+
   // Сломанная регулярка — вечная зелень: страж, который ничего не
   // находит, выглядит ровно как страж, которому нечего найти.
   group('страж ловит нарушение', () {
@@ -215,8 +237,16 @@ void main() {
         ],
       ),
       _alphaHere: (
-        catches: ['c.withValues(alpha: 0.4)', 'c.withValues(alpha: .4)'],
-        passes: ['c.withValues(alpha: EvaporateAlpha.rim)'],
+        catches: [
+          'c.withValues(alpha: 0.4)',
+          'c.withValues(alpha: .4)',
+          'c.withValues(alpha: lit ? 0.34 : 0.18)',
+        ],
+        passes: [
+          'c.withValues(alpha: EvaporateAlpha.rim)',
+          'c.withValues(alpha: lit ? look.haloLit : look.haloRest)',
+          'c.withValues(alpha: c.a * math.sin(t))',
+        ],
       ),
       _gapHere: (
         catches: [
@@ -252,8 +282,38 @@ void main() {
           'const Size(10, 10)',
         ],
       ),
+      _wrapSpacingHere: (
+        catches: [
+          'Wrap(spacing: 10, children: c)',
+          'runSpacing: 8,',
+          'Column(spacing: 4)',
+        ],
+        passes: [
+          'spacing: EvaporateSpacing.gap',
+          'letterSpacing: 1.4',
+          'crossAxisSpacing: 28',
+          'spacing: 0,',
+        ],
+      ),
+      _radiusParamHere: (
+        catches: [
+          'this.radius = 24,',
+          'this.borderRadius = 3,',
+          'borderRadius: 4,',
+        ],
+        passes: [
+          'this.radius = EvaporateTheme.radiusChip,',
+          'blurRadius: 26,',
+          'radius: 1.05,',
+          'static const cornerRadius = 16.0;',
+        ],
+      ),
       _opacityHere: (
-        catches: ['Opacity(opacity: 0.35)', 'opacity: .5'],
+        catches: [
+          'Opacity(opacity: 0.35)',
+          'opacity: .5',
+          'opacity: enabled ? 1 : 0.45',
+        ],
         passes: [
           'Opacity(opacity: 0)',
           'Opacity(opacity: 1)',
@@ -356,7 +416,9 @@ final _layoutHere = RegExp(
   r'|height:\s*(58|32)\b',
 );
 
-final _alphaHere = RegExp(r'withValues\(\s*alpha:\s*[\d.]');
+/// Прозрачность числом — и прямо, и в ветви условия (`lit ? 0.34 :
+/// 0.18`): второе прежде проходило мимо стража.
+final _alphaHere = RegExp(r'withValues\(\s*alpha:\s*(?:[^,()]*[?:]\s*)?[\d.]');
 
 /// Ненулевое число само по себе, а не часть имени: `12`, `.5`, `12.5`.
 const _number = r'(?<![\w.$])(?:0*[1-9]\d*(?:\.\d+)?|0*\.\d*[1-9]\d*)(?![\w.])';
@@ -380,7 +442,17 @@ final _insetsHere = RegExp(
 final _iconSizeHere = RegExp([r'\b(?:size|iconSize)\s*:\s*', _number].join());
 
 /// `opacity:` дробным числом; 0 и 1 — «скрыто» и «видно», облика в них нет.
-final _opacityHere = RegExp(r'\bopacity:\s*0?\.\d*[1-9]');
+final _opacityHere = RegExp(r'\bopacity:\s*(?:[^,()]*[?:]\s*)?0?\.\d*[1-9]');
+
+/// Промежуток переноса и ряда числом; ноль — «без промежутка».
+final _wrapSpacingHere = RegExp(
+  [r'\b(?:spacing|runSpacing)\s*:\s*', _number].join(),
+);
+
+/// Радиус числом в умолчании параметра или в аргументе `borderRadius`.
+final _radiusParamHere = RegExp(
+  r'this\.\w*[rR]adius\s*=\s*\d|\bborderRadius:\s*\d',
+);
 
 const _isDark = <String>[];
 

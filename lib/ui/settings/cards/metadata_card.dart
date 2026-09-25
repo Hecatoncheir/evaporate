@@ -20,7 +20,7 @@ class MetadataCard extends StatelessWidget {
       title: l.metadataRetryTitle,
       icon: Icons.image_search_outlined,
       trailing: Wrap(
-        spacing: 8,
+        spacing: EvaporateSpacing.gap,
         children: [
           OutlinedButton.icon(
             onPressed: () => library.add(const MetadataRetryRequested()),

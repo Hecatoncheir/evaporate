@@ -667,7 +667,7 @@
   `_GlassSliver` стал обязательным, `_railTheme` ушёл. В Ф3 ушли
   `LiquidSelection.resting` с мёртвой веткой художника и умолчание
   радиуса капли (оно же из B9), `RiseIn.offset` стал постоянной. **S**
-- [ ] **B9. Числа, обходящие стража темы.** **[✔]** P2. `spacing:`/`runSpacing:`
+- [x] **B9. Числа, обходящие стража темы.** **[✔]** P2. `spacing:`/`runSpacing:`
   числом — 25 строк в 9+ файлах (`_gapHere` в `theme_structure_test.dart:355`
   ловит только `SizedBox`); высота органа 48/42 — в шести файлах
   (`featured_actions.dart:45`, `add_game_menu_button.dart:34`,
@@ -683,6 +683,12 @@
   клавиша — ступенью `EvaporateAlpha.disabled`, ореол — долями
   `LauncherButtonTheme.haloRest`/`haloLit`; радиус 24 стекла — см. B8. В Ф3
   ушло умолчание радиуса капли выбора (18). **M**
+  *Сделано* в Ф4c: высота органа — `EvaporateLayout.controlHeight` и
+  `controlHeightCompact`, наименьшая ширина главной клавиши —
+  `controlMinWidth`; кортеж крупного кадра — ступенями; `spacing:` и
+  `runSpacing:` — ступенями шкалы; радиус полосы прогресса — токеном.
+  Стражу добавлены `_wrapSpacingHere` и `_radiusParamHere` (оба пусты), а
+  прозрачность числом он ловит и в ветви условия.
 - [ ] **B10. Роли текста: тридцать — много, полукегли — лишние.** **[○]** P2
   (поведение: на полкегля). `typography.dart:40-65`: `bodyMuted` 13,
   `note` 12.5, `captionMuted` 12, `paragraph` 12.5 — четыре приглушённые

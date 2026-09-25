@@ -48,8 +48,11 @@ void main() {
       final button = find.byType(LauncherActionButton);
       expect(tester.widget<LauncherActionButton>(button).onPressed, isNotNull);
       final buttonSize = tester.getSize(button);
-      expect(buttonSize.height, 48);
-      expect(buttonSize.width, greaterThanOrEqualTo(112));
+      expect(buttonSize.height, EvaporateLayout.controlHeight);
+      expect(
+        buttonSize.width,
+        greaterThanOrEqualTo(EvaporateLayout.controlMinWidth),
+      );
       final decoration =
           tester
                   .widget<DecoratedBox>(

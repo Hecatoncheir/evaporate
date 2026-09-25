@@ -49,7 +49,9 @@ class FeaturedGame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (top, bottom) = compact ? (6.0, 8.0) : (8.0, 10.0);
+    final (top, bottom) = compact
+        ? (EvaporateSpacing.tight, EvaporateSpacing.gap)
+        : (EvaporateSpacing.gap, EvaporateSpacing.cluster);
     return Padding(
       padding: EvaporateLayout.inset(top: top, bottom: bottom),
       child: SizedBox(

@@ -43,7 +43,10 @@ class FeaturedActions extends StatelessWidget {
             side: BorderSide(
               color: AppColors.coverText.withValues(alpha: 0.34),
             ),
-            minimumSize: const Size(112, 48),
+            minimumSize: const Size(
+              EvaporateLayout.controlMinWidth,
+              EvaporateLayout.controlHeight,
+            ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(EvaporateTheme.radiusControl),
             ),

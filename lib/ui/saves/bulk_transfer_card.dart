@@ -37,8 +37,8 @@ class BulkTransferCard extends StatelessWidget {
           Text(L.of(context).bulkTransferNote, style: context.text.paragraph),
           const SizedBox(height: EvaporateSpacing.block),
           Wrap(
-            spacing: 10,
-            runSpacing: 8,
+            spacing: EvaporateSpacing.cluster,
+            runSpacing: EvaporateSpacing.gap,
             children: [
               FilledButton.icon(
                 onPressed: busy ? null : () => _export(context),

@@ -157,7 +157,10 @@ class _Face extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(minWidth: 112, minHeight: 48),
+    constraints: const BoxConstraints(
+      minWidth: EvaporateLayout.controlMinWidth,
+      minHeight: EvaporateLayout.controlHeight,
+    ),
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: EvaporateSpacing.panel),
       child: Row(

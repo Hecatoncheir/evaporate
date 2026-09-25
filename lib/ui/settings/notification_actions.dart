@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/notifications/notification_service.dart';
 import '../feedback/snack.dart';
+import '../theme.dart';
 
 /// Спросить разрешение (только macOS) и отправить пробное уведомление.
 class NotificationActions extends StatelessWidget {
@@ -21,8 +22,8 @@ class NotificationActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: EvaporateSpacing.gap,
+      runSpacing: EvaporateSpacing.gap,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (Platform.isMacOS)

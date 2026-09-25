@@ -28,7 +28,7 @@ class ShelfButton extends StatelessWidget {
         style: TextButton.styleFrom(
           backgroundColor: AppColors.transparent,
           foregroundColor: active ? colors.onSelection : colors.textSecondary,
-          minimumSize: const Size(0, 42),
+          minimumSize: const Size(0, EvaporateLayout.controlHeightCompact),
           padding: const EdgeInsets.symmetric(
             horizontal: EvaporateSpacing.cluster,
           ),

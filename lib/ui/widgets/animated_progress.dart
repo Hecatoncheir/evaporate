@@ -21,7 +21,7 @@ class AnimatedProgress extends StatelessWidget {
     this.height = 4,
     this.color,
     this.track,
-    this.borderRadius = 3,
+    this.borderRadius = EvaporateTheme.radiusChip,
     this.busy = false,
   });
 

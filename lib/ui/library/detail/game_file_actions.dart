@@ -8,6 +8,7 @@ import '../../../core/format.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
 import '../../../services/download/torrent_export.dart';
+import '../../theme.dart';
 
 /// Что можно сделать с файлами игры: открыть её папку и унести раздачу.
 ///
@@ -24,8 +25,8 @@ class GameFileActions extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+        spacing: EvaporateSpacing.cluster,
+        runSpacing: EvaporateSpacing.cluster,
         children: [
           if (game.isInstalled && game.canLaunch)
             OutlinedButton.icon(

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../bloc/library/library_bloc.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/game.dart';
+import '../../theme.dart';
 import '../../widgets/busy_spinner.dart';
 
 /// Правая половина ряда действий: что делают с ярлыком игры в Steam.
@@ -31,8 +32,8 @@ class SteamActions extends StatelessWidget {
 
     return Wrap(
       alignment: WrapAlignment.end,
-      spacing: 10,
-      runSpacing: 10,
+      spacing: EvaporateSpacing.cluster,
+      runSpacing: EvaporateSpacing.cluster,
       children: [
         if (game.canLaunch)
           _BusyOutlinedButton(

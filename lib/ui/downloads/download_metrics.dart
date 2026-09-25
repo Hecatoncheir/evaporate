@@ -24,8 +24,8 @@ class DownloadMetrics extends StatelessWidget {
     );
 
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: EvaporateSpacing.cluster,
+      runSpacing: EvaporateSpacing.cluster,
       children: [
         DownloadMetric(
           icon: Icons.network_check_rounded,

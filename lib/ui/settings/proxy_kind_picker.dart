@@ -18,7 +18,7 @@ class ProxyKindPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      runSpacing: 8,
+      runSpacing: EvaporateSpacing.gap,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         SizedBox(

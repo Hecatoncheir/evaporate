@@ -37,8 +37,8 @@ class RatingRow extends StatelessWidget {
     };
 
     return Wrap(
-      spacing: 12,
-      runSpacing: 6,
+      spacing: EvaporateSpacing.field,
+      runSpacing: EvaporateSpacing.tight,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         if (summary != null && summary.isNotEmpty)

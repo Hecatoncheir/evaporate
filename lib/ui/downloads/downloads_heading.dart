@@ -30,8 +30,8 @@ class DownloadsHeading extends StatelessWidget {
       semanticsLabel: L.of(context).downloads,
       padding: EvaporateLayout.inset(top: EvaporateSpacing.section),
       trailing: Wrap(
-        spacing: 10,
-        runSpacing: 8,
+        spacing: EvaporateSpacing.cluster,
+        runSpacing: EvaporateSpacing.gap,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           EngineStatusChip(status: status),

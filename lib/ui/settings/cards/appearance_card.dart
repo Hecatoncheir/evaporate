@@ -48,7 +48,7 @@ class AppearanceCard extends StatelessWidget {
           // рядом с тем, на что влияет. Два ползунка с одинаковой подписью
           // в двух местах — это выбор, какой из них настоящий.
           Wrap(
-            spacing: 20,
+            spacing: EvaporateSpacing.section,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               SizedBox(

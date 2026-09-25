@@ -27,7 +27,7 @@ class LibrarySearchField extends StatelessWidget {
     return SizedBox(
       key: const ValueKey('library-search'),
       width: 144,
-      height: 48,
+      height: EvaporateLayout.controlHeight,
       child: ToolbarWell(
         padding: const EdgeInsets.only(
           top: EvaporateLayout.wellInset,

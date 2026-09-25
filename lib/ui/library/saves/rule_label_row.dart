@@ -24,8 +24,8 @@ class RuleLabelRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = L.of(context);
     return Wrap(
-      spacing: 6,
-      runSpacing: 4,
+      spacing: EvaporateSpacing.tight,
+      runSpacing: EvaporateSpacing.line,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(ruleLabelText(l, rule.label), style: context.text.bodyStrong),

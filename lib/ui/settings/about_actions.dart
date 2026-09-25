@@ -33,8 +33,8 @@ class AboutActions extends StatelessWidget {
     final update = context.watch<UpdateBloc>().state;
     final release = update.found;
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: EvaporateSpacing.gap,
+      runSpacing: EvaporateSpacing.gap,
       children: [
         FilledButton.tonalIcon(
           onPressed: update.checking
