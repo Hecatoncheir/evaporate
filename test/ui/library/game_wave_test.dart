@@ -97,6 +97,46 @@ void main() {
     );
   });
 
+  // Выключенная волна тоже знает, где курсор: включат её — вздутие сразу
+  // стоит там, а не прыгает туда из середины с первым движением мыши.
+  testWidgets('включённая волна встаёт за курсором без рывка', (tester) async {
+    var enabled = false;
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          rebuild = setState;
+          return MaterialApp(
+            home: PointerTrailScope(
+              child: Center(
+                child: SizedBox(
+                  width: 400,
+                  height: 300,
+                  child: GameWave(
+                    enabled: enabled,
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(
+      tester.getTopLeft(find.byType(GameWave)) + const Offset(380, 280),
+    );
+    await frames(tester, 120);
+
+    rebuild(() => enabled = true);
+    await tester.pump(const Duration(milliseconds: 17));
+
+    expect(wave(tester).pointer.value.dx, closeTo(0.95, 0.02));
+  });
+
   testWidgets('без оболочки волна стоит посередине', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

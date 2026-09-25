@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -153,6 +154,9 @@ class _PointerTrailScopeState extends State<PointerTrailScope>
   }
 
   void _aim(PointerEvent event) {
+    // Палец — не курсор: у касания нет ухода, и частицы с волной навсегда
+    // остались бы у точки, где его оторвали.
+    if (event.kind == PointerDeviceKind.touch) return;
     if (MediaQuery.disableAnimationsOf(context)) return;
     final size = context.size;
     if (size == null || size.isEmpty) return;

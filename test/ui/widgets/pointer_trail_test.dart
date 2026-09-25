@@ -83,6 +83,22 @@ void main() {
     );
   });
 
+  // У касания нет ухода: взведи оно курсор, частицы и волна навсегда
+  // остались бы у точки, где палец оторвали.
+  testWidgets('касание пальцем курсором не считается', (tester) async {
+    await tester.pumpWidget(host());
+    final finger = await tester.startGesture(
+      const Offset(600, 450),
+      kind: PointerDeviceKind.touch,
+    );
+    await finger.moveTo(const Offset(650, 500));
+    await finger.up();
+    await frames(tester, 30);
+
+    expect(trail().hasInput, isFalse);
+    expect(trail().value, PointerTrail.rest);
+  });
+
   testWidgets('ушедший курсор возвращается в покой', (tester) async {
     await tester.pumpWidget(host());
     final mouse = await mouseAt(tester, const Offset(600, 450));

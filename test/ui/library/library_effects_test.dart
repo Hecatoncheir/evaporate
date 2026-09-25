@@ -13,6 +13,7 @@ import 'package:evaporate/ui/library/effects/particle_field.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/decorative_motion.dart';
+import 'package:evaporate/ui/widgets/pointer_trail.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -207,6 +208,56 @@ void main() {
     }
     expect(ParticleField.ambientCount, 4800);
     expect(ParticleField.maxCount, 6800);
+  });
+
+  // Курсор частицам даёт оболочка, в своих долях, — а частицы переводят его
+  // в свои точки и видят только над собой: курсор над обоймой или над
+  // другим разделом их не касается.
+  testWidgets('частицы видят курсор оболочки только над собой', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: EvaporateTheme.dark(),
+        home: PointerTrailScope(
+          child: Row(
+            children: [
+              const SizedBox(width: 200),
+              Expanded(
+                child: LibraryAtmosphere(
+                  enabled: true,
+                  targetKey: () => null,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final state = tester.state<LibraryAtmosphereState>(
+      find.byType(LibraryAtmosphere),
+    );
+    Future<void> frames() async {
+      for (var i = 0; i < 3; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+    }
+
+    final mouse = await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(const Offset(500, 300));
+    await frames();
+    expect(state.field.pointer, const Offset(300, 300));
+
+    await mouse.moveTo(const Offset(100, 300));
+    await frames();
+    expect(state.field.pointer, isNull, reason: 'курсор не над фоном');
+
+    await mouse.moveTo(const Offset(500, 300));
+    await frames();
+    await mouse.removePointer();
+    await frames();
+    expect(state.field.pointer, isNull, reason: 'курсор ушёл из окна');
+    await tester.pumpWidget(const SizedBox());
   });
 
   group('частицы', () {

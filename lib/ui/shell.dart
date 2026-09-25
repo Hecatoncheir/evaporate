@@ -83,7 +83,9 @@ class AppShell extends StatelessWidget {
         child: Scaffold(
           backgroundColor: AppColors.transparent,
           // Курсор ловится над всей оболочкой, а не над каждым украшением:
-          // тянутся за ним волна и частицы, и сглажен он у всех одинаково.
+          // он один на всех и сглажен одними часами. Волна тянется за
+          // сглаженным, частицы берут сырое положение — отвечают на руку
+          // сразу.
           body: PointerTrailScope(
             child: AmbientLight(
               enabled: ambientEnabled,

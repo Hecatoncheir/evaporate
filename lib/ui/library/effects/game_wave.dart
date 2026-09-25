@@ -41,6 +41,12 @@ class GameWaveState extends State<GameWave> {
     if (trail == _trail) return;
     _trail?.removeListener(_follow);
     _trail = trail?..addListener(_follow);
+    // Свериться сразу после раскладки: курсор мог уйти от покоя до того,
+    // как волна появилась, и первое его движение иначе дёрнуло бы вздутие
+    // из середины на новое место.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _follow();
+    });
   }
 
   /// Курсор оболочки — в доли волны: вздутие встаёт там, где курсор над
@@ -48,7 +54,9 @@ class GameWaveState extends State<GameWave> {
   void _follow() {
     final trail = _trail;
     final box = context.findRenderObject();
-    if (!widget.enabled || trail == null || box is! RenderBox) return;
+    // Сверяется и выключенная волна: включат её — и вздутие встанет там,
+    // где курсор, а не прыгнет туда с первым его движением.
+    if (trail == null || box is! RenderBox) return;
     if (!box.hasSize || box.size.isEmpty) return;
     final local = trail.localIn(box, trail.value);
     if (local == null) return;

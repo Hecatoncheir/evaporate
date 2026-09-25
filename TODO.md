@@ -681,7 +681,8 @@
   параметров и `spacing:` (храповиком с числом, см. F11). В Ф2
   обновления интерфейса `launcher_action_button.dart` снят: погашенная
   клавиша — ступенью `EvaporateAlpha.disabled`, ореол — долями
-  `LauncherButtonTheme.haloRest`/`haloLit`; радиус 24 стекла — см. B8. **M**
+  `LauncherButtonTheme.haloRest`/`haloLit`; радиус 24 стекла — см. B8. В Ф3
+  ушло умолчание радиуса капли выбора (18). **M**
 - [ ] **B10. Роли текста: тридцать — много, полукегли — лишние.** **[○]** P2
   (поведение: на полкегля). `typography.dart:40-65`: `bodyMuted` 13,
   `note` 12.5, `captionMuted` 12, `paragraph` 12.5 — четыре приглушённые

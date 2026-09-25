@@ -1,5 +1,6 @@
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/effect_preset.dart';
+import 'package:evaporate/models/effect_quality.dart';
 import 'package:evaporate/models/library_effect.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -137,6 +138,7 @@ void main() {
         interfaceScale: 1.2,
         libraryScale: 1.5,
         locale: 'en',
+        effectQuality: EffectQuality.eco,
       );
 
       for (final preset in EffectPreset.values) {
@@ -144,6 +146,9 @@ void main() {
         expect(applied.interfaceScale, 1.2);
         expect(applied.libraryScale, 1.5);
         expect(applied.locale, 'en');
+        // Набор решает, что горит, а не сколько это стоит: «полностью» на
+        // слабой машине не обязано разгонять качество.
+        expect(applied.effectQuality, EffectQuality.eco);
       }
     });
   });
