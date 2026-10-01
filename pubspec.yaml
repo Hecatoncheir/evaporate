@@ -50,7 +50,7 @@ dependencies:
   flutter_local_notifications: ^22.3.0
   flutter_localizations:
     sdk: flutter
-  gamepads: ^0.1.11
+  gamepads: ^0.1.12
   intl: ^0.20.3
   # Движок загрузок жалуется через `logging`, и его жалобы мы кладём в
   # журнал приложения: до сих пор задача могла часами висеть «активной», а
