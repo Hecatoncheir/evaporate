@@ -73,7 +73,7 @@ dev_dependencies:
   # pubspec.lock — его тянет `dart_style`, — и прямой зависимостью новых
   # пакетов он не принёс. В сборку приложения не входит.
   analyzer: ^14.0.0
-  bloc_lint: ^0.4.2
+  bloc_lint: ^0.4.3
   bloc_tools: 0.1.0-dev.24
   flutter_lints: ^6.0.0
   flutter_test:
