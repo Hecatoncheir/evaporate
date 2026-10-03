@@ -41,6 +41,7 @@ class GamepadService {
   late GamepadBinding _binding;
 
   final _actions = StreamController<NavAction>.broadcast();
+  final _releases = StreamController<NavAction>.broadcast();
   final _rawButtons = StreamController<GamepadButton>.broadcast();
   final _status = ValueNotifier<GamepadStatus>(const GamepadStatus());
 
@@ -56,6 +57,9 @@ class GamepadService {
 
   Stream<NavAction> get actions => _actions.stream;
 
+  /// Отпускание действия, в том числе при отключении и смене раскладки.
+  Stream<NavAction> get releases => _releases.stream;
+
   /// Сырые нажатия — нужны экрану переназначения кнопок.
   Stream<GamepadButton> get buttonPresses => _rawButtons.stream;
 
@@ -65,7 +69,12 @@ class GamepadService {
   /// иначе нажатие Y в окне захвата уводило бы к поиску, а LB/RB листали
   /// разделы под окном. Крестовина не захватывается вовсе — направления не
   /// переназначаются, иначе по меню стало бы нечем пройти.
-  bool capturing = false;
+  bool get capturing => _capturing;
+  bool _capturing = false;
+  set capturing(bool value) {
+    if (value && !_capturing) _releaseAll();
+    _capturing = value;
+  }
 
   static const _directions = {
     GamepadButton.dpadUp,
@@ -79,6 +88,8 @@ class GamepadService {
   GamepadBinding get binding => _binding;
 
   set binding(GamepadBinding value) {
+    if (_binding == value) return;
+    _releaseAll();
     final wasEnabled = _binding.enabled;
     _binding = value;
     if (value.enabled && !wasEnabled) {
@@ -154,7 +165,7 @@ class GamepadService {
     final subscription = _subscription;
     _subscription = null;
     _cancelAllRepeats();
-    _held.clear();
+    _releaseAll();
     _pressed.clear();
     // Отписка от потока плагина не мгновенна, и ждать её, держа таймеры
     // повтора, незачем.
@@ -166,7 +177,7 @@ class GamepadService {
   void handleEvent(NormalizedGamepadEvent event) {
     // Событие, пришедшее после закрытия: отписка не мгновенна, а поток
     // действий уже закрыт.
-    if (_actions.isClosed) return;
+    if (_actions.isClosed || !_binding.enabled) return;
     // Список устройств спрашивают один раз, при запуске, и геймпад,
     // подключённый позже, в него не попадал: сам он работал, но подсказки
     // управления внизу окна молчали, потому что смотрят на этот список.
@@ -199,7 +210,10 @@ class GamepadService {
     } else {
       _pressed.remove(button);
       final action = _binding.actionFor(button);
-      if (action != null) _end(action);
+      if (action != null &&
+          !_pressed.any((pressed) => _binding.actionFor(pressed) == action)) {
+        _end(action);
+      }
     }
   }
 
@@ -269,8 +283,15 @@ class GamepadService {
   }
 
   void _end(NavAction action) {
-    _held.remove(action);
+    if (_held.remove(action)) _releases.add(action);
     _cancelRepeat(action);
+  }
+
+  void _releaseAll() {
+    for (final action in _held.toList()) {
+      _end(action);
+    }
+    _pressed.clear();
   }
 
   void _cancelRepeat(NavAction action) {
@@ -287,6 +308,7 @@ class GamepadService {
   void dispose() {
     unawaited(stop());
     _actions.close();
+    _releases.close();
     _rawButtons.close();
     _status.dispose();
   }

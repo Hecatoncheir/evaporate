@@ -38,6 +38,12 @@ class ReturnToLibraryIntent extends Intent {
   const ReturnToLibraryIntent();
 }
 
+/// Нажатие и отпускание кнопки подтверждения на элементе с удержанием.
+class HoldActivateIntent extends Intent {
+  const HoldActivateIntent({required this.pressed});
+  final bool pressed;
+}
+
 /// Общий слой ввода: клавиатура и геймпад приводятся к одним и тем же
 /// действиям и дальше двигают фокус одинаково.
 ///
@@ -52,12 +58,14 @@ class InputScope extends StatefulWidget {
     required this.onPrimaryAction,
     required this.onSearch,
     required this.onBack,
+    this.onPrimaryRelease,
   });
 
   final Widget child;
   final GamepadService gamepad;
   final void Function(int delta) onSectionChange;
   final VoidCallback onPrimaryAction;
+  final VoidCallback? onPrimaryRelease;
   final VoidCallback onSearch;
 
   /// Что закрыть по «назад». Возвращает `true`, если что-то закрылось: тогда
@@ -70,11 +78,16 @@ class InputScope extends StatefulWidget {
 
 class _InputScopeState extends State<InputScope> {
   StreamSubscription<NavAction>? _subscription;
+  StreamSubscription<NavAction>? _releases;
+  BuildContext? _heldTarget;
+  bool _keyboardPrimaryHeld = false;
 
   @override
   void initState() {
     super.initState();
     _subscription = widget.gamepad.actions.listen(_handleAction);
+    _releases = widget.gamepad.releases.listen(_release);
+    HardwareKeyboard.instance.addHandler(_releaseKeyboard);
   }
 
   @override
@@ -82,13 +95,19 @@ class _InputScopeState extends State<InputScope> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.gamepad != widget.gamepad) {
       _subscription?.cancel();
+      _releases?.cancel();
+      _release(NavAction.confirm);
+      widget.onPrimaryRelease?.call();
       _subscription = widget.gamepad.actions.listen(_handleAction);
+      _releases = widget.gamepad.releases.listen(_release);
     }
   }
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_releaseKeyboard);
     _subscription?.cancel();
+    _releases?.cancel();
     super.dispose();
   }
 
@@ -168,7 +187,38 @@ class _InputScopeState extends State<InputScope> {
     if (_returnFromSearch()) return;
     final target = primaryFocus?.context;
     if (target == null) return;
+    if (Actions.maybeFind<HoldActivateIntent>(target) != null) {
+      _heldTarget = target;
+      Actions.invoke(target, const HoldActivateIntent(pressed: true));
+      return;
+    }
     Actions.maybeInvoke(target, const ActivateIntent());
+  }
+
+  void _release(NavAction action) {
+    if (action == NavAction.primaryAction) widget.onPrimaryRelease?.call();
+    if (action != NavAction.confirm) return;
+    final target = _heldTarget;
+    _heldTarget = null;
+    if (target != null && target.mounted) {
+      Actions.maybeInvoke(target, const HoldActivateIntent(pressed: false));
+    }
+  }
+
+  bool _releaseKeyboard(KeyEvent event) {
+    if (!_keyboardPrimaryHeld || event is! KeyUpEvent) return false;
+    const keys = [
+      LogicalKeyboardKey.enter,
+      LogicalKeyboardKey.controlLeft,
+      LogicalKeyboardKey.controlRight,
+      LogicalKeyboardKey.metaLeft,
+      LogicalKeyboardKey.metaRight,
+    ];
+    if (keys.contains(event.logicalKey)) {
+      _keyboardPrimaryHeld = false;
+      widget.onPrimaryRelease?.call();
+    }
+    return false;
   }
 
   void _back() {
@@ -228,6 +278,9 @@ class _InputScopeState extends State<InputScope> {
           // Всё остальное — тот же путь, которым идут нажатия геймпада.
           NavActionIntent: CallbackAction<NavActionIntent>(
             onInvoke: (intent) {
+              if (intent.action == NavAction.primaryAction) {
+                _keyboardPrimaryHeld = true;
+              }
               _handleAction(intent.action);
               return null;
             },
@@ -268,10 +321,13 @@ const _shortcuts = <ShortcutActivator, Intent>{
   SingleActivator(LogicalKeyboardKey.bracketLeft, meta: true): NavActionIntent(
     NavAction.prevSection,
   ),
-  SingleActivator(LogicalKeyboardKey.enter, meta: true): NavActionIntent(
-    NavAction.primaryAction,
-  ),
-  SingleActivator(LogicalKeyboardKey.enter, control: true): NavActionIntent(
+  SingleActivator(LogicalKeyboardKey.enter, meta: true, includeRepeats: false):
+      NavActionIntent(NavAction.primaryAction),
+  SingleActivator(
+    LogicalKeyboardKey.enter,
+    control: true,
+    includeRepeats: false,
+  ): NavActionIntent(
     NavAction.primaryAction,
   ),
   SingleActivator(LogicalKeyboardKey.escape): NavActionIntent(NavAction.back),

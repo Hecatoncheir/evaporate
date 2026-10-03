@@ -14,6 +14,7 @@ import 'package:evaporate/input/gamepad_service.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/services/launch/drop_import.dart';
+import 'package:evaporate/services/launch/game_launcher.dart';
 import 'package:evaporate/services/notifications/notification_service.dart';
 import 'package:evaporate/services/saves/save_path_finder.dart';
 import 'package:evaporate/services/system/desktop_entry.dart';
@@ -85,6 +86,7 @@ Future<List<DropCandidate>> dropByName(Iterable<String> paths) async => [
 class TestHarness {
   TestHarness(
     this.tmp, {
+    GameLauncher? launcher,
     List<SaveRoot> Function()? saveRoots,
     Future<List<DropCandidate>> Function(Iterable<String>)? inspectDrop,
   }) : paths = AppPaths.custom(
@@ -94,6 +96,7 @@ class TestHarness {
        gamepadEvents = StreamController<NormalizedGamepadEvent>.broadcast() {
     settings = SettingsBloc(paths, store: _WidgetLibraryStore());
     library = LibraryBloc(
+      launcher: launcher,
       store: _libraryStore,
       automaticMetadata: false,
       paths: paths,

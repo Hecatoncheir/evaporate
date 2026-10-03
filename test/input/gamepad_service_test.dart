@@ -54,6 +54,55 @@ void main() {
   }
 
   group('кнопки', () {
+    test('отпускание приходит отдельно и не дублируется', () async {
+      final released = <NavAction>[];
+      final listener = service.releases.listen(released.add);
+      addTearDown(listener.cancel);
+      service.handleEvent(buttonEvent(GamepadButton.x, 1));
+      service.handleEvent(buttonEvent(GamepadButton.x, 0));
+      service.handleEvent(buttonEvent(GamepadButton.x, 0));
+      await settle();
+      expect(received, [NavAction.primaryAction]);
+      expect(released, [NavAction.primaryAction]);
+    });
+
+    test('смена раскладки отменяет удержание прежнего действия', () async {
+      final released = <NavAction>[];
+      final listener = service.releases.listen(released.add);
+      addTearDown(listener.cancel);
+      service.handleEvent(buttonEvent(GamepadButton.x, 1));
+      service.binding = service.binding.assign(
+        GamepadButton.x,
+        NavAction.search,
+      );
+      service.handleEvent(buttonEvent(GamepadButton.x, 0));
+      await settle();
+      expect(released, [NavAction.primaryAction]);
+      expect(received, [NavAction.primaryAction]);
+    });
+
+    test(
+      'одно действие отпускается только после обеих назначенных кнопок',
+      () async {
+        service.binding = service.binding.assign(
+          GamepadButton.y,
+          NavAction.primaryAction,
+        );
+        final released = <NavAction>[];
+        final listener = service.releases.listen(released.add);
+        addTearDown(listener.cancel);
+        service.handleEvent(buttonEvent(GamepadButton.x, 1));
+        service.handleEvent(buttonEvent(GamepadButton.y, 1));
+        service.handleEvent(buttonEvent(GamepadButton.x, 0));
+        await settle();
+        expect(released, isEmpty);
+        expect(received, [NavAction.primaryAction]);
+        service.handleEvent(buttonEvent(GamepadButton.y, 0));
+        await settle();
+        expect(released, [NavAction.primaryAction]);
+      },
+    );
+
     test('нажатие даёт действие, отпускание — нет', () async {
       service.handleEvent(buttonEvent(GamepadButton.a, 1));
       await settle();

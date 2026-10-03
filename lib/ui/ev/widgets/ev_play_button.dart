@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../input/input_scope.dart';
+
 import '../design/theme.dart';
 import '../design/tokens.dart';
 import '../sound/ev_sound.dart';
@@ -72,7 +74,7 @@ class EvPlayButton extends StatefulWidget {
 }
 
 class _EvPlayButtonState extends State<EvPlayButton>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   // Удержание — защита, а не анимация: при «уменьшить движение» обычный
   // контроллер шёл бы в двадцать раз быстрее, и 620 мс стали бы 31.
   late final AnimationController _hold =
@@ -108,6 +110,26 @@ class _EvPlayButtonState extends State<EvPlayButton>
   EvHoldVoice? _voice;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _release();
+  }
+
+  @override
+  void didUpdateWidget(EvPlayButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.onLaunch == null ||
+        widget.requireHold != oldWidget.requireHold) {
+      _release();
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Дыхание ядра — единственная бесконечная анимация в системе. При
@@ -135,6 +157,7 @@ class _EvPlayButtonState extends State<EvPlayButton>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _voice?.release();
     _hold.dispose();
     _breathe.dispose();
@@ -167,7 +190,7 @@ class _EvPlayButtonState extends State<EvPlayButton>
     }
     setState(() => _down = true);
     _voice = sound?.hold();
-    _hold.forward();
+    _hold.forward(from: 0);
   }
 
   void _release() {
@@ -187,6 +210,21 @@ class _EvPlayButtonState extends State<EvPlayButton>
     return FocusableActionDetector(
       enabled: widget.onLaunch != null,
       focusNode: _focus,
+      onFocusChange: (focused) {
+        if (!focused) _release();
+      },
+      actions: {
+        HoldActivateIntent: CallbackAction<HoldActivateIntent>(
+          onInvoke: (intent) {
+            if (intent.pressed) {
+              if (!_down) _press();
+            } else {
+              _release();
+            }
+            return null;
+          },
+        ),
+      },
       mouseCursor: SystemMouseCursors.click,
       onShowFocusHighlight: (value) => setState(() => _ring = value),
       onShowHoverHighlight: (value) {
