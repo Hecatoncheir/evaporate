@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/glass_surface.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,11 @@ void main() {
     harness.addGame(title: 'Тестовая игра');
     await harness.pump(tester);
 
-    await tester.tap(find.text('Тестовая игра').first);
+    await tester.ensureVisible(
+      find.widgetWithText(EvLibraryCard, 'Тестовая игра'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Тестовая игра'));
     await tester.pumpAndSettle();
   }
 

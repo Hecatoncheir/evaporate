@@ -5,9 +5,9 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/ev/shell/ev_hints_bar.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/window/interface_scale.dart';
 import 'package:flutter/material.dart';
@@ -123,12 +123,12 @@ void main() {
     }
     await harness.pump(tester);
     final selected = harness.nav.state.selectedGameId;
-    final before = tester.getSize(find.byType(GameCoverTile).first);
+    final before = tester.getSize(find.byType(EvLibraryCard).first);
     await tester.tap(find.byTooltip('Увеличить: Обложки игр').first);
     await tester.pumpAndSettle();
     expect(harness.settings.state.appearance.libraryScale, 1.25);
     expect(
-      tester.getSize(find.byType(GameCoverTile).first).width,
+      tester.getSize(find.byType(EvLibraryCard).first).width,
       greaterThan(before.width),
     );
     expect(harness.nav.state.selectedGameId, selected);
@@ -183,7 +183,7 @@ void main() {
       }
       expect(find.byType(EvHintsBar), findsNothing);
       await tester.tapAt(
-        tester.getTopLeft(find.byType(GameCoverTile).first) +
+        tester.getTopLeft(find.byType(EvLibraryCard).first) +
             const Offset(40, 40),
       );
       await tester.pumpAndSettle();

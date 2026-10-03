@@ -5,10 +5,11 @@ import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/effect_quality.dart';
 import 'package:evaporate/models/library_effect.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
+import 'package:evaporate/ui/ev/widgets/ev_game_card.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
 import 'package:evaporate/ui/library/effects/portal/portal_sparks.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -94,7 +95,7 @@ void main() {
     }
   });
 
-  Future<void> frames(WidgetTester tester, [int count = 12]) async {
+  Future<void> frames(WidgetTester tester, [int count = 3]) async {
     for (var i = 0; i < count; i++) {
       await tester.pump(const Duration(milliseconds: 17));
     }
@@ -236,7 +237,7 @@ void main() {
         // Искры находятся внутри масштабирования фокуса, поэтому кромка
         // остаётся снаружи обложки при её увеличении.
         expect(
-          find.ancestor(of: sparks, matching: find.byType(AnimatedScale)),
+          find.ancestor(of: sparks, matching: find.byType(EvGameCard)),
           findsWidgets,
         );
         harness.nav.add(GameSelected(secondGame));
@@ -244,8 +245,8 @@ void main() {
         expect(sparks, findsOneWidget);
         expect(
           tester
-              .widget<GameCoverTile>(
-                find.ancestor(of: sparks, matching: find.byType(GameCoverTile)),
+              .widget<EvLibraryCard>(
+                find.ancestor(of: sparks, matching: find.byType(EvLibraryCard)),
               )
               .game
               .id,
@@ -296,14 +297,21 @@ void main() {
       // Рамка обведена вокруг обложки под фокусом, поэтому фокус ставится
       // явно: без него у всех плиток кромка прозрачная.
       Future<void> focusCover() async {
-        Focus.of(tester.element(find.text('Hades'))).requestFocus();
+        Focus.of(
+          tester.element(
+            find.descendant(
+              of: find.byType(EvLibraryCard),
+              matching: find.text('Hades'),
+            ),
+          ),
+        ).requestFocus();
         await frames(tester);
       }
 
       final frame = find.descendant(
-        of: find.byType(GameCoverTile),
+        of: find.byType(EvLibraryCard),
         matching: find.byWidgetPredicate((widget) {
-          if (widget is! AnimatedContainer) return false;
+          if (widget is! DecoratedBox) return false;
           final decoration = widget.decoration;
           final border = decoration is BoxDecoration ? decoration.border : null;
           return border is Border && border.top.color.a > 0;

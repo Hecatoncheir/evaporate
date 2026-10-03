@@ -29,6 +29,10 @@ class EvGameCard extends StatefulWidget {
     this.onTap,
     this.cover,
     this.onActiveChanged,
+    this.focusNode,
+    this.onFocusChange,
+    this.autofocus = false,
+    this.showFocusRing = true,
   });
 
   final String title;
@@ -53,6 +57,11 @@ class EvGameCard extends StatefulWidget {
   /// Карточка загорелась или погасла. Полка поднимает горящую над
   /// соседями: иначе соседняя, нарисованная позже, закрывала бы её искры.
   final ValueChanged<bool>? onActiveChanged;
+
+  final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocusChange;
+  final bool autofocus;
+  final bool showFocusRing;
 
   @override
   State<EvGameCard> createState() => _EvGameCardState();
@@ -93,9 +102,15 @@ class _EvGameCardState extends State<EvGameCard> {
         width: widget.width,
         transform: Matrix4.translationValues(0, lifted ? -8 : 0, 0),
         child: EvFocusable(
+          focusNode: widget.focusNode,
+          autofocus: widget.autofocus,
+          showFocusRing: widget.showFocusRing,
+          onFocusChange: (value) {
+            _set(focus: value);
+            widget.onFocusChange?.call(value);
+          },
           onActivate: widget.onTap,
           radius: ev.radii.r3,
-          onFocusHighlight: (v) => _set(focus: v),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

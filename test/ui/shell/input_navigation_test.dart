@@ -4,8 +4,8 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/ev/shell/ev_palette.dart';
-import 'package:evaporate/ui/library/nav_tile.dart';
 import 'package:evaporate/ui/library/toolbar/library_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -106,7 +106,7 @@ void main() {
       // Название встречается и в списке, и в карточке справа — берём именно
       // плитку списка.
       final tileText = find.descendant(
-        of: find.byType(NavTile),
+        of: find.byType(EvLibraryCard),
         matching: find.text('Бета'),
       );
       expect(tileText, findsOneWidget);
@@ -401,26 +401,26 @@ void main() {
     await withGames(tester);
 
     final tileText = find.descendant(
-      of: find.byType(NavTile),
+      of: find.byType(EvLibraryCard),
       matching: find.text('Альфа'),
     );
     Focus.of(tester.element(tileText)).requestFocus();
     await tester.pumpAndSettle();
 
-    final container = tester.widget<AnimatedContainer>(
-      find
-          .descendant(
-            of: find.ancestor(of: tileText, matching: find.byType(NavTile)),
-            matching: find.byType(AnimatedContainer),
-          )
-          .first,
+    final tile = find.ancestor(
+      of: tileText,
+      matching: find.byType(EvLibraryCard),
     );
-    final border = (container.decoration as BoxDecoration?)?.border;
-    expect(
-      border?.top.color,
-      isNot(Colors.transparent),
-      reason: 'сфокусированная плитка должна быть видна',
-    );
+    final lift = tester
+        .widget<AnimatedContainer>(
+          find
+              .descendant(of: tile, matching: find.byType(AnimatedContainer))
+              .first,
+        )
+        .transform!
+        .getTranslation()
+        .y;
+    expect(lift, lessThan(0), reason: 'фокус поднимает карточку прототипа');
   });
 
   testWidgets('возврат из поиска прокручивает к выбранной игре вне экрана', (

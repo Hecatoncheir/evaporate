@@ -7,13 +7,13 @@ import '../../bloc/navigation/navigation_bloc.dart';
 import '../../bloc/settings/settings_bloc.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
+import '../ev/app/ev_library_shelves.dart';
 import '../shell/chrome_overlap.dart';
 import '../shell/chrome_scroll_view.dart';
 import '../theme.dart';
 import '../widgets/liquid/liquid_selection.dart';
 import 'library_empty_state.dart';
 import 'library_featured_slot.dart';
-import 'library_grid.dart';
 import 'library_grid_controller.dart';
 import 'library_heading.dart';
 import 'library_toolbar.dart';
@@ -90,7 +90,9 @@ class LibraryScroll extends StatelessWidget {
           if (games.isEmpty)
             _EmptyShelf(onScan: onScan)
           else
-            LibraryGrid(controller: grid, games: games, width: page.width),
+            SliverToBoxAdapter(
+              child: EvLibraryShelves(controller: grid, games: games),
+            ),
         ],
       ),
     );

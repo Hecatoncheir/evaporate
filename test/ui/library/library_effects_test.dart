@@ -5,12 +5,12 @@ import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/models/app_settings.dart';
 import 'package:evaporate/models/library_effect.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_card.dart';
 import 'package:evaporate/ui/library/effects/foil/foil_surface.dart';
 import 'package:evaporate/ui/library/effects/game_wave.dart';
 import 'package:evaporate/ui/library/effects/library_atmosphere.dart';
 import 'package:evaporate/ui/library/effects/particle_field.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/decorative_motion.dart';
@@ -537,7 +537,7 @@ void main() {
           kind: ui.PointerDeviceKind.mouse,
         );
         await mouse.addPointer(location: const Offset(1250, 850));
-        await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(2)));
+        await mouse.moveTo(tester.getCenter(find.byType(EvLibraryCard).at(2)));
         await frames(tester, 4);
         expect(state.field.card, isNot(before));
         expect(
@@ -552,7 +552,7 @@ void main() {
         Focus.of(
           tester.element(
             find.descendant(
-              of: find.byType(GameCoverTile),
+              of: find.byType(EvLibraryCard),
               matching: find.text('ABZU'),
             ),
           ),
@@ -687,7 +687,7 @@ void main() {
         kind: ui.PointerDeviceKind.mouse,
       );
       await mouse.addPointer(location: const Offset(1250, 850));
-      await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(1)));
+      await mouse.moveTo(tester.getCenter(find.byType(EvLibraryCard).at(1)));
       await frames(tester, 90);
       if (preview != null) {
         await tester.runAsync(() async {

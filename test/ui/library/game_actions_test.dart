@@ -9,6 +9,7 @@ import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/ui/downloads/download_activity.dart';
 import 'package:evaporate/ui/downloads/download_chart.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/library/detail/action_panel.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/widgets/animated_progress.dart';
@@ -44,7 +45,11 @@ void main() {
     harness.library.add(GameExecutableSet(id, '/tmp/game/game.exe'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Тестовая игра').first);
+    await tester.ensureVisible(
+      find.widgetWithText(EvLibraryCard, 'Тестовая игра'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Тестовая игра'));
     await tester.pumpAndSettle();
     return harness;
   }
@@ -139,7 +144,9 @@ void main() {
       status: GameStatus.installed,
     );
     await harness.pump(tester);
-    await tester.tap(find.text('Без файла').first);
+    await tester.ensureVisible(find.widgetWithText(EvLibraryCard, 'Без файла'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Без файла'));
     await tester.pumpAndSettle();
 
     expect(find.text(l.steamAddAction), findsNothing);

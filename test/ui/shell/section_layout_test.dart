@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/shell/shell_sections.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +61,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final page = tester.getRect(find.byType(LibraryBody));
-      final tile = tester.getRect(find.byType(GameCoverTile).first);
+      final tile = tester.getRect(find.byType(EvLibraryCard).first);
 
       expect(tile.top, greaterThanOrEqualTo(page.top));
       expect(

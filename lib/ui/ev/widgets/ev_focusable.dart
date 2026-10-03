@@ -17,6 +17,10 @@ class EvFocusable extends StatefulWidget {
     required this.child,
     this.radius = 0,
     this.onFocusHighlight,
+    this.focusNode,
+    this.onFocusChange,
+    this.autofocus = false,
+    this.showFocusRing = true,
   });
 
   /// `null` — элемент неактивен и фокус не получает.
@@ -30,6 +34,12 @@ class EvFocusable extends StatefulWidget {
   /// Рамка фокуса появилась или исчезла. Нужна тем, кто показывает
   /// подсказку по фокусу так же, как по наведению.
   final ValueChanged<bool>? onFocusHighlight;
+
+  /// Узел приложения переживает поиск и возврат со страницы игры.
+  final FocusNode? focusNode;
+  final ValueChanged<bool>? onFocusChange;
+  final bool autofocus;
+  final bool showFocusRing;
 
   @override
   State<EvFocusable> createState() => _EvFocusableState();
@@ -65,6 +75,9 @@ class _EvFocusableState extends State<EvFocusable> {
     final enabled = widget.onActivate != null;
     return FocusableActionDetector(
       enabled: enabled,
+      focusNode: widget.focusNode,
+      autofocus: widget.autofocus,
+      onFocusChange: widget.onFocusChange,
       actions: _actions,
       mouseCursor: enabled ? SystemMouseCursors.click : MouseCursor.defer,
       onShowFocusHighlight: _handleHighlight,
@@ -75,7 +88,8 @@ class _EvFocusableState extends State<EvFocusable> {
           clipBehavior: Clip.none,
           children: [
             widget.child,
-            if (_ring)
+            if (widget.showFocusRing &&
+                (_ring || (widget.focusNode?.hasFocus ?? false)))
               Positioned(
                 left: -5,
                 top: -5,

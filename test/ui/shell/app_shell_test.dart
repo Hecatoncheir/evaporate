@@ -7,7 +7,8 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/download_task.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/ui/widgets/animated_progress.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
+import 'package:evaporate/ui/ev/widgets/ev_game_card.dart';
 import 'package:evaporate/ui/widgets/launcher_action_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -80,7 +81,11 @@ void main() {
 
     // В сетке игра — плитка; страница с блоками открывается нажатием.
     expect(find.text('Тестовая игра'), findsOneWidget);
-    await tester.tap(find.text('Тестовая игра'));
+    await tester.ensureVisible(
+      find.widgetWithText(EvLibraryCard, 'Тестовая игра'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Тестовая игра'));
     await tester.pumpAndSettle();
 
     expect(find.text('Тестовая игра'), findsWidgets);
@@ -120,13 +125,19 @@ void main() {
     );
     await harness.pump(tester);
 
-    await tester.tap(find.text('Из папки'));
+    await tester.ensureVisible(find.widgetWithText(EvLibraryCard, 'Из папки'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Из папки'));
     await tester.pumpAndSettle();
     expect(find.text(l.exportTorrent), findsNothing);
 
     await tester.tap(find.text(l.backToLibrary));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Из раздачи'));
+    await tester.ensureVisible(
+      find.widgetWithText(EvLibraryCard, 'Из раздачи'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Из раздачи'));
     await tester.pumpAndSettle();
     expect(find.text(l.exportTorrent), findsOneWidget);
   });
@@ -184,8 +195,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('42%'), findsWidgets);
-    expect(find.byType(AnimatedProgress), findsWidgets);
+    expect(tester.widget<EvGameCard>(find.byType(EvGameCard)).progress, .42);
     // Reduced-motion tests can settle before the persistence debounce.
     await tester.pump(const Duration(milliseconds: 500));
   });

@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../../models/app_settings.dart';
 import '../../../models/game.dart';
+import '../../../models/library_effect.dart';
 import '../../library/cover/cover_frame.dart';
 import '../../library/effects/cover_drops.dart';
 import '../../library/effects/foil/foil_card.dart';
@@ -29,6 +31,7 @@ class EvEffectCover extends StatelessWidget {
     required this.active,
     required this.palette,
     required this.seed,
+    this.effects,
   });
 
   final Game game;
@@ -40,11 +43,15 @@ class EvEffectCover extends StatelessWidget {
   final EvCoverPalette palette;
   final int seed;
 
+  /// Настройки настоящей игры; у автономного прототипа их нет.
+  final Appearance? effects;
+
   static final _theme = EvaporateTheme.dark();
 
   @override
   Widget build(BuildContext context) {
     final path = game.details.coverPath;
+    final appearance = effects;
     final art = Stack(
       fit: StackFit.expand,
       children: [
@@ -58,19 +65,28 @@ class EvEffectCover extends StatelessWidget {
       ],
     );
     return Theme(
-      data: _theme,
+      data: appearance == null ? _theme : Theme.of(context),
       child: FoilCard(
         active: active,
-        enabled: true,
+        enabled: appearance?.libraryEffects ?? true,
+        foilEnabled: appearance?.isOn(LibraryEffect.foil) ?? true,
+        tiltEnabled: appearance?.isOn(LibraryEffect.cardTilt) ?? true,
+        distortionEnabled:
+            appearance?.isOn(LibraryEffect.liquidDistortion) ?? true,
         child: CoverFrame(
           game: game,
           task: null,
           selected: active,
-          dropsEnabled: true,
-          portalEnabled: true,
+          dropsEnabled: appearance?.shows(LibraryEffect.drops) ?? true,
+          portalEnabled: appearance?.shows(LibraryEffect.portal) ?? true,
           aspectRatio: 3 / 4,
           face: FoilSurface(
-            child: CoverDrops(enabled: active, coverPath: path, child: art),
+            child: CoverDrops(
+              enabled:
+                  active && (appearance?.shows(LibraryEffect.drops) ?? true),
+              coverPath: path,
+              child: art,
+            ),
           ),
         ),
       ),

@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/ev/app/ev_library_hero.dart';
 import 'package:evaporate/ui/ev/library/ev_hero.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
+import 'package:evaporate/ui/ev/library/library_layout.dart';
+import 'package:evaporate/ui/ev/widgets/ev_game_card.dart';
 import 'package:evaporate/ui/library/library_body.dart';
-import 'package:evaporate/ui/library/library_grid.dart';
-import 'package:evaporate/ui/library/rise_in.dart';
-import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -44,7 +43,7 @@ void main() {
   testWidgets('библиотека показывается сеткой обложек', (tester) async {
     await withGames(tester);
 
-    expect(find.byType(GameCoverTile), findsNWidgets(3));
+    expect(find.byType(EvLibraryCard), findsNWidgets(3));
     // Пополнение библиотеки — одна клавиша с меню: «Найти установленные» и
     // «Указать источник» делали одно и то же и стояли рядом равными по
     // виду, а выбирать между ними приходилось до того, как станет понятно,
@@ -60,7 +59,7 @@ void main() {
     expect(find.text(l.addGameSource), findsOneWidget);
     // Обложек у этих игр нет, и плитка обязана назваться сама — иначе в
     // сетке остались бы три неразличимых прямоугольника.
-    expect(find.widgetWithText(GameCoverTile, 'Альфа'), findsOneWidget);
+    expect(find.widgetWithText(EvLibraryCard, 'Альфа'), findsOneWidget);
     expect(find.text('Гамма'), findsOneWidget);
   });
 
@@ -73,14 +72,14 @@ void main() {
     expect(find.widgetWithText(TextButton, 'Все'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
 
-    await tester.tap(find.text(l.tabInstalled));
+    await tester.tap(find.widgetWithText(TextButton, l.tabInstalled));
     await tester.pumpAndSettle();
-    expect(find.byType(GameCoverTile), findsOneWidget);
-    expect(find.widgetWithText(GameCoverTile, 'Альфа'), findsOneWidget);
+    expect(find.byType(EvLibraryCard), findsOneWidget);
+    expect(find.widgetWithText(EvLibraryCard, 'Альфа'), findsOneWidget);
 
-    await tester.tap(find.text(l.tabNotInstalled));
+    await tester.tap(find.widgetWithText(TextButton, l.tabNotInstalled));
     await tester.pumpAndSettle();
-    expect(find.byType(GameCoverTile), findsNWidgets(2));
+    expect(find.byType(EvLibraryCard), findsNWidgets(2));
     expect(find.text('Альфа'), findsNothing);
   });
 
@@ -92,12 +91,12 @@ void main() {
   ) async {
     await withGames(tester);
     State riseOf(String title) => tester.state(
-      find.ancestor(of: find.text(title), matching: find.byType(RiseIn)),
+      find.ancestor(of: find.text(title), matching: find.byType(EvGameCard)),
     );
     final before = riseOf('Бета');
 
     // «Альфа» стояла первой и уходит: «Бета» сдвигается на её место.
-    await tester.tap(find.text(l.tabNotInstalled));
+    await tester.tap(find.widgetWithText(TextButton, l.tabNotInstalled));
     await tester.pumpAndSettle();
 
     expect(riseOf('Бета'), same(before));
@@ -122,33 +121,30 @@ void main() {
       tester.view.physicalSize = Size(width, 1700);
       await tester.pumpAndSettle();
 
-      // Сетка — сливер страницы: её ширина — ширина прокрутки.
-      final grid = tester.getSize(find.byType(ChromeScrollView)).width;
-      final tops = [
-        for (final tile in tester.widgetList(find.byType(GameCoverTile)))
-          tester.getTopLeft(find.byWidget(tile)).dy,
+      final cards = find.byType(EvLibraryCard);
+      final layout = EvLibraryLayout.of(Size(width, 1700));
+      final positions = [
+        for (final card in tester.widgetList<EvLibraryCard>(cards))
+          tester.getTopLeft(find.byWidget(card)),
       ];
-      final firstRow = tops.where((top) => top == tops.first).length;
-      final secondRow = tops.firstWhere((top) => top > tops.first);
-      final layout = LibraryGrid.layoutFor(grid, 1);
-
-      expect(layout.columns, firstRow, reason: 'столбцов при $width');
-      expect(
-        layout.rowStride,
-        moreOrLessEquals(secondRow - tops.first),
-        reason: 'шаг ряда при $width',
-      );
+      expect(positions.map((position) => position.dy).toSet(), hasLength(1));
+      expect(tester.getSize(cards.first).width, layout.cardWidth);
+      final xs = positions.map((position) => position.dx).toList()..sort();
+      expect(xs[1] - xs[0], layout.cardWidth + 16);
+      expect(tester.takeException(), isNull);
     });
   }
 
   testWidgets('нажатие на плитку открывает страницу игры', (tester) async {
     final harness = await withGames(tester);
 
-    await tester.tap(find.text('Бета'));
+    await tester.ensureVisible(find.widgetWithText(EvLibraryCard, 'Бета'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Бета'));
     await tester.pumpAndSettle();
 
     expect(find.text(l.savePaths), findsOneWidget);
-    expect(find.byType(GameCoverTile), findsNothing);
+    expect(find.byType(EvLibraryCard), findsNothing);
     expect(
       harness.library.state.gameById(harness.nav.state.openedGameId)?.title,
       'Бета',
@@ -158,14 +154,16 @@ void main() {
   testWidgets('Escape возвращает из игры в сетку', (tester) async {
     final harness = await withGames(tester);
 
-    await tester.tap(find.text('Бета'));
+    await tester.ensureVisible(find.widgetWithText(EvLibraryCard, 'Бета'));
     await tester.pumpAndSettle();
-    expect(find.byType(GameCoverTile), findsNothing);
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Бета'));
+    await tester.pumpAndSettle();
+    expect(find.byType(EvLibraryCard), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
-    expect(find.byType(GameCoverTile), findsNWidgets(3));
+    expect(find.byType(EvLibraryCard), findsNWidgets(3));
     expect(harness.nav.state.openedGameId, isNull);
     // Курсор остаётся на той игре, с которой уходили.
     expect(
@@ -177,12 +175,14 @@ void main() {
   testWidgets('кнопка «К библиотеке» тоже возвращает', (tester) async {
     final harness = await withGames(tester);
 
-    await tester.tap(find.text('Гамма'));
+    await tester.ensureVisible(find.widgetWithText(EvLibraryCard, 'Гамма'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(EvLibraryCard, 'Гамма'));
     await tester.pumpAndSettle();
     await tester.tap(find.text(l.backToLibrary));
     await tester.pumpAndSettle();
 
-    expect(find.byType(GameCoverTile), findsNWidgets(3));
+    expect(find.byType(EvLibraryCard), findsNWidgets(3));
     expect(harness.nav.state.openedGameId, isNull);
   });
 
@@ -191,7 +191,7 @@ void main() {
 
     final tile = find.ancestor(
       of: find.text('Гамма'),
-      matching: find.byType(GameCoverTile),
+      matching: find.byType(EvLibraryCard),
     );
     Focus.of(
       tester.element(find.descendant(of: tile, matching: find.text('Гамма'))),
@@ -199,7 +199,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Страница не открылась, но «Играть» уже знает, о какой игре речь.
-    expect(find.byType(GameCoverTile), findsNWidgets(3));
+    expect(find.byType(EvLibraryCard), findsNWidgets(3));
     expect(
       harness.library.state.gameById(harness.nav.state.selectedGameId)?.title,
       'Гамма',
@@ -244,7 +244,7 @@ void main() {
     // А вот в совсем низком окне кадр уступает место самой полке.
     await resize(420);
     expect(find.byType(EvLibraryHero), findsNothing);
-    expect(find.byType(GameCoverTile), findsOneWidget);
+    expect(find.byType(EvLibraryCard), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -283,7 +283,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(harness.nav.state.openedGameId, isNull);
-    expect(find.byType(GameCoverTile), findsNWidgets(3));
+    expect(find.byType(EvLibraryCard), findsNWidgets(3));
   });
 
   testWidgets('наведение курсора выбирает игру и держит выбор', (tester) async {
@@ -294,7 +294,10 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
     await mouse.addPointer(location: Offset.zero);
-    await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).at(2)));
+    final thirdCard = find.widgetWithText(EvLibraryCard, 'Гамма');
+    await tester.ensureVisible(thirdCard);
+    await tester.pumpAndSettle();
+    await mouse.moveTo(tester.getCenter(thirdCard));
     await tester.pumpAndSettle();
 
     final third = harness.library.state.games[2].id;
@@ -321,11 +324,11 @@ void main() {
   ) async {
     await withGames(tester);
     final body = tester.widget<LibraryBody>(find.byType(LibraryBody));
-    double lift(int index) => tester
+    double lift(String title) => tester
         .widget<AnimatedContainer>(
           find
-              .ancestor(
-                of: find.byType(GameCoverTile).at(index),
+              .descendant(
+                of: find.widgetWithText(EvLibraryCard, title),
                 matching: find.byType(AnimatedContainer),
               )
               .first,
@@ -339,11 +342,13 @@ void main() {
     await mouse.addPointer(location: Offset.zero);
     // Первая игра и так выбрана: выбор не сменится, и перестраиваться
     // странице не от чего.
-    await mouse.moveTo(tester.getCenter(find.byType(GameCoverTile).first));
+    await mouse.moveTo(
+      tester.getCenter(find.widgetWithText(EvLibraryCard, 'Альфа')),
+    );
     await tester.pumpAndSettle();
 
-    expect(lift(0), lessThan(0), reason: 'плитка под курсором поднята');
-    expect(lift(1), 0);
+    expect(lift('Альфа'), lessThan(0), reason: 'плитка под курсором поднята');
+    expect(lift('Бета'), 0);
     expect(
       tester.widget<LibraryBody>(find.byType(LibraryBody)),
       same(body),

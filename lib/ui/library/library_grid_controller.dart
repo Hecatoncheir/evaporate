@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
-/// То, что сетка обложек помнит между перестроениями: ключи плиток, их узлы
-/// фокуса, прокрутка, наведение и последний замер раскладки.
-///
-/// Живёт у страницы, а не у сетки: сетка пересобирается на каждый поиск и
-/// смену полки, а ключи и фокусы должны пережить это — иначе фокус после
-/// «назад» терял бы плитку, с которой ушли. Страница же по замеру мотает
-/// себя, догоняя ещё не построенную плитку.
+/// Ресурсы полок, принадлежащие странице: ключи обложек, узлы фокуса,
+/// общая прокрутка и наведение. Переживают поиск и возврат со страницы игры.
 class LibraryGridController extends ChangeNotifier {
   /// Прокрутка всей страницы, а не одной сетки: подпись, крупный кадр и
   /// полки уходят вверх вместе с обложками.
   final scroll = ScrollController();
-
-  /// Ключ сливера сетки: по нему видно, где сетка начинается на странице.
-  final gridKey = GlobalKey(debugLabel: 'library-grid');
 
   final _tileKeys = <String, GlobalKey>{};
   final _focusNodes = <String, FocusNode>{};
@@ -23,9 +14,8 @@ class LibraryGridController extends ChangeNotifier {
   String? get hoveredId => _hoveredId;
   String? _hoveredId;
 
-  /// Сколько столбцов вышло и какой у ряда шаг — из последнего замера.
-  int columns = 1;
-  double rowStride = 320;
+  /// Порядок найденных игр для перехода к карточке по номеру.
+  List<String> shelfIds = const [];
 
   GlobalKey tileKey(String gameId) =>
       _tileKeys.putIfAbsent(gameId, () => GlobalKey(debugLabel: gameId));
@@ -40,7 +30,7 @@ class LibraryGridController extends ChangeNotifier {
   GlobalKey? targetKey(String? selectedId) =>
       _tileKeys[_hoveredId ?? selectedId];
 
-  /// Построена ли плитка прямо сейчас: у ленивой сетки её может и не быть.
+  /// Построена ли карточка прямо сейчас: фильтр мог убрать её из полки.
   bool isBuilt(String gameId) => _focusNodes[gameId]?.context != null;
 
   void requestFocus(String gameId) => _focusNodes[gameId]?.requestFocus();
@@ -63,27 +53,10 @@ class LibraryGridController extends ChangeNotifier {
     }
   }
 
-  /// Мотает страницу так, чтобы ряд плитки встал к верхнему краю видимого.
-  ///
-  /// Ряд отмеряется от начала сетки, а не страницы: над сеткой подпись,
-  /// крупный кадр и полки, и счёт от нуля промахивался на их высоту. Где
-  /// сетка начинается и где кончается видимое под полосой каркаса, знает
-  /// окно прокрутки — его и спрашиваем, как спрашивает фокус.
+  /// Доводит карточку до видимого по горизонтали и под полосами каркаса.
   void scrollTo(int index) {
-    final grid = gridKey.currentContext?.findRenderObject();
-    if (!scroll.hasClients || grid is! RenderSliver || grid.geometry == null) {
-      return;
-    }
-    final row = Rect.fromLTWH(
-      0,
-      index ~/ columns * rowStride,
-      grid.constraints.crossAxisExtent,
-      rowStride,
-    );
-    final target = RenderAbstractViewport.of(grid)
-        .getOffsetToReveal(grid, 0, rect: row)
-        .offset;
-    scroll.jumpTo(target.clamp(0.0, scroll.position.maxScrollExtent));
+    if (index < 0 || index >= shelfIds.length) return;
+    _focusNodes[shelfIds[index]]?.context?.findRenderObject()?.showOnScreen();
   }
 
   @override

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -75,7 +75,7 @@ void main() {
 
     final about = spokenLabels(
       tester,
-      root: tester.getSemantics(find.byType(GameCoverTile)),
+      root: tester.getSemantics(find.byType(EvLibraryCard)),
     ).where((l) => l.contains('Одинокая')).toList();
 
     expect(about, hasLength(1));
@@ -90,7 +90,7 @@ void main() {
     await harness.pump(tester);
 
     expect(
-      tester.getSemantics(find.byType(GameCoverTile)),
+      tester.getSemantics(find.byType(EvLibraryCard)),
       matchesSemantics(
         label: 'Нажимаемая, Установлена',
         isButton: true,

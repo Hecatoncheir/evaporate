@@ -7,7 +7,7 @@ import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/library_effect.dart';
-import 'package:evaporate/ui/library/game_cover_tile.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -256,7 +256,7 @@ void main() {
           tester.state(find.byKey(ValueKey(key), skipOffstage: false));
       await frames(40);
       final games = tester
-          .widgetList<GameCoverTile>(find.byType(GameCoverTile))
+          .widgetList<EvLibraryCard>(find.byType(EvLibraryCard))
           .toList();
       harness.nav.add(GameSelected(games[1].game.id));
       await frames(13);
@@ -277,7 +277,7 @@ void main() {
       expect(state('grid-liquid').isAnimating, isFalse);
       scroll.jumpTo(0);
       await frames(2);
-      await tester.tap(find.text(l.tabInstalled));
+      await tester.tap(find.widgetWithText(TextButton, l.tabInstalled));
       await frames(13);
       expect(state('shelf-liquid').isAnimating, isTrue);
       final palette = light ? EvaporatePalette.light : EvaporatePalette.dark;

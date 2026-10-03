@@ -21,6 +21,7 @@ class EvSessionRow extends StatefulWidget {
     required this.palette,
     required this.seed,
     this.onTap,
+    this.cover,
   });
 
   final String title;
@@ -34,6 +35,9 @@ class EvSessionRow extends StatefulWidget {
   /// `null` — действия пока нет: строка откликается на наведение, но фокус
   /// не получает. Откроет карточку игры, когда та появится.
   final VoidCallback? onTap;
+
+  /// Миниатюра настоящей игры вместо рисованной.
+  final Widget? cover;
 
   @override
   State<EvSessionRow> createState() => _EvSessionRowState();
@@ -69,7 +73,8 @@ class _EvSessionRowState extends State<EvSessionRow> {
             padding: const EdgeInsets.all(11),
             child: Row(
               children: [
-                _Thumb(palette: widget.palette, seed: widget.seed),
+                widget.cover ??
+                    _Thumb(palette: widget.palette, seed: widget.seed),
                 const SizedBox(width: 13),
                 Expanded(
                   child: Column(

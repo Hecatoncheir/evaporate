@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/core/format.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/game_rating.dart';
+import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/library/detail/rating_row.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -134,7 +135,11 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await tester.tap(find.text('Тестовая игра').first);
+      await tester.ensureVisible(
+        find.widgetWithText(EvLibraryCard, 'Тестовая игра'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(EvLibraryCard, 'Тестовая игра'));
       await tester.pumpAndSettle();
       return harness;
     }

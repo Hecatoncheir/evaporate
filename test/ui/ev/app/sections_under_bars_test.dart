@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/models/app_section.dart';
+import 'package:evaporate/ui/ev/app/ev_library_shelves.dart';
 import 'package:evaporate/ui/library/library_body.dart';
-import 'package:evaporate/ui/library/library_grid.dart';
 import 'package:evaporate/ui/library/library_heading.dart';
 import 'package:evaporate/ui/saves/saves_page.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
@@ -75,7 +75,7 @@ void main() {
   for (final (section, page, content) in [
     (AppSection.settings, SettingsPage, Column),
     (AppSection.saves, SavesPage, SliverPadding),
-    (AppSection.library, LibraryGrid, SliverPadding),
+    (AppSection.library, EvLibraryShelves, Padding),
   ]) {
     testWidgets('прокрутку раздела ${section.name} не срезает ничто ни '
         'сверху, ни снизу', (tester) async {
