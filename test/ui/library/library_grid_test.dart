@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
-import 'package:evaporate/ui/library/featured_game.dart';
+import 'package:evaporate/ui/ev/app/ev_library_hero.dart';
+import 'package:evaporate/ui/ev/library/ev_hero.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/library/library_grid.dart';
@@ -59,7 +60,7 @@ void main() {
     expect(find.text(l.addGameSource), findsOneWidget);
     // Обложек у этих игр нет, и плитка обязана назваться сама — иначе в
     // сетке остались бы три неразличимых прямоугольника.
-    expect(find.text('Альфа'), findsOneWidget);
+    expect(find.widgetWithText(GameCoverTile, 'Альфа'), findsOneWidget);
     expect(find.text('Гамма'), findsOneWidget);
   });
 
@@ -75,7 +76,7 @@ void main() {
     await tester.tap(find.text(l.tabInstalled));
     await tester.pumpAndSettle();
     expect(find.byType(GameCoverTile), findsOneWidget);
-    expect(find.text('Альфа'), findsOneWidget);
+    expect(find.widgetWithText(GameCoverTile, 'Альфа'), findsOneWidget);
 
     await tester.tap(find.text(l.tabNotInstalled));
     await tester.pumpAndSettle();
@@ -118,6 +119,8 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await harness.pump(tester);
+      tester.view.physicalSize = Size(width, 1700);
+      await tester.pumpAndSettle();
 
       // Сетка — сливер страницы: её ширина — ширина прокрутки.
       final grid = tester.getSize(find.byType(ChromeScrollView)).width;
@@ -206,9 +209,7 @@ void main() {
   // Выбранная игра и клавиша запуска — то, ради чего открывают библиотеку.
   // Прятать их там, где просто меньше места по высоте, неправильно: кадр
   // сжимается в полосу и уходит совсем только в совсем низком окне.
-  testWidgets('витрина не исчезает в невысоком окне, а становится полосой', (
-    tester,
-  ) async {
+  testWidgets('герой прототипа сжимается по высоте окна', (tester) async {
     final harness = TestHarness(tmp);
     addTearDown(harness.dispose);
     harness.addGame(title: 'Альфа', status: GameStatus.installed);
@@ -225,17 +226,13 @@ void main() {
     await tester.pumpWidget(harness.buildApp());
     await tester.pumpAndSettle();
 
-    expect(
-      tester.widget<FeaturedGame>(find.byType(FeaturedGame)).compact,
-      isFalse,
-    );
-    final full = tester.getSize(find.byType(FeaturedGame)).height;
+    expect(tester.widget<EvHero>(find.byType(EvHero)).layout.low, isFalse);
+    final full = tester.getSize(find.byType(EvLibraryHero)).height;
 
     await resize(760);
-    final compact = tester.widget<FeaturedGame>(find.byType(FeaturedGame));
-    expect(compact.compact, isTrue);
+    expect(tester.widget<EvHero>(find.byType(EvHero)).layout.low, isTrue);
     expect(
-      tester.getSize(find.byType(FeaturedGame)).height,
+      tester.getSize(find.byType(EvLibraryHero)).height,
       lessThan(full),
       reason: 'полоса обязана быть ниже полного кадра',
     );
@@ -246,7 +243,7 @@ void main() {
 
     // А вот в совсем низком окне кадр уступает место самой полке.
     await resize(420);
-    expect(find.byType(FeaturedGame), findsNothing);
+    expect(find.byType(EvLibraryHero), findsNothing);
     expect(find.byType(GameCoverTile), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -304,7 +301,7 @@ void main() {
     expect(harness.nav.state.selectedGameId, third);
     // Крупный кадр наверху идёт за выбором — ради него всё и затевалось.
     expect(
-      tester.widget<FeaturedGame>(find.byType(FeaturedGame)).game.id,
+      tester.widget<EvLibraryHero>(find.byType(EvLibraryHero)).game.id,
       third,
     );
 

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/ui/ev/design/theme.dart';
+import 'package:evaporate/ui/ev/library/ev_hero.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,7 +51,7 @@ void main() {
     await harness.pump(tester);
 
     expect(find.text(l.sectionLibraryLabel), findsOneWidget);
-    expect(find.text('ТЕСТОВАЯ ОРБИТА'), findsOneWidget);
+    expect(tester.widget<EvHero>(find.byType(EvHero)).title, 'Тестовая орбита');
     expect(find.text(l.openGame), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

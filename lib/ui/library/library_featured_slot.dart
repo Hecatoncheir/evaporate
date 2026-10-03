@@ -6,23 +6,20 @@ import '../../bloc/settings/settings_bloc.dart';
 import '../../models/app_settings.dart';
 import '../../models/game.dart';
 import '../../models/library_effect.dart';
-import 'featured_game.dart';
+import '../ev/app/ev_library_hero.dart';
 import 'primary_action.dart';
 
 /// Место крупного кадра над полкой.
 ///
-/// Кадр выбранной игры не прячется там, где просто меньше места: ниже 760
-/// точек он становится полосой и уходит совсем только тогда, когда иначе не
-/// осталось бы места самой полке.
+/// Кадр выбранной игры — виджет прототипа. На низком окне он имеет высоту
+/// 300 точек, на высоком растёт по ступеням прототипа. До переноса полок
+/// остаётся прежний порог скрытия в совсем низком окне.
 class LibraryFeaturedSlot extends StatelessWidget {
   const LibraryFeaturedSlot({
     super.key,
     required this.games,
     required this.height,
   });
-
-  /// Выше этой высоты у кадра полный вид; ниже — полоса.
-  static const _roomyHeight = 760.0;
 
   /// Ниже этой высоты кадр убирается совсем. Число — от каркаса: в
   /// наименьшем окне (620 по высоте) разделу достаётся 530 точек между
@@ -57,9 +54,8 @@ class LibraryFeaturedSlot extends StatelessWidget {
       (b) => b.state.appearance,
     );
     if (game == null || height < heroHeight) return const SizedBox.shrink();
-    return FeaturedGame(
+    return EvLibraryHero(
       game: game,
-      compact: height < _roomyHeight,
       sweepEnabled: effects.shows(LibraryEffect.heroSweep),
       shotsEnabled: effects.shows(LibraryEffect.shotsBackdrop),
       onOpen: () => context.read<NavigationBloc>().add(GameOpened(game.id)),

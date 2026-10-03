@@ -25,7 +25,7 @@ void main() {
   ///
   /// Через `find.bySemanticsLabel` такое не проверить: нам нужен не поиск
   /// известной подписи, а то, что подписи вообще есть и как они звучат.
-  List<String> spokenLabels(WidgetTester tester) {
+  List<String> spokenLabels(WidgetTester tester, {SemanticsNode? root}) {
     final labels = <String>[];
     void walk(SemanticsNode node) {
       if (node.label.isNotEmpty) labels.add(node.label);
@@ -35,7 +35,7 @@ void main() {
       });
     }
 
-    walk(tester.binding.rootElement!.renderObject!.debugSemantics!);
+    walk(root ?? tester.binding.rootElement!.renderObject!.debugSemantics!);
     return labels;
   }
 
@@ -73,9 +73,10 @@ void main() {
     harness.addGame(title: 'Одинокая', status: GameStatus.installed);
     await harness.pump(tester);
 
-    final about = spokenLabels(tester)
-        .where((l) => l.contains('Одинокая'))
-        .toList();
+    final about = spokenLabels(
+      tester,
+      root: tester.getSemantics(find.byType(GameCoverTile)),
+    ).where((l) => l.contains('Одинокая')).toList();
 
     expect(about, hasLength(1));
     handle.dispose();

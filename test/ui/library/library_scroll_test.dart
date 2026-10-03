@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:evaporate/bloc/navigation/navigation_bloc.dart';
-import 'package:evaporate/ui/library/featured_game.dart';
+import 'package:evaporate/ui/ev/app/ev_library_hero.dart';
 import 'package:evaporate/ui/library/game_cover_tile.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:evaporate/ui/library/library_empty_state.dart';
@@ -69,7 +69,7 @@ void main() {
       rect: primaryFocus!.rect,
       inToolbar:
           context.findAncestorWidgetOfExactType<LibraryToolbar>() != null,
-      inHero: context.findAncestorWidgetOfExactType<FeaturedGame>() != null,
+      inHero: context.findAncestorWidgetOfExactType<EvLibraryHero>() != null,
     );
   }
 
@@ -80,7 +80,7 @@ void main() {
     tester,
   ) async {
     await longLibrary(tester);
-    final hero = find.byType(FeaturedGame);
+    final hero = find.byType(EvLibraryHero);
     final toolbar = find.byType(LibraryToolbar);
     final before = (
       hero: tester.getRect(hero).top,
@@ -88,7 +88,7 @@ void main() {
       tile: tester.getRect(tile(0)).top,
     );
 
-    await tester.drag(tile(0), const Offset(0, -300));
+    await tester.dragFrom(page(tester).center, const Offset(0, -300));
     await tester.pumpAndSettle();
 
     final moved = before.tile - tester.getRect(tile(0)).top;
@@ -138,32 +138,32 @@ void main() {
   // Сетка — часть одной прокрутки со страницей, и доля 0.1, которой
   // плитка под фокусом подводила себя, двигала уже всю страницу: плитка
   // первого ряда, видная целиком, уносила под полосу крупный кадр с
-  // клавишей «Играть» — с первого же нажатия. В 1440×900 под первым
+  // клавишей «Играть» — с первого же нажатия. В 1440×1400 под первым
   // рядом хватает места и на рост обложки под фокусом.
   testWidgets('фокус на плитке, видной целиком, страницу не двигает', (
     tester,
   ) async {
-    await longLibrary(tester, window: const Size(1440, 900));
+    await longLibrary(tester, window: const Size(1440, 1400));
     final grid = tester.widget<LibraryBody>(find.byType(LibraryBody)).grid;
-    final hero = tester.getRect(find.byType(FeaturedGame));
+    final hero = tester.getRect(find.byType(EvLibraryHero));
 
     await focusTile(tester, 1);
 
     expect(grid.scroll.offset, 0);
-    expect(tester.getRect(find.byType(FeaturedGame)), hero);
+    expect(tester.getRect(find.byType(EvLibraryHero)), hero);
   });
 
-  // В 1280×900 под первым рядом не хватает нескольких точек на рост
-  // обложки: страница сдвигается на них, а не на полэкрана.
-  testWidgets('фокус на плитке первого ряда крупный кадр не прячет', (
+  // Высокий герой прототипа занимает первый экран: переход к плитке
+  // подводит её к видимому, сохраняя на экране нижнюю часть кадра.
+  testWidgets('фокус первого ряда сохраняет нижнюю часть кадра', (
     tester,
   ) async {
     await longLibrary(tester);
 
     await focusTile(tester, 1);
 
-    final hero = tester.getRect(find.byType(FeaturedGame));
-    expect(hero.top, greaterThanOrEqualTo(page(tester).top));
+    final hero = tester.getRect(find.byType(EvLibraryHero));
+    expect(hero.bottom, greaterThan(page(tester).top));
     expect(hero.bottom, lessThanOrEqualTo(page(tester).bottom));
   });
 
@@ -180,7 +180,7 @@ void main() {
     final grown = shownTile(tester, 1);
     expect(grown.bottom, moreOrLessEquals(page(tester).bottom, epsilon: 0.5));
     expect(
-      tester.getRect(find.byType(FeaturedGame)).bottom,
+      tester.getRect(find.byType(EvLibraryHero)).bottom,
       greaterThan(page(tester).top),
     );
   });
@@ -198,8 +198,8 @@ void main() {
 
     expect(primaryFocus?.debugLabel, 'game:${ids[2]}');
     expect(
-      tester.getRect(find.byType(FeaturedGame)).top,
-      greaterThanOrEqualTo(page(tester).top),
+      tester.getRect(find.byType(EvLibraryHero)).bottom,
+      greaterThan(page(tester).top),
     );
   });
 
@@ -269,7 +269,7 @@ void main() {
     await tester.pump();
     await focusTile(tester, 0);
     expect(
-      tester.getRect(find.byType(FeaturedGame, skipOffstage: false)).bottom,
+      tester.getRect(find.byType(EvLibraryHero, skipOffstage: false)).bottom,
       lessThan(page(tester).top),
       reason: 'кадр должен был уйти под полосу, иначе проверять нечего',
     );

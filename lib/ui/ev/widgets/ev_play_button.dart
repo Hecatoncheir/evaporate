@@ -37,6 +37,7 @@ class EvPlayButton extends StatefulWidget {
     this.onCharge,
     this.caption,
     this.cool = false,
+    this.holdSemantics,
   });
 
   /// `null` — действия пока нет: кнопка выглядит так же, но не
@@ -62,6 +63,9 @@ class EvPlayButton extends StatefulWidget {
 
   /// Холодная заливка: так помечена загрузка — данные, а не запуск.
   final bool cool;
+
+  /// Переведённая подсказка удержания для подключённого приложения.
+  final String? holdSemantics;
 
   @override
   State<EvPlayButton> createState() => _EvPlayButtonState();
@@ -200,7 +204,8 @@ class _EvPlayButtonState extends State<EvPlayButton>
         child: Semantics(
           button: true,
           label: widget.requireHold && widget.onLaunch != null
-              ? '${widget.label}. Удерживайте, чтобы запустить'
+              ? widget.holdSemantics ??
+                    '${widget.label}. Удерживайте, чтобы запустить'
               : widget.label,
           child: AnimatedBuilder(
             animation: Listenable.merge([_hold, _breathe, _sweep]),

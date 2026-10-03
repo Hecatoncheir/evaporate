@@ -2,9 +2,10 @@ import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/app/ev_library_hero.dart';
+import 'package:evaporate/ui/ev/library/ev_hero.dart';
+import 'package:evaporate/ui/ev/widgets/ev_surfaces.dart';
 import 'package:evaporate/ui/labels.dart';
-import 'package:evaporate/ui/library/featured_game.dart';
-import 'package:evaporate/ui/widgets/toned_chip.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,7 +32,7 @@ void main() {
   }
 
   Finder inFrame(Finder finder) =>
-      find.descendant(of: find.byType(FeaturedGame), matching: finder);
+      find.descendant(of: find.byType(EvLibraryHero), matching: finder);
 
   // Наигранное время стояло в кадре отдельным показанием в углу, и в
   // полосе — ещё и в надстрочной метке. Теперь оно в плашке, и один раз.
@@ -79,11 +80,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  // Второй ряд плашек вытолкнул бы клавиши из кадра высотой 238: не
-  // влезшее срезается, а кадр не ломается.
-  testWidgets('длинные плашки стоят одной строкой и не ломают кадр', (
-    tester,
-  ) async {
+  // У прототипа плашки переносятся, не отнимая места у клавиш.
+  testWidgets('длинные плашки не ломают кадр прототипа', (tester) async {
     await show(
       tester,
       (game) => game.copyWith(
@@ -97,18 +95,10 @@ void main() {
     tester.view.physicalSize = const Size(900, 1000);
     await tester.pumpAndSettle();
 
-    expect(
-      tester.widget<FeaturedGame>(find.byType(FeaturedGame)).compact,
-      isFalse,
-    );
+    expect(tester.widget<EvHero>(find.byType(EvHero)).layout.low, isFalse);
     expect(tester.takeException(), isNull);
     expect(inFrame(find.text(l.play)), findsOneWidget);
-    final chips = inFrame(find.byType(TonedChip));
+    final chips = inFrame(find.byType(EvChip));
     expect(chips, findsNWidgets(3));
-    expect(
-      {for (var i = 0; i < 3; i++) tester.getRect(chips.at(i)).top},
-      hasLength(1),
-      reason: 'плашки ушли во второй ряд',
-    );
   });
 }

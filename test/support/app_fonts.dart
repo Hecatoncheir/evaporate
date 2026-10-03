@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 /// один раз.
 Future<void> loadAppFonts() async {
   for (final MapEntry(key: family, value: asset) in const {
+    'Onest': 'assets/fonts/Onest-Regular.ttf',
     'Unbounded': 'assets/fonts/Unbounded.ttf',
     'Golos Text': 'assets/fonts/GolosText.ttf',
     'JetBrains Mono': 'assets/fonts/JetBrainsMono.ttf',

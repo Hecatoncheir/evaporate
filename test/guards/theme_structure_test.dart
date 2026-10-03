@@ -492,7 +492,6 @@ const _fontSize = [
   // кадра.
   'lib/ui/library/detail/detail_cover.dart: 1',
   'lib/ui/library/cover/cover_title_plate.dart: 1',
-  'lib/ui/library/featured/featured_title.dart: 1',
 ];
 
 const _durations = [
@@ -517,7 +516,6 @@ const _radii = <String>[];
 const _textStyles = [
   'lib/ui/library/cover/cover_title_plate.dart: 1',
   'lib/ui/library/detail/detail_cover.dart: 1',
-  'lib/ui/library/featured/featured_title.dart: 1',
 ];
 
 const _roleTweaks = <String>[];
@@ -539,7 +537,6 @@ const _curves = [
 
 const _alphas = [
   'lib/ui/downloads/download_chart.dart: 2',
-  'lib/ui/library/featured/featured_actions.dart: 1',
   'lib/ui/library/effects/foil/foil_surface.dart: 2',
   'lib/ui/library/effects/library_atmosphere.dart: 2',
   'lib/ui/library/effects/portal/portal_atlas.dart: 1',

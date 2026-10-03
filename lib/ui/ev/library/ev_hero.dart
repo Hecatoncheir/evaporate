@@ -47,6 +47,8 @@ class EvHero extends StatefulWidget {
     this.onQuit,
     this.onOverlay,
     this.onOtherSave,
+    this.art,
+    this.actions,
   });
 
   final EvLibraryLayout layout;
@@ -79,6 +81,13 @@ class EvHero extends StatefulWidget {
 
   /// «Другое» у точки сохранения — выбрать другую.
   final VoidCallback? onOtherSave;
+
+  /// Настоящий кадр игры вместо рисованного; затемнение остаётся общим.
+  final Widget? art;
+
+  /// Действия движка в облике прототипа; заряд греет тот же кадр.
+  final List<Widget> Function(BuildContext, double, ValueChanged<double>)?
+  actions;
 
   @override
   State<EvHero> createState() => _EvHeroState();
@@ -136,18 +145,20 @@ class _EvHeroState extends State<EvHero> {
                 fit: StackFit.expand,
                 children: [
                   RepaintBoundary(
-                    child: CustomPaint(
-                      painter: EvHeroArtPainter(
-                        palette: widget.palette,
-                        seed: widget.seed,
-                        devicePixelRatio: MediaQuery.devicePixelRatioOf(
-                          context,
+                    child:
+                        widget.art ??
+                        CustomPaint(
+                          painter: EvHeroArtPainter(
+                            palette: widget.palette,
+                            seed: widget.seed,
+                            devicePixelRatio: MediaQuery.devicePixelRatioOf(
+                              context,
+                            ),
+                            pointer: pointer,
+                            charge: still ? null : _charge,
+                            clock: _clock,
+                          ),
                         ),
-                        pointer: pointer,
-                        charge: still ? null : _charge,
-                        clock: _clock,
-                      ),
-                    ),
                   ),
                   IgnorePointer(
                     child: CustomPaint(painter: _GradePainter(c.sub)),
@@ -187,6 +198,9 @@ class _EvHeroState extends State<EvHero> {
   List<Widget> _cta(BuildContext context, EvEffects? effects) {
     final m = widget.layout;
     final content = widget.content;
+    if (widget.actions case final actions?) {
+      return actions(context, m.buttonHeight, (value) => _charge.value = value);
+    }
 
     if (content.install != null) {
       return [EvInstallBox(content.install!)];
@@ -281,10 +295,18 @@ class _EvHeroState extends State<EvHero> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (light.isNotEmpty) Text(light, style: titleStyle),
+              if (light.isNotEmpty)
+                Text(
+                  light,
+                  style: titleStyle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               Text(
                 words.last,
                 style: ev.text.dsp(titleStyle, weight: FontWeight.w800),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -295,7 +317,12 @@ class _EvHeroState extends State<EvHero> {
             constraints: BoxConstraints(
               maxWidth: m.blurbChars * evCharWidth(blurbStyle),
             ),
-            child: Text(content.blurb, style: blurbStyle),
+            child: Text(
+              content.blurb,
+              style: blurbStyle,
+              maxLines: m.low ? 1 : 3,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
         SizedBox(height: m.bodyGap),

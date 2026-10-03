@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/widgets/ev_icon.dart';
+import 'package:evaporate/ui/ev/widgets/ev_play_button.dart';
 import 'package:evaporate/ui/library/primary_action.dart';
 import 'package:evaporate/ui/theme.dart';
-import 'package:evaporate/ui/widgets/launcher_action_button.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/test_app.dart';
@@ -128,8 +128,8 @@ void main() {
     setUp(() async => tmp = await TestHarness.makeTempDir());
     tearDown(() => TestHarness.removeTempDir(tmp));
 
-    LauncherActionButton featured(WidgetTester tester) => tester
-        .widget<LauncherActionButton>(find.byType(LauncherActionButton).first);
+    EvPlayButton featured(WidgetTester tester) =>
+        tester.widget<EvPlayButton>(find.byType(EvPlayButton).first);
 
     testWidgets('клавиша подписана тем, что она сделает', (tester) async {
       final harness = TestHarness(tmp);
@@ -146,9 +146,9 @@ void main() {
       await harness.pump(tester);
 
       expect(featured(tester).label, 'Пауза');
-      expect(featured(tester).icon, Icons.pause_rounded);
-      expect(featured(tester).tone, LauncherTone.download);
-      expect(featured(tester).onPressed, isNotNull);
+      expect(featured(tester).icon, EvIcons.pause);
+      expect(featured(tester).cool, isTrue);
+      expect(featured(tester).onLaunch, isNotNull);
     });
 
     testWidgets('нечего делать — клавиша погашена, а не мертва', (
@@ -163,7 +163,7 @@ void main() {
       await harness.pump(tester);
 
       expect(featured(tester).label, 'Скачать');
-      expect(featured(tester).onPressed, isNull);
+      expect(featured(tester).onLaunch, isNull);
     });
   });
 }

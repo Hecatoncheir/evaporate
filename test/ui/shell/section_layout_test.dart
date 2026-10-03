@@ -48,13 +48,17 @@ void main() {
   // наименьшем окне ряд срезала панель библиотеки: обойма слева сузила
   // её, и органы панели вставали столбцом в три строки.
   //
-  // Страница с тех пор прокручивается целиком, но первый экран — тот, что
-  // видят, открыв библиотеку, — по-прежнему обязан показать ряд обложек:
-  // видимое — место раздела между полосами, а не вся прокрутка.
+  // Высокий герой прототипа занимает первый экран. Обложки достижимы
+  // фокусом и прокруткой, а в минимальном окне герой ещё скрыт.
   for (final window in [const Size(1280, 900), const Size(900, 620)]) {
-    testWidgets('первый ряд обложек виден целиком в окне '
+    testWidgets('фокус выводит первый ряд обложек в окне '
         '${window.width.round()}×${window.height.round()}', (tester) async {
-      await show(tester, window);
+      final harness = await show(tester, window);
+      tester
+          .widget<LibraryBody>(find.byType(LibraryBody))
+          .grid
+          .requestFocus(harness.library.state.games.first.id);
+      await tester.pumpAndSettle();
 
       final page = tester.getRect(find.byType(LibraryBody));
       final tile = tester.getRect(find.byType(GameCoverTile).first);
