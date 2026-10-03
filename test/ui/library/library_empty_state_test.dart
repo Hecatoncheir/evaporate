@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:evaporate/bloc/library_view/library_view_bloc.dart';
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/shelf.dart';
+import 'package:evaporate/ui/ev/app/app_theme.dart';
+import 'package:evaporate/ui/ev/widgets/ev_controls.dart';
+import 'package:evaporate/ui/ev/widgets/ev_play_button.dart';
 import 'package:evaporate/ui/library/library_empty_state.dart';
 import 'package:evaporate/ui/library/library_toolbar.dart';
 import 'package:flutter/material.dart';
@@ -29,16 +32,13 @@ void main() {
 
     expect(find.text(l.libraryEmpty), findsOneWidget);
     expect(
-      find.widgetWithText(FilledButton, l.findInstalledGames),
+      find.widgetWithText(EvPlayButton, l.findInstalledGames),
       findsOneWidget,
     );
-    expect(
-      find.widgetWithText(OutlinedButton, l.addGameSource),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(EvGhostButton, l.addGameSource), findsOneWidget);
     expect(find.text(l.libraryDropHint), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(OutlinedButton, l.addGameSource));
+    await tester.tap(find.widgetWithText(EvGhostButton, l.addGameSource));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
   });
@@ -67,11 +67,14 @@ void main() {
           BlocProvider.value(value: harness.library),
           BlocProvider(create: (_) => LibraryViewBloc()),
         ],
-        child: hostWidget(LibraryEmptyState(onScan: () => scans++)),
+        child: hostWidget(
+          LibraryEmptyState(onScan: () => scans++),
+          theme: evaporateAppTheme(),
+        ),
       ),
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, l.findInstalledGames));
+    await tester.tap(find.widgetWithText(EvPlayButton, l.findInstalledGames));
     expect(scans, 1);
   });
 
@@ -92,7 +95,7 @@ void main() {
     expect(find.text(l.nothingFound), findsOneWidget);
     expect(find.text(l.libraryDropHint), findsNothing);
     expect(
-      find.widgetWithText(FilledButton, l.findInstalledGames),
+      find.widgetWithText(EvPlayButton, l.findInstalledGames),
       findsNothing,
     );
   });

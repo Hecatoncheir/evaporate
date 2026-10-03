@@ -5,6 +5,7 @@ import 'package:evaporate/bloc/settings/settings_bloc.dart';
 import 'package:evaporate/l10n/app_localizations.dart';
 import 'package:evaporate/ui/ev/shell/ev_rail.dart';
 import 'package:evaporate/ui/ev/shell/ev_top_bar.dart';
+import 'package:evaporate/ui/ev/widgets/ev_controls.dart';
 import 'package:evaporate/ui/ev/widgets/ev_icon.dart';
 import 'package:evaporate/ui/theme.dart';
 import 'package:evaporate/ui/window/app_window_frame.dart';
@@ -441,7 +442,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byKey(const ValueKey('rail-quit')), findsOneWidget);
       expect(
-        find.widgetWithText(OutlinedButton, 'Добавить игру'),
+        find.widgetWithText(EvGhostButton, 'Добавить игру'),
         findsOneWidget,
       );
       final preview = Platform.environment['WINDOW_FRAME_PREVIEW'];

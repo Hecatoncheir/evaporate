@@ -21,6 +21,7 @@ class EvGhostButton extends StatefulWidget {
     this.height = 56,
     this.danger = false,
     this.grouped = false,
+    this.focusNode,
   }) : iconOnly = false;
 
   /// Только иконка, квадратом по высоте: место в полосе действий дорого,
@@ -34,6 +35,7 @@ class EvGhostButton extends StatefulWidget {
     this.height = 56,
     this.danger = false,
     this.grouped = false,
+    this.focusNode,
   }) : iconOnly = true;
 
   final String label;
@@ -52,6 +54,9 @@ class EvGhostButton extends StatefulWidget {
 
   /// Подпись не показывается, кнопка становится квадратной.
   final bool iconOnly;
+
+  /// Узел меню возвращает фокус на клавишу после закрытия.
+  final FocusNode? focusNode;
 
   @override
   State<EvGhostButton> createState() => _EvGhostButtonState();
@@ -78,6 +83,7 @@ class _EvGhostButtonState extends State<EvGhostButton> {
         onPointerUp: (_) => setState(() => _pressed = false),
         onPointerCancel: (_) => setState(() => _pressed = false),
         child: EvFocusable(
+          focusNode: widget.focusNode,
           onActivate: widget.onPressed,
           radius: ev.radii.pill,
           child: Semantics(

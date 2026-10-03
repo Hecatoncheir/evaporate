@@ -8,6 +8,7 @@ import 'package:evaporate/models/app_section.dart';
 import 'package:evaporate/models/game.dart';
 import 'package:evaporate/models/library_effect.dart';
 import 'package:evaporate/ui/ev/app/ev_library_card.dart';
+import 'package:evaporate/ui/ev/design/theme.dart';
 import 'package:evaporate/ui/settings/settings_page.dart';
 import 'package:evaporate/ui/shell/chrome_scroll_view.dart';
 import 'package:evaporate/ui/theme.dart';
@@ -280,10 +281,9 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, l.tabInstalled));
       await frames(13);
       expect(state('shelf-liquid').isAnimating, isTrue);
-      final palette = light ? EvaporatePalette.light : EvaporatePalette.dark;
       expect(
         DefaultTextStyle.of(tester.element(find.text(l.tabAll))).style.color,
-        palette.onSelection,
+        tester.element(find.text(l.tabAll)).ev.colors.ink,
       );
       await capture('filters');
       await frames(25);

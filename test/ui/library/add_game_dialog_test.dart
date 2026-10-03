@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:evaporate/l10n/app_localizations_ru.dart';
 import 'package:evaporate/models/game.dart';
+import 'package:evaporate/ui/ev/widgets/ev_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,9 +29,7 @@ void main() {
     addTearDown(harness.dispose);
     await harness.pump(tester);
 
-    await tester.tap(
-      find.widgetWithText(OutlinedButton, 'Magnet, .torrent или папка…'),
-    );
+    await tester.tap(find.widgetWithText(EvGhostButton, l.addGameSource));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
     return harness;

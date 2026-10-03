@@ -930,6 +930,8 @@
   "launchFileMissing": "Файл не найден: {path}",
   "launchNoExecutable": "Не указан исполняемый файл",
   "library": "Библиотека",
+  "libraryClearSearch": "Очистить поиск",
+  "libraryResetFilters": "Показать все игры",
   "libraryEmpty": "Библиотека пуста",
   "libraryEmptyNote": "Добавьте игру: magnet-ссылкой, .torrent-файлом или указав папку с уже установленной игрой. Источники вы задаёте сами — каталога в приложении нет.",
   "libraryDropHint": "Или перетащите сюда .torrent либо папку с игрой",

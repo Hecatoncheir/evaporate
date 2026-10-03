@@ -259,6 +259,8 @@
   "launchFileMissing": "File not found: {path}",
   "launchNoExecutable": "No executable set",
   "library": "Library",
+  "libraryClearSearch": "Clear search",
+  "libraryResetFilters": "Show all games",
   "libraryEmpty": "The library is empty",
   "libraryEmptyNote": "Add a game with a magnet link, a .torrent file, or by pointing at a folder that already holds one. You supply the sources yourself — the app ships no catalogue.",
   "libraryDropHint": "Or drop a .torrent or a game folder here",

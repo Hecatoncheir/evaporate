@@ -7,6 +7,7 @@ import 'package:evaporate/ui/ev/app/ev_library_card.dart';
 import 'package:evaporate/ui/ev/app/ev_library_hero.dart';
 import 'package:evaporate/ui/ev/library/ev_hero.dart';
 import 'package:evaporate/ui/ev/library/library_layout.dart';
+import 'package:evaporate/ui/ev/widgets/ev_controls.dart';
 import 'package:evaporate/ui/ev/widgets/ev_game_card.dart';
 import 'package:evaporate/ui/library/library_body.dart';
 import 'package:flutter/gestures.dart';
@@ -48,12 +49,9 @@ void main() {
     // «Указать источник» делали одно и то же и стояли рядом равными по
     // виду, а выбирать между ними приходилось до того, как станет понятно,
     // чем они различаются.
-    expect(
-      find.widgetWithText(OutlinedButton, 'Добавить игру'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(EvGhostButton, 'Добавить игру'), findsOneWidget);
     expect(find.text(l.findInstalledGames), findsNothing);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Добавить игру'));
+    await tester.tap(find.widgetWithText(EvGhostButton, 'Добавить игру'));
     await tester.pumpAndSettle();
     expect(find.text(l.findInstalledGames), findsOneWidget);
     expect(find.text(l.addGameSource), findsOneWidget);

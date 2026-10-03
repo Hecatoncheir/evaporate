@@ -15,7 +15,33 @@ import '../widgets/ev_surfaces.dart';
 /// Пустая библиотека. Не извинение, а точка входа: знак светится, два
 /// пути внутрь и зона, куда бросить раздачу, — все три ведут к добавлению.
 class EvLibraryEmpty extends StatelessWidget {
-  const EvLibraryEmpty({super.key, this.onScan, this.onMagnet, this.onDrop});
+  const EvLibraryEmpty({
+    super.key,
+    this.onScan,
+    this.onMagnet,
+    this.onDrop,
+    this.title = 'Ни одной игры',
+    this.subtitle = 'пока что',
+    this.titleLabel = 'Ни одной игры пока что',
+    this.note =
+        'Evaporate ищет игры двумя путями: подхватывает уже '
+        'установленные с диска или скачивает новые через встроенный '
+        'движок. Начните с любого.',
+    this.scanLabel = 'Просканировать диск',
+    this.sourceLabel = 'Вставить magnet-ссылку',
+    this.dropLabel = 'Перетащите сюда .torrent или папку с игрой',
+    this.footer,
+  });
+
+  /// Рабочий экран передаёт переводы и только подключённые действия.
+  final String title,
+      subtitle,
+      titleLabel,
+      note,
+      scanLabel,
+      sourceLabel,
+      dropLabel;
+  final Widget? footer;
 
   final VoidCallback? onScan;
   final VoidCallback? onMagnet;
@@ -29,7 +55,7 @@ class EvLibraryEmpty extends StatelessWidget {
     final c = ev.colors;
     final window = MediaQuery.sizeOf(context);
     final size = (window.width * .04).clamp(24.0, 40.0);
-    final title = ev.text.display(size).copyWith(height: 1.02);
+    final titleStyle = ev.text.display(size).copyWith(height: 1.02);
     final text = ev.text.body.copyWith(fontSize: 14.5, color: c.ink2);
     final hint = ev.text.data.copyWith(fontSize: 10.5, color: c.ink4);
     return Padding(
@@ -44,28 +70,23 @@ class EvLibraryEmpty extends StatelessWidget {
           // просто жирной и приклеивалась к первой: «игрыпока что».
           Semantics(
             header: true,
-            label: 'Ни одной игры пока что',
+            label: titleLabel,
             excludeSemantics: true,
             child: Column(
               children: [
-                Text('Ни одной игры', style: title),
-                Text(
-                  'пока что',
-                  style: ev.text.dsp(title, weight: FontWeight.w800),
-                ),
+                Text(title, style: titleStyle, textAlign: TextAlign.center),
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    style: ev.text.dsp(titleStyle, weight: FontWeight.w800),
+                  ),
               ],
             ),
           ),
           const SizedBox(height: 20),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: evCharWidth(text) * 48),
-            child: Text(
-              'Evaporate ищет игры двумя путями: подхватывает уже '
-              'установленные с диска или скачивает новые через встроенный '
-              'движок. Начните с любого.',
-              textAlign: TextAlign.center,
-              style: text,
-            ),
+            child: Text(note, textAlign: TextAlign.center, style: text),
           ),
           const SizedBox(height: 22),
           Wrap(
@@ -74,7 +95,7 @@ class EvLibraryEmpty extends StatelessWidget {
             alignment: WrapAlignment.center,
             children: [
               EvPlayButton(
-                label: 'Просканировать диск',
+                label: scanLabel,
                 icon: EvIcons.folder,
                 height: 52,
                 requireHold: false,
@@ -82,7 +103,7 @@ class EvLibraryEmpty extends StatelessWidget {
                 onLaunch: onScan,
               ),
               EvGhostButton(
-                label: 'Вставить magnet-ссылку',
+                label: sourceLabel,
                 icon: EvIcons.magnet,
                 height: 52,
                 onPressed: onMagnet,
@@ -90,28 +111,32 @@ class EvLibraryEmpty extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 26),
-          _DropZone(onTap: onDrop),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 22,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              for (final (k, label) in const [
-                ('Ctrl+O', 'Открыть файл'),
-                ('Ctrl+V', 'Вставить ссылку'),
-                ('/', 'Поиск по каталогу'),
-              ])
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    EvKey(k),
-                    const SizedBox(width: 7),
-                    Text(label, style: hint),
-                  ],
-                ),
-            ],
-          ),
+          _DropZone(onTap: onDrop, label: dropLabel),
+          if (footer != null)
+            footer!
+          else ...[
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 22,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final (k, label) in const [
+                  ('Ctrl+O', 'Открыть файл'),
+                  ('Ctrl+V', 'Вставить ссылку'),
+                  ('/', 'Поиск по каталогу'),
+                ])
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      EvKey(k),
+                      const SizedBox(width: 7),
+                      Text(label, style: hint),
+                    ],
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -202,9 +227,10 @@ class _GlowingMarkState extends State<_GlowingMark>
 }
 
 class _DropZone extends StatefulWidget {
-  const _DropZone({this.onTap});
+  const _DropZone({this.onTap, required this.label});
 
   final VoidCallback? onTap;
+  final String label;
 
   @override
   State<_DropZone> createState() => _DropZoneState();
@@ -248,7 +274,7 @@ class _DropZoneState extends State<_DropZone> {
                   const SizedBox(width: 14),
                   Flexible(
                     child: Text(
-                      'Перетащите сюда .torrent или папку с игрой',
+                      widget.label,
                       style: ev.text.data.copyWith(
                         fontSize: 11.5,
                         letterSpacing: .7,
